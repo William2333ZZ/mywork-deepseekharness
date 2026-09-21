@@ -1,0 +1,20 @@
+dsh-mywork-codex-ui is a fork of @michengai/dsh-codex-ui (DSH Codex UI) 1.1.14,
+Copyright MichengAI, licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Changes in this fork (MyWork Kit):
+- package renamed to dsh-mywork-codex-ui; loader row ids prefixed `mywork-`
+- sidebar navigation tidied (src/client/settings-sections.ts): the "扩展管理"
+  group holds Scheduled tasks and Plugin market; Plugin configuration and
+  Connectors are reached from Settings instead. Experts / Skills / IM assistant
+  are shown only when a settings section with that label is actually
+  registered; nothing routes to the "Codex UI" about page any more
+- 定时任务 / IM助理 / MCP 连接器 are standalone main panels (src/client/section-panels.tsx,
+  ids `mywork-schedule` / `mywork-im` / `mywork-mcp`) instead of settings sections: the
+  first two host the settings.section entries of @michengai/dsh-automation and
+  @michengai/dsh-im-connect, the third is this package's native connector list plus a
+  new-tab link to the dsh-mcp-connector market page
+- no iframes: the "Usage statistics" page (which framed a third-party billing
+  plugin) and the framed MCP connector market are removed; the Connectors page
+  always shows the native list and offers to open the market in a new tab
+- release / CI tooling, the usage-frame build step and test-only
+  devDependencies removed; upstream README kept as README.upstream.md

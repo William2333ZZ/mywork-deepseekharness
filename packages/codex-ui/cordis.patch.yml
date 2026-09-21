@@ -1,0 +1,13 @@
+# dsh-mywork-codex-ui (fork of @michengai/dsh-codex-ui): the sidebar and settings
+# shell take over the official rows, exactly as upstream does.
+- id: ui-sidebar
+  disabled: true
+- id: ui-settings-general
+  disabled: true
+- id: session-title-llm
+  disabled: true
+- insert:
+    - id: mywork-codex-ui-session-title
+      name: 'dsh-mywork-codex-ui/session-title'
+    - id: mywork-codex-ui
+      name: dsh-mywork-codex-ui

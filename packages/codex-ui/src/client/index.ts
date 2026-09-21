@@ -1,0 +1,321 @@
+import { openConversation, openConversationWithDraft, selectGlobalPanel } from './session-navigation.ts'
+import {
+  archiveHostSession,
+  currentSessionId,
+  forkHostSession,
+  probeService,
+  renameHostSession,
+  UnknownSessionError,
+} from './session-host.ts'
+import { createGlobalPanelSource } from './global-panels.tsx'
+import { registerSectionPanels } from './section-panels.tsx'
+import { createElement } from 'react'
+import { initializeComposerWidth, observeHeroWidthHandles } from './composer-width.ts'
+import { browserStorage } from './tree-expansion.ts'
+import type { Context as ClientContext } from '@deepseek-ai/cordis'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type { WorkspaceId } from '@deepseek-ai/dsh-workspace/types'
+import type {} from '@deepseek-ai/dsh-api-session-controller/client'
+import type {} from '@deepseek-ai/dsh-api-workspace-controller/client'
+import type {} from '@deepseek-ai/dsh-client-locale/client'
+import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
+import type {} from '@deepseek-ai/dsh-client-ui-chat/client'
+import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
+import type {} from '@deepseek-ai/dsh-client-ui-session/client'
+import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
+import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
+import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
+import type {} from '@deepseek-ai/dsh-client-ui-workspace/client'
+import { CodexSidebar } from './CodexSidebar.tsx'
+import { AboutSection } from './AboutSection.tsx'
+import { CodexWorkspaceBrowser } from './CodexWorkspaceBrowser.tsx'
+import { ConnectorsSection } from './ConnectorsSection.tsx'
+import { en, NS, zh } from './locales.ts'
+import { createCompanionTabSource } from './companion-slots.ts'
+import { createFooterActionSource } from './footer-actions.ts'
+import { openPathInHost, type HostOpenPathConnection } from './host-open-path.ts'
+import { observeSettingsNavIcons } from './settings-nav-icons.ts'
+import { createSettingsSectionSource } from './settings-sections.ts'
+import { registerPluginConfigSection } from './plugin-config.ts'
+import { registerSettingsPage } from './settings-page-registration.ts'
+import { observeSlimSidebar } from './sidebar-width.ts'
+import { observeConversationHeader } from './conversation-header.ts'
+import { observeOfficialTurnNavigators } from './official-turn-navigator.ts'
+import { TurnNavigator } from './TurnNavigator.tsx'
+import { registerInputHistory } from './InputHistoryDock.tsx'
+import { prefillNewConversation, createDraftPresenceSource } from './new-conversation-draft.ts'
+import { observeComposerToolMenus } from './composer-tool-menus.ts'
+import { hasConnectWorkspace, hasOpenWorkspace, hasStartSession, recentWorkspaceId, workspaceBaselinesReady } from './workspace-compat.ts'
+import { HostActionError, type HostAction, UserFacingError } from './user-error.ts'
+import { finishSessionMove, requestSessionMove, sessionMoveErrorKey, SessionMoveRequestError } from './session-move.ts'
+import { hasArchiveSessionDelete } from './archive-session-delete.ts'
+
+declare module '@deepseek-ai/dsh-client-ui-slots' {
+  interface SlotMap {
+    'sidebar.schedule': {
+      kind: 'single'
+      scope: 'root'
+      owner: {
+        wide: boolean
+        expandSidebar: () => void
+        openSession: (sessionId: SessionId) => void
+        renameSession: (sessionId: SessionId, title: string) => Promise<void>
+        archiveSession: (sessionId: SessionId) => Promise<void>
+        deleteSession: (sessionId: SessionId) => Promise<void>
+        forkSession: (sessionId: SessionId) => Promise<void>
+        moveSession: (sessionId: SessionId, targetWorkspaceId: WorkspaceId) => Promise<void>
+        openPath: (path: string) => Promise<void> | void
+        skin?: 'codex' | 'native'
+        view?: 'runs' | 'overview'
+        showViewSwitch?: boolean
+        useSessions: unknown
+        useWorkspaces: unknown
+      }
+    }
+    'sidebar.channels': {
+      kind: 'single'
+      scope: 'root'
+      owner: {
+        wide: boolean
+        expandSidebar: () => void
+        openSession: (sessionId: SessionId) => void
+        renameSession: (sessionId: SessionId, title: string) => Promise<void>
+        archiveSession: (sessionId: SessionId) => Promise<void>
+        deleteSession: (sessionId: SessionId) => Promise<void>
+        forkSession: (sessionId: SessionId) => Promise<void>
+        moveSession: (sessionId: SessionId, targetWorkspaceId: WorkspaceId) => Promise<void>
+        openPath: (path: string) => Promise<void> | void
+        skin?: 'codex' | 'native'
+        useSessions: unknown
+        useWorkspaces: unknown
+      }
+    }
+  }
+}
+
+export const inject = ['slots', 'sessions', 'workspaces', 'layout', 'locale', 'connection', 'inputTriggers', 'conversation']
+
+type ArchiveRegistry = {
+  deleteSession: (sessionId: SessionId) => Promise<
+    { ok: true; value?: unknown }
+    | { ok: false; error?: { message: string; code?: string; details?: unknown; isDSHRemoteError?: true } }
+  >
+}
+
+function hasDeleteSession(value: unknown): value is ArchiveRegistry {
+  return hasArchiveSessionDelete(value)
+}
+
+async function runHostAction<T>(action: HostAction, execute: () => Promise<T>): Promise<T> {
+  try {
+    return await execute()
+  } catch (reason) {
+    if (reason instanceof UserFacingError || reason instanceof HostActionError) throw reason
+    throw new HostActionError(action, reason)
+  }
+}
+
+/** Archive Manager replaces the official ui-workspace row with this optional service. */
+export function startWorkspaceSession(ctx: ClientContext, workspaceId?: WorkspaceId): void {
+  const uiWorkspace = probeService(ctx, 'uiWorkspace')
+  if (hasStartSession(uiWorkspace)) {
+    uiWorkspace.startSession(workspaceId)
+    return
+  }
+  if (hasStartSession(ctx.workspaces)) {
+    ctx.workspaces.startSession(workspaceId)
+    return
+  }
+  console.warn('DSH 工作空间服务尚未就绪，无法新建会话。')
+}
+
+/** 替换 DSH 的官方 sidebar 插槽，不修改 DSH 源码或会话数据。 */
+export function apply(ctx: ClientContext): void {
+  Object.assign(globalThis, { __dcuCurrentSessionId: currentSessionId })
+  const widthStorage = browserStorage()
+  if (widthStorage) initializeComposerWidth(widthStorage)
+  ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'michengai-codex-ui: dictionaries')
+  const t = ctx.locale.bind(NS)
+  ctx.effect(() => observeHeroWidthHandles(t('home.resizeInput')), 'michengai-codex-ui: hero width handles')
+  registerInputHistory(ctx)
+  registerSettingsPage(ctx)
+  registerPluginConfigSection(ctx)
+  // Host 与客户端共用 Cordis 的服务名；此处读取的是客户端 RPC 外观，而非 HostConnectionService。
+  const connectionService: unknown = ctx.get('connection')
+  const connection = connectionService as HostOpenPathConnection
+  const openPath = (path: string): Promise<void> => openPathInHost(connection, path)
+  ctx.effect(() => observeSlimSidebar(), 'michengai-codex-ui: slim sidebar')
+  ctx.effect(() => observeSettingsNavIcons(), 'michengai-codex-ui: settings nav icons')
+  ctx.effect(() => observeComposerToolMenus({ search: t('home.projectSearch'), empty: t('home.projectEmpty') }), 'michengai-codex-ui: composer tool menus')
+  ctx.effect(() => observeConversationHeader(), 'michengai-codex-ui: conversation header')
+  ctx.effect(() => observeOfficialTurnNavigators(), 'michengai-codex-ui: official turn navigator')
+  const newConversationDraft = createDraftPresenceSource(ctx.sessions.list, () => {
+    const id = currentSessionId(ctx.sessions.list.getSnapshot())
+    const binding = id === undefined ? undefined : ctx.sessions.binding(id as SessionId)
+    return binding === undefined ? undefined : ctx.conversation.input.for(binding.ctx).state
+  })
+  const companionSlots = createCompanionTabSource(ctx.slots)
+  const globalPanels = createGlobalPanelSource(ctx.slots, ctx.locale)
+  const footerActions = createFooterActionSource(ctx.slots)
+  const settingsSections = createSettingsSectionSource(ctx.slots, ctx.locale)
+  ctx.slots.inject('sidebar', () => ctx.slots.register({
+    name: 'sidebar',
+    registrant: 'michengai-codex-ui',
+    locale: NS,
+    children: {
+      'sidebar.panellist': { kind: 'list', scope: 'root' },
+      'sidebar.workspaces': { kind: 'single', scope: 'root' },
+      'sidebar.settings': { kind: 'single', scope: 'root' },
+      'sidebar.footer.action': { kind: 'list', scope: 'root' },
+      'sidebar.channels': { kind: 'single', scope: 'root' },
+      'sidebar.schedule': { kind: 'single', scope: 'root' },
+    },
+    inject: () => ({
+      newConversationDraft,
+      prefillNewConversation: (text: string) => {
+        const id = currentSessionId(ctx.sessions.list.getSnapshot())
+        const binding = id === undefined ? undefined : ctx.sessions.binding(id as SessionId)
+        return prefillNewConversation(binding === undefined ? undefined : ctx.conversation.input.for(binding.ctx), text)
+      },
+      openSession: (sessionId: SessionId) => { openConversation(ctx, ctx.layout, sessionId) },
+      startSession: (workspaceId?: WorkspaceId) => { startWorkspaceSession(ctx, workspaceId) },
+      toggleSidebar: () => { ctx.layout.toggleSidebar() },
+      archiveSession,
+      canDeleteSession: () => hasArchiveSessionDelete(ctx.get('remote.workspaceRegistry')),
+      deleteSession,
+      forkSession,
+      moveSession,
+      renameSession,
+      openPath,
+      companionSlots,
+      settingsSections,
+      globalPanels,
+      footerActions,
+      selectPanel: (id: string | null) => { selectGlobalPanel(ctx.layout, id) },
+    }),
+  }, CodexSidebar))
+
+  ctx.slots.inject('conversation.session.header.utilities', () => ctx.slots.register({
+    name: 'conversation.session.header.utilities', id: 'turn-navigator', order: 100, locale: NS,
+  }, TurnNavigator))
+
+  const forkSession = async (sessionId: SessionId): Promise<void> => {
+    await runHostAction('fork', () => forkHostSession(ctx, sessionId))
+  }
+  const renameSession = async (sessionId: SessionId, title: string): Promise<void> => {
+    await runHostAction('rename', async () => {
+      try {
+        await renameHostSession(ctx, sessionId, title)
+      } catch (reason) {
+        if (reason instanceof UnknownSessionError) throw new UserFacingError(t('sessions.unknown'))
+        throw reason
+      }
+    })
+  }
+  const deleteSession = async (sessionId: SessionId): Promise<void> => {
+    const registry = ctx.get('remote.workspaceRegistry')
+    if (!hasDeleteSession(registry)) throw new UserFacingError(t('sessions.deleteUnavailable'))
+    await runHostAction('delete', async () => {
+      const result = await registry.deleteSession(sessionId)
+      if (!result.ok) throw result.error === undefined
+        ? new UserFacingError(t('sessions.deleteUnavailable'))
+        : result.error
+    })
+  }
+  const archiveSession = (sessionId: SessionId): Promise<void> => runHostAction('archive', () => archiveHostSession(ctx, sessionId))
+  const moveSession = async (sessionId: SessionId, targetWorkspaceId: WorkspaceId): Promise<void> => {
+    try {
+      await requestSessionMove(sessionId, targetWorkspaceId)
+    } catch (error) {
+      if (!(error instanceof SessionMoveRequestError)) throw error
+      throw new UserFacingError(t(sessionMoveErrorKey(error.code)))
+    }
+    finishSessionMove({
+      sessionId,
+      currentUrl: window.location.href,
+      navigate: url => { window.location.replace(url) },
+    })
+  }
+  const startConnectorPromptSession = async (promptText: string): Promise<void> => {
+    const prompt = promptText.trim()
+    if (prompt === '') throw new UserFacingError(t('connectors.promptRequired'))
+    const workspaces = ctx.workspaces.list.getSnapshot()
+    const sessionSnapshot = ctx.sessions.list.getSnapshot()
+    const selectedSessionId = currentSessionId(sessionSnapshot)
+    const currentWorkspaceId = selectedSessionId === undefined
+      ? undefined
+      : workspaces.items.find(workspace => workspace.sessionIds.includes(selectedSessionId as SessionId))?.workspaceId
+    const baselinesReady = workspaceBaselinesReady(workspaces, sessionSnapshot)
+    const targetWorkspaceId = currentWorkspaceId ?? (baselinesReady ? recentWorkspaceId(workspaces.items, sessionSnapshot.byId) : undefined)
+    if (targetWorkspaceId === undefined && !baselinesReady) throw new UserFacingError(t('connectors.workspacesLoading'))
+    if (targetWorkspaceId === undefined) throw new UserFacingError(t('connectors.workspaceRequired'))
+    const uiWorkspace = probeService(ctx, 'uiWorkspace')
+    const conversation = ctx.get('conversation')
+    if (conversation === undefined) throw new UserFacingError(t('connectors.conversationUnavailable'))
+    try {
+      if (hasOpenWorkspace(uiWorkspace)) {
+        await Promise.resolve(uiWorkspace.openWorkspace(targetWorkspaceId, id => {
+          const binding = ctx.sessions.binding(id)
+          if (binding?.ctx === undefined) throw new UnknownSessionError()
+          conversation.input.for(binding.ctx as ClientContext).setDraft(prompt)
+        }))
+        selectGlobalPanel(ctx.layout, null)
+        return
+      }
+      const workspaceNavigation = hasConnectWorkspace(uiWorkspace) ? uiWorkspace : hasConnectWorkspace(ctx.workspaces) ? ctx.workspaces : undefined
+      if (workspaceNavigation === undefined) throw new UserFacingError(t('connectors.workspaceUnavailable'))
+      const sessionId = await workspaceNavigation.connectWorkspace(targetWorkspaceId)
+      await openConversationWithDraft(ctx, ctx.layout, ctx.sessions, sessionId, binding => {
+        if (binding.ctx === undefined) throw new UnknownSessionError()
+        conversation.input.for(binding.ctx as ClientContext).setDraft(prompt)
+      })
+    } catch (reason) {
+      if (reason instanceof UnknownSessionError) throw new UserFacingError(t('connectors.sessionPending'))
+      throw reason
+    }
+  }
+  ctx.slots.inject('sidebar.workspaces', () => ctx.slots.register({
+    name: 'sidebar.workspaces', priority: -1, locale: NS,
+    inject: () => ({
+      archiveSession,
+      canDeleteSession: () => hasArchiveSessionDelete(ctx.get('remote.workspaceRegistry')),
+      deleteSession,
+      deleteWorkspace: (workspaceId: WorkspaceId) => ctx.workspaces.delete(workspaceId),
+      forkSession,
+      moveSession,
+      openPath,
+      openSession: (sessionId: SessionId) => { openConversation(ctx, ctx.layout, sessionId) },
+      renameSession,
+      renameWorkspace: (workspaceId: WorkspaceId, title: string) => ctx.workspaces.rename(workspaceId, title),
+      insertWorkspaceBefore: (workspaceId: WorkspaceId, beforeWorkspaceId?: WorkspaceId) => ctx.workspaces.insertBefore(workspaceId, beforeWorkspaceId),
+      insertSessionBefore: (workspaceId: WorkspaceId, sessionId: SessionId, beforeSessionId?: SessionId) => ctx.workspaces.insertSessionBefore(workspaceId, sessionId, beforeSessionId),
+      startSession: (workspaceId?: WorkspaceId) => { startWorkspaceSession(ctx, workspaceId) },
+    }),
+  }, CodexWorkspaceBrowser))
+
+  ctx.effect(() => {
+    if (typeof window === 'undefined') return () => {}
+    const sessionId = new URL(window.location.href).searchParams.get('session') as SessionId | null
+    if (sessionId === null || sessionId === '') return () => {}
+    let opened = false
+    const openDeepLink = (): void => {
+      if (opened || ctx.sessions.list.getSnapshot().byId[sessionId] === undefined) return
+      opened = true
+      openConversation(ctx, ctx.layout, sessionId)
+    }
+    openDeepLink()
+    return ctx.sessions.list.subscribe(openDeepLink)
+  }, 'michengai-codex-ui: session deep link')
+
+  registerSectionPanels(ctx, t, (id) => { selectGlobalPanel(ctx.layout, id) }, {
+    renderConnectors: () => createElement(ConnectorsSection, { sessionStore: ctx.sessions.list, startPromptSession: startConnectorPromptSession, t }),
+  })
+  ctx.slots.inject('settings.section', () => ctx.slots.register({
+    name: 'settings.section', id: 'connectors', order: 17, label: () => t('sidebar.connectors'),
+    ...({ icon: 'connector' } as Record<string, unknown>),
+    inject: () => ({ sessionStore: ctx.sessions.list, startPromptSession: startConnectorPromptSession, t }),
+  }, ConnectorsSection))
+  ctx.slots.inject('settings.section', () => ctx.slots.register({
+    name: 'settings.section', id: 'about', order: Number.MAX_SAFE_INTEGER, label: () => t('about.nav'), locale: NS,
+  }, AboutSection))
+}

@@ -1,0 +1,63 @@
+{
+  "name": "dsh-mywork-kit",
+  "version": "0.1.0",
+  "description": "MyWork Kit for DeepSeek Harness：装一个包带上一整套（Claude/Codex 外观、闹钟提醒、定时任务、打开网页、Mermaid、插件市场）。设置页看成员状态、一键补装/更新；同时启用 dsh 自带的会话内提醒（schedule_*）。不改 dsh 本体，一切皆插件。",
+  "license": "MIT",
+  "type": "module",
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "dsh-plugin",
+    "dsh-bundle",
+    "kit",
+    "bundle",
+    "claude-code",
+    "codex",
+    "reminder",
+    "schedule"
+  ],
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./client": "./lib/client.js",
+    "./kit.json": "./kit.json",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src",
+    "lib",
+    "kit.json",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "node ../../scripts/build-client.mjs .",
+    "check": "node --check src/index.js && node --check src/installer.js && node --check src/client/index.js",
+    "test": "node --test test/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=22.19",
+    "dsh": ">=0.1.5-rc.1"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-client-locale"
+      ]
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "*"
+  },
+  "mywork": {
+    "clientPrelude": [
+      "../../scripts/client-icons.cjs"
+    ]
+  }
+}

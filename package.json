@@ -1,0 +1,22 @@
+{
+  "name": "mywork-deepseekharness",
+  "private": true,
+  "description": "MyWork Kit for DeepSeek Harness (dsh): a curated bundle of community plugins plus a few small first-party plugins. Never patches dsh itself — everything is a plugin.",
+  "type": "module",
+  "packageManager": "pnpm@10.0.0",
+  "engines": {
+    "node": ">=22.19"
+  },
+  "scripts": {
+    "build": "pnpm -r run build",
+    "test": "pnpm -r run test",
+    "check": "pnpm -r run check",
+    "install:web": "bash scripts/install.sh web",
+    "uninstall:web": "bash scripts/uninstall.sh web"
+  },
+  "pnpm": {
+    "overrides": {
+      "@deepseek-ai/dsh-*@>=0.1.6-alpha.0 <0.2.0": "0.1.6-alpha.2"
+    }
+  }
+}

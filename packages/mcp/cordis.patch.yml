@@ -1,0 +1,6 @@
+# dsh-mywork-mcp bundle patch: mounts the MCP server manager (host API + loader
+# provisioning of @deepseek-ai/dsh-mcp-client rows). The browser half renders
+# inside the "MCP 连接器" page of dsh-mywork-codex-ui.
+- insert:
+    - id: mywork-mcp
+      name: dsh-mywork-mcp

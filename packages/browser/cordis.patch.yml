@@ -1,0 +1,38 @@
+# dsh-mywork-browser bundle patch.
+#
+#   mywork-browser          starts a background Chrome (new headless) with a loopback
+#                           DevTools port, streams it into the web UI, forwards input
+#   browser-use             dsh's official browser-use service (provider slot)
+#   (Playwright MCP is mounted by mywork-browser itself, for every session, attached
+#   to that Chrome — the official `browser-use-playwright` row is deliberately NOT
+#   inserted: in attach mode it is exclusive to the first session.)
+#
+# The built-in iframe browser tab (`ui-sidebar-browser`) is switched OFF: the live
+# view registers under the same `browser` kind, so Markdown link clicks, the
+# sidebar guide entry and openTab('browser') all reach the real Chrome instead.
+#
+# The two official packages are NOT dependencies of this package on purpose: they
+# must be installed in the dsh profile (`dsh plugin --profile web add
+# @deepseek-ai/dsh-browser-use@alpha @deepseek-ai/dsh-experimental-browser-use-playwright-mcp@alpha`,
+# which the kit installer does for you). Bundled as dependencies they would load a
+# second copy of dsh's core modules (dsh-scope / dsh-tools) and every new session
+# would fail with "tools.restrict() requires a scoped context".
+#
+# Tune in your profile's cordis.patch.yml (a patch replaces the whole config):
+#   - id: mywork-browser
+#     config: { headless: false, port: 9333, width: 1280, height: 800 }
+- id: ui-sidebar-browser
+  disabled: true
+
+- insert:
+    - id: mywork-browser
+      name: dsh-mywork-browser
+      config:
+        autoLaunch: true
+        headless: true
+        port: !!js Number(process.env.MYWORK_BROWSER_PORT) || 9333
+        width: 1280
+        height: 800
+
+    - id: browser-use
+      name: '@deepseek-ai/dsh-browser-use'

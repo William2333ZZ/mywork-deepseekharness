@@ -1,0 +1,56 @@
+# dsh-mywork-browser
+
+真实浏览器 for DeepSeek Harness：**后台拉起本机 Chrome，模型驱动它，画面实时渲染在 dsh 页面里，你随时可以接管。**
+
+## 它做了什么
+
+1. dsh 启动时，插件在后台启动本机的 Chrome / Chromium / Edge（默认新版无头模式，不弹窗），只在 `127.0.0.1:9333` 开一个 DevTools 端口。不下载任何东西；找不到浏览器时会在「实时浏览器」标签里提示。
+2. 同时挂载 dsh **官方**的 `browser-use` 服务，并由本插件给**每个会话**各挂一份官方 Playwright MCP（attach 到同一个 Chrome，非独占）。模型因此在任何对话里都有 `mcp__playwright-mcp__*` 工具：导航、点击、输入、快照、截图。官方 provider 行在 attach 模式下是独占的（只有启动后第一个会话能用，其它会话报 "browser tool belongs to another Session"），所以套件不插入那一行，而是用同一个运行时自己挂载（`src/mcp-provider.js`）。
+3. dsh 内置的 iframe 浏览器行 `ui-sidebar-browser` 被本插件的 patch 禁用；右侧栏的「**浏览器**」标签由本插件接管（注册为 dsh 的 `browser` 类型，扩展优先于内置的 iframe 实现）：引导页入口、回复里的链接点击、其他插件的 `openTab('browser')` 全部进入实时浏览器（输入框旁 🌐 按钮，或右侧栏引导页）：通过 CDP `Page.startScreencast` 把页面画面以 SSE 推到网页里；你的点击、滚动、输入会回传到后台浏览器。有标签页选择、前进/后退/刷新、地址栏、「跟随模型」开关。宿主用 CDP `Target.setDiscoverTargets` 监听后台浏览器的全部页面事件并经 SSE 推给网页端：**模型一导航，实时浏览器标签就自动弹出/聚焦**，不用你手动点。
+4. GitHub、Google 这类禁止 iframe 嵌入的站点在这里**完全正常**，登录态保存在 `$DSH_HOME/mywork/chrome-profile`，下次还在。
+5. **书签与打开网页**：地址栏的书签按钮（保存的链接 / 收藏当前页）；模型工具 `open_url`（默认在实时浏览器里打开并自动展示，`target: system` 用系统浏览器）与 `quick_links`；命令 `/open <网址|书签名> [system]`。`open_url` 直接让后台 Chrome 导航，CDP 目标监听器随即把实时标签推到前台——事件驱动，不轮询。
+6. **设置 → MyWork → 浏览器**：运行状态（内核、端口、无头、标签页数）、重启、书签管理。
+
+```sh
+dsh plugin --profile web add dsh-mywork-browser @deepseek-ai/dsh-browser-use@alpha @deepseek-ai/dsh-experimental-browser-use-playwright-mcp@alpha
+# 需要 dsh >= 0.1.6-alpha.2、Node >= 24、本机有 Chrome。两个官方包必须装在 profile 里（kit 的成员面板会代劳）：
+# 若作为本包的依赖打进来，会加载第二份 dsh 核心模块，新建会话时报 "tools.restrict() requires a scoped context"。
+# 官方 runtime 包又把 dsh-scope / dsh-mcp-client 写成了 dependencies：profile 的 package.json 需要
+#   "pnpm": { "overrides": { "@deepseek-ai/dsh-scope": "-", "@deepseek-ai/dsh-mcp-client": "-" } }
+# （kit 安装器 / scripts 会自动写入；手动安装请自己加上再 pnpm install）。
+```
+
+## 配置
+
+profile 的 `cordis.patch.yml`（patch 会整体替换 config，所以要把需要的键都写上）：
+
+```yaml
+- id: mywork-browser
+  config:
+    autoLaunch: true      # false = 你自己起一个带 --remote-debugging-port 的浏览器
+    headless: false       # 想同时看到真窗口就关掉无头
+    port: 9333
+    executablePath: ''    # 留空自动找 Chrome / Chromium / Edge；或设环境变量 MYWORK_BROWSER_EXECUTABLE
+    width: 1280
+    height: 800
+    quality: 60           # 实时画面 JPEG 质量
+    proxy: ''             # 例如 socks5://127.0.0.1:1080；留空用系统代理设置（或环境变量 MYWORK_BROWSER_PROXY）
+    linksPath: ''         # 书签文件，默认 $DSH_HOME/mywork/links.json
+    allowSystemBrowser: true
+    seedLinks: [{ name: GitHub, url: https://github.com/ }]   # 首次运行写入的书签
+    modelTools: true      # false = 不给模型挂 Playwright MCP（只保留实时浏览器与 open_url）
+    toolCallTimeoutMs: 0  # Playwright 工具单次调用超时；0 = MCP 客户端默认
+```
+
+`MYWORK_BROWSER_PORT` 环境变量可同时改插件和 Playwright 提供方的端口。
+
+## 安全
+
+- DevTools 端口只绑定回环地址；所有 HTTP 路由经宿主 `connection.requestRejection` 鉴权（同源 + token）。
+- 输入转发只接受鼠标/文本/少量功能键，不执行任意脚本。
+- `open_url` / 书签只接受 http(s) 链接，且不含内嵌凭证。
+- 远程 / 共享部署时请注意：能打开 dsh 页面的人就能操作这个浏览器。
+
+## 实现
+
+零依赖：`src/chrome.js`（找浏览器、拉起、等端口）、`src/cdp.js`（用 Node 自带 `WebSocket` 的最小 CDP 客户端 + 截屏流广播 + 目标监听）、`src/links.js`（书签存储）、`src/index.js`（宿主 API、open_url / quick_links / /open、系统提示词提示）、`src/client/index.js`（右侧栏标签）。

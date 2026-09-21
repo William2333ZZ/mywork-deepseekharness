@@ -1,0 +1,6 @@
+# dsh-mywork-schedule bundle patch: mounts the reminder engine (host tools +
+# HTTP API) into the profile; the web shell discovers the browser half from
+# the package manifest.
+- insert:
+    - id: mywork-schedule
+      name: dsh-mywork-schedule

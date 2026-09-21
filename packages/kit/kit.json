@@ -1,0 +1,136 @@
+{
+  "$schema": "./kit.schema.json",
+  "name": "MyWork Kit",
+  "description": "个人开发者向的 DeepSeek Harness 组合包：Codex 风格侧栏（fork 自 MichengAI Codex UI，导航按已装功能收拾）、Claude/Codex 主题与缩放、日程（提醒 + 定时任务）、真实浏览器（含书签 / open_url）、Markdown 增强、插件市场。不改 dsh 本体。",
+  "members": [
+    {
+      "name": "dsh-mywork-codex-ui",
+      "range": "^1.1.14-mywork.1",
+      "icon": "panel-left",
+      "label": "Codex 侧栏",
+      "desc": "Codex 风格侧栏与设置页：fork 自 @michengai/dsh-codex-ui，去掉 iframe 页面，专家/技能/定时任务/IM 入口只在对应插件安装后出现",
+      "group": "look",
+      "required": true,
+      "local": "../codex-ui"
+    },
+    {
+      "name": "dsh-mywork-shell",
+      "range": "^0.1.0",
+      "icon": "palette",
+      "label": "主题与缩放",
+      "desc": "Claude Code / Codex 主题（浅色/深色/跟随系统）与界面缩放；设置 → MyWork → 外观",
+      "group": "look",
+      "required": true,
+      "local": "../shell"
+    },
+    {
+      "name": "dsh-chat-tidy",
+      "range": "^0.4.0",
+      "icon": "type",
+      "label": "Codex 排版",
+      "desc": "Codex 风格回合折叠、实时耗时、对话排版与 Markdown 表格（社区 · ChuanTianML）",
+      "group": "look"
+    },
+    {
+      "name": "dsh-mywork-schedule",
+      "range": "^0.1.0",
+      "icon": "calendar",
+      "label": "日程",
+      "desc": "输入框旁的「日程」面板：提醒（到点页面弹窗 + 浏览器通知 + 提示音，/remind 与 reminder_* 工具）与定时任务（Automation）两个标签；设置 → MyWork → 日程",
+      "group": "time",
+      "required": true,
+      "local": "../schedule"
+    },
+    {
+      "name": "@michengai/dsh-automation",
+      "range": "^0.1.45",
+      "icon": "calendar",
+      "label": "定时任务",
+      "desc": "按计划在独立会话里执行编码任务：一次/每小时/每天/每周/每月，设置页与对话里都能管理（社区 · MichengAI）",
+      "group": "time"
+    },
+    {
+      "name": "dsh-mywork-browser",
+      "range": "^0.1.0",
+      "icon": "globe",
+      "label": "真实浏览器",
+      "desc": "后台拉起本机 Chrome，模型经官方 browser-use + Playwright MCP 驱动；右侧栏实时渲染、可接管；地址栏书签、open_url / quick_links 工具、/open 命令；设置 → MyWork → 浏览器",
+      "group": "browser",
+      "local": "../browser",
+      "required": true
+    },
+    {
+      "name": "@deepseek-ai/dsh-browser-use",
+      "range": "^0.1.6-alpha.2",
+      "icon": "globe",
+      "label": "browser-use（官方）",
+      "desc": "dsh 官方的浏览器使用服务：提供方插槽，真实浏览器插件把 Chrome 挂到这里",
+      "group": "browser",
+      "required": true
+    },
+    {
+      "name": "@deepseek-ai/dsh-experimental-browser-use-playwright-mcp",
+      "range": "^0.1.6-alpha.2",
+      "icon": "globe",
+      "label": "Playwright MCP（官方）",
+      "desc": "官方 Playwright MCP 运行时 + 固定版本的 @playwright/mcp。真实浏览器插件用它给每个会话挂一份 Playwright MCP（attach 到后台 Chrome，非独占）；官方自己的 provider 行在 attach 模式下只给第一个会话用，所以套件不插入那一行。必须装在 profile 里",
+      "group": "browser",
+      "required": true
+    },
+    {
+      "name": "dsh-mermaid-render",
+      "range": "^0.1.11",
+      "icon": "bar-chart",
+      "label": "Mermaid 图表",
+      "desc": "对话中的 mermaid 代码块渲染为图表卡片，离线可用（社区 · baosfeng）",
+      "group": "markdown"
+    },
+    {
+      "name": "dsh-univer-office",
+      "range": "^0.3.2",
+      "icon": "sheet",
+      "label": "Univer 办公",
+      "desc": "让模型创建 / 编辑表格、文档、幻灯片等（Univer）：对话里实时预览、会话结束时审阅再应用；自带 Gateway（默认 9080 端口）与查看器，需要本机 Chrome（社区 · dream-num）。注意：0.3.2 的前端在 dsh 0.1.6-alpha.2 上不会激活（list slot 需要 id），上游已在 main 修复（PR #82），等 0.3.3 发布",
+      "group": "markdown"
+    },
+    {
+      "name": "dshmarket",
+      "range": "^1.50.0",
+      "icon": "store",
+      "label": "插件市场",
+      "desc": "设置页内的可视化插件市场：搜索、一键安装/更新/禁用 2300+ 社区插件（社区 · dsh-market）",
+      "group": "manage"
+    },
+    {
+      "name": "@michengai/dsh-im-connect",
+      "range": "^0.1.51",
+      "icon": "message",
+      "label": "IM助理",
+      "desc": "把钉钉 / 飞书 / Lark / 微信 / 企业微信 / QQ / Telegram 接到本机 dsh：在聊天里派任务、回答问题、批准工具。侧栏「IM助理」独立页面里配置账号（扫码或 Bot 凭证）（社区 · MichengAI）",
+      "group": "connect"
+    },
+    {
+      "name": "dsh-mywork-mcp",
+      "range": "^0.1.0",
+      "icon": "plug",
+      "label": "MCP 服务器",
+      "desc": "侧栏「MCP 连接器」页面里添加 / 编辑 / 停用 MCP 服务器（stdio 或 streamable-http），导入 mcpServers JSON；通过 dsh loader 动态挂成官方 mcp-client 条目，不重启即生效",
+      "group": "connect",
+      "required": true,
+      "local": "../mcp"
+    }
+  ],
+  "groups": {
+    "look": "外观 · 侧栏与主题",
+    "time": "时间 · 日程与定时任务",
+    "browser": "网页 · 真实浏览器",
+    "connect": "接入 · IM 与 MCP",
+    "markdown": "Markdown · 渲染与办公文档",
+    "manage": "插件管理"
+  },
+  "profileOverrides": {
+    "@deepseek-ai/dsh-scope": "-",
+    "@deepseek-ai/dsh-mcp-client": "-"
+  },
+  "profileOverridesWhy": "dsh 核心模块只能有一份：@deepseek-ai/dsh-experimental-browser-use-runtime 把 dsh-scope / dsh-mcp-client 写成了 dependencies，装进 profile 会多出第二份，新建会话时 tools.restrict() 认不出作用域而失败。用 pnpm 的 \"-\" override 把它们从 profile 里去掉，dsh 启动时会把这些 import 指回自己那份。"
+}

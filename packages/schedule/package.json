@@ -1,0 +1,61 @@
+{
+  "name": "dsh-mywork-schedule",
+  "version": "0.1.0",
+  "description": "日程 for DeepSeek Harness Web：输入框旁的「日程」面板——提醒（一次性/每天/每周/间隔，到点页面弹窗 + 浏览器通知 + 提示音）与定时任务（后台跑会话，接 Automation）两个标签；/remind 命令与 reminder_* 工具。数据在 $DSH_HOME/mywork/reminders.json。",
+  "license": "MIT",
+  "type": "module",
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "dsh-plugin",
+    "schedule",
+    "reminder",
+    "alarm",
+    "cron"
+  ],
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./client": "./lib/client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src",
+    "lib",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "node ../../scripts/build-client.mjs .",
+    "check": "node --check src/index.js && node --check src/store.js && node --check src/client/index.js",
+    "test": "node --test test/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=22.19",
+    "dsh": ">=0.1.5-rc.1"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-conversation",
+        "@deepseek-ai/dsh-client-ui-layout",
+        "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-client-locale"
+      ]
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "*"
+  },
+  "mywork": {
+    "clientPrelude": [
+      "src/logic.cjs",
+      "../../scripts/client-icons.cjs"
+    ]
+  }
+}

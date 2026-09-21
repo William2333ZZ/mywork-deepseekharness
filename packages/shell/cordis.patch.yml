@@ -1,0 +1,6 @@
+# dsh-mywork-shell bundle patch: mounts the (no-op) host row so the web shell
+# discovers the browser half (theme families + UI zoom) from package.json.
+# The sidebar is provided by dsh-mywork-codex-ui, not by this package.
+- insert:
+    - id: mywork-shell
+      name: dsh-mywork-shell

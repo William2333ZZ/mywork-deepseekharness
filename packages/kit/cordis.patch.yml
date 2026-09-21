@@ -1,0 +1,34 @@
+# dsh-mywork-kit bundle patch.
+#
+# 1. Mounts the kit's own host row (member status API + one-click installer
+#    behind Settings → MyWork Kit).
+# 2. Turns on dsh's built-in session-local reminders (schedule_create /
+#    schedule_list / schedule_delete + the header catalogue) — the same rows
+#    the official overlay apps/cli/config/examples/schedule/cordis.yml adds —
+#    so the model can say "I'll remind you in 30 minutes" inside a session.
+#    Alarm-style reminders that fire in the browser come from
+#    dsh-mywork-schedule, a kit member with its own bundle layer.
+#
+# Nothing here modifies dsh itself: remove the package and every row below
+# disappears with it.
+- insert:
+    - id: mywork-kit
+      name: dsh-mywork-kit
+
+    - id: time-context
+      name: '@deepseek-ai/dsh-time-context'
+
+    - id: schedule
+      name: '@deepseek-ai/dsh-schedule'
+
+- id: ui-schedule
+  disabled: false
+
+# 3. UI trims (user preference): drop dsh's "Open In…" split button in the session
+#    header (Finder / Cursor / Ghostty / Terminal). Re-enable in your profile's
+#    cordis.patch.yml with `- id: ui-open-in-app` + `disabled: false` (and the
+#    same for `open-in-app`).
+- id: open-in-app
+  disabled: true
+- id: ui-open-in-app
+  disabled: true

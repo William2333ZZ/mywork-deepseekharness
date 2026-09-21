@@ -1,0 +1,12 @@
+node_modules/
+*.tgz
+.DS_Store
+
+# local dev environment (dsh home, credentials, IM state, logs)
+.dsh-dev-home/
+
+# scratch produced by the model / plugins while testing
+.dsh-tmp/
+.playwright-mcp/
+/*.univer
+/*.xlsx

@@ -17,7 +17,8 @@ const dir = isAbsolute(raw) ? raw : join(dshHome(), 'profiles', raw)
 if (!existsSync(join(dir, 'package.json'))) { console.error(`profile not found: ${dir}`); process.exit(1) }
 if (reconcileOverrides(dir, loadKit())) {
   console.log(`== profile ${dir}: pnpm overrides updated, reinstalling`)
-  execFileSync('pnpm', ['install'], { cwd: dir, stdio: 'inherit', env: { ...process.env, CI: '1' } })
+  // --no-frozen-lockfile: the overrides just changed the profile's lockfile inputs (CI=1 would otherwise refuse).
+  execFileSync('pnpm', ['install', '--no-frozen-lockfile'], { cwd: dir, stdio: 'inherit', env: { ...process.env, CI: '1' } })
 } else {
   console.log(`== profile ${dir}: overrides already in place`)
 }

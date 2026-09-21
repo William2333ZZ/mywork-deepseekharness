@@ -203,7 +203,7 @@ export async function install(names, env = process.env, kit = loadKit()) {
   if (members.length === 0) return { ok: false, error: 'nothing to install' }
   const specs = members.map((m) => specFor(m, profile.dir))
   let r = await run('pnpm', ['add', ...specs], profile.dir, env)
-  if (r.ok && reconcileOverrides(profile.dir, kit)) r = await run('pnpm', ['install'], profile.dir, env)
+  if (r.ok && reconcileOverrides(profile.dir, kit)) r = await run('pnpm', ['install', '--no-frozen-lockfile'], profile.dir, env)
   if (r.ok) reconcileCompatPatches(profile.dir)
   const bundles = r.ok ? reconcileBundles(profile.dir) : null
   const hint = /allowBuilds|ignored build scripts|blocked/i.test(r.stdout + r.stderr)
@@ -218,7 +218,7 @@ export async function update(names, env = process.env, kit = loadKit()) {
   const members = kit.members.filter((m) => (!names || names.includes(m.name)) && installedVersion(profile.dir, m.name) !== null)
   if (members.length === 0) return { ok: false, error: 'nothing to update' }
   let r = await run('pnpm', ['update', '--latest', ...members.map((m) => m.name)], profile.dir, env)
-  if (r.ok && reconcileOverrides(profile.dir, kit)) r = await run('pnpm', ['install'], profile.dir, env)
+  if (r.ok && reconcileOverrides(profile.dir, kit)) r = await run('pnpm', ['install', '--no-frozen-lockfile'], profile.dir, env)
   if (r.ok) reconcileCompatPatches(profile.dir)
   const bundles = r.ok ? reconcileBundles(profile.dir) : null
   return { ok: r.ok, stdout: r.stdout.slice(-4000), stderr: r.stderr.slice(-4000), error: r.error, bundles }

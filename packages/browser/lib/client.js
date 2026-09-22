@@ -153,7 +153,8 @@ const CSS = `
 .mwb-b.on{color:var(--dsw-alias-brand-primary)}
 .mwb-view{flex:1;min-height:0;position:relative;display:flex;align-items:flex-start;justify-content:center;background:#1a1a1a;overflow:hidden;outline:none}
 .mwb-view:focus-visible{box-shadow:inset 0 0 0 2px var(--dsw-alias-brand-primary)}
-.mwb-img{max-width:100%;max-height:100%;object-fit:contain;display:block;cursor:default;user-select:none;-webkit-user-drag:none}
+/* width/height 100%: the page viewport equals the pane in SCREEN px; under UI zoom the pane's CSS box is larger than that, so the frame must scale to the box (1 page px = 1 screen px) instead of stopping at its intrinsic size. */
+.mwb-img{width:100%;height:100%;object-fit:contain;object-position:top left;display:block;cursor:default;user-select:none;-webkit-user-drag:none}
 .mwb-msg{flex:1;display:flex;flex-direction:column;gap:10px;align-items:center;justify-content:center;padding:24px;text-align:center;color:var(--dsw-alias-label-secondary);line-height:1.7;font-size:12.5px}
 .mwb-foot{flex:none;font-size:11px;color:var(--dsw-alias-label-tertiary,var(--dsw-alias-label-secondary));padding:3px 8px;border-top:0.5px solid var(--dsw-alias-border-l2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mwb-composer{display:inline-flex;align-items:center;justify-content:center;background:transparent;border:0;border-radius:8px;width:28px;height:28px;padding:0;cursor:pointer;color:var(--dsw-alias-label-secondary)}

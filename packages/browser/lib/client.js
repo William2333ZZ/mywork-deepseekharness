@@ -536,16 +536,13 @@ exports.apply = function apply(ctx) {
     )
   }
 
-  /** Guide capsule glyph in dsh's own idiom (cf. the terminal's dark tile with a white ">_"): a dark tile, a window bar with two dots, and a globe. */
+  /** Guide capsule glyph in dsh's own idiom (the terminal is a dark tile with one bold white ">_"): a dark tile with one bold white globe. */
   function LiveBrowserGuideIcon(props) {
     const size = props && props.size ? props.size : 26
     return h('svg', { width: size, height: size, className: props && props.className, viewBox: '0 0 28 28', fill: 'none', 'aria-hidden': 'true' },
       h('rect', { x: 3, y: 5, width: 22, height: 19, rx: 3, fill: '#17191d' }),
-      h('path', { d: 'M3 10h22', stroke: '#fff', strokeWidth: 1, strokeOpacity: 0.45 }),
-      h('circle', { cx: 6.4, cy: 7.5, r: 0.95, fill: '#fff' }), h('circle', { cx: 9.2, cy: 7.5, r: 0.95, fill: '#fff' }),
-      h('rect', { x: 12, y: 6.4, width: 10, height: 2.2, rx: 1.1, fill: '#fff', fillOpacity: 0.55 }),
-      h('circle', { cx: 14, cy: 17, r: 4.4, stroke: '#fff', strokeWidth: 1.5 }),
-      h('path', { d: 'M14 12.6v8.8M9.6 17h8.8M14 12.6c-2.1 2.5-2.1 6.3 0 8.8M14 12.6c2.1 2.5 2.1 6.3 0 8.8', stroke: '#fff', strokeWidth: 1.2, strokeLinecap: 'round' }),
+      h('circle', { cx: 14, cy: 14.5, r: 5.6, stroke: '#fff', strokeWidth: 1.7 }),
+      h('path', { d: 'M8.4 14.5h11.2M14 8.9c-2.5 3.1-2.5 8.1 0 11.2M14 8.9c2.5 3.1 2.5 8.1 0 11.2', stroke: '#fff', strokeWidth: 1.5, strokeLinecap: 'round' }),
     )
   }
   ctx.effect(() => ctx.sidebarRightTabs.register({

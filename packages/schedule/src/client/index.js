@@ -147,6 +147,8 @@ const CSS = `
 .mwn-select:focus{outline:none;border-color:var(--dsw-alias-brand-primary)}
 .mwn-hint{font-size:12px;color:var(--dsw-alias-label-secondary);line-height:1.5}
 .mwn-chip svg{width:14px;height:14px}
+.mwn-chip{white-space:nowrap}
+.dsh-st-card-foot{flex-wrap:wrap;row-gap:6px}
 .mwr-wd button{width:26px;height:26px;border-radius:50%;corner-shape:round;border:0.5px solid var(--dsw-alias-border-l2);background:transparent;color:inherit;cursor:pointer;font-size:11px;padding:0}
 .mwr-wd button.on{background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-inverted,#fff);border-color:transparent}
 .mwr-primary{border:0;border-radius:8px;background:var(--dsw-alias-button-primary-fill,var(--dsw-alias-brand-primary));color:var(--dsw-alias-label-primary-inverted,#fff);padding:6px 14px;cursor:pointer;font:inherit;font-weight:600}

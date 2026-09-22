@@ -20,7 +20,8 @@ dsh web
 | ![首页](docs/screenshots/01-home.png) **Codex 风格侧栏**：新建对话、扩展管理（定时任务 / 插件市场）、IM助理、MCP 连接器，只显示装了的功能 | ![实时浏览器](docs/screenshots/02-conversation-live-browser.png) **实时浏览器**：模型用 Playwright 打开的页面实时出现在右侧栏，能点、能滚、能输入，任何会话都能用 |
 | ![日程](docs/screenshots/03-schedule-overlay.png) **日程面板**：提醒（一次 / 每天 / 每周 / 间隔，到点弹窗 + 通知 + 提示音）与定时任务 | ![定时任务](docs/screenshots/04-scheduled-tasks.png) **定时任务独立页面**：按计划在独立会话里跑编码任务（Automation）；每个任务的设定里有「运行结束发到 IM」 |
 | ![IM助理](docs/screenshots/05-im-assistant.png) **IM助理**：微信 / 飞书 / 钉钉 / 企业微信 / QQ / Telegram 接到本机 dsh | ![MCP](docs/screenshots/06-mcp-connectors.png) **MCP 连接器**：应用内添加 / 编辑 / 停用 MCP 服务器，粘贴 mcpServers JSON 导入，保存即挂载 |
-| ![成员](docs/screenshots/07-settings-members.png) **设置 → MyWork → 成员**：看每个成员的状态，一键补装 / 更新 | ![外观](docs/screenshots/08-settings-appearance.png) **外观**：Claude Code / Codex 主题 × 浅色 / 深色 / 跟随系统，界面缩放 |
+| ![成员](docs/screenshots/07-settings-members.png) **设置 → MyWork → 成员**：看每个成员的状态，一键补装 / 更新 | ![外观](docs/screenshots/08-settings-appearance.png) **外观**：Claude Code / Codex / Swiss 开发者 主题 × 浅色 / 深色 / 跟随系统，界面缩放 |
+| ![Swiss 浅色](docs/screenshots/10-swiss-light.png) **Swiss 开发者风格（浅色）**：用 [ui-ux-pro-max](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) 生成的设计系统：Minimalism & Swiss，slate 灰阶 + 一个绿色强调色，IBM Plex Sans + JetBrains Mono，规则见 [design-system/mywork-kit/MASTER.md](design-system/mywork-kit/MASTER.md) | ![Swiss 深色](docs/screenshots/11-swiss-dark.png) **Swiss 开发者风格（深色）**：同一套 token 的深色版（"Developer Tool / IDE" 配色），对比度 ≥ 4.5:1，焦点环 2 px，200 ms 悬停过渡，尊重 prefers-reduced-motion |
 
 ## 这个仓库里有什么
 

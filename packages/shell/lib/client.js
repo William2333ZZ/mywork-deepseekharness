@@ -160,6 +160,75 @@ const CODEX_DARK = {
 }
 
 /**
+ * "Swiss developer" — generated with the ui-ux-pro-max skill (design-system/mywork-kit/MASTER.md):
+ * Minimalism & Swiss Style, slate surfaces, one green accent, IBM Plex Sans + JetBrains Mono.
+ * Dark = the skill's "Developer Tool / IDE" palette verbatim; light = the same slate scale on white.
+ * Contrast: light text #0F172A on #FFFFFF 17:1, secondary #475569 7.5:1, accent fill #15803D with white 4.8:1;
+ * dark text #F8FAFC on #0F172A 16:1, secondary #94A3B8 6.4:1, accent fill #22C55E with #0F172A 8.6:1.
+ */
+const SWISS_LIGHT = {
+  '--dsw-alias-bg-base': '#FFFFFF',
+  '--dsw-alias-bg-layer-1': '#F8FAFC',
+  '--dsw-alias-bg-layer-2': '#F1F5F9',
+  '--dsw-alias-bg-layer-3': '#E2E8F0',
+  '--dsw-alias-bg-overlay': '#FFFFFF',
+  '--dsw-alias-bg-mask-1': 'rgba(15, 23, 42, 0.4)',
+  '--dsw-alias-border-l1': 'rgba(15, 23, 42, 0.07)',
+  '--dsw-alias-border-l2': 'rgba(15, 23, 42, 0.13)',
+  '--dsw-alias-border-l3': 'rgba(15, 23, 42, 0.22)',
+  '--dsw-alias-brand-primary': '#15803D',
+  '--dsw-alias-brand-text': '#15803D',
+  '--dsw-alias-link': '#15803D',
+  '--dsw-alias-label-primary': '#0F172A',
+  '--dsw-alias-label-secondary': '#475569',
+  '--dsw-alias-label-tertiary': '#64748B',
+  '--dsw-alias-label-caption': '#94A3B8',
+  '--dsw-alias-label-primary-inverted': '#FFFFFF',
+  '--dsw-alias-button-primary-fill': '#15803D',
+  '--dsw-alias-button-primary-hover': '#166534',
+  '--dsw-alias-interactive-bg-hover': 'rgba(15, 23, 42, 0.05)',
+  '--dsw-alias-interactive-bg-active': 'rgba(15, 23, 42, 0.09)',
+  '--dsw-alias-markdown-code-block': '#F1F5F9',
+  '--dsw-alias-markdown-code-block-banner': '#E2E8F0',
+  '--dsw-alias-markdown-inline-code': '#E2E8F0',
+  '--dsw-specific-sidebar-fill': '#F8FAFC',
+  '--dsw-alias-state-success-primary': '#15803D',
+  '--dsw-alias-state-warn-primary': '#B45309',
+  '--dsw-alias-state-error-primary': '#DC2626',
+}
+
+const SWISS_DARK = {
+  '--dsw-alias-bg-base': '#0F172A',
+  '--dsw-alias-bg-layer-1': '#1B2336',
+  '--dsw-alias-bg-layer-2': '#272F42',
+  '--dsw-alias-bg-layer-3': '#334155',
+  '--dsw-alias-bg-overlay': '#1B2336',
+  '--dsw-alias-bg-mask-1': 'rgba(2, 6, 23, 0.6)',
+  '--dsw-alias-border-l1': 'rgba(148, 163, 184, 0.12)',
+  '--dsw-alias-border-l2': 'rgba(148, 163, 184, 0.22)',
+  '--dsw-alias-border-l3': '#475569',
+  '--dsw-alias-brand-primary': '#22C55E',
+  '--dsw-alias-brand-text': '#4ADE80',
+  '--dsw-alias-link': '#4ADE80',
+  '--dsw-alias-label-primary': '#F8FAFC',
+  '--dsw-alias-label-secondary': '#94A3B8',
+  '--dsw-alias-label-tertiary': '#64748B',
+  '--dsw-alias-label-caption': '#475569',
+  '--dsw-alias-label-primary-inverted': '#0F172A',
+  '--dsw-alias-button-primary-fill': '#22C55E',
+  '--dsw-alias-button-primary-hover': '#4ADE80',
+  '--dsw-alias-interactive-bg-hover': 'rgba(148, 163, 184, 0.08)',
+  '--dsw-alias-interactive-bg-active': 'rgba(148, 163, 184, 0.14)',
+  '--dsw-alias-markdown-code-block': '#0B1220',
+  '--dsw-alias-markdown-code-block-banner': '#070D1A',
+  '--dsw-alias-markdown-inline-code': '#272F42',
+  '--dsw-specific-sidebar-fill': '#0B1220',
+  '--dsw-alias-state-success-primary': '#22C55E',
+  '--dsw-alias-state-warn-primary': '#F59E0B',
+  '--dsw-alias-state-error-primary': '#EF4444',
+}
+
+/**
  * Theme families. Each family is one override layer with BOTH palettes, so
  * it follows the host's light / dark / system preference (which dsh itself
  * persists) instead of fighting it. `official` means "no override".
@@ -168,6 +237,7 @@ const FAMILIES = [
   { id: 'official', light: null, dark: null, label: { zh: '官方默认', en: 'Official' } },
   { id: 'claude', light: CLAUDE_LIGHT, dark: CLAUDE_DARK, label: { zh: 'Claude Code 风格', en: 'Claude Code style' } },
   { id: 'codex', light: CODEX_LIGHT, dark: CODEX_DARK, label: { zh: 'Codex 风格', en: 'Codex style' } },
+  { id: 'swiss', light: SWISS_LIGHT, dark: SWISS_DARK, label: { zh: 'Swiss 开发者风格', en: 'Swiss developer' }, fonts: 'https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap' },
 ]
 
 const SCHEMES = [
@@ -221,6 +291,20 @@ body[data-mywork-theme="codex"] :focus-visible {
   outline: 1.5px solid var(--dsw-alias-label-primary);
   outline-offset: 1px;
 }
+/* Swiss developer (ui-ux-pro-max design system): IBM Plex Sans UI, JetBrains Mono code, 1px borders,
+   200ms hover, 2px ring on the foreground color, subtle motion; falls back to system fonts when Google Fonts is unreachable. */
+body[data-mywork-theme="swiss"] {
+  --mywork-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-family: "IBM Plex Sans", -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+}
+body[data-mywork-theme="swiss"] button, body[data-mywork-theme="swiss"] input, body[data-mywork-theme="swiss"] select { font-family: inherit; }
+body[data-mywork-theme="swiss"] textarea { font-family: inherit; }
+body[data-mywork-theme="swiss"] pre { border: 1px solid var(--dsw-alias-border-l2); border-radius: 8px; }
+body[data-mywork-theme="swiss"] a { text-decoration-thickness: 1px; text-underline-offset: 2px; }
+body[data-mywork-theme="swiss"] button, body[data-mywork-theme="swiss"] [role="button"], body[data-mywork-theme="swiss"] a { transition: background-color 200ms ease, border-color 200ms ease, color 200ms ease; }
+body[data-mywork-theme="swiss"] :focus-visible { outline: 2px solid var(--dsw-alias-label-primary); outline-offset: 2px; border-radius: 4px; }
+body[data-mywork-theme="swiss"] h1, body[data-mywork-theme="swiss"] h2, body[data-mywork-theme="swiss"] h3 { letter-spacing: -0.01em; }
+@media (prefers-reduced-motion: reduce) { body[data-mywork-theme="swiss"] * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; } }
 /* settings section */
 .mwtc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 10px; margin-top: 8px; }
 .mwtc-card { border: 0.5px solid var(--dsw-alias-border-l2); border-radius: 12px; padding: 10px; cursor: pointer; background: var(--dsw-alias-bg-layer-1); color: var(--dsw-alias-label-primary); text-align: left; transition: border-color .15s, box-shadow .15s; }
@@ -246,7 +330,7 @@ body[data-mywork-theme="codex"] :focus-visible {
 
 const zh = {
   nav: '外观',
-  intro: '一键切换 Claude Code / Codex 风格配色。风格保存在本浏览器并在刷新后恢复；明暗方案由 dsh 自身保存，两者独立组合。',
+  intro: '一键切换 Claude Code / Codex / Swiss 开发者风格配色（Swiss 由 ui-ux-pro-max 设计系统生成：slate 灰阶 + 一个绿色强调色，IBM Plex Sans + JetBrains Mono）。风格保存在本浏览器并在刷新后恢复；明暗方案由 dsh 自身保存，两者独立组合。',
   mine: '风格',
   scheme: '明暗方案',
   current: '当前',
@@ -256,7 +340,7 @@ const zh = {
 }
 const en = {
   nav: 'Appearance',
-  intro: 'Switch to Claude Code / Codex style palettes with one click. The style is kept in this browser and restored after reload; the light/dark scheme is stored by dsh itself, and the two combine freely.',
+  intro: 'Switch between Claude Code / Codex / Swiss developer palettes with one click (Swiss comes from the ui-ux-pro-max design system: slate scale + one green accent, IBM Plex Sans + JetBrains Mono). The style is kept in this browser and restored after reload; the light/dark scheme is stored by dsh itself, and the two combine freely.',
   mine: 'Style',
   scheme: 'Color scheme',
   current: 'current',
@@ -335,11 +419,21 @@ exports.apply = function apply(ctx) {
     current = fam.id
     if (fam.id === 'official') document.body.removeAttribute('data-mywork-theme')
     else document.body.setAttribute('data-mywork-theme', fam.id)
+    applyFonts(fam.fonts || null)
     notify()
+  }
+  /** Optional web fonts for a family (one <link>, swapped when the family changes; the UI falls back to system fonts while loading or offline). */
+  const FONT_LINK_ID = 'mywork-shell-fonts'
+  const applyFonts = (href) => {
+    let link = document.getElementById(FONT_LINK_ID)
+    if (!href) { if (link) link.remove(); return }
+    if (!link) { link = document.createElement('link'); link.id = FONT_LINK_ID; link.rel = 'stylesheet'; document.head.appendChild(link) }
+    if (link.getAttribute('href') !== href) link.setAttribute('href', href)
   }
   ctx.effect(() => () => {
     if (disposeLayer) { try { disposeLayer() } catch { /* ignore */ } disposeLayer = null }
     document.body.removeAttribute('data-mywork-theme')
+    const link = document.getElementById(FONT_LINK_ID); if (link) link.remove()
   }, `${PLUGIN}: override layer`)
 
   const chooseFamily = (id) => { applyFamily(id); writeStored(id === 'official' ? null : id) }

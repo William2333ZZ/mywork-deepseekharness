@@ -2269,6 +2269,22 @@ window.__ModuleLoader__.load({
 				strokeWidth: 1.6
 			})), panels.map((panel) => button(panel.id, panel.label, renderIcon(panel.id, activeId === panel.id)))] });
 		}
+		//#endregion
+		//#region src/client/ui-zoom.ts
+		/**
+		* dsh-mywork-shell scales the app root with CSS `zoom` (--mywork-zoom on <html>, applied to #root).
+		* Pointer coordinates stay in viewport px, so a drag delta must be divided by the zoom factor before
+		* it is applied to a CSS-px width. 1 when no zoom is active.
+		*/
+		function uiZoom() {
+			const root = document.getElementById("root");
+			const value = root === null ? 1 : parseFloat(getComputedStyle(root).zoom);
+			return Number.isFinite(value) && value > 0 ? value : 1;
+		}
+		/** Map a viewport-px pointer X to the CSS-px coordinate space of the zoomed root, keeping `startX` fixed. */
+		function zoomedDeltaX(startX, currentX) {
+			return startX + (currentX - startX) / uiZoom();
+		}
 		/** 按用户要求用最窄宽度替代宿主自适应默认；已有有效偏好不重置，拖拽起点沿用宿主存储。 */
 		function initializeComposerWidth(storage) {
 			const key = "dsh.conversation.contentWidth";
@@ -2326,11 +2342,11 @@ window.__ModuleLoader__.load({
 						});
 						handle.addEventListener("pointermove", (event) => {
 							handle.style.setProperty("--dcu-pointer-y", `${event.clientY - handle.getBoundingClientRect().top}px`);
-							if (dragging) publish(initial + (event.clientX - origin) * (side === "right" ? 2 : -2), false);
+							if (dragging) publish(initial + (event.clientX - origin) / uiZoom() * (side === "right" ? 2 : -2), false);
 						});
 						handle.addEventListener("pointerup", (event) => {
 							if (!dragging) return;
-							publish(initial + (event.clientX - origin) * (side === "right" ? 2 : -2), true);
+							publish(initial + (event.clientX - origin) / uiZoom() * (side === "right" ? 2 : -2), true);
 							dragging = false;
 							delete handle.dataset.dragging;
 							handle.releasePointerCapture(event.pointerId);
@@ -8612,13 +8628,13 @@ html[data-dcu-official-turn-navigator-supported=true] .dcu-turn-navigator,html:h
 				const onMove = (event) => {
 					if (!dragging || event.pointerId !== pointerId || frame === void 0) return;
 					stopHostDrag(event);
-					applySidebarWidth(frame, sidebarWidthDuringDrag(startWidth, startX, event.clientX));
+					applySidebarWidth(frame, sidebarWidthDuringDrag(startWidth, startX, zoomedDeltaX(startX, event.clientX)));
 				};
 				const onUp = (event) => {
 					if (!dragging || event.pointerId !== pointerId) return;
 					stopHostDrag(event);
-					if (frame !== void 0) applySidebarWidth(frame, sidebarWidthDuringDrag(startWidth, startX, event.clientX));
-					const collapse = shouldCollapseOnSidebarDrag(startWidth, startX, event.clientX);
+					if (frame !== void 0) applySidebarWidth(frame, sidebarWidthDuringDrag(startWidth, startX, zoomedDeltaX(startX, event.clientX)));
+					const collapse = shouldCollapseOnSidebarDrag(startWidth, startX, zoomedDeltaX(startX, event.clientX));
 					finishDrag();
 					if (collapse) window.requestAnimationFrame(() => {
 						window.requestAnimationFrame(() => {

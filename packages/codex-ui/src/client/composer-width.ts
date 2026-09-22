@@ -1,3 +1,4 @@
+import { uiZoom } from './ui-zoom.ts'
 export const COMPOSER_MIN_WIDTH = 640
 export const COMPOSER_EDGE_BUDGET = 176
 /** 按用户要求用最窄宽度替代宿主自适应默认；已有有效偏好不重置，拖拽起点沿用宿主存储。 */
@@ -55,11 +56,11 @@ export function observeHeroWidthHandles(label: string): () => void {
         })
         handle.addEventListener('pointermove', event => {
           handle.style.setProperty('--dcu-pointer-y', `${event.clientY - handle.getBoundingClientRect().top}px`)
-          if (dragging) publish(initial + (event.clientX - origin) * (side === 'right' ? 2 : -2), false)
+          if (dragging) publish(initial + (event.clientX - origin) / uiZoom() * (side === 'right' ? 2 : -2), false)
         })
         handle.addEventListener('pointerup', event => {
           if (!dragging) return
-          publish(initial + (event.clientX - origin) * (side === 'right' ? 2 : -2), true)
+          publish(initial + (event.clientX - origin) / uiZoom() * (side === 'right' ? 2 : -2), true)
           dragging = false
           delete handle.dataset.dragging
           handle.releasePointerCapture(event.pointerId)

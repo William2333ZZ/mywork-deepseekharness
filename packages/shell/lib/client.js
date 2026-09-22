@@ -302,6 +302,11 @@ const CSS = `
 body>:where(:not(#root):not(script):not(style):not(link)){zoom:var(--mywork-zoom,1)}
 body>[style*="top:"],body>[style*="left:"],body>[style*="translate"]{zoom:1}
 body>[style*="top:"]>*,body>[style*="left:"]>*,body>[style*="translate"]>*{zoom:var(--mywork-zoom,1)}
+/* Fixed elements INSIDE the zoomed root that JS positions from getBoundingClientRect()/innerWidth (viewport px):
+   the fork's hover cards and portal tool menus, Automation's dropdowns, any React inline "position: fixed".
+   An inverse zoom on the element cancels the scaling of its insets, so it lands where the code meant it
+   (its content then renders at 100 %, which is fine for a popover). */
+#root [style*="position: fixed"], #root .dcu-wb-tip, #root [data-dcu-tool-menu="portal"] { zoom: calc(1 / var(--mywork-zoom, 1)); }
 /* dsh-univer-office's floating window is a body-level overlay that moves/resizes itself with pointer deltas
    in viewport px and clamps to window.innerWidth/Height; inside a zoomed overlay those deltas are off by the
    zoom factor (the window lags the cursor). Keep that overlay at zoom 1 (its viewer renders at 100 %). */

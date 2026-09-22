@@ -18,6 +18,7 @@ import { EMPTY_COMPANION_TABS, type CompanionTabAvailability } from './companion
 import { ChannelBrowser } from './ChannelBrowser.tsx'
 import { ScheduleBrowser } from './ScheduleBrowser.tsx'
 import { isSidebarDragHandle, sidebarWidthDuringDrag, shouldCollapseOnSidebarDrag } from './sidebar-drag.ts'
+import { zoomedDeltaX } from './ui-zoom.ts'
 import { applySidebarWidth, findSidebarFrame, parseSidebarGrid, SLIM_SIDEBAR_PX } from './sidebar-width.ts'
 import { isTaskSession } from './workspace-browser.ts'
 import { clearAutomationTaskSettingsRequest, requestAutomationTaskSettings } from './automation-task-settings.ts'
@@ -337,13 +338,13 @@ export function CodexSidebar({ globalPanels, footerActions, selectPanel, usePane
     const onMove = (event: PointerEvent): void => {
       if (!dragging || event.pointerId !== pointerId || frame === undefined) return
       stopHostDrag(event)
-      applySidebarWidth(frame, sidebarWidthDuringDrag(startWidth, startX, event.clientX))
+      applySidebarWidth(frame, sidebarWidthDuringDrag(startWidth, startX, zoomedDeltaX(startX, event.clientX)))
     }
     const onUp = (event: PointerEvent): void => {
       if (!dragging || event.pointerId !== pointerId) return
       stopHostDrag(event)
-      if (frame !== undefined) applySidebarWidth(frame, sidebarWidthDuringDrag(startWidth, startX, event.clientX))
-      const collapse = shouldCollapseOnSidebarDrag(startWidth, startX, event.clientX)
+      if (frame !== undefined) applySidebarWidth(frame, sidebarWidthDuringDrag(startWidth, startX, zoomedDeltaX(startX, event.clientX)))
+      const collapse = shouldCollapseOnSidebarDrag(startWidth, startX, zoomedDeltaX(startX, event.clientX))
       finishDrag()
       if (collapse) window.requestAnimationFrame(() => { window.requestAnimationFrame(() => { toggleSidebarRef.current() }) })
     }

@@ -1,6 +1,6 @@
 {
   "name": "dsh-mywork-browser",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "真实浏览器 for DeepSeek Harness：后台拉起本机 Chrome（无头），模型经官方 browser-use + Playwright MCP 驱动；右侧栏「实时浏览器」标签实时渲染画面、可接管；地址栏书签、open_url / quick_links 工具、/open 命令；设置 → MyWork → 浏览器。GitHub 等禁止 iframe 嵌入的站点照常可用（没有 iframe）。",
   "license": "MIT",
   "type": "module",

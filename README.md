@@ -2,7 +2,7 @@
 
 [DeepSeek Harness（dsh）](https://github.com/deepseek-ai/deepseek-harness) 的个人定制组合包：
 **不改 dsh 本体，一切皆插件**。装一个包，带上一套"像 Claude Code / Codex 一样"的工作台，外加
-日程（提醒 + 定时任务）、真实浏览器（书签 / 打开网页）、Markdown 增强和插件市场。**全程没有 iframe。**
+日程（提醒 + 定时任务）、真实浏览器（Chrome 式地址栏、画面随面板铺满）、Univer 表格 / 演示文稿、微信 / 飞书助理、MCP 连接器、Markdown 增强和插件市场。**全程没有 iframe。** 当前版本 **0.2.0**（2026-09-22），更新内容见文末。
 
 ```bash
 git clone https://github.com/William2333ZZ/mywork-deepseekharness.git
@@ -21,6 +21,8 @@ dsh web
 | ![日程](docs/screenshots/03-schedule-overlay.png) **日程面板**：提醒（一次 / 每天 / 每周 / 间隔，到点弹窗 + 通知 + 提示音）与定时任务 | ![定时任务](docs/screenshots/04-scheduled-tasks.png) **定时任务独立页面**：按计划在独立会话里跑编码任务（Automation）；每个任务的设定里有「运行结束发到 IM」 |
 | ![IM助理](docs/screenshots/05-im-assistant.png) **IM助理**：微信 / 飞书 / 钉钉 / 企业微信 / QQ / Telegram 接到本机 dsh | ![MCP](docs/screenshots/06-mcp-connectors.png) **MCP 连接器**：应用内添加 / 编辑 / 停用 MCP 服务器，粘贴 mcpServers JSON 导入，保存即挂载 |
 | ![成员](docs/screenshots/07-settings-members.png) **设置 → MyWork → 成员**：看每个成员的状态，一键补装 / 更新 | ![外观](docs/screenshots/08-settings-appearance.png) **外观**：Claude Code / Codex / Swiss 开发者 主题 × 浅色 / 深色 / 跟随系统，界面缩放 |
+| ![新建对话](docs/screenshots/12-new-conversation.png) **新建对话的四个起点**：上网查资料 / 做表格和演示文稿 / 定时任务与提醒 / 微信·飞书助理，点开就是一条能直接发的提示 | ![地址栏](docs/screenshots/13-omnibox.png) **Chrome 式地址栏**：输网址直接开、输文字就搜索、历史和书签建议、行内补全、Ctrl/Cmd+L；画面随面板大小铺满 |
+| ![Univer](docs/screenshots/14-univer-review.png) **表格和演示文稿（Univer）**：模型在实时窗口里边做边看，审阅卡片可全屏、可导出 .xlsx / .pptx | ![定时任务](docs/screenshots/04-scheduled-tasks.png) **定时任务里的 IM 通知**：每个任务自己的设定里选"运行结束发到哪个聊天"（每次 / 仅失败） |
 | ![Swiss 浅色](docs/screenshots/10-swiss-light.png) **Swiss 开发者风格（浅色）**：用 [ui-ux-pro-max](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) 生成的设计系统：Minimalism & Swiss，slate 灰阶 + 一个绿色强调色，IBM Plex Sans + JetBrains Mono，规则见 [design-system/mywork-kit/MASTER.md](design-system/mywork-kit/MASTER.md) | ![Swiss 深色](docs/screenshots/11-swiss-dark.png) **Swiss 开发者风格（深色）**：同一套 token 的深色版（"Developer Tool / IDE" 配色），对比度 ≥ 4.5:1，焦点环 2 px，200 ms 悬停过渡，尊重 prefers-reduced-motion |
 
 ## 这个仓库里有什么
@@ -79,9 +81,57 @@ dsh web
 
 卸载：`bash scripts/uninstall.sh web`，或逐个 `dsh plugin --profile web remove <name>`。
 
+## 演示案例
+
+下面每个案例都是在这套件里跑通过的。提示词可以原样贴进输入框，或者在「新建对话」页点对应的起点卡片，它会把提示填好，你只要补上具体内容。
+
+### 1. 上网查资料，边看边总结
+
+1. 点输入框旁的地球图标打开右侧「实时浏览器」，地址栏输入 `github.com`（或直接输入一个问题，会用 Bing 搜索），Enter。
+2. 对模型说：**打开这个网址给我看，并把页面要点整理成 5 条：https://github.com/deepseek-ai/deepseek-harness**
+3. 模型用 Playwright 打开页面，右侧画面实时跟着走，你可以随时自己点、滚、输入；总结出现在对话里。
+
+地址栏和 Chrome 一样：历史 / 书签建议、行内补全（输 `git` 会补成 `github.com`）、↑↓ 选、Esc 还原、在画面里按 Ctrl/Cmd+L 跳回地址栏；搜索引擎在 设置 → MyWork → 浏览器 里换（Bing / Google / 百度 / DuckDuckGo）。
+
+![地址栏](docs/screenshots/13-omnibox.png)
+
+### 2. 做一份演示文稿（或表格）
+
+对模型说：**根据下面的资料做一份演示文稿，5 页以内，每页一个要点，做完截图给我看：**（把资料贴在后面）。
+
+模型会用 Univer 新建 `.univer` 文件，在可拖动的实时窗口里边做边校验（版式检查、截图自查），完成后会话里留一张审阅卡片，可全屏查看、对比版本、导出 `.pptx`。表格同理：**用 Univer 新建一个电子表格：做好表头、示例数据和汇总公式，最后导出 .xlsx。内容是：…**
+
+![Univer](docs/screenshots/14-univer-review.png)
+
+### 3. 定时任务跑完发到微信
+
+1. 侧栏 扩展管理 → 定时任务 → 新建定时任务：名称、计划时间、任务指令照常填，最下面多了一栏「运行结束发到 IM」，选一个聊天，选 每次结束 / 仅失败，保存。
+2. 或者直接说：**创建一个定时任务：每天 09:00 检查 GitHub 上我关注的仓库有没有新 release，跑完把结果发到微信。** 模型会调用 `automation_create` 和 `automation_notify_set`。
+3. 到点后任务在独立会话里执行，最后一条回复带着任务名和「完成 / 失败」发到你选的聊天。任务卡片上会显示当前的通知设置。
+
+> 微信个人号机器人只能在你给它发过消息后的一段时间内回复（平台限制，见「已知的坑」）。要准点推送，把通知目标选成飞书 / 钉钉 / 企业微信账号。
+
+![定时任务](docs/screenshots/04-scheduled-tasks.png)
+
+### 4. 在微信里直接用助理
+
+1. 侧栏 IM助理 → 添加微信账号（扫码）；飞书 / 钉钉 / 企业微信 / QQ / Telegram 填 Bot 凭证。
+2. 在微信里对机器人说话，就是在和本机 dsh 的一个会话对话：**每天 9 点把 ~/Downloads 里超过 30 天的文件列出来发给我** 这种话它会直接建成定时任务。
+3. 从桌面这边主动发：IM助理 页顶部的「主动发消息到频道」卡片，或对模型说 **把上面的结论整理成 3 句话，发到微信**，或 `/imsend 内容`。提醒也可以到点顺带发到 IM（新建提醒时勾选）。
+
+![IM助理](docs/screenshots/05-im-assistant.png)
+
+### 5. 换个风格、缩放界面
+
+设置 → MyWork → 外观：Claude Code / Codex / Swiss 开发者 三种风格 × 浅色 / 深色 / 跟随系统，侧栏、设置页、气泡、输入框、按钮都跟着换；界面缩放 80–150%，所有弹层、拖动、Univer 窗口、实时浏览器在任何缩放下都对得上鼠标。
+
+| 浅色 | 深色 |
+| --- | --- |
+| ![Swiss 浅色](docs/screenshots/10-swiss-light.png) | ![Swiss 深色](docs/screenshots/11-swiss-dark.png) |
+
 ## 用法速查
 
-- **主题**：设置 → MyWork → 外观 → 选「Claude Code 风格」或「Codex 风格」，再选浅色/深色/跟随系统。
+- **主题**：设置 → MyWork → 外观 → 选「Claude Code 风格」「Codex 风格」或「Swiss 开发者风格」，再选浅色/深色/跟随系统。
 - **字号**：会话正文字号在 设置 → 常规 → 字号大小（dsh 自带，12–17 px）；整体界面缩放（侧栏、按钮、文字一起放大，80%–150%）在 设置 → MyWork → 外观 → 界面缩放。
 - **提醒**：输入框右侧日历图标 → 提醒 → 添加；或对模型说"10 分钟后提醒我看 CI"；或输入
   `/remind 10m 喝水`、`/remind 18:30 下班`、`/remind daily 09:00 站会`、`/remind weekly 1,3,5 10:00 周会`、`/remind every 30m 起身`、`/remind list`。
@@ -144,6 +194,7 @@ scripts/
 - `dsh-univer-office@0.3.2` 的前端在 dsh 0.1.6-alpha.2 上不会激活（list slot 注册缺 `id`，报 `list slot "conversation.chat.turnTail" requires options.id`）。上游已在 main 修复（PR #82）但未发版；kit 的安装器 / `profile-fixups.mjs` 会给已装的 0.3.x 打同样的一行补丁（`COMPAT_PATCHES`），0.3.3 上 npm 后删掉即可。
 - `@michengai/dsh-im-connect` 给新账号的默认工作区是 dsh 进程的启动目录（`process.cwd()`），不是已登记工作区时每条 IM 消息都会 `挂载会话失败 … 目标工作区不可用`。kit 的宿主插件启动时和 `profile-fixups.mjs` 安装时会把这种账号改到第一个已登记工作区（`packages/kit/src/im-guard.js`）；详见 [issue #1](https://github.com/William2333ZZ/mywork-deepseekharness/issues/1)。
 - `dsh-chat-tidy@0.4` 不再是成员：它按旧版 dsh 的 DOM 写的排版 CSS 在 0.1.6-alpha.2 上和 dsh 自己的 16 px 行距叠加（工具调用 / 回复每行多出 14 px 空隙），还会强制 14 px 正文、让 设置 → 字号大小 失效，折叠逻辑也会报 `reading 'order'`。等它适配新版后可以自己 `dsh plugin --profile web add dsh-chat-tidy`。
+- **微信推送有时效**：微信个人号机器人接口只允许在你给它发消息后的一段时间内回复（靠那条消息带的 context_token），过期后所有主动发送都报 `sendmessage ret=-2 prepare failed`。提醒和定时任务通知在这个窗口外会发不出去。对策：给机器人回一句就续期；要准点推送用飞书 / 钉钉 / 企业微信账号做通知目标。
 - Kit 的 patch 还关掉了 dsh 会话头部的「Open In…」按钮（访达 / Cursor / 终端），想要回来在 profile patch 里写 `- id: ui-open-in-app` + `disabled: false`（`open-in-app` 同理）。
 - **dsh 核心模块只能有一份**：插件不要把 `@deepseek-ai/dsh-*` 写进 `dependencies`（profile 用 hoisted + 不自动装 peer，dsh 启动时把这些 import 指回自己的那份）。真实浏览器依赖的官方 browser-use / Playwright MCP 因此作为 kit 成员装进 profile，而不是打进 `dsh-mywork-browser`。官方的 `dsh-experimental-browser-use-runtime` 自己又把 `dsh-scope` / `dsh-mcp-client` 写成了 dependencies（上游打包问题），会在 profile 里多出第二份 → 新建会话报 `tools.restrict() requires a scoped context`。kit 用 pnpm 的 `"-"` override 把这两个包从 profile 里去掉（`kit.json` 的 `profileOverrides`；安装器、`install.sh`、`dev-env.sh` 都会同步到 profile 的 `package.json`）。
 - **每个会话都能用浏览器**：官方 Playwright provider 在 attach 模式下只给启动后第一个会话用（其它会话报 `browser tool belongs to another Session`）。`dsh-mywork-browser` 自己用官方运行时给每个会话挂一份非独占的 Playwright MCP，所以套件的 patch 不插入官方 `browser-use-playwright` 行。多个会话同时操作时共用同一批标签页。
@@ -154,6 +205,18 @@ scripts/
 - 提醒：`$DSH_HOME/mywork/reminders.json`
 - 书签：`$DSH_HOME/mywork/links.json`；Chrome 登录态：`$DSH_HOME/mywork/chrome-profile`
 - 主题选择：浏览器 localStorage（`dsh-mywork-shell:theme` / `dsh-mywork-shell:zoom`）；明暗方案由 dsh 写 `$DSH_HOME/settings.yaml`
+
+## 更新记录
+
+### 0.2.0（2026-09-22）
+
+- 定时任务的 IM 通知改到每个任务自己的设定里（新建 / 编辑弹窗多一栏「运行结束发到 IM」，卡片显示当前设置）；保存失败、取消都不会写入。
+- 界面缩放重做：缩放作用在应用根节点，dsh 的浮层菜单、悬停卡片、拖动、Univer 窗口、实时浏览器在 80–150% 下全部对齐（[#2](https://github.com/William2333ZZ/mywork-deepseekharness/issues/2) [#6](https://github.com/William2333ZZ/mywork-deepseekharness/issues/6) [#7](https://github.com/William2333ZZ/mywork-deepseekharness/issues/7)）。
+- 移除 dsh-chat-tidy（在 alpha.2 上把行距放大一倍、让字号失效，[#4](https://github.com/William2333ZZ/mywork-deepseekharness/issues/4)）；折叠工具调用组上方的空白带修掉（[#3](https://github.com/William2333ZZ/mywork-deepseekharness/issues/3)）。
+- 风格切换真正换肤：气泡 / 输入框 / 强调色 / 侧栏 / 设置页都跟着风格走（[#5](https://github.com/William2333ZZ/mywork-deepseekharness/issues/5)）；新增用 ui-ux-pro-max 设计系统生成的「Swiss 开发者风格」（design-system/mywork-kit/MASTER.md）。
+- 实时浏览器：Chrome 式地址栏（网址 / 搜索 / 历史 / 书签 / 行内补全 / Ctrl+L），页面视口跟随面板大小，右侧栏引导入口换成和 dsh 一致的图标。
+- 新建对话页的起点改成 上网查资料 / 做表格和演示文稿 / 定时任务与提醒 / 微信·飞书助理。
+- IM 账号工作区未登记时自动修正（[#1](https://github.com/William2333ZZ/mywork-deepseekharness/issues/1)）。
 
 ## License
 

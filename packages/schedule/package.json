@@ -1,6 +1,6 @@
 {
   "name": "dsh-mywork-schedule",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "日程 for DeepSeek Harness Web：输入框旁的「日程」面板——提醒（一次性/每天/每周/间隔，到点页面弹窗 + 浏览器通知 + 提示音）与定时任务（后台跑会话，接 Automation）两个标签；/remind 命令与 reminder_* 工具。数据在 $DSH_HOME/mywork/reminders.json。",
   "license": "MIT",
   "type": "module",

@@ -1,6 +1,6 @@
 {
   "name": "dsh-mywork-kit",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "MyWork Kit for DeepSeek Harness：装一个包带上一整套（Claude/Codex 外观、闹钟提醒、定时任务、打开网页、Mermaid、插件市场）。设置页看成员状态、一键补装/更新；同时启用 dsh 自带的会话内提醒（schedule_*）。不改 dsh 本体，一切皆插件。",
   "license": "MIT",
   "type": "module",

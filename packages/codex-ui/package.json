@@ -1,6 +1,6 @@
 {
   "name": "dsh-mywork-codex-ui",
-  "version": "1.1.14-mywork.1",
+  "version": "1.1.14-mywork.2",
   "description": "Codex 风格侧栏与设置页 for DeepSeek Harness Web（fork 自 @michengai/dsh-codex-ui：导航按已安装功能收拾，无 iframe）",
   "license": "Apache-2.0",
   "publishConfig": {

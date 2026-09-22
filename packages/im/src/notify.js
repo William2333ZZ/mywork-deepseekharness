@@ -9,6 +9,7 @@
  *
  * Config: $DSH_HOME/mywork/im-notify.json
  *   { automation: { tasks: { [automationId]: { target, when } }, default: { target, when } | null, maxChars } }
+ *   (`default` is only reachable through the API / tool; the UI is strictly per task)
  *   target = IM chat session id (see chats.js), when = 'always' | 'failed'
  */
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
@@ -30,9 +31,7 @@ export function normalizeNotifyConfig(input) {
   const a = input && typeof input === 'object' && input.automation && typeof input.automation === 'object' ? input.automation : {}
   const tasks = {}
   if (a.tasks && typeof a.tasks === 'object') for (const [id, v] of Object.entries(a.tasks)) { const r = rule(v); if (r && id) tasks[id] = r }
-  // legacy (single global rule) → default
-  const legacy = a.enabled === true ? rule({ target: a.target, when: a.when }) : null
-  return { automation: { tasks, default: rule(a.default) || legacy, maxChars: Math.min(4000, Math.max(200, Number(a.maxChars) || 1500)) } }
+  return { automation: { tasks, default: rule(a.default), maxChars: Math.min(4000, Math.max(200, Number(a.maxChars) || 1500)) } }
 }
 export function readNotifyConfig(path = notifyConfigPath()) {
   try { return normalizeNotifyConfig(JSON.parse(readFileSync(path, 'utf8'))) } catch { return normalizeNotifyConfig({}) }

@@ -4,10 +4,10 @@ import { composeRunMessage, createAutomationWatcher, normalizeNotifyConfig, reso
 
 const store = { definitions: { a1: { id: 'a1', name: '每日巡检', status: 'active', schedule: { kind: 'daily' }, updatedAt: '2026-09-22' } }, runs: { r1: { id: 'r1', automationId: 'a1', sessionId: 'dsh-automation-session-1', status: 'running' } } }
 
-test('config: per-task rules, legacy global becomes default', () => {
+test('config: per-task rules; legacy global fields are ignored (no silent default)', () => {
   const c = normalizeNotifyConfig({ automation: { enabled: true, target: 'im:x', when: 'failed', tasks: { a1: { target: 'im:y' }, bad: { target: '' } } } })
   assert.deepEqual(c.automation.tasks, { a1: { target: 'im:y', when: 'always' } })
-  assert.deepEqual(c.automation.default, { target: 'im:x', when: 'failed' })
+  assert.equal(c.automation.default, null)
 })
 test('tasks: list / resolve / run lookup', () => {
   assert.equal(listAutomationTasks(store)[0].name, '每日巡检')

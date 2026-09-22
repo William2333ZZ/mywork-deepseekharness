@@ -3,7 +3,7 @@
 日程 for DeepSeek Harness Web：输入框旁的「日程」面板，两个标签：
 
 - **提醒**（本包）：一次性 / 每天 / 每周 / 间隔提醒，到点页面内弹出 + 浏览器通知 + 提示音。
-- **定时任务**（[`@michengai/dsh-automation`](https://github.com/MichengAI/dsh-automation)）：按计划在独立会话里执行编码任务。Automation 没有可读的 HTTP API，这个标签只做入口：跳到它的设置页；侧栏「定时」标签（dsh-mywork-codex-ui）里能看任务列表。未安装时提示到 设置 → MyWork → 成员 补装。
+- **定时任务**（[`@michengai/dsh-automation`](https://github.com/MichengAI/dsh-automation)）：按计划在独立会话里执行编码任务。Automation 没有可读的 HTTP API，这个标签只做入口：跳到它的设置页；侧栏「定时」标签（dsh-mywork-codex-ui）里能看任务列表。未安装时提示到 设置 → MyWork → 成员 补装。装了 dsh-mywork-im 时，还会往 Automation 的 新建 / 编辑定时任务 弹窗里注入一栏「运行结束发到 IM」，并在任务卡片上显示当前设置（规则存在 dsh-mywork-im，`/mywork-im/api/notify`）。
 
 ## 用法
 

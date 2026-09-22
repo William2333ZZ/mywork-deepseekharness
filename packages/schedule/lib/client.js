@@ -303,6 +303,8 @@ module.exports = { icon, PATHS }
  *                to its settings page (Automation has no readable HTTP API).
  *   • Alarm toasts (shell.overlay).
  *   • "日程" tab inside Settings → MyWork: notification permission, sound, list.
+ *   • "运行结束发到 IM" field inside Automation's own task dialog + a chip on each task
+ *     card (DOM injection, see installNotifyInjector; rules live in dsh-mywork-im).
  *
  * Alarms fire HERE: the client polls the host list, computes due occurrences
  * with the browser's clock/timezone, shows a toast, a browser Notification
@@ -326,6 +328,8 @@ const SCHEDULE_PANEL_ID = 'mywork-schedule'
 const POLL_MS = 30000
 const TICK_MS = 5000
 const SOUND_KEY = 'dsh-mywork-schedule:sound'
+/** lucide "send" as inline SVG for the card chip (Automation's chips are plain spans). */
+const ICON_SEND = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg>'
 
 const zh = {
   nav: '日程',
@@ -335,7 +339,7 @@ const zh = {
   tasksHint: '定时任务在独立会话里按计划执行编码任务（一次 / 每小时 / 每天 / 每周 / 每月），由 Automation 插件提供；在侧栏「定时」标签查看，在设置页管理。',
   tasksOpen: '打开定时任务页面',
   tasksMissing: '尚未安装 @michengai/dsh-automation：到 设置 → MyWork → 成员 一键补装。',
-  notifyTitle: '运行结束发到 IM（按任务）', notifyHint: '每个定时任务单独选：跑完后把最后一条回复发到哪个微信 / 飞书聊天。改完即时保存。也可以在对话里说"这个任务完成后发到微信"（模型会调用 automation_notify_set）。', notifyOff: '不发送', notifyAlways: '每次结束', notifyFailed: '仅失败', notifySaved: '已保存', notifyNoChats: '还没有可发的聊天：先在 IM 里给机器人发一句。', notifyNoTasks: '还没有定时任务。', notifyDefault: '其它 / 新建的任务（默认）',
+  notifyTitle: '运行结束发到 IM', notifyFieldHint: '跑完后把最后一条回复发到这个微信 / 飞书聊天，随任务一起保存。也可以在对话里说"这个任务完成后发到微信"。', notifyOff: '不发送', notifyAlways: '每次结束', notifyFailed: '仅失败', notifyNoChats: '还没有可发的聊天：先在 IM 里给机器人发一句。', notifyUnknownChat: '聊天已不可用',
   add: '添加',
   cancel: '取消',
   empty: '还没有提醒。用下面的表单，或在对话里说「10 分钟后提醒我…」，或输入 /remind 10m 喝水。',
@@ -367,7 +371,7 @@ const en = {
   tasksHint: 'Scheduled tasks run coding jobs in their own sessions on a plan (once / hourly / daily / weekly / monthly), provided by the Automation plugin; see them in the sidebar "Schedule" tab and manage them in Settings.',
   tasksOpen: 'Open the scheduled tasks page',
   tasksMissing: '@michengai/dsh-automation is not installed: Settings → MyWork → Members installs it in one click.',
-  notifyTitle: 'Send run results to IM (per task)', notifyHint: 'For each scheduled task choose the WeChat / Feishu chat that receives its last reply when a run finishes. Saved immediately. You can also ask in chat ("send this task\'s result to WeChat"; the model calls automation_notify_set).', notifyOff: 'do not send', notifyAlways: 'every run', notifyFailed: 'failed only', notifySaved: 'saved', notifyNoChats: 'No reachable chat yet: message the bot from your IM app first.', notifyNoTasks: 'No scheduled tasks yet.', notifyDefault: 'other / new tasks (default)',
+  notifyTitle: 'Send the result to IM when a run ends', notifyFieldHint: 'The last reply of each run goes to this WeChat / Feishu chat; saved with the task. You can also ask in chat ("send this task\'s result to WeChat").', notifyOff: 'do not send', notifyAlways: 'every run', notifyFailed: 'failed only', notifyNoChats: 'No reachable chat yet: message the bot from your IM app first.', notifyUnknownChat: 'chat no longer available',
   add: 'Add',
   cancel: 'Cancel',
   empty: 'No reminders yet. Use the form below, ask the model ("remind me in 10 minutes…"), or type /remind 10m water.',
@@ -430,6 +434,11 @@ const CSS = `
 .mwr-seg button{border:0;background:transparent;color:var(--dsw-alias-label-secondary);padding:4px 9px;cursor:pointer;font:inherit;font-size:12px}
 .mwr-seg button.on{background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-inverted,#fff)}
 .mwr-wd{display:flex;gap:3px}
+.mwn-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.mwn-select{flex:1;min-width:200px;height:35px;padding:0 10px;border-radius:12px;border:0.5px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);color:inherit;font:inherit;font-size:13.3px}
+.mwn-select:focus{outline:none;border-color:var(--dsw-alias-brand-primary)}
+.mwn-hint{font-size:12px;color:var(--dsw-alias-label-secondary);line-height:1.5}
+.mwn-chip svg{width:14px;height:14px}
 .mwr-wd button{width:26px;height:26px;border-radius:50%;corner-shape:round;border:0.5px solid var(--dsw-alias-border-l2);background:transparent;color:inherit;cursor:pointer;font-size:11px;padding:0}
 .mwr-wd button.on{background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-inverted,#fff);border-color:transparent}
 .mwr-primary{border:0;border-radius:8px;background:var(--dsw-alias-button-primary-fill,var(--dsw-alias-brand-primary));color:var(--dsw-alias-label-primary-inverted,#fff);padding:6px 14px;cursor:pointer;font:inherit;font-weight:600}
@@ -711,34 +720,123 @@ exports.apply = function apply(ctx) {
     openSettingsSection(AUTOMATION_LABELS)
   }
 
-  /** Per-task "运行结束发到 IM" list; rendered above Automation's own page and inside the 日程 popup. */
-  function NotifyCard(props) {
-    const d = dict()
-    const standalone = !!(props && props.standalone)
-    const [data, setData] = React.useState(null); const [msg, setMsg] = React.useState('')
-    const load = React.useCallback(() => fetch('/mywork-im/api/notify').then((r) => (r.ok ? r.json() : null)).then((x) => { if (x) setData(x) }).catch(() => {}), [])
-    React.useEffect(() => { load(); const id = setInterval(load, 10000); return () => clearInterval(id) }, [load])
-    if (!data) return null
-    const { config, chats, tasks } = data
-    const rules = (config.automation && config.automation.tasks) || {}
-    const post = async (body) => { setMsg(''); try { const r = await fetch('/mywork-im/api/notify', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }).then((x) => x.json()); if (r.error) throw new Error(r.error); setData(r); setMsg(d.notifySaved) } catch (e) { setMsg(String(e.message || e)) } }
-    const chatSelect = (value, onChange) => h('select', { className: 'mwr-in', style: { flex: 1, minWidth: 160 }, value: value || '', onChange: (e) => onChange(e.target.value) },
-      h('option', { value: '' }, d.notifyOff), chats.map((c) => h('option', { key: c.sessionId, value: c.sessionId }, `${c.platform} · ${c.channelName} · ${c.title}`)))
-    const whenSeg = (value, onChange) => h('div', { className: 'mwr-seg' },
-      h('button', { type: 'button', className: value !== 'failed' ? 'on' : '', onClick: () => onChange('always') }, d.notifyAlways),
-      h('button', { type: 'button', className: value === 'failed' ? 'on' : '', onClick: () => onChange('failed') }, d.notifyFailed))
-    const row = (label, rule, apply) => h('div', { className: 'mwr-line', style: { alignItems: 'center' } },
-      h('span', { style: { minWidth: 140, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }, title: label }, label),
-      chatSelect(rule ? rule.target : '', (target) => apply({ target, when: rule ? rule.when : 'always' })),
-      rule ? whenSeg(rule.when, (when) => apply({ target: rule.target, when })) : null)
-    return h('div', { className: 'mwr-form', style: standalone ? { border: '0.5px solid var(--dsw-alias-border-l2)', borderRadius: 12, marginBottom: 18, background: 'var(--dsw-alias-bg-layer-1)', maxWidth: 760 } : { borderTop: '0.5px solid var(--dsw-alias-border-l2)', marginTop: 6 } },
-      h('div', { style: { fontWeight: 600, color: 'var(--dsw-alias-label-primary)' } }, d.notifyTitle),
-      h('div', { className: 'mwr-hint', style: { color: 'var(--dsw-alias-label-secondary)', lineHeight: 1.6 } }, d.notifyHint),
-      chats.length === 0 ? h('div', { className: 'mwr-err' }, d.notifyNoChats) : null,
-      tasks.length === 0 ? h('div', { className: 'mwr-hint', style: { color: 'var(--dsw-alias-label-secondary)' } }, d.notifyNoTasks) : tasks.map((task) => h(React.Fragment, { key: task.id }, row(task.name, rules[task.id], (rule) => post({ taskId: task.id, target: rule.target, when: rule.target ? rule.when : 'off' })))),
-      row(d.notifyDefault, config.automation.default, (rule) => post({ default: rule.target ? rule : null })),
-      msg ? h('div', { style: { fontSize: 12, color: 'var(--dsw-alias-label-secondary)' } }, msg) : null,
-    )
+  /**
+   * "运行结束发到 IM" lives INSIDE each scheduled task's own settings.
+   * @michengai/dsh-automation has no extension point for its task dialog, so we watch the DOM:
+   *   • task dialog  form.dsh-st-modal  → a field (chat + 每次/仅失败) before the 保存/取消 row; saved on submit
+   *   • task card    article.dsh-st-card → a chip in the card foot showing the current rule
+   * Task identity: Automation's dialog exposes only the name, so the field is bound by name
+   * (edit) or by "the task that appears with this name after save" (create). Rules are stored
+   * per task id by dsh-mywork-im (POST /mywork-im/api/notify { taskId, target, when }).
+   */
+  function installNotifyInjector() {
+    if (typeof document === 'undefined' || typeof MutationObserver === 'undefined') return
+    const NOTIFY_API = '/mywork-im/api/notify'
+    let data = null // { config, chats, tasks } | null when dsh-mywork-im is not installed
+    let available = true
+    const chatLabel = (c) => `${c.platform} · ${c.channelName} · ${c.title}`
+    const load = () => fetch(NOTIFY_API).then((r) => { if (r.status === 404) { available = false; return null } return r.ok ? r.json() : null }).then((x) => { if (x) { data = x; decorateCards() } return data }).catch(() => null)
+    const post = (body) => fetch(NOTIFY_API, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }).then((r) => r.json()).then((x) => { if (x && x.error) throw new Error(x.error); data = x; decorateCards(); return x })
+    const rules = () => (data && data.config && data.config.automation && data.config.automation.tasks) || {}
+    const tasksNamed = (name) => (data ? data.tasks : []).filter((x) => x.name === name)
+
+    // ---- cards -------------------------------------------------------------------------
+    function decorateCards() {
+      if (!data) return
+      const d = dict()
+      const byId = rules()
+      const chats = data.chats || []
+      document.querySelectorAll('article.dsh-st-card').forEach((card) => {
+        const foot = card.querySelector('.dsh-st-card-foot'); const h3 = card.querySelector('h3')
+        if (!foot || !h3) return
+        const task = tasksNamed(h3.textContent.trim())[0]
+        const rule = task ? byId[task.id] : null
+        let chip = foot.querySelector('.mwn-chip')
+        if (!rule) { if (chip) chip.remove(); return }
+        const chat = chats.find((c) => c.sessionId === rule.target)
+        const text = (chat ? `${chat.platform} · ${chat.title}` : d.notifyUnknownChat) + ' · ' + (rule.when === 'failed' ? d.notifyFailed : d.notifyAlways)
+        if (!chip) { chip = document.createElement('span'); chip.className = 'dsh-st-chip mwn-chip'; chip.innerHTML = ICON_SEND; chip.appendChild(document.createTextNode('')); foot.insertBefore(chip, foot.firstChild ? foot.firstChild.nextSibling : null) }
+        chip.title = d.notifyTitle + '：' + text
+        chip.lastChild.textContent = text
+      })
+    }
+
+    // ---- dialog ------------------------------------------------------------------------
+    function decorateDialog(form) {
+      if (form.dataset.mwn) return
+      form.dataset.mwn = '1'
+      const actions = form.querySelector('.dsh-st-modal-actions')
+      const nameInput = form.querySelector('label.dsh-st-field input')
+      if (!actions || !nameInput) return
+      const d = dict()
+      const isEdit = /编辑|edit/i.test((form.querySelector('h2') || {}).textContent || '')
+      const knownIds = new Set((data ? data.tasks : []).map((x) => x.id))
+      let boundId = ''
+      if (isEdit) { const hit = tasksNamed(nameInput.value.trim())[0]; boundId = hit ? hit.id : '' }
+      const existing = boundId ? rules()[boundId] : null
+
+      const field = document.createElement('div'); field.className = 'dsh-st-field mwn-field'
+      const label = document.createElement('span'); label.textContent = d.notifyTitle
+      const row = document.createElement('div'); row.className = 'mwn-row'
+      const select = document.createElement('select'); select.className = 'mwn-select'
+      const off = document.createElement('option'); off.value = ''; off.textContent = d.notifyOff; select.appendChild(off)
+      ;(data ? data.chats : []).forEach((c) => { const o = document.createElement('option'); o.value = c.sessionId; o.textContent = chatLabel(c); select.appendChild(o) })
+      select.value = existing ? existing.target : ''
+      const seg = document.createElement('div'); seg.className = 'mwr-seg'
+      let when = existing ? existing.when : 'always'
+      const mk = (v, txt) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = txt; b.onclick = () => { when = v; paint() }; seg.appendChild(b); return b }
+      const bAlways = mk('always', d.notifyAlways); const bFailed = mk('failed', d.notifyFailed)
+      const paint = () => { bAlways.className = when !== 'failed' ? 'on' : ''; bFailed.className = when === 'failed' ? 'on' : ''; seg.style.display = select.value ? '' : 'none' }
+      select.onchange = paint; paint()
+      const hint = document.createElement('div'); hint.className = 'mwn-hint'
+      hint.textContent = (data && data.chats.length === 0) ? d.notifyNoChats : d.notifyFieldHint
+      row.appendChild(select); row.appendChild(seg)
+      field.appendChild(label); field.appendChild(row); field.appendChild(hint)
+      actions.parentNode.insertBefore(field, actions)
+
+      // Save together with the task: Automation validates + submits the form and closes the dialog on
+      // success (a validation error keeps it open, e.g. a one-off time in the past). We arm on submit
+      // and write the rule only once the dialog has really gone away, bound to the task's id.
+      let armed = null
+      const onSubmit = () => {
+        const target = select.value; const chosenWhen = target ? when : 'off'
+        const unchanged = (!existing && !target) || (existing && existing.target === target && existing.when === chosenWhen)
+        armed = unchanged ? null : { target, when: chosenWhen, name: nameInput.value.trim(), at: Date.now() }
+      }
+      form.addEventListener('submit', onSubmit, true)
+      // Dismissing the dialog after a rejected save (取消 / × / Esc / click on the mask) must not write anything.
+      const disarm = () => { armed = null }
+      form.querySelectorAll('.dsh-st-modal-close, .dsh-st-modal-actions button:not(.dsh-st-btn--primary)').forEach((b) => b.addEventListener('click', disarm, true))
+      form.addEventListener('keydown', (e) => { if (e.key === 'Escape') disarm() }, true)
+      const mask = form.parentElement
+      if (mask && mask.classList.contains('dsh-st-mask')) mask.addEventListener('click', (e) => { if (e.target === mask) disarm() }, true)
+      const tick = () => {
+        if (form.isConnected) { if (armed && Date.now() - armed.at > 15000) armed = null; return setTimeout(tick, 250) }
+        if (!armed) return
+        const a = armed; armed = null
+        const started = Date.now()
+        const tryBind = async () => {
+          const fresh = await load()
+          let id = boundId
+          if (!id && fresh) { const cands = fresh.tasks.filter((x) => x.name === a.name && (isEdit || !knownIds.has(x.id))); if (cands.length) id = cands[0].id }
+          if (!id) { if (Date.now() - started < 8000) return setTimeout(tryBind, 600); return }
+          await post({ taskId: id, target: a.target, when: a.when })
+        }
+        tryBind()
+      }
+      setTimeout(tick, 250)
+    }
+
+    const scan = () => {
+      if (!available) return
+      document.querySelectorAll('form.dsh-st-modal').forEach(decorateDialog)
+      decorateCards()
+    }
+    let pending = 0
+    const observer = new MutationObserver(() => { if (pending) return; pending = setTimeout(() => { pending = 0; scan() }, 80) })
+    observer.observe(document.body, { childList: true, subtree: true })
+    load().then(scan)
+    setInterval(() => { if (available && document.querySelector('article.dsh-st-card, form.dsh-st-modal')) load() }, 15000)
   }
 
   function TasksTab() {
@@ -748,7 +846,6 @@ exports.apply = function apply(ctx) {
       installed
         ? h('div', null, h('button', { className: 'mwr-primary', onClick: () => { set({ open: false }); openTasks() } }, t('tasksOpen')))
         : h('div', { className: 'mwr-err' }, t('tasksMissing')),
-      installed ? h(NotifyCard) : null,
     )
   }
 
@@ -817,8 +914,7 @@ exports.apply = function apply(ctx) {
     name: 'shell.overlay', id: PLUGIN, order: 40,
   }, function MyworkScheduleOverlay() { return h(Overlay) }))
 
-  // Same card at the top of the standalone 定时任务 page (slot declared by dsh-mywork-codex-ui).
-  ctx.slots.inject('mywork.schedule.section', () => ctx.slots.register({ name: 'mywork.schedule.section', id: PLUGIN, order: 10 }, function MyworkScheduleNotify() { return h(NotifyCard, { standalone: true }) }))
+  installNotifyInjector()
 
   // "日程" tab inside Settings → MyWork (slot declared by dsh-mywork-kit).
   ctx.slots.inject(TAB_SLOT, () => ctx.slots.register({

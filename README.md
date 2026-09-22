@@ -18,7 +18,7 @@ dsh web
 | | |
 | --- | --- |
 | ![首页](docs/screenshots/01-home.png) **Codex 风格侧栏**：新建对话、扩展管理（定时任务 / 插件市场）、IM助理、MCP 连接器，只显示装了的功能 | ![实时浏览器](docs/screenshots/02-conversation-live-browser.png) **实时浏览器**：模型用 Playwright 打开的页面实时出现在右侧栏，能点、能滚、能输入，任何会话都能用 |
-| ![日程](docs/screenshots/03-schedule-overlay.png) **日程面板**：提醒（一次 / 每天 / 每周 / 间隔，到点弹窗 + 通知 + 提示音）与定时任务 | ![定时任务](docs/screenshots/04-scheduled-tasks.png) **定时任务独立页面**：按计划在独立会话里跑编码任务（Automation） |
+| ![日程](docs/screenshots/03-schedule-overlay.png) **日程面板**：提醒（一次 / 每天 / 每周 / 间隔，到点弹窗 + 通知 + 提示音）与定时任务 | ![定时任务](docs/screenshots/04-scheduled-tasks.png) **定时任务独立页面**：按计划在独立会话里跑编码任务（Automation）；每个任务的设定里有「运行结束发到 IM」 |
 | ![IM助理](docs/screenshots/05-im-assistant.png) **IM助理**：微信 / 飞书 / 钉钉 / 企业微信 / QQ / Telegram 接到本机 dsh | ![MCP](docs/screenshots/06-mcp-connectors.png) **MCP 连接器**：应用内添加 / 编辑 / 停用 MCP 服务器，粘贴 mcpServers JSON 导入，保存即挂载 |
 | ![成员](docs/screenshots/07-settings-members.png) **设置 → MyWork → 成员**：看每个成员的状态，一键补装 / 更新 | ![外观](docs/screenshots/08-settings-appearance.png) **外观**：Claude Code / Codex 主题 × 浅色 / 深色 / 跟随系统，界面缩放 |
 
@@ -88,7 +88,7 @@ dsh web
   到点时页面弹窗 + 浏览器通知（首次在 设置 → MyWork → 日程 里点"申请"授权）+ 提示音。**需保持 DSH 页面开着**（浏览器里没有后台服务）。
 - **会话内提醒**（dsh 自带，kit 已启用）：对模型说"30 分钟后提醒我"，模型用 `schedule_create` 记录，到点在同一会话里作为一条 follow-up 消息回来。
 - **IM助理**：侧栏「IM助理」独立页面里给微信 / 飞书 / 钉钉等添加账号（扫码或 Bot 凭证），之后在 IM 里直接给本机 dsh 派任务；会话出现在侧栏「频道」标签。
-- **主动发到 IM**：IM助理 页顶部的「主动发消息到频道」卡片；对话里说"把结果发到微信"（模型调用 `im_send`）；`/imsend 内容`。定时任务：侧栏 定时任务 页顶部按任务选"运行结束发到哪个聊天"（每次 / 仅失败），或在对话里说"这个任务完成后发到微信"；想让模型自己决定发什么，也可以在描述里让它调用 `im_send`。从微信里也能创建定时任务（直接对机器人说"每天 9 点…"，它会调用 Automation 的 automation_create）。提醒：新建时勾选"到点也发到 IM"。只能发给已经和机器人聊过的聊天，送达经过一次模型回合（几秒）。多个账号 / 聊天时必须指明目标（页面里选，模型用 `im_chats` 看列表），不会猜。
+- **主动发到 IM**：IM助理 页顶部的「主动发消息到频道」卡片；对话里说"把结果发到微信"（模型调用 `im_send`）；`/imsend 内容`。定时任务：在任务的设定（新建 / 编辑定时任务 弹窗）里有「运行结束发到 IM」一栏，选聊天和 每次结束 / 仅失败，随任务一起保存，卡片上会显示；或在对话里说"这个任务完成后发到微信"；想让模型自己决定发什么，也可以在描述里让它调用 `im_send`。从微信里也能创建定时任务（直接对机器人说"每天 9 点…"，它会调用 Automation 的 automation_create）。提醒：新建时勾选"到点也发到 IM"。只能发给已经和机器人聊过的聊天，送达经过一次模型回合（几秒）。多个账号 / 聊天时必须指明目标（页面里选，模型用 `im_chats` 看列表），不会猜。
 - **MCP 连接器**：侧栏「MCP 连接器」独立页面：添加 / 编辑 / 停用 MCP 服务器（stdio 命令或 streamable-http URL，环境变量 / 请求头），或粘贴 mcpServers JSON 导入；保存即挂载，所有会话可用。页面下方是当前会话实际可用的连接器与工具。
 - **定时任务**：侧栏 扩展管理 → 定时任务 打开独立页面（主区域，侧栏仍在；内容来自 Automation）；日程面板 → 定时任务 标签、侧栏「定时」列表里的任务也都跳到这个页面；或直接在对话里描述"每天 9 点跑一遍测试并汇报"。
 - **打开网页**：实时浏览器地址栏的书签按钮（Alt/⌥ 点击 = 系统浏览器）；`/open https://…` 或 `/open <书签名>`；或让模型调用 `open_url`。书签在 设置 → MyWork → 浏览器 里维护。一律走后台真实 Chrome，没有 iframe。

@@ -57,7 +57,7 @@ const CLAUDE_LIGHT = {
   '--dsw-alias-markdown-code-block': '#EEEBE3',
   '--dsw-alias-markdown-code-block-banner': '#E5E1D6',
   '--dsw-alias-markdown-inline-code': '#ECE8DF',
-  '--dsw-specific-sidebar-fill': '#ECEAE2',
+  '--dsw-specific-sidebar-fill': '#E8E1CF',
   '--dsw-alias-state-success-primary': '#5B8C5A',
   '--dsw-alias-state-warn-primary': '#D9A441',
   '--dsw-alias-state-error-primary': '#C8553D',
@@ -87,7 +87,7 @@ const CLAUDE_DARK = {
   '--dsw-alias-markdown-code-block': '#1F1F1D',
   '--dsw-alias-markdown-code-block-banner': '#1A1A18',
   '--dsw-alias-markdown-inline-code': '#3A3936',
-  '--dsw-specific-sidebar-fill': '#1F1F1D',
+  '--dsw-specific-sidebar-fill': '#1C1915',
   '--dsw-alias-state-success-primary': '#7FB77E',
   '--dsw-alias-state-warn-primary': '#E0B458',
   '--dsw-alias-state-error-primary': '#E06C55',
@@ -117,7 +117,7 @@ const CODEX_LIGHT = {
   '--dsw-alias-markdown-code-block': '#F6F6F6',
   '--dsw-alias-markdown-code-block-banner': '#EDEDED',
   '--dsw-alias-markdown-inline-code': '#EFEFEF',
-  '--dsw-specific-sidebar-fill': '#F7F7F7',
+  '--dsw-specific-sidebar-fill': '#EDEDED',
   '--dsw-alias-state-success-primary': '#10A37F',
   '--dsw-alias-state-warn-primary': '#C98A00',
   '--dsw-alias-state-error-primary': '#D0342C',
@@ -147,7 +147,7 @@ const CODEX_DARK = {
   '--dsw-alias-markdown-code-block': '#0F0F0F',
   '--dsw-alias-markdown-code-block-banner': '#0A0A0A',
   '--dsw-alias-markdown-inline-code': '#2C2C2C',
-  '--dsw-specific-sidebar-fill': '#111111',
+  '--dsw-specific-sidebar-fill': '#0A0A0A',
   '--dsw-alias-state-success-primary': '#19C37D',
   '--dsw-alias-state-warn-primary': '#E3B341',
   '--dsw-alias-state-error-primary': '#F26D5B',
@@ -185,7 +185,7 @@ const SWISS_LIGHT = {
   '--dsw-alias-markdown-code-block': '#F1F5F9',
   '--dsw-alias-markdown-code-block-banner': '#E2E8F0',
   '--dsw-alias-markdown-inline-code': '#E2E8F0',
-  '--dsw-specific-sidebar-fill': '#EDF2F7',
+  '--dsw-specific-sidebar-fill': '#E2E8F0',
   '--dsw-alias-state-success-primary': '#15803D',
   '--dsw-alias-state-warn-primary': '#B45309',
   '--dsw-alias-state-error-primary': '#DC2626',
@@ -216,7 +216,7 @@ const SWISS_DARK = {
   '--dsw-alias-markdown-code-block': '#0B1220',
   '--dsw-alias-markdown-code-block-banner': '#070D1A',
   '--dsw-alias-markdown-inline-code': '#272F42',
-  '--dsw-specific-sidebar-fill': '#050B18',
+  '--dsw-specific-sidebar-fill': '#020617',
   '--dsw-alias-state-success-primary': '#22C55E',
   '--dsw-alias-state-warn-primary': '#F59E0B',
   '--dsw-alias-state-error-primary': '#EF4444',
@@ -298,8 +298,9 @@ body[data-mywork-theme="swiss"] a { text-decoration-thickness: 1px; text-underli
 body[data-mywork-theme="swiss"] button, body[data-mywork-theme="swiss"] [role="button"], body[data-mywork-theme="swiss"] a { transition: background-color 200ms ease, border-color 200ms ease, color 200ms ease; }
 body[data-mywork-theme="swiss"] :focus-visible { outline: 2px solid var(--dsw-alias-label-primary); outline-offset: 2px; border-radius: 4px; }
 body[data-mywork-theme="swiss"] h1, body[data-mywork-theme="swiss"] h2, body[data-mywork-theme="swiss"] h3 { letter-spacing: -0.01em; }
-/* Swiss: the sidebar is its own surface (muted slate) with a hairline edge, on every platform (dsh blends it on macOS). */
-body[data-mywork-theme="swiss"] [class*="_sidebarCol"] { background: var(--dsw-specific-sidebar-fill) !important; border-right: 1px solid var(--dsw-alias-border-l2); }
+/* Every family: the sidebar is its own tinted surface (warm sand / neutral grey / cool slate) with a hairline edge,
+   solid on every platform (dsh blends it to 60 % on macOS, which washes the tint out). */
+body[data-mywork-theme] [class*="_sidebarCol"] { background: var(--dsw-specific-sidebar-fill) !important; border-right: 1px solid var(--dsw-alias-border-l2); }
 @media (prefers-reduced-motion: reduce) { body[data-mywork-theme="swiss"] * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; } }
 /* settings section */
 .mwtc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 10px; margin-top: 8px; }

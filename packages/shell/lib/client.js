@@ -14,7 +14,11 @@ window.__ModuleLoader__.load({
  *        codex  — neutral monochrome, terminal feel
  *      The family is remembered in this browser; the light/dark/system scheme
  *      is stored by dsh itself, so the two combine freely.
- *   2. UI zoom (CSS zoom on <html>, 80–150 %).
+ *   2. UI zoom (80–150 %). CSS `zoom` goes on #root, NOT on <html>: dsh positions its
+ *      floating menus (workspace / mode / model pickers, tooltips) with viewport
+ *      coordinates from getBoundingClientRect() and portals them to <body>; inside a
+ *      zoomed <html> those coordinates land 10 % off. Portals therefore stay unzoomed
+ *      and only their content is scaled (see the .mywork-zoom rules in CSS).
  *   3. One "外观 / Appearance" tab inside the MyWork settings section (the tab
  *      slot `mywork.settings.tab` is declared by dsh-mywork-kit).
  *
@@ -187,6 +191,13 @@ function overridesFor(fam) {
 // ---------------------------------------------------------------------------
 
 const CSS = `
+/* UI zoom: the app root is zoomed; body-level portals keep their coordinates and scale their content. */
+#root{zoom:var(--mywork-zoom,1)}
+body>:where(:not(#root):not(script):not(style):not(link)){zoom:var(--mywork-zoom,1)}
+body>[style*="top:"],body>[style*="left:"],body>[style*="translate"]{zoom:1}
+body>[style*="top:"]>*,body>[style*="left:"]>*,body>[style*="translate"]>*{zoom:var(--mywork-zoom,1)}
+/* dsh 0.1.6-alpha.2: items hidden inside a collapsed tool-call group keep their 14px flex gap → blank band. */
+[class*="_flowItem"][hidden]{display:none!important}
 /* shared touches */
 body[data-mywork-theme] {
   --mywork-mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
@@ -240,7 +251,7 @@ const zh = {
   scheme: '明暗方案',
   current: '当前',
   zoom: '界面缩放',
-  zoomHint: '整体放大 / 缩小侧栏、按钮和文字（本浏览器记忆）。会话正文的字号请用 设置 → 常规 → 字号大小（12–17 px）。',
+  zoomHint: '整体放大 / 缩小侧栏、按钮和文字（本浏览器记忆）。会话正文的字号和行距请用 设置 → 常规 → 字号大小（12–17 px），缩放不改变行距比例。',
   reset: '重置',
 }
 const en = {
@@ -273,8 +284,9 @@ function readZoom() { try { const n = Number(window.localStorage.getItem(ZOOM_KE
 function writeZoom(n) { try { if (n === 100) window.localStorage.removeItem(ZOOM_KEY); else window.localStorage.setItem(ZOOM_KEY, String(n)) } catch { /* ignore */ } }
 function applyZoom(n) {
   const root = document.documentElement
-  if (n === 100) root.style.removeProperty('zoom')
-  else root.style.setProperty('zoom', String(n / 100))
+  root.style.removeProperty('zoom') // older versions zoomed <html> directly
+  if (n === 100) root.style.removeProperty('--mywork-zoom')
+  else root.style.setProperty('--mywork-zoom', String(n / 100))
 }
 function familyById(id) {
   return FAMILIES.find((x) => x.id === id) || null
@@ -335,7 +347,7 @@ exports.apply = function apply(ctx) {
     try { theme.setTheme(id) } catch (e) { console.error(`[${PLUGIN}] setTheme failed`, e) }
   }
 
-  // UI zoom (CSS zoom on <html>; works in Chromium, Safari and Firefox ≥ 126).
+  // UI zoom (CSS zoom on #root + portal rules in CSS; works in Chromium, Safari and Firefox ≥ 126).
   let zoom = readZoom()
   applyZoom(zoom)
   ctx.effect(() => () => applyZoom(100), `${PLUGIN}: zoom`)

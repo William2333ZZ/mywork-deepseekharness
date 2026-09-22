@@ -11,6 +11,7 @@ import { execFileSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { isAbsolute, join } from 'node:path'
 import { dshHome, loadKit, reconcileCompatPatches, reconcileOverrides } from '../packages/kit/src/installer.js'
+import { registeredWorkspacePaths, repairImWorkspacesFile } from '../packages/kit/src/im-guard.js'
 
 const raw = process.argv[2] || 'web'
 const dir = isAbsolute(raw) ? raw : join(dshHome(), 'profiles', raw)
@@ -24,3 +25,4 @@ if (reconcileOverrides(dir, loadKit())) {
 }
 const patched = reconcileCompatPatches(dir)
 if (patched.length) console.log('== compat patches applied: ' + patched.join(', '))
+for (const c of repairImWorkspacesFile(registeredWorkspacePaths())) console.log(`== IM account ${c.id}: workspace "${c.from}" is not registered, now "${c.to}"`)

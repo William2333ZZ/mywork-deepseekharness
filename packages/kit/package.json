@@ -33,7 +33,7 @@
   ],
   "scripts": {
     "build": "node ../../scripts/build-client.mjs .",
-    "check": "node --check src/index.js && node --check src/installer.js && node --check src/client/index.js",
+    "check": "node --check src/index.js && node --check src/installer.js && node --check src/im-guard.js && node --check src/client/index.js",
     "test": "node --test test/*.test.mjs"
   },
   "engines": {

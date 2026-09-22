@@ -93,6 +93,17 @@ dsh web
 - **实时浏览器**：输入框旁的地球图标打开右侧栏「实时浏览器」：后台 Chrome 的实时画面，能点、能滚、能输入。模型每次导航都会自动把这个标签推到前台（CDP 目标事件 → SSE，不轮询）。它接管了 dsh 自带的「浏览器」标签类型，并禁用了 dsh 内置的 iframe 浏览器行。
 - **Mermaid**：安装 `dsh-mermaid-render` 后，回复里的 ```mermaid 代码块自动变图。
 
+## 桌面版（免安装的 Windows / Mac 包）
+
+`apps/desktop/` 把 dsh + 全部插件打成自包含的桌面应用：Electron 窗口壳 + 自带 Node 24 + 自带 dsh + 自带 Chrome for Testing + 预装好的 profile。不改 dsh 本体（dsh 作为子进程运行，窗口只加载它的地址）。
+
+```bash
+node apps/desktop/build.mjs win-x64     # → apps/desktop/dist/MyWork-DSH-win-x64.zip（解压，双击 MyWork DSH.exe）
+node apps/desktop/build.mjs mac-arm64 && bash apps/desktop/package-mac.sh   # → .dmg
+```
+
+Windows 包在 Mac 上交叉构建（npm `--os/--cpu` + pnpm `supportedArchitectures` 取目标平台的原生依赖）。未签名：首次运行要过一次 SmartScreen / Gatekeeper。详见 `apps/desktop/README.md`。
+
 ## 设计说明（为什么这样做）
 
 - **组合包 = `dsh.bundle` + `cordis.patch.yml`**。dsh 只激活 profile *直接依赖*的组合包层，所以 kit 不是把成员写进 `dependencies`，而是把它们**作为一等公民装进 profile**（面板里的"安装"就是在 profile 目录里跑 `pnpm add` 再回填 `dsh.profile.bundles`，和 `dsh plugin add` 的对账逻辑一致）。好处：任何成员都能单独 `remove`，也能被 dsh-market 管理。
@@ -128,6 +139,7 @@ scripts/
 - `dsh-mywork-codex-ui` 会替换官方侧栏/设置总览（patch 禁用 `ui-sidebar`、`ui-settings-general`、`session-title-llm`），主题只叠 token，二者共存。
 - **workspace `pnpm install` 的坑**：dsh alpha 包的 peer 写成 `^0.1.6-alpha.2`，pnpm 自动装 peer 时会把它和别的范围交成不存在的 `>=0.1.6`。根 `package.json` 的 `pnpm.overrides`（`@deepseek-ai/dsh-*@>=0.1.6-alpha.0 <0.2.0 → 0.1.6-alpha.2`）解决了这个问题；升级 dsh 时记得同步改。
 - `dsh-univer-office@0.3.2` 的前端在 dsh 0.1.6-alpha.2 上不会激活（list slot 注册缺 `id`，报 `list slot "conversation.chat.turnTail" requires options.id`）。上游已在 main 修复（PR #82）但未发版；kit 的安装器 / `profile-fixups.mjs` 会给已装的 0.3.x 打同样的一行补丁（`COMPAT_PATCHES`），0.3.3 上 npm 后删掉即可。
+- `@michengai/dsh-im-connect` 给新账号的默认工作区是 dsh 进程的启动目录（`process.cwd()`），不是已登记工作区时每条 IM 消息都会 `挂载会话失败 … 目标工作区不可用`。kit 的宿主插件启动时和 `profile-fixups.mjs` 安装时会把这种账号改到第一个已登记工作区（`packages/kit/src/im-guard.js`）；详见 [issue #1](https://github.com/William2333ZZ/mywork-deepseekharness/issues/1)。
 - `dsh-chat-tidy@0.4` 在 dsh 0.1.6-alpha.2 上会话头部工具会报 `reading 'order'`（它读的 chat store 快照结构变了）——上游兼容问题，不影响其它功能；等它更新或在 MyWork → 成员 里卸掉。
 - Kit 的 patch 还关掉了 dsh 会话头部的「Open In…」按钮（访达 / Cursor / 终端），想要回来在 profile patch 里写 `- id: ui-open-in-app` + `disabled: false`（`open-in-app` 同理）。
 - **dsh 核心模块只能有一份**：插件不要把 `@deepseek-ai/dsh-*` 写进 `dependencies`（profile 用 hoisted + 不自动装 peer，dsh 启动时把这些 import 指回自己的那份）。真实浏览器依赖的官方 browser-use / Playwright MCP 因此作为 kit 成员装进 profile，而不是打进 `dsh-mywork-browser`。官方的 `dsh-experimental-browser-use-runtime` 自己又把 `dsh-scope` / `dsh-mcp-client` 写成了 dependencies（上游打包问题），会在 profile 里多出第二份 → 新建会话报 `tools.restrict() requires a scoped context`。kit 用 pnpm 的 `"-"` override 把这两个包从 profile 里去掉（`kit.json` 的 `profileOverrides`；安装器、`install.sh`、`dev-env.sh` 都会同步到 profile 的 `package.json`）。

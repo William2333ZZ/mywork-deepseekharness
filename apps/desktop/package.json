@@ -1,0 +1,12 @@
+{
+  "name": "mywork-dsh-desktop",
+  "productName": "MyWork DSH",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Desktop shell for DeepSeek Harness with the MyWork Kit pre-installed (Electron window + bundled Node, dsh and Chrome for Testing).",
+  "main": "main.js",
+  "scripts": {
+    "build:win": "node build.mjs win-x64",
+    "build:mac": "node build.mjs mac-arm64"
+  }
+}

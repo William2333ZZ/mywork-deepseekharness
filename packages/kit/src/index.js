@@ -10,6 +10,7 @@
  */
 import * as installer from './installer.js'
 import { configSchema, defineRawTool, rejectUntrusted } from './harness.js'
+import { repairImWorkspacesFile } from './im-guard.js'
 
 export const name = 'dsh-mywork-kit'
 export const inject = []
@@ -22,6 +23,14 @@ export const inject = []
 export const Config = configSchema({ allowInstall: true })
 
 export function apply(ctx, config = {}) {
+  // IM accounts (dsh-im-connect) whose workspace is not registered would fail every message:
+  // repoint them to the first registered workspace before the IM plugin starts.
+  ctx.inject(['workspaceRegistry'], (wctx) => {
+    try {
+      const paths = wctx.workspaceRegistry.list().map((w) => w.path)
+      for (const c of repairImWorkspacesFile(paths)) console.warn(`[dsh-mywork-kit] IM account ${c.id}: workspace "${c.from}" is not registered, using "${c.to}"`)
+    } catch (e) { console.warn('[dsh-mywork-kit] IM workspace guard skipped: ' + (e && e.message)) }
+  })
   let boot = { bundles: new Set() }
   try { boot = installer.captureBootState() } catch (e) { console.warn('[dsh-mywork-kit] boot snapshot failed:', e && e.message) }
   let busy = false

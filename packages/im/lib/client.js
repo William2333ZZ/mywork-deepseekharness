@@ -92,8 +92,8 @@ const NS = 'mywork.im'
 const API = '/mywork-im/api'
 const SLOT = 'mywork.im.section'
 
-const zh = { title: '主动发消息到频道', hint: '发给已经和机器人聊过的 IM 聊天。内容会作为转发指令进入该聊天对应的会话，由它的助手原样转发，几秒内送达。定时任务、对话里的模型也能用 im_send 工具做同样的事。', target: '发给', latest: '最近活跃的聊天', placeholder: '要发送的内容…', send: '发送', sent: '已交给 {0} 的会话转发', none: '还没有聊天给机器人发过消息。先在 IM 里给机器人发一句，再回来这里。', refresh: '刷新' }
-const en = { title: 'Send a message to a channel', hint: 'Sends to an IM chat that has already talked to the bot. The text enters that chat\'s session as a relay instruction; its assistant forwards it verbatim within seconds. Scheduled tasks and the model can do the same with the im_send tool.', target: 'To', latest: 'most recently active chat', placeholder: 'Message…', send: 'Send', sent: 'Handed to the session of {0}', none: 'No chat has messaged the bot yet. Say hi to the bot from your IM app first.', refresh: 'Refresh' }
+const zh = { title: '主动发消息到频道', hint: '发给已经和机器人聊过的 IM 聊天。内容会作为转发指令进入该聊天对应的会话，由它的助手原样转发，几秒内送达。定时任务、对话里的模型也能用 im_send 工具做同样的事。', target: '发给', choose: '请选择聊天', placeholder: '要发送的内容…', send: '发送', sent: '已交给 {0} 的会话转发', none: '还没有聊天给机器人发过消息。先在 IM 里给机器人发一句，再回来这里。', refresh: '刷新' }
+const en = { title: 'Send a message to a channel', hint: 'Sends to an IM chat that has already talked to the bot. The text enters that chat\'s session as a relay instruction; its assistant forwards it verbatim within seconds. Scheduled tasks and the model can do the same with the im_send tool.', target: 'To', choose: 'choose a chat', placeholder: 'Message…', send: 'Send', sent: 'Handed to the session of {0}', none: 'No chat has messaged the bot yet. Say hi to the bot from your IM app first.', refresh: 'Refresh' }
 
 const CSS = `
 .mwi{border:0.5px solid var(--dsw-alias-border-l2);border-radius:12px;padding:12px 14px;margin-bottom:18px;background:var(--dsw-alias-bg-layer-1);font-size:13px;color:var(--dsw-alias-label-primary)}
@@ -129,7 +129,7 @@ exports.apply = function apply(ctx) {
     const [text, setText] = React.useState('')
     const [busy, setBusy] = React.useState(false)
     const [ok, setOk] = React.useState(''); const [err, setErr] = React.useState('')
-    const load = React.useCallback(() => api('/chats').then((d) => setChats(d.items || [])).catch(() => {}), [])
+    const load = React.useCallback(() => api('/chats').then((d) => { const items = d.items || []; setChats(items); setTarget((cur) => (items.length === 1 ? items[0].sessionId : items.some((c) => c.sessionId === cur) ? cur : '')) }).catch(() => {}), [])
     React.useEffect(() => { load(); const id = setInterval(load, 15000); return () => clearInterval(id) }, [load])
     const submit = async () => {
       setBusy(true); setOk(''); setErr('')
@@ -141,11 +141,11 @@ exports.apply = function apply(ctx) {
       chats.length === 0 ? h('div', { className: 'hint' }, t('none')) : null,
       h('div', { className: 'row' }, h('span', null, t('target')),
         h('select', { value: target, onChange: (e) => setTarget(e.target.value) },
-          h('option', { value: '' }, t('latest')),
+          chats.length === 1 ? null : h('option', { value: '' }, t('choose')),
           chats.map((c) => h('option', { key: c.sessionId, value: c.sessionId }, `${c.platform} · ${c.channelName} · ${c.title}`))),
         h('button', { className: 'mini', onClick: load }, t('refresh'))),
       h('textarea', { value: text, placeholder: t('placeholder'), onChange: (e) => setText(e.target.value) }),
-      h('div', { className: 'row', style: { justifyContent: 'flex-end', marginTop: 8 } }, ok ? h('span', { className: 'ok' }, ok) : null, h('button', { className: 'btn', disabled: busy || !text.trim() || chats.length === 0, onClick: submit }, icon('send', { size: 13 }), t('send'))),
+      h('div', { className: 'row', style: { justifyContent: 'flex-end', marginTop: 8 } }, ok ? h('span', { className: 'ok' }, ok) : null, h('button', { className: 'btn', disabled: busy || !text.trim() || !target, onClick: submit }, icon('send', { size: 13 }), t('send'))),
       err ? h('div', { className: 'err' }, err) : null,
     )
   }

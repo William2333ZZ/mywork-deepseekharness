@@ -42,10 +42,10 @@ export function apply(ctx, config = {}) {
   if (config.tools !== false) {
     ctx.tools.register(defineRawTool({
       name: 'im_send',
-      description: '主动给用户的 IM（微信 / 飞书 / 钉钉 / 企业微信 / QQ / Telegram）发一条消息。适合定时任务结束后汇报、长任务完成通知、提醒等。target 可以是平台名（weixin / feishu…）、账号名、聊天 id 或标题片段；缺省发给最近活跃的聊天。消息经该聊天对应的 IM 会话转发，几秒内送达。',
+      description: '主动给用户的 IM（微信 / 飞书 / 钉钉 / 企业微信 / QQ / Telegram）发一条消息。适合定时任务结束后汇报、长任务完成通知、提醒等。target 可以是平台名（weixin / feishu…）、账号名、聊天 id 或标题片段；只有一个可用聊天时可省略。有多个聊天时必须指明，不确定就先调 im_chats 看列表——绝不要猜，发错人无法撤回。消息经该聊天对应的 IM 会话转发，几秒内送达。',
       parameters: {
         text: { type: 'string', required: true, description: '要发送的正文（原样送达）' },
-        target: { type: 'string', description: '目标聊天：平台 / 账号名 / 聊天 id / 标题片段；缺省 = 最近活跃的聊天' },
+        target: { type: 'string', description: '目标聊天：平台 / 账号名 / 聊天 id / 标题片段；只有一个可用聊天时可省略，多个时必须指明（模糊时用 chatId）' },
       },
       async execute(args) { return send(args.target, args.text) },
     }))

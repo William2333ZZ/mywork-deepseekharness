@@ -17,7 +17,7 @@ IM 插件把每个聊天映射成一个 dsh 会话，并把该会话里助手的
 - HTTP：`/mywork-im/api/chats`、`POST /mywork-im/api/send {target, text}`（同源 + 登录）。
 - 提醒：dsh-mywork-schedule 的提醒可勾选「到点也发到 IM」。
 
-`target`：平台名（weixin / feishu…）、账号名、聊天 id 或标题片段；缺省发给最近活跃的聊天。
+`target`：平台名（weixin / feishu…）、账号名、聊天 id 或标题片段。**多账号 / 多聊天时绝不猜**：只有一个可用聊天时才允许省略；平台名或账号名命中多个聊天（比如两个微信账号、一个账号下多个私聊 / 群）时返回候选列表让调用方指明（用 chatId 最保险）。每个聊天对应独立会话，互不串扰；同一聊天的多条消息按 `queue` 模式排队，不会插进正在进行的回合。
 
 ## 配置（cordis.patch.yml，可选）
 

@@ -29,21 +29,24 @@ export function listChats(dir = imDir()) {
 }
 
 /**
- * Resolve a target to one chat. `target` may be a session id, chat id, channel id,
- * platform (weixin / feishu / …), channel display name or a substring of the title;
- * empty = the most recently active chat. Returns { chat } or { error }.
+ * Resolve a target to exactly one chat; never guess between several. `target` may be
+ * a session id, chat id, account id, platform (weixin / feishu / …), account display
+ * name or a substring of the title. Empty target is accepted only when a single chat
+ * exists. Returns { chat } or { error } (the error lists the candidates).
  */
 export function resolveChat(target, chats) {
   if (chats.length === 0) return { error: 'no IM chat has messaged the bot yet (a chat must write once before it can receive messages)' }
+  const label = (c) => `${c.platform} / ${c.channelName} / ${c.kind} / ${c.title} (chatId ${c.chatId})`
   const q = String(target || '').trim().toLowerCase()
-  if (!q) return { chat: chats[0] }
-  const exact = chats.find((c) => [c.sessionId, c.chatId, c.channel].some((v) => String(v).toLowerCase() === q))
-  if (exact) return { chat: exact }
-  const byPlatform = chats.filter((c) => c.platform.toLowerCase() === q || c.channelName.toLowerCase() === q)
-  if (byPlatform.length) return { chat: byPlatform[0] }
-  const fuzzy = chats.filter((c) => [c.title, c.chatId, c.channelName, c.platform].some((v) => String(v).toLowerCase().includes(q)))
-  if (fuzzy.length) return { chat: fuzzy[0] }
-  return { error: `no IM chat matches "${target}"; known: ` + chats.map((c) => `${c.platform}:${c.title}`).join(', ') }
+  if (!q) return chats.length === 1 ? { chat: chats[0] } : { error: 'several IM chats are reachable; name the target explicitly: ' + chats.map(label).join(' | ') }
+  const exact = chats.filter((c) => [c.sessionId, c.chatId, c.channel].some((v) => String(v).toLowerCase() === q))
+  if (exact.length === 1) return { chat: exact[0] }
+  const named = exact.length ? exact : chats.filter((c) => c.platform.toLowerCase() === q || c.channelName.toLowerCase() === q)
+  if (named.length === 1) return { chat: named[0] }
+  const fuzzy = named.length ? named : chats.filter((c) => [c.title, c.chatId, c.channelName, c.platform].some((v) => String(v).toLowerCase().includes(q)))
+  if (fuzzy.length === 1) return { chat: fuzzy[0] }
+  if (fuzzy.length > 1) return { error: `"${target}" matches several chats, be more specific (use the chatId): ` + fuzzy.map(label).join(' | ') }
+  return { error: `no IM chat matches "${target}"; known: ` + chats.map(label).join(' | ') }
 }
 
 /** The relay instruction the chat's own assistant receives; it forwards the text verbatim. */

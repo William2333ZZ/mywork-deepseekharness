@@ -364,8 +364,9 @@ exports.apply = function apply(ctx) {
     const [days, setDays] = React.useState([1, 2, 3, 4, 5])
     const [every, setEvery] = React.useState(30)
     const [toIm, setToIm] = React.useState(false)
-    const [imReady, setImReady] = React.useState(false)
-    React.useEffect(() => { fetch('/mywork-im/api/chats').then((r) => r.ok ? r.json() : null).then((d) => setImReady(!!(d && d.items && d.items.length))).catch(() => {}) }, [])
+    const [imChats, setImChats] = React.useState([])
+    const [imTarget, setImTarget] = React.useState('')
+    React.useEffect(() => { fetch('/mywork-im/api/chats').then((r) => r.ok ? r.json() : null).then((d) => { const items = d && d.items ? d.items : []; setImChats(items); if (items.length === 1) setImTarget(items[0].sessionId) }).catch(() => {}) }, [])
     const [err, setErr] = React.useState('')
     const [busy, setBusy] = React.useState(false)
     const submit = async () => {
@@ -375,7 +376,7 @@ exports.apply = function apply(ctx) {
       if (kind === 'daily' || kind === 'weekly') input.time = time
       if (kind === 'weekly') input.weekdays = days
       if (kind === 'interval') input.everyMinutes = Number(every)
-      if (toIm) input.im = true
+      if (toIm) { if (!imTarget) { setErr(lang() === 'zh' ? '请选择要发到的 IM 聊天' : 'choose the IM chat to notify'); return } input.im = imTarget }
       const n = logic.normalize(input)
       if (!n.ok) { setErr(n.error); return }
       if (kind === 'once' && new Date(input.at).getTime() <= Date.now()) { setErr(lang() === 'zh' ? '时间需要在将来' : 'time must be in the future'); return }
@@ -396,7 +397,9 @@ exports.apply = function apply(ctx) {
         kind === 'weekly' ? h('div', { className: 'mwr-wd' }, [1, 2, 3, 4, 5, 6, 7].map((n) => h('button', { key: n, type: 'button', className: days.includes(n) ? 'on' : '', onClick: () => setDays(days.includes(n) ? days.filter((x) => x !== n) : days.concat([n]).sort()) }, d.weekdays[n - 1]))) : null,
       ),
       h('input', { className: 'mwr-in', placeholder: d.note, value: note, onChange: (e) => setNote(e.target.value) }),
-      imReady ? h('label', { className: 'mwr-line', style: { fontSize: 12, cursor: 'pointer' } }, h('input', { type: 'checkbox', checked: toIm, onChange: (e) => setToIm(e.target.checked) }), d.toIm) : null,
+      imChats.length ? h('div', { className: 'mwr-line', style: { fontSize: 12 } },
+        h('label', { style: { display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer' } }, h('input', { type: 'checkbox', checked: toIm, onChange: (e) => setToIm(e.target.checked) }), d.toIm),
+        toIm ? h('select', { className: 'mwr-in', style: { flex: 1 }, value: imTarget, onChange: (e) => setImTarget(e.target.value) }, imChats.length === 1 ? null : h('option', { value: '' }, lang() === 'zh' ? '请选择聊天' : 'choose a chat'), imChats.map((c) => h('option', { key: c.sessionId, value: c.sessionId }, `${c.platform} · ${c.channelName} · ${c.title}`))) : null) : null,
       err ? h('div', { className: 'mwr-err' }, err) : null,
       h('div', { className: 'mwr-line' }, h('span', { style: { flex: 1 } }), h('button', { className: 'mwr-primary', disabled: busy || !title.trim(), onClick: submit }, d.add)),
     )

@@ -382,6 +382,7 @@ exports.apply = function apply(ctx) {
     const lastMove = React.useRef(0)
     const targetRef = React.useRef(null)
     targetRef.current = target
+    const running = !!(status && status.running)
 
     const refresh = React.useCallback(async () => {
       try {
@@ -404,6 +405,25 @@ exports.apply = function apply(ctx) {
       })
       return () => { clearInterval(id); off() }
     }, [refresh, follow])
+
+    // The page viewport follows the pane: measure the view box and ask the host to resize the
+    // target (debounced), also whenever the viewed target changes. Frames then fill the pane.
+    const sizeRef = React.useRef(null)
+    const sendSize = React.useCallback((id, w, h) => {
+      if (!id || w < 50 || h < 50) return
+      const scale = Math.min(2, Math.max(1, window.devicePixelRatio || 1))
+      api('/resize', { target: id, width: Math.floor(w), height: Math.floor(h), scale }).catch(() => {})
+    }, [])
+    React.useEffect(() => {
+      const el = viewRef.current
+      if (!el || !target) return undefined
+      let timer = null
+      const measure = () => { const r = el.getBoundingClientRect(); const next = { w: Math.floor(r.width), h: Math.floor(r.height) }; if (sizeRef.current && Math.abs(sizeRef.current.w - next.w) < 4 && Math.abs(sizeRef.current.h - next.h) < 4) return; sizeRef.current = next; sendSize(target, next.w, next.h) }
+      const ro = new ResizeObserver(() => { if (timer) clearTimeout(timer); timer = setTimeout(measure, 250) })
+      ro.observe(el)
+      sizeRef.current = null; measure()
+      return () => { ro.disconnect(); if (timer) clearTimeout(timer) }
+    }, [target, sendSize, running])
 
     // SSE frames for the active target.
     React.useEffect(() => {
@@ -476,7 +496,6 @@ exports.apply = function apply(ctx) {
     const nav = info && info.tab ? info.tab.navigation : null
     const wantedUrl = nav && nav.params && nav.params.url ? String(nav.params.url) : null
     const navRev = nav ? nav.revision : 0
-    const running = !!(status && status.running)
     const handledRev = React.useRef(-1)
     React.useEffect(() => {
       if (!wantedUrl || !running || handledRev.current === navRev) return

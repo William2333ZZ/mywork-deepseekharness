@@ -147,7 +147,7 @@ export class ViewerHub {
     await this.activate(id)
     if (!v.casting) {
       v.casting = true
-      await v.client.send('Page.startScreencast', { format: 'jpeg', quality: this.opts.quality, maxWidth: this.opts.width, maxHeight: this.opts.height, everyNthFrame: 1 }).catch((e) => { v.casting = false; throw e })
+      await v.client.send('Page.startScreencast', { format: 'jpeg', quality: this.opts.quality, maxWidth: v.size ? Math.round(v.size.w * v.size.dsf) : this.opts.width, maxHeight: v.size ? Math.round(v.size.h * v.size.dsf) : this.opts.height, everyNthFrame: 1 }).catch((e) => { v.casting = false; throw e })
     } else if (v.lastFrame) {
       fn({ type: 'frame', ...v.lastFrame })
     }
@@ -167,6 +167,24 @@ export class ViewerHub {
     v.client.close()
   }
 
+  /**
+   * Make the page's viewport match the live pane (CSS px) so the stream fills it instead of being
+   * letterboxed; `scale` = device pixel ratio of the viewer for crisp frames. Restarts the screencast
+   * with matching bounds; the mouse mapping stays in CSS px (metadata.deviceWidth/Height).
+   */
+  async resize(id, width, height, scale = 1) {
+    const v = await this.view(id)
+    const w = Math.max(200, Math.min(4096, Math.round(width))); const h = Math.max(150, Math.min(4096, Math.round(height)))
+    const dsf = Math.max(1, Math.min(3, Number(scale) || 1))
+    if (v.size && v.size.w === w && v.size.h === h && v.size.dsf === dsf) return v.size
+    v.size = { w, h, dsf }
+    await v.client.send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: dsf, mobile: false })
+    if (v.casting) {
+      await v.client.send('Page.stopScreencast').catch(() => {})
+      await v.client.send('Page.startScreencast', { format: 'jpeg', quality: this.opts.quality, maxWidth: Math.round(w * dsf), maxHeight: Math.round(h * dsf), everyNthFrame: 1 }).catch(() => {})
+    }
+    return v.size
+  }
   async navigate(id, url) { const v = await this.view(id); return v.client.send('Page.navigate', { url }) }
   async reload(id) { const v = await this.view(id); return v.client.send('Page.reload') }
   async history(id, delta) {

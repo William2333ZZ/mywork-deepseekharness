@@ -263,6 +263,7 @@ export function apply(ctx, config = {}) {
       if (req.method === 'POST') { const b = await readBody(req); if (b.searchEngine) history.setEngine(String(b.searchEngine)) }
       json(res, { searchEngine: history.engine, engines: Object.entries(SEARCH_ENGINES).map(([id, e]) => ({ id, name: e.name })), historyCount: history.size(), historyPath: history.path })
     })
+    route('/resize', async (req, res) => { const b = await readBody(req); json(res, await hub.resize(String(b.target), Number(b.width), Number(b.height), Number(b.scale) || 1)) })
     route('/reload', async (req, res) => { const b = await readBody(req); await hub.reload(String(b.target)); json(res, { ok: true }) })
     route('/back', async (req, res) => { const b = await readBody(req); json(res, await hub.history(String(b.target), -1)) })
     route('/forward', async (req, res) => { const b = await readBody(req); json(res, await hub.history(String(b.target), 1)) })

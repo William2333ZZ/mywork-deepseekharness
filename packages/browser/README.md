@@ -63,3 +63,4 @@ profile 的 `cordis.patch.yml`（patch 会整体替换 config，所以要把需�
 - 行内补全：历史里有以你输入开头的网址时，自动补全剩余部分并选中，继续输入会覆盖。
 - 在实时画面里按 Ctrl/Cmd + L 跳到地址栏。
 - 历史记在 `$DSH_HOME/mywork/browser-history.json`（最多 3000 条，模型和你打开的页面都算；本机 dsh 的 token 页不记）；设置页可一键清除。接口：`POST /mywork-browser/api/omni/go {target?, text}`、`GET /history/search?q=`、`POST /history/clear`、`GET|POST /prefs`。
+- 页面视口跟随面板：实时画面不再固定 1280 × 800 留黑边，面板多大（拖侧栏、全屏、缩放）后台页面就按多大排版，画面铺满；模型截图看到的也是同一尺寸。接口 `POST /mywork-browser/api/resize {target, width, height, scale}`（CDP `Emulation.setDeviceMetricsOverride` + 重开 screencast）。

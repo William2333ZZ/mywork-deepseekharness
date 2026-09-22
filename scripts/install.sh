@@ -20,7 +20,7 @@ command -v pnpm >/dev/null 2>&1 || { echo "pnpm is required by dsh plugin (npm i
 echo "== installing workspace deps"
 (cd "$ROOT" && pnpm install)
 echo "== building in-repo plugins"
-for p in shell schedule browser mcp kit; do (cd "$ROOT/packages/$p" && node "$ROOT/scripts/build-client.mjs" .); done
+for p in shell schedule browser mcp im kit; do (cd "$ROOT/packages/$p" && node "$ROOT/scripts/build-client.mjs" .); done
 (cd "$ROOT/packages/codex-ui" && pnpm run --silent build >/dev/null 2>&1)
 
 specs=()

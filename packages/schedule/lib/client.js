@@ -75,6 +75,8 @@ function normalize(input) {
   const out = { title, kind, enabled: input.enabled !== false }
   if (typeof input.note === 'string' && input.note.trim()) out.note = input.note.trim()
   if (typeof input.sessionId === 'string' && input.sessionId) out.sessionId = input.sessionId
+  // optional IM delivery (dsh-mywork-im): true = most recent chat, or a target string
+  if (input.im === true) out.im = true; else if (typeof input.im === 'string' && input.im.trim()) out.im = input.im.trim()
   if (kind === 'once') {
     const at = input.at ? new Date(input.at) : null
     if (!at || Number.isNaN(at.getTime())) return { ok: false, error: 'once reminders need a valid `at` instant (RFC 3339)' }
@@ -265,6 +267,7 @@ const PATHS = {
   sheet: ['M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z', 'M3 9h18', 'M3 15h18', 'M9 9v12', 'M15 9v12'],
   plug: ['M12 22v-5', 'M9 8V2', 'M15 8V2', 'M18 8v5a6 6 0 0 1-12 0V8z'],
   message: ['M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z'],
+  send: ['M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z', 'm21.854 2.147-10.94 10.939'],
   'square-arrow-out': ['M21 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h6', 'm21 3-9 9', 'M15 3h6v6'],
 }
 
@@ -352,6 +355,8 @@ const zh = {
   help: '到点时会在页面内弹出、发浏览器通知并播放提示音（需保持 DSH 页面打开）。模型也可以用 reminder_* 工具替你设置。数据文件：',
   weekdays: ['一', '二', '三', '四', '五', '六', '日'],
   dismiss: '知道了',
+  toIm: '到点也发到 IM（微信等）',
+  imSent: '已发到 IM',
 }
 const en = {
   nav: 'Schedule',
@@ -381,6 +386,8 @@ const en = {
   help: 'Due reminders pop up in this page, send a browser notification and play a beep (keep the DSH page open). The model can also manage them with the reminder_* tools. Data file:',
   weekdays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
   dismiss: 'OK',
+  toIm: 'Also send to IM (WeChat, …) when due',
+  imSent: 'sent to IM',
 }
 
 const CSS = `
@@ -561,6 +568,7 @@ exports.apply = function apply(ctx) {
         set({ toasts: state.toasts.concat([toast]) })
         setTimeout(() => dismiss(key), 60000)
         if (soundEnabled()) beep()
+        if (r.im) fetch('/mywork-im/api/send', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ target: r.im === true ? '' : r.im, text: '⏰ ' + r.title + (r.note ? '\n' + r.note : '') }) }).catch((e) => console.warn(`[${PLUGIN}] IM delivery failed`, e))
         try {
           if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
             const n = new Notification(r.title, { body: (r.note ? r.note + '\n' : '') + fmt(due), tag: key })
@@ -626,6 +634,7 @@ exports.apply = function apply(ctx) {
         h('div', { className: 'mwr-meta' },
           h('span', { className: 'mwr-pill' }, logic.describe(r, lang())),
           r.enabled ? h('span', { className: 'mwr-pill' + (overdue ? ' due' : '') }, (overdue ? t('overdue') : t('next')) + ' · ' + fmt(next)) : null,
+          r.im ? h('span', { className: 'mwr-pill' }, 'IM') : null,
         ),
         r.note ? h('div', { className: 'mwr-note' }, r.note) : null,
       ),
@@ -646,6 +655,9 @@ exports.apply = function apply(ctx) {
     const [time, setTime] = React.useState(localTimeInput(new Date(now.getTime() + 10 * 60000)))
     const [days, setDays] = React.useState([1, 2, 3, 4, 5])
     const [every, setEvery] = React.useState(30)
+    const [toIm, setToIm] = React.useState(false)
+    const [imReady, setImReady] = React.useState(false)
+    React.useEffect(() => { fetch('/mywork-im/api/chats').then((r) => r.ok ? r.json() : null).then((d) => setImReady(!!(d && d.items && d.items.length))).catch(() => {}) }, [])
     const [err, setErr] = React.useState('')
     const [busy, setBusy] = React.useState(false)
     const submit = async () => {
@@ -655,6 +667,7 @@ exports.apply = function apply(ctx) {
       if (kind === 'daily' || kind === 'weekly') input.time = time
       if (kind === 'weekly') input.weekdays = days
       if (kind === 'interval') input.everyMinutes = Number(every)
+      if (toIm) input.im = true
       const n = logic.normalize(input)
       if (!n.ok) { setErr(n.error); return }
       if (kind === 'once' && new Date(input.at).getTime() <= Date.now()) { setErr(lang() === 'zh' ? '时间需要在将来' : 'time must be in the future'); return }
@@ -675,6 +688,7 @@ exports.apply = function apply(ctx) {
         kind === 'weekly' ? h('div', { className: 'mwr-wd' }, [1, 2, 3, 4, 5, 6, 7].map((n) => h('button', { key: n, type: 'button', className: days.includes(n) ? 'on' : '', onClick: () => setDays(days.includes(n) ? days.filter((x) => x !== n) : days.concat([n]).sort()) }, d.weekdays[n - 1]))) : null,
       ),
       h('input', { className: 'mwr-in', placeholder: d.note, value: note, onChange: (e) => setNote(e.target.value) }),
+      imReady ? h('label', { className: 'mwr-line', style: { fontSize: 12, cursor: 'pointer' } }, h('input', { type: 'checkbox', checked: toIm, onChange: (e) => setToIm(e.target.checked) }), d.toIm) : null,
       err ? h('div', { className: 'mwr-err' }, err) : null,
       h('div', { className: 'mwr-line' }, h('span', { style: { flex: 1 } }), h('button', { className: 'mwr-primary', disabled: busy || !title.trim(), onClick: submit }, d.add)),
     )

@@ -19,6 +19,8 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface SlotMap {
     /** Sections of the MCP page; dsh-mywork-mcp contributes the server manager here. */
     'mywork.mcp.section': { kind: 'list'; scope: 'root'; owner: {} }
+    /** Top of the IM page; dsh-mywork-im contributes the outbound send card here. */
+    'mywork.im.section': { kind: 'list'; scope: 'root'; owner: {} }
   }
 }
 import { CalendarClock, MessageSquareMore, Plug } from 'lucide-react'
@@ -102,13 +104,25 @@ export function registerSectionPanels(ctx: Context, t: TranslateNS<typeof NS>, s
   const panels: { id: string; order: number; label: () => string; icon: () => ReactElement; component: () => ReactElement }[] = [
     { id: SCHEDULE_PANEL_ID, order: 20, label: () => t('sidebar.schedule'), icon: ScheduleRailIcon,
       component: hostedPanel(AUTOMATION_SECTION_ID, () => t('sidebar.schedule'), () => <CalendarClock size={18} strokeWidth={1.6} />, () => t('schedulePanel.missing')) },
-    { id: IM_PANEL_ID, order: 21, label: () => t('sidebar.assistant'), icon: ImRailIcon,
-      component: hostedPanel(IM_SECTION_ID, () => t('sidebar.assistant'), () => <MessageSquareMore size={18} strokeWidth={1.6} />, () => t('imPanel.missing')) },
   ]
   for (const panel of panels) {
     ctx.slots.inject('main', () => ctx.slots.register({ name: 'main', key: panel.id, locale: NS, inject: () => ({}) }, panel.component))
     ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({ name: 'sidebar.panellist', id: panel.id, order: panel.order, locale: NS, label: panel.label, inject: () => ({}) }, panel.icon))
   }
+  // IM page: outbound send card (dsh-mywork-im, via the child slot) + the hosted dsh-im-connect section.
+  const imSource = sectionSource(slots, IM_SECTION_ID)
+  function ImPanel(props: PropsRenderSlots<'mywork.im.section'>): ReactElement {
+    const entry = useSyncExternalStore(imSource.subscribe, imSource.getSnapshot, imSource.getSnapshot)
+    return page(t('sidebar.assistant'), <MessageSquareMore size={18} strokeWidth={1.6} />, <>
+      {props.renderSlot('mywork.im.section', {})}
+      {entry === undefined ? <p className="dcu-panel-empty">{t('imPanel.missing')}</p> : <HostedSection entry={entry} locale={locale} close={close} />}
+    </>)
+  }
+  ctx.slots.inject('main', () => ctx.slots.register({
+    name: 'main', key: IM_PANEL_ID, locale: NS, inject: () => ({}),
+    children: { 'mywork.im.section': { kind: 'list', scope: 'root' } },
+  }, ImPanel))
+  ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({ name: 'sidebar.panellist', id: IM_PANEL_ID, order: 21, locale: NS, label: () => t('sidebar.assistant'), inject: () => ({}) }, ImRailIcon))
   // MCP page: server manager (dsh-mywork-mcp, via the child slot) + this package's native tool list.
   const managerSlots = ctx.slots as unknown as { entriesOfSlot(name: 'mywork.mcp.section'): readonly unknown[]; subscribe(name: 'mywork.mcp.section', listener: () => void): () => void }
   const managerCount = (): number => { try { return managerSlots.entriesOfSlot('mywork.mcp.section').length } catch { return 0 } }

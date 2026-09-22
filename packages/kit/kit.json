@@ -110,6 +110,16 @@
       "group": "connect"
     },
     {
+      "name": "dsh-mywork-im",
+      "range": "^0.1.0",
+      "icon": "send",
+      "label": "主动发消息",
+      "desc": "im_send / im_chats 工具、/imsend 命令、IM助理 页里的发送卡片：把内容转发指令投到聊天对应的会话，由 IM 插件送达微信 / 飞书等；定时任务和提醒都能借此通知到手机",
+      "group": "connect",
+      "required": true,
+      "local": "../im"
+    },
+    {
       "name": "dsh-mywork-mcp",
       "range": "^0.1.0",
       "icon": "plug",

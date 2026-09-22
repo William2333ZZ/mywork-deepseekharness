@@ -63,6 +63,8 @@ const zh = {
   help: '到点时会在页面内弹出、发浏览器通知并播放提示音（需保持 DSH 页面打开）。模型也可以用 reminder_* 工具替你设置。数据文件：',
   weekdays: ['一', '二', '三', '四', '五', '六', '日'],
   dismiss: '知道了',
+  toIm: '到点也发到 IM（微信等）',
+  imSent: '已发到 IM',
 }
 const en = {
   nav: 'Schedule',
@@ -92,6 +94,8 @@ const en = {
   help: 'Due reminders pop up in this page, send a browser notification and play a beep (keep the DSH page open). The model can also manage them with the reminder_* tools. Data file:',
   weekdays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
   dismiss: 'OK',
+  toIm: 'Also send to IM (WeChat, …) when due',
+  imSent: 'sent to IM',
 }
 
 const CSS = `
@@ -272,6 +276,7 @@ exports.apply = function apply(ctx) {
         set({ toasts: state.toasts.concat([toast]) })
         setTimeout(() => dismiss(key), 60000)
         if (soundEnabled()) beep()
+        if (r.im) fetch('/mywork-im/api/send', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ target: r.im === true ? '' : r.im, text: '⏰ ' + r.title + (r.note ? '\n' + r.note : '') }) }).catch((e) => console.warn(`[${PLUGIN}] IM delivery failed`, e))
         try {
           if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
             const n = new Notification(r.title, { body: (r.note ? r.note + '\n' : '') + fmt(due), tag: key })
@@ -337,6 +342,7 @@ exports.apply = function apply(ctx) {
         h('div', { className: 'mwr-meta' },
           h('span', { className: 'mwr-pill' }, logic.describe(r, lang())),
           r.enabled ? h('span', { className: 'mwr-pill' + (overdue ? ' due' : '') }, (overdue ? t('overdue') : t('next')) + ' · ' + fmt(next)) : null,
+          r.im ? h('span', { className: 'mwr-pill' }, 'IM') : null,
         ),
         r.note ? h('div', { className: 'mwr-note' }, r.note) : null,
       ),
@@ -357,6 +363,9 @@ exports.apply = function apply(ctx) {
     const [time, setTime] = React.useState(localTimeInput(new Date(now.getTime() + 10 * 60000)))
     const [days, setDays] = React.useState([1, 2, 3, 4, 5])
     const [every, setEvery] = React.useState(30)
+    const [toIm, setToIm] = React.useState(false)
+    const [imReady, setImReady] = React.useState(false)
+    React.useEffect(() => { fetch('/mywork-im/api/chats').then((r) => r.ok ? r.json() : null).then((d) => setImReady(!!(d && d.items && d.items.length))).catch(() => {}) }, [])
     const [err, setErr] = React.useState('')
     const [busy, setBusy] = React.useState(false)
     const submit = async () => {
@@ -366,6 +375,7 @@ exports.apply = function apply(ctx) {
       if (kind === 'daily' || kind === 'weekly') input.time = time
       if (kind === 'weekly') input.weekdays = days
       if (kind === 'interval') input.everyMinutes = Number(every)
+      if (toIm) input.im = true
       const n = logic.normalize(input)
       if (!n.ok) { setErr(n.error); return }
       if (kind === 'once' && new Date(input.at).getTime() <= Date.now()) { setErr(lang() === 'zh' ? '时间需要在将来' : 'time must be in the future'); return }
@@ -386,6 +396,7 @@ exports.apply = function apply(ctx) {
         kind === 'weekly' ? h('div', { className: 'mwr-wd' }, [1, 2, 3, 4, 5, 6, 7].map((n) => h('button', { key: n, type: 'button', className: days.includes(n) ? 'on' : '', onClick: () => setDays(days.includes(n) ? days.filter((x) => x !== n) : days.concat([n]).sort()) }, d.weekdays[n - 1]))) : null,
       ),
       h('input', { className: 'mwr-in', placeholder: d.note, value: note, onChange: (e) => setNote(e.target.value) }),
+      imReady ? h('label', { className: 'mwr-line', style: { fontSize: 12, cursor: 'pointer' } }, h('input', { type: 'checkbox', checked: toIm, onChange: (e) => setToIm(e.target.checked) }), d.toIm) : null,
       err ? h('div', { className: 'mwr-err' }, err) : null,
       h('div', { className: 'mwr-line' }, h('span', { style: { flex: 1 } }), h('button', { className: 'mwr-primary', disabled: busy || !title.trim(), onClick: submit }, d.add)),
     )

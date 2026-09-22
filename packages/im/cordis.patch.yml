@@ -1,0 +1,5 @@
+# dsh-mywork-im bundle patch: mounts the outbound IM bridge (im_send / im_chats tools,
+# /mywork-im/api). Needs @michengai/dsh-im-connect for the channels themselves.
+- insert:
+    - id: mywork-im
+      name: dsh-mywork-im

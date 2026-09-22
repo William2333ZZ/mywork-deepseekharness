@@ -65,6 +65,8 @@ function normalize(input) {
   const out = { title, kind, enabled: input.enabled !== false }
   if (typeof input.note === 'string' && input.note.trim()) out.note = input.note.trim()
   if (typeof input.sessionId === 'string' && input.sessionId) out.sessionId = input.sessionId
+  // optional IM delivery (dsh-mywork-im): true = most recent chat, or a target string
+  if (input.im === true) out.im = true; else if (typeof input.im === 'string' && input.im.trim()) out.im = input.im.trim()
   if (kind === 'once') {
     const at = input.at ? new Date(input.at) : null
     if (!at || Number.isNaN(at.getTime())) return { ok: false, error: 'once reminders need a valid `at` instant (RFC 3339)' }

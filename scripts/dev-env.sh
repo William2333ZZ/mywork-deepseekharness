@@ -43,7 +43,7 @@ JS
 }
 
 stop() { pkill -f "dsh/lib/bin.js web --port $PORT" 2>/dev/null || true; }
-build() { (cd "$ROOT" && pnpm install >/dev/null); for p in shell schedule browser mcp kit; do (cd "$ROOT/packages/$p" && node "$ROOT/scripts/build-client.mjs" .); done; (cd "$ROOT/packages/codex-ui" && pnpm run --silent build >/dev/null 2>&1); }
+build() { (cd "$ROOT" && pnpm install >/dev/null); for p in shell schedule browser mcp im kit; do (cd "$ROOT/packages/$p" && node "$ROOT/scripts/build-client.mjs" .); done; (cd "$ROOT/packages/codex-ui" && pnpm run --silent build >/dev/null 2>&1); }
 start() {
   stop; sleep 1
   # `;` not `&&`: the & must apply to nohup alone, or the subshell waits for the server and hangs pipelines.
@@ -61,7 +61,7 @@ case "$cmd" in
     mkdir -p "$DEV/npm" "$DSH_HOME"
     if [ ! -f "$BIN" ]; then (cd "$DEV/npm" && npm init -y >/dev/null && npm i @deepseek-ai/dsh@alpha); fi
     build
-    node "$BIN" plugin --profile web add "$ROOT/packages/kit" "$ROOT/packages/codex-ui" "$ROOT/packages/shell" "$ROOT/packages/schedule" "$ROOT/packages/browser" "$ROOT/packages/mcp"
+    node "$BIN" plugin --profile web add "$ROOT/packages/kit" "$ROOT/packages/codex-ui" "$ROOT/packages/shell" "$ROOT/packages/schedule" "$ROOT/packages/browser" "$ROOT/packages/mcp" "$ROOT/packages/im"
     if [ "${MEMBERS:-yes}" = "yes" ]; then
       echo "== installing community kit members (MEMBERS=no to skip)"
       specs=(); while IFS= read -r spec; do specs+=("$spec"); done < <(node -e 'for (const m of require(process.argv[1]).members) if (!m.local) console.log(m.range ? m.name + "@" + m.range : m.name)' "$ROOT/packages/kit/kit.json")

@@ -1,0 +1,23 @@
+{
+  "name": "dsh-mywork-im",
+  "version": "0.1.0",
+  "description": "主动向 IM 频道发消息 for DeepSeek Harness：im_send / im_chats 模型工具、HTTP API 与「IM助理」页面里的发送卡片。把内容作为转发指令投递到该聊天对应的 IM 会话（@michengai/dsh-im-connect 的映射），由它的投递链路发到微信 / 飞书 / 钉钉等；定时任务、提醒都能借此通知到手机。",
+  "license": "MIT",
+  "type": "module",
+  "keywords": ["dsh", "deepseek-harness", "dsh-plugin", "im", "wechat", "notify"],
+  "main": "src/index.js",
+  "exports": { ".": "./src/index.js", "./client": "./lib/client.js", "./cordis.patch.yml": "./cordis.patch.yml", "./package.json": "./package.json" },
+  "files": ["src", "lib", "cordis.patch.yml", "README.md"],
+  "scripts": {
+    "build": "node ../../scripts/build-client.mjs .",
+    "check": "node --check src/index.js && node --check src/chats.js && node --check src/client/index.js",
+    "test": "node --test test/*.test.mjs"
+  },
+  "engines": { "node": ">=22.19", "dsh": ">=0.1.6-alpha.2" },
+  "dsh": {
+    "bundle": { "patch": "./cordis.patch.yml" },
+    "client": { "platform": "web", "inject": ["@deepseek-ai/dsh-client-ui-layout", "@deepseek-ai/dsh-client-locale"] }
+  },
+  "peerDependencies": { "@deepseek-ai/cordis": "*" },
+  "mywork": { "clientPrelude": ["../../scripts/client-icons.cjs"] }
+}

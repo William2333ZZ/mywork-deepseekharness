@@ -2106,15 +2106,6 @@ window.__ModuleLoader__.load({
 					size: 18,
 					strokeWidth: 1.6
 				}), () => t("schedulePanel.missing"))
-			}, {
-				id: IM_PANEL_ID,
-				order: 21,
-				label: () => t("sidebar.assistant"),
-				icon: ImRailIcon,
-				component: hostedPanel(IM_SECTION_ID, () => t("sidebar.assistant"), () => /* @__PURE__ */ (0, react_jsx_runtime.jsx)(MessageSquareMore, {
-					size: 18,
-					strokeWidth: 1.6
-				}), () => t("imPanel.missing"))
 			}];
 			for (const panel of panels) {
 				ctx.slots.inject("main", () => ctx.slots.register({
@@ -2132,6 +2123,39 @@ window.__ModuleLoader__.load({
 					inject: () => ({})
 				}, panel.icon));
 			}
+			const imSource = sectionSource(slots, IM_SECTION_ID);
+			function ImPanel(props) {
+				const entry = (0, react.useSyncExternalStore)(imSource.subscribe, imSource.getSnapshot, imSource.getSnapshot);
+				return page(t("sidebar.assistant"), /* @__PURE__ */ (0, react_jsx_runtime.jsx)(MessageSquareMore, {
+					size: 18,
+					strokeWidth: 1.6
+				}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [props.renderSlot("mywork.im.section", {}), entry === void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
+					className: "dcu-panel-empty",
+					children: t("imPanel.missing")
+				}) : /* @__PURE__ */ (0, react_jsx_runtime.jsx)(HostedSection, {
+					entry,
+					locale,
+					close
+				})] }));
+			}
+			ctx.slots.inject("main", () => ctx.slots.register({
+				name: "main",
+				key: IM_PANEL_ID,
+				locale: NS,
+				inject: () => ({}),
+				children: { "mywork.im.section": {
+					kind: "list",
+					scope: "root"
+				} }
+			}, ImPanel));
+			ctx.slots.inject("sidebar.panellist", () => ctx.slots.register({
+				name: "sidebar.panellist",
+				id: IM_PANEL_ID,
+				order: 21,
+				locale: NS,
+				label: () => t("sidebar.assistant"),
+				inject: () => ({})
+			}, ImRailIcon));
 			const managerSlots = ctx.slots;
 			const managerCount = () => {
 				try {

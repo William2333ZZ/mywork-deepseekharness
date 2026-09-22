@@ -31,6 +31,7 @@ dsh web
 | `packages/shell` | `dsh-mywork-shell` | **主题与缩放**：Claude Code / Codex 两套风格 × 浅色/深色/跟随系统，界面缩放 80–150%；MyWork → 外观 |
 | `packages/schedule` | `dsh-mywork-schedule` | **日程**：输入框旁的日程面板——提醒（一次性 / 每天 / 每周 / 间隔，到点页面弹窗 + 浏览器通知 + 提示音；`/remind` 与 `reminder_*` 工具）与定时任务（Automation 入口）两个标签；MyWork → 日程 |
 | `packages/mcp` | `dsh-mywork-mcp` | **MCP 服务器配置**：侧栏「MCP 连接器」页面里添加 / 编辑 / 停用 stdio 或 streamable-http 服务器、导入 mcpServers JSON；通过 dsh loader 动态挂成官方 mcp-client 条目，保存即生效 |
+| `packages/im` | `dsh-mywork-im` | **主动发消息到 IM**：`im_send` / `im_chats` 工具、`/imsend` 命令、IM助理 页里的发送卡片；内容作为转发指令进入聊天对应的会话，由 IM 插件送达微信 / 飞书等。定时任务结束时让模型调用 `im_send` 即可通知到手机；提醒可勾选"到点也发到 IM" |
 | `packages/browser` | `dsh-mywork-browser` | **真实浏览器（browser-use）**：后台拉起本机 Chrome（无头），模型经 dsh 官方 `browser-use` + Playwright MCP 驱动它；右侧栏「实时浏览器」标签实时渲染画面、可接管，模型一导航就自动展示；地址栏书签、`open_url` / `quick_links` 工具、`/open` 命令；MyWork → 浏览器 |
 
 其余能力直接复用社区 awesome 插件（都是 npm 上的成熟包，由 kit 面板一键安装）：
@@ -87,6 +88,7 @@ dsh web
   到点时页面弹窗 + 浏览器通知（首次在 设置 → MyWork → 日程 里点"申请"授权）+ 提示音。**需保持 DSH 页面开着**（浏览器里没有后台服务）。
 - **会话内提醒**（dsh 自带，kit 已启用）：对模型说"30 分钟后提醒我"，模型用 `schedule_create` 记录，到点在同一会话里作为一条 follow-up 消息回来。
 - **IM助理**：侧栏「IM助理」独立页面里给微信 / 飞书 / 钉钉等添加账号（扫码或 Bot 凭证），之后在 IM 里直接给本机 dsh 派任务；会话出现在侧栏「频道」标签。
+- **主动发到 IM**：IM助理 页顶部的「主动发消息到频道」卡片；对话里说"把结果发到微信"（模型调用 `im_send`）；`/imsend 内容`。定时任务：在任务描述里写"完成后用 im_send 把摘要发到微信"。提醒：新建时勾选"到点也发到 IM"。只能发给已经和机器人聊过的聊天，送达经过一次模型回合（几秒）。
 - **MCP 连接器**：侧栏「MCP 连接器」独立页面：添加 / 编辑 / 停用 MCP 服务器（stdio 命令或 streamable-http URL，环境变量 / 请求头），或粘贴 mcpServers JSON 导入；保存即挂载，所有会话可用。页面下方是当前会话实际可用的连接器与工具。
 - **定时任务**：侧栏 扩展管理 → 定时任务 打开独立页面（主区域，侧栏仍在；内容来自 Automation）；日程面板 → 定时任务 标签、侧栏「定时」列表里的任务也都跳到这个页面；或直接在对话里描述"每天 9 点跑一遍测试并汇报"。
 - **打开网页**：实时浏览器地址栏的书签按钮（Alt/⌥ 点击 = 系统浏览器）；`/open https://…` 或 `/open <书签名>`；或让模型调用 `open_url`。书签在 设置 → MyWork → 浏览器 里维护。一律走后台真实 Chrome，没有 iframe。
@@ -121,6 +123,7 @@ packages/
   codex-ui/    fork 自 @michengai/dsh-codex-ui（TypeScript，tsdown 构建）· src/client/settings-sections.ts（导航可用性）
   shell/       src/client（主题叠加层 + 缩放，MyWork → 外观）
   schedule/    src/logic.cjs（纯调度逻辑，宿主与浏览器共用）· src/store.js · src/index.js（工具/命令/API）· src/client（日程面板）
+  im/          src/chats.js（读 IM 插件的聊天映射）· src/index.js（im_send / im_chats / /imsend / API）· src/client（IM助理 页里的发送卡片）
   mcp/         src/store.js（记录 + mcpServers 导入解析）· src/index.js（loader 动态条目 + API）· src/client（MCP 连接器页面里的管理器）
   browser/     cordis.patch.yml（挂载官方 browser-use + Playwright MCP）· src/chrome.js · src/cdp.js · src/links.js（书签）· src/index.js（open_url、/open、API）· src/client（实时标签 + 书签菜单 + MyWork → 浏览器）
 scripts/

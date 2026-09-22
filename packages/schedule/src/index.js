@@ -53,6 +53,7 @@ export function apply(ctx, config = {}) {
         weekdays: { type: 'array', description: 'weekly：星期几数组，1=周一 … 7=周日' },
         every_minutes: { type: 'number', description: 'interval：间隔分钟数（>= 1）' },
         note: { type: 'string', description: '可选备注' },
+        im: { type: 'boolean', description: '到点时是否同时发到用户的 IM（微信等，需要 dsh-mywork-im）' },
       },
       async (args, exec) => {
         const input = { ...(args || {}), everyMinutes: args && args.every_minutes }

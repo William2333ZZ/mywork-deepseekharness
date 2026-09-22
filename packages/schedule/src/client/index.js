@@ -419,13 +419,14 @@ exports.apply = function apply(ctx) {
     openSettingsSection(AUTOMATION_LABELS)
   }
 
-  function NotifyCard() {
+  function NotifyCard(props) {
     const d = dict()
+    const standalone = !!(props && props.standalone)
     const [cfg, setCfg] = React.useState(null); const [chats, setChats] = React.useState([]); const [msg, setMsg] = React.useState('')
     React.useEffect(() => { fetch('/mywork-im/api/notify').then((r) => (r.ok ? r.json() : null)).then((x) => { if (x) { setCfg(x.config.automation); setChats(x.chats || []) } }).catch(() => {}) }, [])
     if (!cfg) return null
     const save = async () => { setMsg(''); try { const r = await fetch('/mywork-im/api/notify', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ automation: cfg }) }).then((x) => x.json()); if (r.error) throw new Error(r.error); setCfg(r.config.automation); setMsg(d.notifySaved) } catch (e) { setMsg(String(e.message || e)) } }
-    return h('div', { className: 'mwr-form', style: { borderTop: '0.5px solid var(--dsw-alias-border-l2)', marginTop: 6 } },
+    return h('div', { className: 'mwr-form', style: standalone ? { border: '0.5px solid var(--dsw-alias-border-l2)', borderRadius: 12, marginBottom: 18, background: 'var(--dsw-alias-bg-layer-1)', maxWidth: 720 } : { borderTop: '0.5px solid var(--dsw-alias-border-l2)', marginTop: 6 } },
       h('div', { style: { fontWeight: 600, color: 'var(--dsw-alias-label-primary)' } }, d.notifyTitle),
       h('div', { className: 'mwr-hint', style: { color: 'var(--dsw-alias-label-secondary)', lineHeight: 1.6 } }, d.notifyHint),
       chats.length === 0 ? h('div', { className: 'mwr-err' }, d.notifyNoChats) : null,
@@ -511,6 +512,9 @@ exports.apply = function apply(ctx) {
   ctx.slots.inject('shell.overlay', () => ctx.slots.register({
     name: 'shell.overlay', id: PLUGIN, order: 40,
   }, function MyworkScheduleOverlay() { return h(Overlay) }))
+
+  // Same card at the top of the standalone 定时任务 page (slot declared by dsh-mywork-codex-ui).
+  ctx.slots.inject('mywork.schedule.section', () => ctx.slots.register({ name: 'mywork.schedule.section', id: PLUGIN, order: 10 }, function MyworkScheduleNotify() { return h(NotifyCard, { standalone: true }) }))
 
   // "日程" tab inside Settings → MyWork (slot declared by dsh-mywork-kit).
   ctx.slots.inject(TAB_SLOT, () => ctx.slots.register({

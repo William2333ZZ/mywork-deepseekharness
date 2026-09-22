@@ -2083,31 +2083,7 @@ window.__ModuleLoader__.load({
 					})
 				]
 			});
-			const hostedPanel = (sectionId, title, icon, missing) => {
-				const source = sectionSource(slots, sectionId);
-				return function SectionPanel() {
-					const entry = (0, react.useSyncExternalStore)(source.subscribe, source.getSnapshot, source.getSnapshot);
-					return page(title(), icon(), entry === void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
-						className: "dcu-panel-empty",
-						children: missing()
-					}) : /* @__PURE__ */ (0, react_jsx_runtime.jsx)(HostedSection, {
-						entry,
-						locale,
-						close
-					}));
-				};
-			};
-			const panels = [{
-				id: SCHEDULE_PANEL_ID,
-				order: 20,
-				label: () => t("sidebar.schedule"),
-				icon: ScheduleRailIcon,
-				component: hostedPanel(AUTOMATION_SECTION_ID, () => t("sidebar.schedule"), () => /* @__PURE__ */ (0, react_jsx_runtime.jsx)(CalendarClock, {
-					size: 18,
-					strokeWidth: 1.6
-				}), () => t("schedulePanel.missing"))
-			}];
-			for (const panel of panels) {
+			for (const panel of []) {
 				ctx.slots.inject("main", () => ctx.slots.register({
 					name: "main",
 					key: panel.id,
@@ -2123,6 +2099,39 @@ window.__ModuleLoader__.load({
 					inject: () => ({})
 				}, panel.icon));
 			}
+			const scheduleSource = sectionSource(slots, AUTOMATION_SECTION_ID);
+			function SchedulePanel(props) {
+				const entry = (0, react.useSyncExternalStore)(scheduleSource.subscribe, scheduleSource.getSnapshot, scheduleSource.getSnapshot);
+				return page(t("sidebar.schedule"), /* @__PURE__ */ (0, react_jsx_runtime.jsx)(CalendarClock, {
+					size: 18,
+					strokeWidth: 1.6
+				}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [props.renderSlot("mywork.schedule.section", {}), entry === void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
+					className: "dcu-panel-empty",
+					children: t("schedulePanel.missing")
+				}) : /* @__PURE__ */ (0, react_jsx_runtime.jsx)(HostedSection, {
+					entry,
+					locale,
+					close
+				})] }));
+			}
+			ctx.slots.inject("main", () => ctx.slots.register({
+				name: "main",
+				key: SCHEDULE_PANEL_ID,
+				locale: NS,
+				inject: () => ({}),
+				children: { "mywork.schedule.section": {
+					kind: "list",
+					scope: "root"
+				} }
+			}, SchedulePanel));
+			ctx.slots.inject("sidebar.panellist", () => ctx.slots.register({
+				name: "sidebar.panellist",
+				id: SCHEDULE_PANEL_ID,
+				order: 20,
+				locale: NS,
+				label: () => t("sidebar.schedule"),
+				inject: () => ({})
+			}, ScheduleRailIcon));
 			const imSource = sectionSource(slots, IM_SECTION_ID);
 			function ImPanel(props) {
 				const entry = (0, react.useSyncExternalStore)(imSource.subscribe, imSource.getSnapshot, imSource.getSnapshot);

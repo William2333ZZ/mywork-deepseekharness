@@ -19,6 +19,8 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface SlotMap {
     /** Sections of the MCP page; dsh-mywork-mcp contributes the server manager here. */
     'mywork.mcp.section': { kind: 'list'; scope: 'root'; owner: {} }
+    /** Top of the 定时任务 page; dsh-mywork-schedule contributes the run-notification card here. */
+    'mywork.schedule.section': { kind: 'list'; scope: 'root'; owner: {} }
     /** Top of the IM page; dsh-mywork-im contributes the outbound send card here. */
     'mywork.im.section': { kind: 'list'; scope: 'root'; owner: {} }
   }
@@ -102,13 +104,25 @@ export function registerSectionPanels(ctx: Context, t: TranslateNS<typeof NS>, s
   }
 
   const panels: { id: string; order: number; label: () => string; icon: () => ReactElement; component: () => ReactElement }[] = [
-    { id: SCHEDULE_PANEL_ID, order: 20, label: () => t('sidebar.schedule'), icon: ScheduleRailIcon,
-      component: hostedPanel(AUTOMATION_SECTION_ID, () => t('sidebar.schedule'), () => <CalendarClock size={18} strokeWidth={1.6} />, () => t('schedulePanel.missing')) },
   ]
   for (const panel of panels) {
     ctx.slots.inject('main', () => ctx.slots.register({ name: 'main', key: panel.id, locale: NS, inject: () => ({}) }, panel.component))
     ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({ name: 'sidebar.panellist', id: panel.id, order: panel.order, locale: NS, label: panel.label, inject: () => ({}) }, panel.icon))
   }
+  // 定时任务 page: run-notification card (dsh-mywork-schedule, via the child slot) + the hosted dsh-automation section.
+  const scheduleSource = sectionSource(slots, AUTOMATION_SECTION_ID)
+  function SchedulePanel(props: PropsRenderSlots<'mywork.schedule.section'>): ReactElement {
+    const entry = useSyncExternalStore(scheduleSource.subscribe, scheduleSource.getSnapshot, scheduleSource.getSnapshot)
+    return page(t('sidebar.schedule'), <CalendarClock size={18} strokeWidth={1.6} />, <>
+      {props.renderSlot('mywork.schedule.section', {})}
+      {entry === undefined ? <p className="dcu-panel-empty">{t('schedulePanel.missing')}</p> : <HostedSection entry={entry} locale={locale} close={close} />}
+    </>)
+  }
+  ctx.slots.inject('main', () => ctx.slots.register({
+    name: 'main', key: SCHEDULE_PANEL_ID, locale: NS, inject: () => ({}),
+    children: { 'mywork.schedule.section': { kind: 'list', scope: 'root' } },
+  }, SchedulePanel))
+  ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({ name: 'sidebar.panellist', id: SCHEDULE_PANEL_ID, order: 20, locale: NS, label: () => t('sidebar.schedule'), inject: () => ({}) }, ScheduleRailIcon))
   // IM page: outbound send card (dsh-mywork-im, via the child slot) + the hosted dsh-im-connect section.
   const imSource = sectionSource(slots, IM_SECTION_ID)
   function ImPanel(props: PropsRenderSlots<'mywork.im.section'>): ReactElement {

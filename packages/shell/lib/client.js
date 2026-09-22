@@ -67,6 +67,12 @@ const CLAUDE_LIGHT = {
   '--dsw-alias-state-success-primary': '#5B8C5A',
   '--dsw-alias-state-warn-primary': '#D9A441',
   '--dsw-alias-state-error-primary': '#C8553D',
+  // surfaces dsh draws with "specific" tokens (user bubble, composer) and its blue "business" accent (active tab, send button, drop targets)
+  '--dsw-specific-bubble': '#EFE8D8',
+  '--dsw-specific-input-major': '#FFFFFF',
+  '--dsw-alias-state-business-primary': '#B85C3C',
+  '--dsw-alias-button-info-fill': '#D97757',
+  '--dsw-alias-button-info-hover': '#C4633F',
 }
 
 const CLAUDE_DARK = {
@@ -97,6 +103,12 @@ const CLAUDE_DARK = {
   '--dsw-alias-state-success-primary': '#7FB77E',
   '--dsw-alias-state-warn-primary': '#E0B458',
   '--dsw-alias-state-error-primary': '#E06C55',
+  // surfaces dsh draws with "specific" tokens (user bubble, composer) and its blue "business" accent (active tab, send button, drop targets)
+  '--dsw-specific-bubble': '#3B3934',
+  '--dsw-specific-input-major': '#30302D',
+  '--dsw-alias-state-business-primary': '#E8916F',
+  '--dsw-alias-button-info-fill': '#D97757',
+  '--dsw-alias-button-info-hover': '#E8916F',
 }
 
 const CODEX_LIGHT = {
@@ -127,6 +139,12 @@ const CODEX_LIGHT = {
   '--dsw-alias-state-success-primary': '#10A37F',
   '--dsw-alias-state-warn-primary': '#C98A00',
   '--dsw-alias-state-error-primary': '#D0342C',
+  // surfaces dsh draws with "specific" tokens (user bubble, composer) and its blue "business" accent (active tab, send button, drop targets)
+  '--dsw-specific-bubble': '#F0F0F0',
+  '--dsw-specific-input-major': '#FFFFFF',
+  '--dsw-alias-state-business-primary': '#0D0D0D',
+  '--dsw-alias-button-info-fill': '#0D0D0D',
+  '--dsw-alias-button-info-hover': '#2B2B2B',
 }
 
 const CODEX_DARK = {
@@ -157,6 +175,12 @@ const CODEX_DARK = {
   '--dsw-alias-state-success-primary': '#19C37D',
   '--dsw-alias-state-warn-primary': '#E3B341',
   '--dsw-alias-state-error-primary': '#F26D5B',
+  // surfaces dsh draws with "specific" tokens (user bubble, composer) and its blue "business" accent (active tab, send button, drop targets)
+  '--dsw-specific-bubble': '#2A2A2A',
+  '--dsw-specific-input-major': '#272727',
+  '--dsw-alias-state-business-primary': '#ECECEC',
+  '--dsw-alias-button-info-fill': '#ECECEC',
+  '--dsw-alias-button-info-hover': '#FFFFFF',
 }
 
 /**
@@ -195,6 +219,12 @@ const SWISS_LIGHT = {
   '--dsw-alias-state-success-primary': '#15803D',
   '--dsw-alias-state-warn-primary': '#B45309',
   '--dsw-alias-state-error-primary': '#DC2626',
+  // surfaces dsh draws with "specific" tokens (user bubble, composer) and its blue "business" accent (active tab, send button, drop targets)
+  '--dsw-specific-bubble': '#E2E8F0',
+  '--dsw-specific-input-major': '#FFFFFF',
+  '--dsw-alias-state-business-primary': '#15803D',
+  '--dsw-alias-button-info-fill': '#15803D',
+  '--dsw-alias-button-info-hover': '#166534',
 }
 
 const SWISS_DARK = {
@@ -226,6 +256,12 @@ const SWISS_DARK = {
   '--dsw-alias-state-success-primary': '#22C55E',
   '--dsw-alias-state-warn-primary': '#F59E0B',
   '--dsw-alias-state-error-primary': '#EF4444',
+  // surfaces dsh draws with "specific" tokens (user bubble, composer) and its blue "business" accent (active tab, send button, drop targets)
+  '--dsw-specific-bubble': '#272F42',
+  '--dsw-specific-input-major': '#1B2336',
+  '--dsw-alias-state-business-primary': '#22C55E',
+  '--dsw-alias-button-info-fill': '#22C55E',
+  '--dsw-alias-button-info-hover': '#4ADE80',
 }
 
 /**
@@ -304,6 +340,23 @@ body[data-mywork-theme="swiss"] a { text-decoration-thickness: 1px; text-underli
 body[data-mywork-theme="swiss"] button, body[data-mywork-theme="swiss"] [role="button"], body[data-mywork-theme="swiss"] a { transition: background-color 200ms ease, border-color 200ms ease, color 200ms ease; }
 body[data-mywork-theme="swiss"] :focus-visible { outline: 2px solid var(--dsw-alias-label-primary); outline-offset: 2px; border-radius: 4px; }
 body[data-mywork-theme="swiss"] h1, body[data-mywork-theme="swiss"] h2, body[data-mywork-theme="swiss"] h3 { letter-spacing: -0.01em; }
+/* The Codex UI fork hardcodes its sidebar / settings-page palette (mint grey). Under a family, route those
+   variables to the family's tokens so the whole chrome follows the style, not just the chat area. */
+body[data-mywork-theme][data-mywork-theme] .dcu-root { /* doubled attribute: outranks the fork's own dark-mode rule */
+  --dcu-sidebar-background: var(--dsw-specific-sidebar-fill); --dcu-sidebar-primary: var(--dsw-alias-label-primary);
+  --dcu-sidebar-secondary: var(--dsw-alias-label-secondary); --dcu-sidebar-tertiary: var(--dsw-alias-label-tertiary);
+  --dcu-sidebar-navigation: var(--dsw-alias-label-primary); --dcu-sidebar-icon: var(--dsw-alias-label-secondary);
+  --dcu-sidebar-hover: var(--dsw-alias-interactive-bg-active); --dcu-sidebar-border: var(--dsw-alias-border-l2);
+  --dcu-tip-bg: var(--dsw-alias-bg-overlay);
+}
+body[data-mywork-theme][data-mywork-theme] .dcu-settings-page {
+  --sp-bg: var(--dsw-alias-bg-base); --sp-nav: var(--dsw-specific-sidebar-fill); --sp-card: var(--dsw-alias-bg-layer-1);
+  --sp-border: var(--dsw-alias-border-l2); --sp-text: var(--dsw-alias-label-primary); --sp-muted: var(--dsw-alias-label-secondary);
+  --sp-hover: var(--dsw-alias-interactive-bg-hover); --sp-active: var(--dsw-alias-interactive-bg-active);
+}
+body[data-mywork-theme="swiss"] .dcu-root, body[data-mywork-theme="swiss"] .dcu-settings-page { --dcu-font: "IBM Plex Sans", -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; }
+/* send button icon must stay readable on a green fill */
+body[data-mywork-theme="swiss"] [data-composer-card] [class*="_primary"] { color: var(--dsw-alias-label-primary-inverted) !important; }
 /* Every family: the sidebar is its own tinted surface (warm sand / neutral grey / cool slate) with a hairline edge,
    solid on every platform (dsh blends it to 60 % on macOS, which washes the tint out). */
 body[data-mywork-theme] [class*="_sidebarCol"] { background: var(--dsw-specific-sidebar-fill) !important; border-right: 1px solid var(--dsw-alias-border-l2); }

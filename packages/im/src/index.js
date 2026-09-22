@@ -10,13 +10,13 @@
  *   • command: /imsend [目标] <文本>
  *   • HTTP: /mywork-im/api/chats, /mywork-im/api/send
  *   • system prompt hint so the model (also inside scheduled tasks) knows it can notify you
- *   • automation watcher: finished @michengai/dsh-automation runs are reported to a chat
- *     (config /mywork-im/api/notify, UI in the 日程 panel's 定时任务 tab)
+ *   • automation watcher: finished @michengai/dsh-automation runs are reported to the chat
+ *     configured PER TASK (tool automation_notify_set, API /mywork-im/api/notify, UI on the 定时任务 page)
  */
 import { randomBytes } from 'node:crypto'
 import { listChats, resolveChat, relayPrompt } from './chats.js'
 import { configSchema, defineRawTool, rejectUntrusted } from './harness.js'
-import { createAutomationWatcher, readNotifyConfig, writeNotifyConfig } from './notify.js'
+import { createAutomationWatcher, listAutomationTasks, readNotifyConfig, resolveTask, writeNotifyConfig } from './notify.js'
 
 export const name = 'dsh-mywork-im'
 export const inject = ['tools']
@@ -59,6 +59,25 @@ export function apply(ctx, config = {}) {
       async execute(args) { return send(args.target, args.text) },
     }))
     ctx.tools.register(defineRawTool({
+      name: 'automation_notify_set',
+      description: '设置某个定时任务运行结束后把结果发到哪个 IM 聊天（每个任务单独配置）。task 用任务 id 或名称；target 同 im_send（缺省 = 唯一可用聊天）；when = always（每次结束）| failed（仅失败）| off（取消）。用户说"这个定时任务完成后发到微信"时用它。',
+      parameters: {
+        task: { type: 'string', required: true, description: '定时任务 id 或名称（automation_list 可查）' },
+        target: { type: 'string', description: '目标聊天（同 im_send 的 target）' },
+        when: { type: 'string', description: 'always | failed | off' },
+      },
+      async execute(args) {
+        const r = resolveTask(args.task, listAutomationTasks())
+        if (r.error) throw new Error(r.error)
+        const when = args.when === 'off' ? 'off' : args.when === 'failed' ? 'failed' : 'always'
+        const tasks = { ...notifyConfig.automation.tasks }
+        if (when === 'off') delete tasks[r.task.id]
+        else { const c = resolveChat(args.target, listChats()); if (c.error) throw new Error(c.error); tasks[r.task.id] = { target: c.chat.sessionId, when } }
+        notifyConfig = writeNotifyConfig({ automation: { ...notifyConfig.automation, tasks } })
+        return { task: r.task.name, rule: tasks[r.task.id] || null }
+      },
+    }))
+    ctx.tools.register(defineRawTool({
       name: 'im_chats',
       description: '列出可以主动发消息的 IM 聊天（平台、账号、标题、最近活跃时间）。只有给机器人发过消息的聊天才在列表里。',
       parameters: {},
@@ -92,7 +111,7 @@ export function apply(ctx, config = {}) {
       try {
         sctx.systemPrompt.section({ name: 'mywork-im', order: 910, interpolate: false, text: [
           '## IM notifications',
-          'The user can be reached on their IM apps (WeChat, Feishu, DingTalk, …) through the `im_send` tool (`im_chats` lists reachable chats). Use it when the user asks to be notified, when a scheduled task finishes and its instructions ask for a report, or when a long job completes while the user is away. Keep messages short and plain; the text is forwarded verbatim.',
+          'The user can be reached on their IM apps (WeChat, Feishu, DingTalk, …) through the `im_send` tool (`im_chats` lists reachable chats). Use it when the user asks to be notified or when a long job completes while the user is away. Keep messages short and plain; the text is forwarded verbatim. Scheduled tasks (dsh-automation) can report their result to a chat automatically: when the user asks for that, call `automation_notify_set` for the task instead of putting it in the task prompt.',
         ].join('\n') })
       } catch (e) { warn('system prompt hint skipped: ' + (e && e.message)) }
     })
@@ -104,9 +123,19 @@ export function apply(ctx, config = {}) {
     const route = (path, handler) => wctx.webServer.register({ kind: 'exact', path: '/mywork-im/api' + path, handler: (req, res) => rejectUntrusted(ctx, req, res, json) || Promise.resolve(handler(req, res)).catch((e) => json(res, { error: e instanceof Error ? e.message : String(e) }, 500)) })
     route('/chats', async (_req, res) => json(res, { items: listChats(), ready: !!controller }))
     route('/send', async (req, res) => { if (req.method !== 'POST') return json(res, { error: 'POST only' }, 405); const b = await readBody(req); json(res, await send(b.target, b.text)) })
+    // Per-task notification rules. POST { taskId, target, when } ('' target or when 'off' removes) or { default: { target, when } | null }.
     route('/notify', async (req, res) => {
-      if (req.method === 'POST') { const b = await readBody(req); notifyConfig = writeNotifyConfig({ automation: { ...notifyConfig.automation, ...(b.automation || b) } }) }
-      json(res, { config: notifyConfig, chats: listChats() })
+      if (req.method === 'POST') {
+        const b = await readBody(req)
+        const automation = { ...notifyConfig.automation, tasks: { ...notifyConfig.automation.tasks } }
+        if (typeof b.taskId === 'string' && b.taskId) {
+          if (!b.target || b.when === 'off') delete automation.tasks[b.taskId]
+          else automation.tasks[b.taskId] = { target: String(b.target), when: b.when === 'failed' ? 'failed' : 'always' }
+        }
+        if ('default' in b) automation.default = b.default && b.default.target ? { target: String(b.default.target), when: b.default.when === 'failed' ? 'failed' : 'always' } : null
+        notifyConfig = writeNotifyConfig({ automation })
+      }
+      json(res, { config: notifyConfig, chats: listChats(), tasks: listAutomationTasks() })
     })
   })
 }

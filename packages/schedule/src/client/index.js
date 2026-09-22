@@ -43,6 +43,7 @@ const zh = {
   tasksHint: '定时任务在独立会话里按计划执行编码任务（一次 / 每小时 / 每天 / 每周 / 每月），由 Automation 插件提供；在侧栏「定时」标签查看，在设置页管理。',
   tasksOpen: '打开定时任务页面',
   tasksMissing: '尚未安装 @michengai/dsh-automation：到 设置 → MyWork → 成员 一键补装。',
+  notifyTitle: '运行结束通知到 IM', notifyHint: '每次定时任务跑完，把它的最后一条回复发到你的微信 / 飞书等（由 dsh-mywork-im 转发）。', notifyEnable: '启用', notifyChat: '发给', notifyWhen: '时机', notifyAlways: '每次运行结束', notifyFailed: '仅失败时', notifySave: '保存', notifySaved: '已保存', notifyNoChats: '还没有可发的聊天：先在 IM 里给机器人发一句。', chooseChat: '请选择聊天',
   add: '添加',
   cancel: '取消',
   empty: '还没有提醒。用下面的表单，或在对话里说「10 分钟后提醒我…」，或输入 /remind 10m 喝水。',
@@ -74,6 +75,7 @@ const en = {
   tasksHint: 'Scheduled tasks run coding jobs in their own sessions on a plan (once / hourly / daily / weekly / monthly), provided by the Automation plugin; see them in the sidebar "Schedule" tab and manage them in Settings.',
   tasksOpen: 'Open the scheduled tasks page',
   tasksMissing: '@michengai/dsh-automation is not installed: Settings → MyWork → Members installs it in one click.',
+  notifyTitle: 'Notify IM when a run finishes', notifyHint: 'After every scheduled run, its last reply is sent to your WeChat / Feishu … (relayed by dsh-mywork-im).', notifyEnable: 'Enabled', notifyChat: 'To', notifyWhen: 'When', notifyAlways: 'every finished run', notifyFailed: 'failed runs only', notifySave: 'Save', notifySaved: 'saved', notifyNoChats: 'No reachable chat yet: message the bot from your IM app first.', chooseChat: 'choose a chat',
   add: 'Add',
   cancel: 'Cancel',
   empty: 'No reminders yet. Use the form below, ask the model ("remind me in 10 minutes…"), or type /remind 10m water.',
@@ -417,6 +419,23 @@ exports.apply = function apply(ctx) {
     openSettingsSection(AUTOMATION_LABELS)
   }
 
+  function NotifyCard() {
+    const d = dict()
+    const [cfg, setCfg] = React.useState(null); const [chats, setChats] = React.useState([]); const [msg, setMsg] = React.useState('')
+    React.useEffect(() => { fetch('/mywork-im/api/notify').then((r) => (r.ok ? r.json() : null)).then((x) => { if (x) { setCfg(x.config.automation); setChats(x.chats || []) } }).catch(() => {}) }, [])
+    if (!cfg) return null
+    const save = async () => { setMsg(''); try { const r = await fetch('/mywork-im/api/notify', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ automation: cfg }) }).then((x) => x.json()); if (r.error) throw new Error(r.error); setCfg(r.config.automation); setMsg(d.notifySaved) } catch (e) { setMsg(String(e.message || e)) } }
+    return h('div', { className: 'mwr-form', style: { borderTop: '0.5px solid var(--dsw-alias-border-l2)', marginTop: 6 } },
+      h('div', { style: { fontWeight: 600, color: 'var(--dsw-alias-label-primary)' } }, d.notifyTitle),
+      h('div', { className: 'mwr-hint', style: { color: 'var(--dsw-alias-label-secondary)', lineHeight: 1.6 } }, d.notifyHint),
+      chats.length === 0 ? h('div', { className: 'mwr-err' }, d.notifyNoChats) : null,
+      h('label', { className: 'mwr-line', style: { cursor: 'pointer' } }, h('input', { type: 'checkbox', checked: !!cfg.enabled, onChange: (e) => setCfg({ ...cfg, enabled: e.target.checked }) }), d.notifyEnable),
+      h('div', { className: 'mwr-line' }, h('span', null, d.notifyChat), h('select', { className: 'mwr-in', value: cfg.target || '', onChange: (e) => setCfg({ ...cfg, target: e.target.value }) }, h('option', { value: '' }, d.chooseChat), chats.map((c) => h('option', { key: c.sessionId, value: c.sessionId }, `${c.platform} · ${c.channelName} · ${c.title}`)))),
+      h('div', { className: 'mwr-line' }, h('span', null, d.notifyWhen), h('div', { className: 'mwr-seg' }, h('button', { type: 'button', className: cfg.when !== 'failed' ? 'on' : '', onClick: () => setCfg({ ...cfg, when: 'always' }) }, d.notifyAlways), h('button', { type: 'button', className: cfg.when === 'failed' ? 'on' : '', onClick: () => setCfg({ ...cfg, when: 'failed' }) }, d.notifyFailed))),
+      h('div', { className: 'mwr-line' }, h('span', { style: { flex: 1, fontSize: 12, color: 'var(--dsw-alias-label-secondary)' } }, msg), h('button', { className: 'mwr-primary', disabled: cfg.enabled && !cfg.target, onClick: save }, d.notifySave)),
+    )
+  }
+
   function TasksTab() {
     const installed = automationInstalled()
     return h('div', { className: 'mwr-tasks' },
@@ -424,6 +443,7 @@ exports.apply = function apply(ctx) {
       installed
         ? h('div', null, h('button', { className: 'mwr-primary', onClick: () => { set({ open: false }); openTasks() } }, t('tasksOpen')))
         : h('div', { className: 'mwr-err' }, t('tasksMissing')),
+      installed ? h(NotifyCard) : null,
     )
   }
 

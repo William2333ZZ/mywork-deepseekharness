@@ -10,10 +10,13 @@
  *   • command: /imsend [目标] <文本>
  *   • HTTP: /mywork-im/api/chats, /mywork-im/api/send
  *   • system prompt hint so the model (also inside scheduled tasks) knows it can notify you
+ *   • automation watcher: finished @michengai/dsh-automation runs are reported to a chat
+ *     (config /mywork-im/api/notify, UI in the 日程 panel's 定时任务 tab)
  */
 import { randomBytes } from 'node:crypto'
 import { listChats, resolveChat, relayPrompt } from './chats.js'
 import { configSchema, defineRawTool, rejectUntrusted } from './harness.js'
+import { createAutomationWatcher, readNotifyConfig, writeNotifyConfig } from './notify.js'
 
 export const name = 'dsh-mywork-im'
 export const inject = ['tools']
@@ -23,6 +26,7 @@ export const Config = configSchema({ tools: true, command: true, promptHint: tru
 
 export function apply(ctx, config = {}) {
   const warn = (m) => console.warn('[dsh-mywork-im] ' + m)
+  const log = (m) => console.log('[dsh-mywork-im] ' + m)
   const maxChars = Number(config.maxChars) || 4000
   let controller = null
   ctx.inject(['sessionController'], (sctx) => { controller = sctx.sessionController; sctx.effect(() => () => { controller = null }, 'dsh-mywork-im: controller') })
@@ -38,6 +42,11 @@ export function apply(ctx, config = {}) {
     await controller.prompt({ requestId, sessionId: r.chat.sessionId, mode: 'queue', content: [{ type: 'text', text: relayPrompt(body) }] }, AbortSignal.timeout(20000))
     return { accepted: true, requestId, sessionId: r.chat.sessionId, channel: r.chat.channel, platform: r.chat.platform, chatId: r.chat.chatId, title: r.chat.title, note: 'Queued in the chat\'s IM session; its assistant forwards the text and dsh-im-connect delivers it.' }
   }
+
+  // Scheduled tasks (dsh-automation) → IM: watch every session event, react to automation run sessions.
+  let notifyConfig = readNotifyConfig()
+  const watcher = createAutomationWatcher({ getConfig: () => notifyConfig, send, log })
+  ctx.effect(() => ctx.on('session/event', (...args) => { watcher(args[0], args[1]) }, { global: true }), 'dsh-mywork-im: automation watcher')
 
   if (config.tools !== false) {
     ctx.tools.register(defineRawTool({
@@ -95,5 +104,9 @@ export function apply(ctx, config = {}) {
     const route = (path, handler) => wctx.webServer.register({ kind: 'exact', path: '/mywork-im/api' + path, handler: (req, res) => rejectUntrusted(ctx, req, res, json) || Promise.resolve(handler(req, res)).catch((e) => json(res, { error: e instanceof Error ? e.message : String(e) }, 500)) })
     route('/chats', async (_req, res) => json(res, { items: listChats(), ready: !!controller }))
     route('/send', async (req, res) => { if (req.method !== 'POST') return json(res, { error: 'POST only' }, 405); const b = await readBody(req); json(res, await send(b.target, b.text)) })
+    route('/notify', async (req, res) => {
+      if (req.method === 'POST') { const b = await readBody(req); notifyConfig = writeNotifyConfig({ automation: { ...notifyConfig.automation, ...(b.automation || b) } }) }
+      json(res, { config: notifyConfig, chats: listChats() })
+    })
   })
 }

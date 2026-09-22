@@ -16,6 +16,7 @@ IM 插件把每个聊天映射成一个 dsh 会话，并把该会话里助手的
 - 页面：侧栏 IM助理 页顶部的「主动发消息到频道」卡片（选聊天、写内容、发送）。
 - HTTP：`/mywork-im/api/chats`、`POST /mywork-im/api/send {target, text}`（同源 + 登录）。
 - 提醒：dsh-mywork-schedule 的提醒可勾选「到点也发到 IM」。
+- **定时任务运行结束自动通知**：日程面板 → 定时任务 → 「运行结束通知到 IM」，选聊天、选时机（每次 / 仅失败）。原理：Automation 的每次运行都在 id 以 `dsh-automation-session-` 开头的会话里跑，本插件监听 dsh 的全局会话事件，回合结束时把该会话最后一条回复（带任务名、完成 / 失败）发过去。不依赖 Automation 内部接口，也不需要在任务描述里写任何话。配置文件 `$DSH_HOME/mywork/im-notify.json`，接口 `GET/POST /mywork-im/api/notify`。
 
 `target`：平台名（weixin / feishu…）、账号名、聊天 id 或标题片段。**多账号 / 多聊天时绝不猜**：只有一个可用聊天时才允许省略；平台名或账号名命中多个聊天（比如两个微信账号、一个账号下多个私聊 / 群）时返回候选列表让调用方指明（用 chatId 最保险）。每个聊天对应独立会话，互不串扰；同一聊天的多条消息按 `queue` 模式排队，不会插进正在进行的回合。
 

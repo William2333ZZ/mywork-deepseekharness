@@ -54,3 +54,12 @@ profile 的 `cordis.patch.yml`（patch 会整体替换 config，所以要把需�
 ## 实现
 
 零依赖：`src/chrome.js`（找浏览器、拉起、等端口）、`src/cdp.js`（用 Node 自带 `WebSocket` 的最小 CDP 客户端 + 截屏流广播 + 目标监听）、`src/links.js`（书签存储）、`src/index.js`（宿主 API、open_url / quick_links / /open、系统提示词提示）、`src/client/index.js`（右侧栏标签）。
+
+## 地址栏（Chrome 式）
+
+- 输入框像 Chrome 的地址栏：不聚焦时显示去掉 `https://`、`www.` 和末尾 `/` 的网址，点进去全选、显示完整网址。
+- 输入网址（`github.com`、`localhost:3090`、带协议的）直接打开；输入书签名打开书签；其它文字用搜索引擎搜（默认 Bing，可在 设置 → MyWork → 浏览器 换成 Google / 百度 / DuckDuckGo）。
+- 边输边出建议：历史（按访问次数和时间排序，标题 + 网址）、书签；第一行永远是"前往 …"或"用 … 搜索"。↑ ↓ 选，Enter 前往，Esc 还原并退出，Tab 接受行内补全。
+- 行内补全：历史里有以你输入开头的网址时，自动补全剩余部分并选中，继续输入会覆盖。
+- 在实时画面里按 Ctrl/Cmd + L 跳到地址栏。
+- 历史记在 `$DSH_HOME/mywork/browser-history.json`（最多 3000 条，模型和你打开的页面都算；本机 dsh 的 token 页不记）；设置页可一键清除。接口：`POST /mywork-browser/api/omni/go {target?, text}`、`GET /history/search?q=`、`POST /history/clear`、`GET|POST /prefs`。

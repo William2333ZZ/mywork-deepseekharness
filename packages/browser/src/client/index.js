@@ -29,6 +29,7 @@ const zh = {
   nav: '浏览器', bookmarks: '书签', addCurrent: '收藏当前页', noBookmarks: '还没有书签。', name: '名称', url: '网址（http/https）', add: '添加',
   up: '上移', down: '下移', del: '删除', edit: '重命名', save: '保存', openLive: '在实时浏览器打开', openSys: '用系统浏览器打开',
   status: '状态', running: '运行中', stopped: '未运行', engine: '内核', port: 'DevTools 端口', headless: '无头', yes: '是', no: '否', tabs: '标签页', dataFile: '书签文件',
+  omniPlaceholder: '搜索或输入网址', goTo: '前往', searchWith: '用 %e 搜索', fromHistory: '历史', fromBookmarks: '书签', searchEngine: '地址栏搜索引擎', searchEngineHint: '地址栏里输入的不是网址时，用它搜索。网址（如 github.com）直接打开，书签名也可以直接输。', history: '地址栏历史', historyCount: '%n 条', clearHistory: '清除历史', cleared: '已清除',
   help: '后台 Chrome 由本插件拉起，模型通过 Playwright MCP 操作它；它每次导航都会自动在右侧栏展示。模型可用 open_url / quick_links 工具，你可用 /open <网址或书签名> 命令。',
 }
 const en = {
@@ -40,15 +41,28 @@ const en = {
   nav: 'Browser', bookmarks: 'Bookmarks', addCurrent: 'Bookmark this page', noBookmarks: 'No bookmarks yet.', name: 'Name', url: 'URL (http/https)', add: 'Add',
   up: 'Up', down: 'Down', del: 'Delete', edit: 'Rename', save: 'Save', openLive: 'Open in live browser', openSys: 'Open in system browser',
   status: 'Status', running: 'running', stopped: 'not running', engine: 'Engine', port: 'DevTools port', headless: 'Headless', yes: 'yes', no: 'no', tabs: 'Tabs', dataFile: 'Bookmarks file',
+  omniPlaceholder: 'Search or type a URL', goTo: 'Go to', searchWith: 'Search with %e', fromHistory: 'History', fromBookmarks: 'Bookmarks', searchEngine: 'Address-bar search engine', searchEngineHint: 'Used when what you type is not an address. Addresses (github.com) open directly; a bookmark name works too.', history: 'Address-bar history', historyCount: '%n entries', clearHistory: 'Clear history', cleared: 'cleared',
   help: 'This plugin starts the background Chrome; the model drives it through Playwright MCP, and every navigation is shown in the right sidebar automatically. The model can use the open_url / quick_links tools, you can type /open <url or bookmark name>.',
 }
 
 const CSS = `
 .mwb{display:flex;flex-direction:column;height:100%;min-height:0;background:var(--dsw-alias-bg-base)}
-.mwb-bar{display:flex;gap:4px;align-items:center;padding:5px 8px;border-bottom:0.5px solid var(--dsw-alias-border-l2);flex:none;flex-wrap:wrap}
-.mwb-bar select{max-width:180px;background:var(--dsw-alias-bg-layer-2);border:0.5px solid var(--dsw-alias-border-l2);border-radius:8px;color:inherit;font:inherit;font-size:12px;padding:3px 6px}
+.mwb-bar{display:flex;gap:4px;align-items:center;padding:5px 8px 0;flex:none}
+.mwb-bar2{display:flex;gap:4px;align-items:center;padding:4px 8px 5px;border-bottom:0.5px solid var(--dsw-alias-border-l2);flex:none}
+.mwb-bar select{flex:1;min-width:0}
+.mwb-bar select{background:var(--dsw-alias-bg-layer-2);border:0.5px solid var(--dsw-alias-border-l2);border-radius:8px;color:inherit;font:inherit;font-size:12px;padding:3px 6px}
 .mwb-in{flex:1;min-width:120px;background:var(--dsw-alias-bg-layer-2);border:0.5px solid var(--dsw-alias-border-l2);border-radius:8px;padding:4px 8px;font:inherit;font-size:12px;color:inherit;font-family:ui-monospace,Menlo,monospace}
 .mwb-in:focus{outline:none;border-color:var(--dsw-alias-brand-primary)}
+.mwb-omni{position:relative;flex:1;min-width:140px;display:flex}
+.mwb-omni .mwb-in{width:100%;font-family:inherit;font-size:12.5px;padding-left:26px}
+.mwb-omni .lead{position:absolute;left:8px;top:50%;transform:translateY(-50%);color:var(--dsw-alias-label-tertiary,var(--dsw-alias-label-secondary));pointer-events:none;display:inline-flex}
+.mwb-sugg{position:absolute;left:0;right:0;top:calc(100% + 4px);background:var(--dsw-alias-bg-overlay,var(--dsw-alias-bg-layer-1));color:var(--dsw-alias-label-primary);border:0.5px solid var(--dsw-alias-border-l2);border-radius:12px;box-shadow:var(--dsw-elevation-prominent,0 10px 40px rgba(0,0,0,.28));padding:6px;z-index:1100;font-size:12.5px;max-height:min(50vh,420px);overflow:auto}
+.mwb-sugg .row{display:flex;align-items:center;gap:8px;width:100%;border:0;background:transparent;color:inherit;padding:6px 8px;border-radius:8px;cursor:pointer;text-align:left;font:inherit;font-size:12.5px}
+.mwb-sugg .row.sel,.mwb-sugg .row:hover{background:var(--dsw-alias-interactive-bg-hover)}
+.mwb-sugg .row .ic{flex:none;color:var(--dsw-alias-label-secondary);display:inline-flex}
+.mwb-sugg .row .main{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mwb-sugg .row .sub{flex:none;max-width:45%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-secondary);font-size:11.5px}
+.mwb-sugg .grp{font-size:11px;color:var(--dsw-alias-label-tertiary,var(--dsw-alias-label-secondary));padding:6px 8px 2px}
 .mwb-b{border:0;background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer;width:26px;height:26px;padding:0;display:inline-flex;align-items:center;justify-content:center;border-radius:6px}
 .mwb-b:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-active);color:var(--dsw-alias-label-primary)}
 .mwb-b:disabled{opacity:.4;cursor:default}
@@ -169,6 +183,106 @@ exports.apply = function apply(ctx) {
     )
   }
 
+  /**
+   * Chrome-like omnibox: shows the page URL trimmed (no scheme / www / trailing slash) until
+   * focused, selects all on focus, completes the top history match inline, suggests history and
+   * bookmarks while typing, and sends non-URLs to the chosen search engine (host /omni/go).
+   */
+  function Omnibox(props) {
+    const { target, currentUrl, onNavigated, focusRef } = props
+    const [draft, setDraft] = React.useState('')
+    const [focused, setFocused] = React.useState(false)
+    const [open, setOpen] = React.useState(false)
+    const [hist, setHist] = React.useState([])
+    const [sel, setSel] = React.useState(-1)
+    const [engine, setEngine] = React.useState({ id: 'bing', name: 'Bing' })
+    const inputRef = React.useRef(null)
+    const completion = React.useRef(null) // { typed, full } last inline completion
+    const seq = React.useRef(0)
+    const { items: bookmarks } = useBookmarks()
+    React.useEffect(() => { api('/prefs').then((p) => { const e = (p.engines || []).find((x) => x.id === p.searchEngine); if (e) setEngine(e) }).catch(() => {}) }, [])
+    // Mirror the page URL while not editing.
+    React.useEffect(() => { if (!focused) setDraft(currentUrl || '') }, [currentUrl, focused])
+    const selectAllPending = React.useRef(false)
+    React.useEffect(() => { if (!focused) return; const el = inputRef.current; if (el) { try { el.select() } catch { /* ignore */ } } }, [focused])
+    React.useImperativeHandle(focusRef, () => ({ focus: () => { const el = inputRef.current; if (el) { selectAllPending.current = true; el.focus() } } }), [])
+
+    const typed = draft.trim()
+    const isUrl = typed && looksLikeUrlClient(typed)
+    const bmHits = typed ? bookmarks.filter((b) => (b.name + ' ' + b.url).toLowerCase().includes(typed.toLowerCase())).slice(0, 3) : []
+    const rows = []
+    if (typed) rows.push(isUrl ? { kind: 'url', label: prettyUrlClient(typed), sub: t('goTo'), url: typed } : { kind: 'search', label: typed, sub: t('searchWith').replace('%e', engine.name), text: typed })
+    for (const it of hist) rows.push({ kind: 'history', label: it.title || prettyUrlClient(it.url), sub: prettyUrlClient(it.url), url: it.url })
+    for (const b of bmHits) if (!hist.some((it) => it.url === b.url)) rows.push({ kind: 'bookmark', label: b.name, sub: prettyUrlClient(b.url), url: b.url })
+
+    const fetchHist = (text) => {
+      const my = ++seq.current
+      if (!text.trim()) { setHist([]); return }
+      api('/history/search?q=' + encodeURIComponent(text.trim()) + '&limit=6').then((d) => { if (my !== seq.current) return; setHist(d.items || []); maybeComplete(text, d.items || []) }).catch(() => {})
+    }
+    // Inline completion (Chrome): when the top history hit's pretty URL starts with what was typed,
+    // fill the rest and select it so the next keystroke replaces it.
+    const maybeComplete = (text, items) => {
+      const el = inputRef.current; if (!el || document.activeElement !== el) return
+      const top = items[0]; const c = completion.current
+      if (!top || !top.prefix || !c || c.typed !== text) return
+      const full = prettyUrlClient(top.url)
+      if (!full.toLowerCase().startsWith(text.toLowerCase()) || full.length === text.length) return
+      const value = text + full.slice(text.length)
+      setDraft(value); completion.current = { typed: text, full: value }
+      requestAnimationFrame(() => { try { el.setSelectionRange(text.length, value.length) } catch { /* ignore */ } })
+    }
+    const onChange = (e) => {
+      const value = e.target.value
+      const deleting = e.nativeEvent && /delete/i.test(e.nativeEvent.inputType || '')
+      setDraft(value); setSel(-1); setOpen(true)
+      completion.current = deleting ? null : { typed: value, full: null }
+      fetchHist(value)
+    }
+    const go = async (row) => {
+      const text = row ? (row.kind === 'search' ? row.text : row.url) : draft.trim()
+      if (!text) return
+      setOpen(false); setSel(-1)
+      try {
+        const r = await api('/omni/go', { target: target || undefined, text })
+        if (r && r.url) { setDraft(r.url); onNavigated && onNavigated(r.url) }
+        const el = inputRef.current; if (el) el.blur()
+      } catch (err) { console.warn('[' + PLUGIN + '] omnibox failed', err) }
+    }
+    const onKeyDown = (e) => {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        if (!rows.length) return
+        e.preventDefault(); setOpen(true)
+        const next = e.key === 'ArrowDown' ? (sel + 1) % rows.length : (sel - 1 + rows.length) % rows.length
+        setSel(next); const r = rows[next]; setDraft(r.kind === 'search' ? r.text : r.url); completion.current = null
+        return
+      }
+      if (e.key === 'Enter') { e.preventDefault(); go(sel >= 0 ? rows[sel] : null); return }
+      if (e.key === 'Escape') { e.preventDefault(); setOpen(false); setSel(-1); setDraft(currentUrl || ''); const el = inputRef.current; if (el) el.blur(); return }
+      if (e.key === 'Tab' && completion.current && completion.current.full) { e.preventDefault(); const el = inputRef.current; if (el) el.setSelectionRange(draft.length, draft.length); completion.current = null }
+    }
+    const ic = (kind) => icon(kind === 'search' ? 'search' : kind === 'history' ? 'history' : kind === 'bookmark' ? 'bookmark' : 'globe', { size: 13 })
+    return h('div', { className: 'mwb-omni' },
+      h('span', { className: 'lead' }, icon(isUrl || !typed ? 'globe' : 'search', { size: 13 })),
+      h('input', { ref: inputRef, className: 'mwb-in', placeholder: t('omniPlaceholder'), value: focused ? draft : prettyUrlClient(draft), spellCheck: false, autoComplete: 'off',
+        onChange, onKeyDown,
+        onMouseDown: () => { if (document.activeElement !== inputRef.current) selectAllPending.current = true },
+        onMouseUp: (e) => { if (selectAllPending.current) { e.preventDefault(); selectAllPending.current = false; try { e.target.select() } catch { /* ignore */ } } },
+        onFocus: () => { setFocused(true); setDraft(currentUrl || '') },
+        onBlur: () => { setFocused(false); setTimeout(() => setOpen(false), 120) } }),
+      open && rows.length ? h('div', { className: 'mwb-sugg' }, rows.map((r, i) => h('button', { key: r.kind + ':' + (r.url || r.text) + i, type: 'button', className: 'row' + (i === sel ? ' sel' : ''), onMouseDown: (e) => e.preventDefault(), onClick: () => go(r), onMouseEnter: () => setSel(i) },
+        h('span', { className: 'ic' }, ic(r.kind)), h('span', { className: 'main' }, r.label), h('span', { className: 'sub' }, r.sub)))) : null,
+    )
+  }
+  function looksLikeUrlClient(text) {
+    const s = String(text || '').trim()
+    if (!s || /\s/.test(s)) return false
+    if (/^[a-z][a-z0-9+.-]*:\/\//i.test(s)) return true
+    const host = s.split(/[/?#]/)[0]
+    return /^localhost(:\d+)?$/i.test(host) || /^(\d{1,3}\.){3}\d{1,3}(:\d+)?$/.test(host) || /^[\w-]+(\.[\w-]+)+(:\d+)?$/.test(host)
+  }
+  function prettyUrlClient(url) { return String(url || '').replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/\/$/, '') }
+
   function LiveBrowser(props) {
     const [status, setStatus] = React.useState(null)
     const [target, setTarget] = React.useState(null)
@@ -176,6 +290,7 @@ exports.apply = function apply(ctx) {
     const [frame, setFrame] = React.useState(null) // { data, metadata }
     const [draft, setDraft] = React.useState('')
     const [conn, setConn] = React.useState('idle')
+    const omniRef = React.useRef(null)
     const imgRef = React.useRef(null)
     const viewRef = React.useRef(null)
     const queue = React.useRef([])
@@ -260,13 +375,13 @@ exports.apply = function apply(ctx) {
     const onMouseMove = (e) => { const now = Date.now(); if (now - lastMove.current < 50) return; lastMove.current = now; const p = pageXY(e); if (!p) return; push({ kind: 'mouse', type: 'mouseMoved', ...p, buttons: e.buttons, modifiers: mods(e) }) }
     const onWheel = (e) => { const p = pageXY(e); if (!p) return; e.preventDefault(); push({ kind: 'mouse', type: 'mouseWheel', ...p, deltaX: Math.round(e.deltaX), deltaY: Math.round(e.deltaY), modifiers: mods(e) }, true) }
     const onKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'l' || e.key === 'L')) { e.preventDefault(); omniRef.current && omniRef.current.focus(); return }
       if (e.key === 'Escape') { e.preventDefault(); viewRef.current && viewRef.current.blur(); return }
       if (['Enter', 'Backspace', 'Tab', 'Delete', 'ArrowLeft', 'ArrowUp', 'ArrowRight', 'ArrowDown', 'Home', 'End', 'PageUp', 'PageDown'].includes(e.key)) { e.preventDefault(); push({ kind: 'key', key: e.key, modifiers: mods(e) }, true); return }
       if (e.key.length === 1 && !e.metaKey && !e.ctrlKey) { e.preventDefault(); push({ kind: 'text', text: e.key }, true) }
     }
     const onPaste = (e) => { const txt = e.clipboardData && e.clipboardData.getData('text'); if (txt) { e.preventDefault(); push({ kind: 'text', text: txt }, true) } }
 
-    const go = () => { if (!target || !draft.trim()) return; api('/navigate', { target, url: draft.trim() }).catch((e) => setConn('error:' + e.message)) }
     const act = (path, extra) => () => { if (!target) return; api(path, { target, ...(extra || {}) }).then(refresh).catch(() => {}) }
     const newTab = async () => { setFollow(false); try { const tinfo = await api('/new-tab', {}); await refresh(); if (tinfo && tinfo.id) setTarget(tinfo.id) } catch { /* ignore */ } }
     const current = status && status.running ? status.targets.find((x) => x.id === target) : null
@@ -300,12 +415,13 @@ exports.apply = function apply(ctx) {
           status.targets.map((x) => h('option', { key: x.id, value: x.id }, (x.title || hostOf(x.url) || 'about:blank').slice(0, 40)))),
         h('button', { className: 'mwb-b', title: t('newTab'), onClick: newTab }, icon('plus', { size: 14 })),
         h('button', { className: 'mwb-b', title: t('closeTab'), disabled: !target, onClick: act('/close-tab') }, icon('x', { size: 14 })),
+        h('button', { className: 'mwb-b' + (follow ? ' on' : ''), title: t('follow'), onClick: () => setFollow(!follow) }, icon('crosshair', { size: 14 })),
+      ),
+      h('div', { className: 'mwb-bar2' },
         h('button', { className: 'mwb-b', title: t('back'), disabled: !target, onClick: act('/back') }, icon('arrow-left', { size: 14 })),
         h('button', { className: 'mwb-b', title: t('forward'), disabled: !target, onClick: act('/forward') }, icon('arrow-right', { size: 14 })),
         h('button', { className: 'mwb-b', title: t('reload'), disabled: !target, onClick: act('/reload') }, icon('refresh-cw', { size: 13 })),
-        h('input', { className: 'mwb-in', placeholder: 'https://', value: draft, onChange: (e) => setDraft(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter') go() } }),
-        h('button', { className: 'mwb-b', title: t('go'), disabled: !target, onClick: go }, icon('arrow-right', { size: 14 })),
-        h('button', { className: 'mwb-b' + (follow ? ' on' : ''), title: t('follow'), onClick: () => setFollow(!follow) }, icon('crosshair', { size: 14 })),
+        h(Omnibox, { target, currentUrl: draft, focusRef: omniRef, onNavigated: (url) => { setDraft(url); refresh() } }),
         h(BookmarkMenu, { current, target }),
         h('button', { className: 'mwb-b', title: t('system'), disabled: !current || !/^https?:/.test(current.url), onClick: () => { if (current) openSystem(current.url) } }, icon('external-link', { size: 14 })),
       ),
@@ -377,6 +493,11 @@ exports.apply = function apply(ctx) {
       if (!u) { setErr(t('url')); return }
       try { await bmAdd(nm, u); setNm(''); setUrl('') } catch (e) { setErr(String(e.message || e)) }
     }
+    const [prefs, setPrefs] = React.useState(null); const [msg, setMsg] = React.useState('')
+    const loadPrefs = React.useCallback(() => api('/prefs').then(setPrefs).catch(() => {}), [])
+    React.useEffect(() => { loadPrefs() }, [loadPrefs])
+    const setEngine = (id) => api('/prefs', { searchEngine: id }).then(setPrefs).catch((e) => setErr(String(e.message || e)))
+    const clearHistory = () => api('/history/clear', {}).then(() => { setMsg(t('cleared')); loadPrefs() }).catch((e) => setErr(String(e.message || e)))
     const kv = (k, v) => h(React.Fragment, { key: k }, h('span', { className: 'k' }, k), h('span', { className: 'v', title: String(v) }, String(v)))
     return h('div', { className: 'mwb-set' },
       h('div', { className: 'mwb-hint' }, t('help')),
@@ -393,6 +514,14 @@ exports.apply = function apply(ctx) {
         ' ',
         h('button', { className: 'mwb-mini framed', onClick: () => { try { ctx.sidebarRight.openTab(KIND) } catch { /* ignore */ } } }, icon('globe', { size: 12 }), t('open')),
       ),
+      h('div', { className: 'mwb-title' }, t('searchEngine')),
+      h('div', { className: 'mwb-hint' }, t('searchEngineHint')),
+      prefs ? h('div', { className: 'mwb-form' },
+        h('select', { className: 'mwb-in', style: { flex: 'none', width: 180 }, value: prefs.searchEngine, onChange: (e) => setEngine(e.target.value) }, prefs.engines.map((e) => h('option', { key: e.id, value: e.id }, e.name))),
+        h('span', { className: 'mwb-hint' }, t('history') + ' · ' + t('historyCount').replace('%n', String(prefs.historyCount))),
+        h('button', { className: 'mwb-mini framed danger', disabled: !prefs.historyCount, onClick: clearHistory }, icon('trash', { size: 12 }), t('clearHistory')),
+        msg ? h('span', { className: 'mwb-hint' }, msg) : null,
+      ) : null,
       h('div', { className: 'mwb-title' }, t('bookmarks')),
       h('div', null, items.length === 0 ? h('div', { className: 'mwb-empty' }, t('noBookmarks')) : items.map((it, i) => h('div', { className: 'mwb-row', key: it.id },
         editing === it.id

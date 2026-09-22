@@ -21,6 +21,8 @@ import { ViewerHub, BrowserWatcher } from './cdp.js'
 import { configSchema, defineRawTool, rejectUntrusted } from './harness.js'
 import { LinkStore, defaultLinksPath, normalizeUrl, openInSystemBrowser } from './links.js'
 import { mountSharedPlaywright } from './mcp-provider.js'
+import { HistoryStore, SEARCH_ENGINES, defaultHistoryPath, resolveOmni } from './history.js'
+import { existsSync as existsSyncHistory } from 'node:fs'
 
 export const name = 'dsh-mywork-browser'
 // browserUse / agents / systemPrompt are what the Playwright runtime needs to mount per session.
@@ -43,11 +45,14 @@ export const inject = ['tools', 'browserUse', 'agents', 'systemPrompt']
  *   seedLinks:      bookmarks written on first run when the file does not exist yet
  *   modelTools:     mount Playwright MCP for every session (default true)
  *   toolCallTimeoutMs: per-call timeout for the Playwright MCP tools (0 = MCP client default)
+ *   historyPath:    omnibox history JSON; default $DSH_HOME/mywork/browser-history.json
+ *   searchEngine:   initial engine for non-URL omnibox text: bing | google | baidu | duckduckgo
+ *                   (the user's later choice in 设置 → 浏览器 is kept in the history file)
  */
 export const Config = configSchema({
   autoLaunch: true, headless: true, port: Number(process.env.MYWORK_BROWSER_PORT) || 9333,
   executablePath: '', userDataDir: '', width: 1280, height: 800, quality: 60, promptHint: true, proxy: '',
-  linksPath: '', allowSystemBrowser: true, modelTools: true, toolCallTimeoutMs: 0,
+  linksPath: '', allowSystemBrowser: true, modelTools: true, toolCallTimeoutMs: 0, historyPath: '', searchEngine: 'bing',
   seedLinks: [
     { name: 'DeepSeek Harness 文档', url: 'https://deepseek-harness.github.io/deepseek-harness/' },
     { name: 'awesome-dsh-plugin', url: 'https://awesome-dsh-plugin.com/' },
@@ -64,6 +69,11 @@ export function apply(ctx, config = {}) {
   const hub = new ViewerHub(port, { width: config.width, height: config.height, quality: config.quality, log: warn })
   const watcher = new BrowserWatcher(port, { log: warn })
   const links = new LinkStore(config.linksPath || defaultLinksPath(), config.seedLinks)
+  // Omnibox history: every page the background browser lands on (model or user), title updated as it arrives.
+  const history = new HistoryStore(config.historyPath || defaultHistoryPath())
+  history.load()
+  if (SEARCH_ENGINES[config.searchEngine] && !existsSyncHistory(history.path)) history.engine = config.searchEngine
+  watcher.subscribe((ev) => { if (ev && ev.type === 'changed' && ev.url) history.record(ev.url, ev.title) })
 
   const ensureBrowser = async () => {
     if (handle) return handle
@@ -237,6 +247,21 @@ export function apply(ctx, config = {}) {
       const url = /^[a-z][a-z0-9+.-]*:/i.test(raw) ? raw : 'https://' + raw
       if (!/^https?:\/\//i.test(url)) return json(res, { error: 'only http(s) URLs' }, 400)
       json(res, await hub.navigate(String(b.target), url))
+    })
+    // Omnibox: URL → navigate; bookmark name → its URL; anything else → the chosen search engine.
+    route('/omni/go', async (req, res) => {
+      const b = await readBody(req)
+      const r = resolveOmni(String(b.text || ''), { engine: history.engine, bookmarks: links.list() })
+      if (!r) return json(res, { error: 'empty' }, 400)
+      if (b.target) await hub.navigate(String(b.target), r.url)
+      else await openInLiveBrowser(r.url)
+      json(res, r)
+    })
+    route('/history/search', async (req, res) => { const q = query(req); json(res, { items: history.search(q.get('q') || '', Math.min(20, Number(q.get('limit')) || 8)) }) })
+    route('/history/clear', async (_req, res) => { history.clear(); json(res, { ok: true }) })
+    route('/prefs', async (req, res) => {
+      if (req.method === 'POST') { const b = await readBody(req); if (b.searchEngine) history.setEngine(String(b.searchEngine)) }
+      json(res, { searchEngine: history.engine, engines: Object.entries(SEARCH_ENGINES).map(([id, e]) => ({ id, name: e.name })), historyCount: history.size(), historyPath: history.path })
     })
     route('/reload', async (req, res) => { const b = await readBody(req); await hub.reload(String(b.target)); json(res, { ok: true }) })
     route('/back', async (req, res) => { const b = await readBody(req); json(res, await hub.history(String(b.target), -1)) })

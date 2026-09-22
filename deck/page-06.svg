@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540">
+  <rect x="0" y="0" width="960" height="540" fill="#FFFFFF"/>
+  <rect x="0" y="0" width="960" height="6" fill="#123A63"/>
+
+  <rect x="64" y="52" width="6" height="28" fill="#D9A324"/>
+  <text x="84" y="76" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="30" font-weight="700" fill="#0F172A">下一步：延续增长并守住利润率</text>
+  <text x="896" y="76" text-anchor="end" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="14" fill="#5B6B7F">P 6 / 6</text>
+  <rect x="64" y="98" width="832" height="1" fill="#D6DEE8"/>
+
+  <rect x="64" y="126" width="261" height="234" rx="12" fill="#E8F0FA"/>
+  <rect x="64" y="126" width="261" height="6" rx="3" fill="#2E6FB7"/>
+  <text x="92" y="184" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="32" font-weight="700" fill="#2E6FB7">01</text>
+  <text x="92" y="222" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="19" font-weight="700" fill="#123A63">扩大高利润率渠道</text>
+  <rect x="92" y="238" width="52" height="3" fill="#2E6FB7"/>
+  <text x="92" y="272" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="14" fill="#41546B">把 9 月 34.8% 的利润率</text>
+  <text x="92" y="296" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="14" fill="#41546B">结构复制到 7-8 月的存量</text>
+  <text x="92" y="320" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="14" fill="#41546B">业务，优先投放到利润率</text>
+  <text x="92" y="344" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="14" fill="#41546B">高于 35% 的渠道。</text>
+
+  <rect x="348" y="126" width="261" height="234" rx="12" fill="#E8F0FA"/>
+  <rect x="348" y="126" width="261" height="6" rx="3" fill="#2E6FB7"/>
+  <text x="376" y="184" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="32" font-weight="700" fill="#2E6FB7">02</text>
+  <text x="376" y="222" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="19" font-weight="700" fill="#123A63">控制成本增速</text>
+  <rect x="376" y="238" width="52" height="3" fill="#2E6FB7"/>
+  <text x="376" y="272" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="14" fill="#41546B">以成本率 65% 为红线，把</text>
+  <text x="376" y="296" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="14" fill="#41546B">单月成本增速压在营收增</text>
+  <text x="376" y="320" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="14" fill="#41546B">速之下。</text>
+
+  <rect x="632" y="126" width="261" height="234" rx="12" fill="#FBF1DA"/>
+  <rect x="632" y="126" width="261" height="6" rx="3" fill="#D9A324"/>
+  <text x="660" y="184" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="32" font-weight="700" fill="#D9A324">03</text>
+  <text x="660" y="222" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="19" font-weight="700" fill="#123A63">锁定 Q4 目标</text>
+  <rect x="660" y="238" width="52" height="3" fill="#D9A324"/>
+  <text x="660" y="272" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="14" fill="#41546B">按 13% 月环比推算，Q4</text>
+  <text x="660" y="296" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="14" fill="#41546B">销售额目标 4,560,000，</text>
+  <text x="660" y="320" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="14" fill="#41546B">利润目标 1,560,000。</text>
+
+  <rect x="64" y="386" width="832" height="48" rx="10" fill="#123A63"/>
+  <rect x="64" y="386" width="6" height="48" rx="3" fill="#D9A324"/>
+  <text x="100" y="415" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="16" font-weight="600" fill="#FFFFFF">Q4 目标：销售额 $4,560,000 ｜ 利润 $1,560,000 ｜ 利润率 ≥ 34%</text>
+
+  <text x="64" y="498" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="13" fill="#8A99AB">Q4 目标为按 9 月环比 13% 外推的参考值，非承诺指标 ｜ 数据来源：q3-sales.xlsx</text>
+</svg>

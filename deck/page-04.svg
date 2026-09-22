@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540">
+  <rect x="0" y="0" width="960" height="540" fill="#FFFFFF"/>
+  <rect x="0" y="0" width="960" height="6" fill="#123A63"/>
+
+  <rect x="64" y="52" width="6" height="28" fill="#D9A324"/>
+  <text x="84" y="76" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="30" font-weight="700" fill="#0F172A">利润率逐月抬升，成本率同步下降</text>
+  <text x="896" y="76" text-anchor="end" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="14" fill="#5B6B7F">P 4 / 6</text>
+  <rect x="64" y="98" width="832" height="1" fill="#D6DEE8"/>
+
+  <rect x="240" y="116" width="16" height="16" rx="4" fill="#2E6FB7"/>
+  <text x="264" y="129" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="14" font-weight="600" fill="#123A63">利润率</text>
+  <rect x="338" y="116" width="16" height="16" rx="4" fill="#C3D3E4"/>
+  <text x="362" y="129" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="14" font-weight="600" fill="#123A63">成本率</text>
+  <text x="896" y="129" text-anchor="end" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="13" fill="#8A99AB">横轴 0 — 50%</text>
+
+  <rect x="64" y="168" width="112" height="222" rx="12" fill="#E8F0FA"/>
+  <text x="86" y="206" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="15" font-weight="700" fill="#123A63">成本率</text>
+  <text x="86" y="228" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="15" font-weight="700" fill="#123A63">累计</text>
+  <text x="86" y="292" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="38" font-weight="700" fill="#D9A324">-5.6</text>
+  <text x="86" y="318" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="17" font-weight="700" fill="#123A63">pp</text>
+  <rect x="86" y="336" width="60" height="3" fill="#D9A324"/>
+  <text x="86" y="362" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="13" fill="#5B6B7F">70.8% →</text>
+  <text x="86" y="382" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="13" fill="#5B6B7F">65.2%</text>
+
+  <text x="240" y="166" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="16" font-weight="600" fill="#0F172A">2026年7月</text>
+  <rect x="240" y="180" width="500" height="22" rx="4" fill="#EDF1F6"/>
+  <rect x="240" y="180" width="292" height="22" rx="4" fill="#2E6FB7"/>
+  <text x="544" y="196" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="14" font-weight="700" fill="#123A63">利润率 29.2%</text>
+  <rect x="240" y="208" width="416" height="14" rx="4" fill="#C3D3E4"/>
+  <text x="668" y="220" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="13" fill="#5B6B7F">成本率 70.8%</text>
+
+  <text x="240" y="242" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="16" font-weight="600" fill="#0F172A">2026年8月</text>
+  <rect x="240" y="256" width="500" height="22" rx="4" fill="#EDF1F6"/>
+  <rect x="240" y="256" width="332" height="22" rx="4" fill="#2E6FB7"/>
+  <text x="584" y="272" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="14" font-weight="700" fill="#123A63">利润率 33.2%</text>
+  <rect x="240" y="284" width="378" height="14" rx="4" fill="#C3D3E4"/>
+  <text x="630" y="296" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="13" fill="#5B6B7F">成本率 66.8%</text>
+
+  <text x="240" y="318" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="16" font-weight="600" fill="#0F172A">2026年9月</text>
+  <rect x="240" y="332" width="500" height="22" rx="4" fill="#EDF1F6"/>
+  <rect x="240" y="332" width="348" height="22" rx="4" fill="#2E6FB7"/>
+  <text x="600" y="348" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="14" font-weight="700" fill="#123A63">利润率 34.8%</text>
+  <rect x="240" y="360" width="361" height="14" rx="4" fill="#C3D3E4"/>
+  <text x="613" y="372" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="13" fill="#5B6B7F">成本率 65.2%</text>
+
+  <text x="240" y="438" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="17" font-weight="600" fill="#123A63">成本率累计下降 5.6 个百分点，是利润率抬升的直接来源。</text>
+  <rect x="240" y="456" width="656" height="3" fill="#D9A324"/>
+
+  <text x="64" y="512" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="13" fill="#8A99AB">数据来源：q3-sales.xlsx ｜ 成本率 = 成本 ÷ 销售额</text>
+</svg>

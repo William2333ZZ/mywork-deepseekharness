@@ -302,6 +302,10 @@ const CSS = `
 body>:where(:not(#root):not(script):not(style):not(link)){zoom:var(--mywork-zoom,1)}
 body>[style*="top:"],body>[style*="left:"],body>[style*="translate"]{zoom:1}
 body>[style*="top:"]>*,body>[style*="left:"]>*,body>[style*="translate"]>*{zoom:var(--mywork-zoom,1)}
+/* dsh-univer-office's floating window is a body-level overlay that moves/resizes itself with pointer deltas
+   in viewport px and clamps to window.innerWidth/Height; inside a zoomed overlay those deltas are off by the
+   zoom factor (the window lags the cursor). Keep that overlay at zoom 1 (its viewer renders at 100 %). */
+body > .uvf_root.uvf_root, body > .uvf_root.uvf_root > * { zoom: 1 !important; }
 /* dsh 0.1.6-alpha.2: items hidden inside a collapsed tool-call group keep their 14px flex gap → blank band. */
 [class*="_flowItem"][hidden]{display:none!important}
 /* shared touches */

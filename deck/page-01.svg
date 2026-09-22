@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540">
+  <rect x="0" y="0" width="960" height="540" fill="#123A63"/>
+  <rect x="0" y="0" width="960" height="6" fill="#D9A324"/>
+
+  <circle cx="880" cy="470" r="210" fill="#2E6FB7" opacity="0.30"/>
+  <circle cx="880" cy="470" r="140" fill="#2E6FB7" opacity="0.35"/>
+  <circle cx="120" cy="60" r="90" fill="#D9A324" opacity="0.10"/>
+  <rect x="806" y="54" width="90" height="6" fill="#D9A324"/>
+  <rect x="806" y="70" width="58" height="6" fill="#2E6FB7"/>
+
+  <text x="64" y="150" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="20" font-weight="600" fill="#D9A324">2026 Q3 · 销售复盘</text>
+
+  <text x="64" y="240" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="60" font-weight="700" fill="#FFFFFF">第三季度销售情况说明。</text>
+
+  <text x="64" y="292" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="24" fill="#C8D8EC">7 — 9 月营收、成本与利润表现</text>
+
+  <rect x="64" y="340" width="72" height="4" fill="#D9A324"/>
+
+  <text x="64" y="408" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="15" fill="#8FA9C6">销售额</text>
+  <text x="64" y="446" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="34" font-weight="700" fill="#FFFFFF">$3,493,850</text>
+
+  <rect x="330" y="390" width="1" height="60" fill="#3E638A"/>
+  <text x="370" y="408" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="15" fill="#8FA9C6">利润</text>
+  <text x="370" y="446" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="34" font-weight="700" fill="#D9A324">$1,142,600</text>
+
+  <rect x="650" y="390" width="1" height="60" fill="#3E638A"/>
+  <text x="690" y="408" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="15" fill="#8FA9C6">利润率</text>
+  <text x="690" y="446" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="34" font-weight="700" fill="#FFFFFF">32.7%</text>
+
+  <rect x="64" y="494" width="832" height="1" fill="#2C5480"/>
+  <text x="64" y="518" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="13" fill="#7E9AB8">数据来源：q3-sales.xlsx ｜ 2026-09-22</text>
+  <text x="896" y="518" text-anchor="end" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei',Arial,sans-serif" font-size="13" fill="#7E9AB8">P 1 / 6</text>
+</svg>

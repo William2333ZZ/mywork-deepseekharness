@@ -24,14 +24,6 @@
       "local": "../shell"
     },
     {
-      "name": "dsh-chat-tidy",
-      "range": "^0.4.0",
-      "icon": "type",
-      "label": "Codex 排版",
-      "desc": "Codex 风格回合折叠、实时耗时、对话排版与 Markdown 表格（社区 · ChuanTianML）",
-      "group": "look"
-    },
-    {
       "name": "dsh-mywork-schedule",
       "range": "^0.1.0",
       "icon": "calendar",
@@ -142,5 +134,8 @@
     "@deepseek-ai/dsh-scope": "-",
     "@deepseek-ai/dsh-mcp-client": "-"
   },
-  "profileOverridesWhy": "dsh 核心模块只能有一份：@deepseek-ai/dsh-experimental-browser-use-runtime 把 dsh-scope / dsh-mcp-client 写成了 dependencies，装进 profile 会多出第二份，新建会话时 tools.restrict() 认不出作用域而失败。用 pnpm 的 \"-\" override 把它们从 profile 里去掉，dsh 启动时会把这些 import 指回自己那份。"
+  "profileOverridesWhy": "dsh 核心模块只能有一份：@deepseek-ai/dsh-experimental-browser-use-runtime 把 dsh-scope / dsh-mcp-client 写成了 dependencies，装进 profile 会多出第二份，新建会话时 tools.restrict() 认不出作用域而失败。用 pnpm 的 \"-\" override 把它们从 profile 里去掉，dsh 启动时会把这些 import 指回自己那份。",
+  "retired": {
+    "dsh-chat-tidy": "0.4 doubles dsh 0.1.6-alpha.2 row spacing (14px flex gap on top of the 16px margins), forces 14px text and crashes on the chat store snapshot"
+  }
 }

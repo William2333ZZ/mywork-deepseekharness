@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { findProfile, status, reconcileBundles, specFor, loadKit } from '../src/installer.js'
+import { findProfile, status, reconcileBundles, reconcileRetired, specFor, loadKit } from '../src/installer.js'
 
 function fakeHome() {
   const home = mkdtempSync(join(tmpdir(), 'mywork-kit-'))
@@ -74,4 +74,15 @@ test('reconcileOverrides writes kit.json profileOverrides into the profile manif
   const saved = JSON.parse(readFileSync(join(profile, 'package.json'), 'utf8'))
   assert.deepEqual(saved.pnpm.overrides, { '@deepseek-ai/dsh-scope': '-' })
   assert.equal(reconcileOverrides(profile, kit), false)
+})
+
+test('reconcileRetired removes a retired member from dependencies and bundles', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'kit-retired-'))
+  writeFileSync(join(dir, 'package.json'), JSON.stringify({ dependencies: { 'dsh-chat-tidy': '^0.4.0', 'dsh-mywork-kit': 'link:x' }, dsh: { profile: { bundles: ['@deepseek-ai/dsh-base', 'dsh-chat-tidy', 'dsh-mywork-kit'] } } }))
+  const kit = { retired: { 'dsh-chat-tidy': 'incompatible' } }
+  assert.equal(reconcileRetired(dir, kit), true)
+  const m = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8'))
+  assert.deepEqual(Object.keys(m.dependencies), ['dsh-mywork-kit'])
+  assert.deepEqual(m.dsh.profile.bundles, ['@deepseek-ai/dsh-base', 'dsh-mywork-kit'])
+  assert.equal(reconcileRetired(dir, kit), false)
 })

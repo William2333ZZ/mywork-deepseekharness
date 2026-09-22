@@ -162,6 +162,24 @@ export function reconcileOverrides(profileDir, kit = loadKit()) {
 }
 
 /**
+ * Drop members that the kit retired (kit.json `retired`: name → reason) from an existing profile:
+ * removes the dependency and the bundle row. Returns true when package.json changed (run pnpm again).
+ */
+export function reconcileRetired(profileDir, kit = loadKit()) {
+  const retired = Object.keys(kit.retired || {})
+  if (retired.length === 0) return false
+  const manifest = readManifest(profileDir)
+  let changed = false
+  for (const name of retired) {
+    if (manifest.dependencies && name in manifest.dependencies) { delete manifest.dependencies[name]; changed = true }
+    const bundles = manifest.dsh && manifest.dsh.profile && Array.isArray(manifest.dsh.profile.bundles) ? manifest.dsh.profile.bundles : null
+    if (bundles && bundles.includes(name)) { manifest.dsh.profile.bundles = bundles.filter((b) => b !== name); changed = true }
+  }
+  if (changed) writeManifest(profileDir, manifest)
+  return changed
+}
+
+/**
  * Small source-level compatibility patches for members whose published build lags dsh.
  * Each patch is idempotent and only touches the named file when the exact anchor is present.
  * Returns the names of the patches applied this time.
@@ -203,7 +221,7 @@ export async function install(names, env = process.env, kit = loadKit()) {
   if (members.length === 0) return { ok: false, error: 'nothing to install' }
   const specs = members.map((m) => specFor(m, profile.dir))
   let r = await run('pnpm', ['add', ...specs], profile.dir, env)
-  if (r.ok && reconcileOverrides(profile.dir, kit)) r = await run('pnpm', ['install', '--no-frozen-lockfile'], profile.dir, env)
+  if (r.ok && (reconcileOverrides(profile.dir, kit) | reconcileRetired(profile.dir, kit))) r = await run('pnpm', ['install', '--no-frozen-lockfile'], profile.dir, env)
   if (r.ok) reconcileCompatPatches(profile.dir)
   const bundles = r.ok ? reconcileBundles(profile.dir) : null
   const hint = /allowBuilds|ignored build scripts|blocked/i.test(r.stdout + r.stderr)
@@ -218,7 +236,7 @@ export async function update(names, env = process.env, kit = loadKit()) {
   const members = kit.members.filter((m) => (!names || names.includes(m.name)) && installedVersion(profile.dir, m.name) !== null)
   if (members.length === 0) return { ok: false, error: 'nothing to update' }
   let r = await run('pnpm', ['update', '--latest', ...members.map((m) => m.name)], profile.dir, env)
-  if (r.ok && reconcileOverrides(profile.dir, kit)) r = await run('pnpm', ['install', '--no-frozen-lockfile'], profile.dir, env)
+  if (r.ok && (reconcileOverrides(profile.dir, kit) | reconcileRetired(profile.dir, kit))) r = await run('pnpm', ['install', '--no-frozen-lockfile'], profile.dir, env)
   if (r.ok) reconcileCompatPatches(profile.dir)
   const bundles = r.ok ? reconcileBundles(profile.dir) : null
   return { ok: r.ok, stdout: r.stdout.slice(-4000), stderr: r.stderr.slice(-4000), error: r.error, bundles }

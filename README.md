@@ -38,7 +38,6 @@ dsh web
 
 | 成员 | 作用 |
 | --- | --- |
-| [`dsh-chat-tidy`](https://github.com/ChuanTianML/dsh-chat-tidy) | Codex 风格回合折叠、实时耗时、对话排版与 Markdown 表格 |
 | [`@michengai/dsh-automation`](https://github.com/MichengAI/dsh-automation) | 定时任务：按计划在独立会话里执行编码任务（一次 / 每小时 / 每天 / 每周 / 每月） |
 | [`dsh-mermaid-render`](https://github.com/baosfeng/my-dsh-plugins/tree/main/plugins/dsh-mermaid-render) | 对话中的 mermaid 代码块渲染成图表，离线可用 |
 | [`@michengai/dsh-im-connect`](https://github.com/MichengAI/dsh-im-connect) | IM助理：钉钉 / 飞书 / Lark / 微信 / 企业微信 / QQ / Telegram 接到本机 dsh，在聊天里派任务、批准工具；侧栏「IM助理」页配置账号 |
@@ -143,7 +142,7 @@ scripts/
 - **workspace `pnpm install` 的坑**：dsh alpha 包的 peer 写成 `^0.1.6-alpha.2`，pnpm 自动装 peer 时会把它和别的范围交成不存在的 `>=0.1.6`。根 `package.json` 的 `pnpm.overrides`（`@deepseek-ai/dsh-*@>=0.1.6-alpha.0 <0.2.0 → 0.1.6-alpha.2`）解决了这个问题；升级 dsh 时记得同步改。
 - `dsh-univer-office@0.3.2` 的前端在 dsh 0.1.6-alpha.2 上不会激活（list slot 注册缺 `id`，报 `list slot "conversation.chat.turnTail" requires options.id`）。上游已在 main 修复（PR #82）但未发版；kit 的安装器 / `profile-fixups.mjs` 会给已装的 0.3.x 打同样的一行补丁（`COMPAT_PATCHES`），0.3.3 上 npm 后删掉即可。
 - `@michengai/dsh-im-connect` 给新账号的默认工作区是 dsh 进程的启动目录（`process.cwd()`），不是已登记工作区时每条 IM 消息都会 `挂载会话失败 … 目标工作区不可用`。kit 的宿主插件启动时和 `profile-fixups.mjs` 安装时会把这种账号改到第一个已登记工作区（`packages/kit/src/im-guard.js`）；详见 [issue #1](https://github.com/William2333ZZ/mywork-deepseekharness/issues/1)。
-- `dsh-chat-tidy@0.4` 在 dsh 0.1.6-alpha.2 上会话头部工具会报 `reading 'order'`（它读的 chat store 快照结构变了）——上游兼容问题，不影响其它功能；等它更新或在 MyWork → 成员 里卸掉。
+- `dsh-chat-tidy@0.4` 不再是成员：它按旧版 dsh 的 DOM 写的排版 CSS 在 0.1.6-alpha.2 上和 dsh 自己的 16 px 行距叠加（工具调用 / 回复每行多出 14 px 空隙），还会强制 14 px 正文、让 设置 → 字号大小 失效，折叠逻辑也会报 `reading 'order'`。等它适配新版后可以自己 `dsh plugin --profile web add dsh-chat-tidy`。
 - Kit 的 patch 还关掉了 dsh 会话头部的「Open In…」按钮（访达 / Cursor / 终端），想要回来在 profile patch 里写 `- id: ui-open-in-app` + `disabled: false`（`open-in-app` 同理）。
 - **dsh 核心模块只能有一份**：插件不要把 `@deepseek-ai/dsh-*` 写进 `dependencies`（profile 用 hoisted + 不自动装 peer，dsh 启动时把这些 import 指回自己的那份）。真实浏览器依赖的官方 browser-use / Playwright MCP 因此作为 kit 成员装进 profile，而不是打进 `dsh-mywork-browser`。官方的 `dsh-experimental-browser-use-runtime` 自己又把 `dsh-scope` / `dsh-mcp-client` 写成了 dependencies（上游打包问题），会在 profile 里多出第二份 → 新建会话报 `tools.restrict() requires a scoped context`。kit 用 pnpm 的 `"-"` override 把这两个包从 profile 里去掉（`kit.json` 的 `profileOverrides`；安装器、`install.sh`、`dev-env.sh` 都会同步到 profile 的 `package.json`）。
 - **每个会话都能用浏览器**：官方 Playwright provider 在 attach 模式下只给启动后第一个会话用（其它会话报 `browser tool belongs to another Session`）。`dsh-mywork-browser` 自己用官方运行时给每个会话挂一份非独占的 Playwright MCP，所以套件的 patch 不插入官方 `browser-use-playwright` 行。多个会话同时操作时共用同一批标签页。

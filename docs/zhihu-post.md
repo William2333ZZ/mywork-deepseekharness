@@ -100,7 +100,7 @@ DeepSeek 前阵子开源了 Harness（下面简称 dsh），定位是"编码智�
 
 三种方式，按省事程度排：
 
-1. **Windows 免安装包**：Releases 里下载 `Mywork-DSH_desktop-win-x64.zip`，解压双击。自带 Node、dsh、Chrome 和装好的插件，不用配环境。未签名，第一次会过一下 SmartScreen。
+1. **Windows / macOS 免安装包**：Releases 里下载 `Mywork-DSH_desktop-win-x64.zip`（macOS 下载 `Mywork-DSH_desktop-mac-arm64.dmg`），解压双击。自带 Node、dsh、Chrome 和装好的插件，不用配环境。未签名，第一次会过一下 SmartScreen。
 2. **一条命令试用**（有 Node 24 就行，不碰你现有的 dsh）：`git clone` 后 `bash scripts/dev-env.sh`。
 3. **装进你自己的 dsh**：`bash scripts/install.sh web && dsh web`。
 

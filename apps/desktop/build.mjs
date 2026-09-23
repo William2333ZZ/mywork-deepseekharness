@@ -146,7 +146,7 @@ if (T.os === 'win32') {
   unzip(electronZip, join(DIST, target))
   renameSync(join(DIST, target, 'Electron.app'), join(DIST, target, 'Mywork-DSH_desktop.app'))
   rm(APP)
-  resources = join(DIST, target, 'MyWork DSH.app', 'Contents', 'Resources')
+  resources = join(DIST, target, 'Mywork-DSH_desktop.app', 'Contents', 'Resources')
 }
 rm(join(resources, 'default_app.asar'))
 mkdirSync(join(resources, 'app'), { recursive: true })

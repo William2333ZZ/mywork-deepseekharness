@@ -37,7 +37,7 @@ The desktop build bundles Node 24, dsh, Chrome for Testing and a profile with ev
 - **Scheduled tasks and reminders**: tasks run on a schedule in their own sessions, and each task picks the chat its result is sent to. Reminders pop up on time with a notification and a sound, and can also go to IM.
 - **WeChat / Feishu assistant**: WeChat, Feishu, DingTalk, WeCom, QQ and Telegram connect to your local dsh. Hand out tasks from a chat, or push messages from the desktop into a chat.
 - **MCP connectors**: add / edit / disable MCP servers inside the app, import by pasting `mcpServers` JSON, mounted as soon as you save.
-- **Three styles × light / dark × zoom**: Claude Code / Codex / Swiss developer styles, light / dark / follow system, UI zoom 80–150%.
+- **Four styles × light / dark × zoom**: Claude Code / Soft premium / Editorial minimal / Industrial brutalist, light / dark / follow system, UI zoom 80–150%.
 - **Plugin market and Mermaid**: 2300+ community plugins one click away; mermaid code blocks in replies render as diagrams.
 
 ## Screens
@@ -84,11 +84,11 @@ Univer works in a draggable live window and checks its own output as it goes. Wh
 
 ### Appearance and zoom
 
-The Swiss developer style among the three was generated with the [ui-ux-pro-max](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) design system ([design-system/mywork-kit/MASTER.md](design-system/mywork-kit/MASTER.md)): a slate gray scale plus one green accent, IBM Plex Sans + JetBrains Mono, contrast ≥ 4.5:1.
+Besides Claude Code, the three styles come from the [taste-skill](https://github.com/Leonxlnx/taste-skill) pack: Soft premium (soft-skill: Plus Jakarta Sans, ultra-diffuse ambient shadows, pill buttons), Editorial minimal (minimalist-skill: warm bone canvas, 1px dividers, Newsreader serif headline) and Industrial brutalist (brutalist-skill: 90° corners, Archivo black, uppercase monospace metadata, one hazard red; dark mode is a CRT terminal with scanlines). Every text role in all four styles meets WCAG AA 4.5:1.
 
-| Light | Dark |
+| Soft premium (light) | Industrial brutalist (dark) |
 | --- | --- |
-| ![Swiss light](docs/screenshots/10-swiss-light.png) | ![Swiss dark](docs/screenshots/11-swiss-dark.png) |
+| ![Soft premium](docs/screenshots/10-soft-light.png) | ![Industrial brutalist](docs/screenshots/11-brutal-dark.png) |
 
 ## Demo cases
 
@@ -120,7 +120,7 @@ Tell the model: **Make a slide deck from the material below, 5 slides at most, o
 
 ### 5. Switch styles, zoom the UI
 
-Settings → MyWork → Appearance: three styles × light / dark / follow system. Sidebar, settings, bubbles, composer and buttons all follow. UI zoom 80–150%; every popover, drag, Univer window and the live browser stay aligned with the mouse at any zoom.
+Settings → MyWork → Appearance: four styles × light / dark / follow system. Sidebar, settings, bubbles, composer and buttons all follow. UI zoom 80–150%; every popover, drag, Univer window and the live browser stay aligned with the mouse at any zoom.
 
 ## Everyday operations
 
@@ -167,7 +167,7 @@ Packages in this repo (each can be removed on its own with `dsh plugin --profile
 | --- | --- |
 | `dsh-mywork-kit` | The bundle itself: member list `kit.json`, the MyWork settings entry (the Members / Appearance / Schedule / Browser tabs are contributed by members through the `mywork.settings.tab` slot), the `mywork_kit_status` tool, automatic removal of retired members |
 | `dsh-mywork-codex-ui` | Codex-style sidebar and settings pages, forked from [@michengai/dsh-codex-ui](https://github.com/MichengAI/dsh-codex-ui) (Apache-2.0): navigation trimmed to installed features, Scheduled tasks / IM assistant / MCP connectors as standalone main-area pages, upstream iframe pages removed |
-| `dsh-mywork-shell` | Theme overlay (Claude Code / Codex / Swiss) and UI zoom |
+| `dsh-mywork-shell` | Theme overlay (Claude Code / Soft premium / Editorial minimal / Industrial brutalist) and UI zoom |
 | `dsh-mywork-schedule` | Reminders (`/remind`, `reminder_*` tools, schedule panel) and the IM notification setting for scheduled tasks (injected into Automation's task dialog) |
 | `dsh-mywork-browser` | Real browser: launches local Chrome in the background, driven by the official browser-use + Playwright MCP, live view in the right pane, Chrome-style address bar, bookmarks, `open_url` / `/open` |
 | `dsh-mywork-im` | Pushing messages to IM: `im_send` / `im_chats` / `automation_notify_set` tools, `/imsend`, scheduled-task completion notices |
@@ -243,7 +243,8 @@ The Windows package is cross-built on a Mac (npm `--os/--cpu` + pnpm `supportedA
 | [dream-num/dsh-univer-office](https://github.com/dream-num/dsh-univer-office) | Univer office |
 | [dsh-market/dsh-market](https://github.com/dsh-market/dsh-market) | Plugin market |
 | [0xsline/awesome-deepseek-harness](https://github.com/0xsline/awesome-deepseek-harness) | Index of dsh plugins and tools |
-| [nextlevelbuilder/ui-ux-pro-max-skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) | The design-system generator behind the Swiss style |
+| [Leonxlnx/taste-skill](https://github.com/Leonxlnx/taste-skill) | The design skills behind the Soft / Minimal / Brutalist styles |
+| [nextlevelbuilder/ui-ux-pro-max-skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) | The UX rule base used by `scripts/ux-audit.mjs` |
 
 ## Layout
 
@@ -258,7 +259,6 @@ packages/
   browser/     src/chrome.js · src/cdp.js · src/links.js · src/history.js (address-bar history / search) · src/index.js · src/client
 apps/desktop/  Electron shell and packaging scripts
 scripts/       build-client.mjs (zero-dependency C6 bundler) · install.sh / uninstall.sh · dev-env.sh · profile-fixups.mjs
-design-system/ design system generated by ui-ux-pro-max (source of the Swiss style)
 ```
 
 Each package builds with `node ../../scripts/build-client.mjs .` (codex-ui with `pnpm run build`); `pnpm -r test` runs the tests.
@@ -267,6 +267,7 @@ Each package builds with `node ../../scripts/build-client.mjs .` (codex-ui with 
 
 ### Unreleased
 
+- Styles redone: Claude Code stays, Codex / Swiss are gone; three new families follow [taste-skill](https://github.com/Leonxlnx/taste-skill)'s soft-skill / minimalist-skill / brutalist-skill (Soft premium, Editorial minimal, Industrial brutalist), each with its own fonts, radii, shadows and motion rules, all text at WCAG AA in both schemes. Third-party page titles inside the Scheduled tasks / IM assistant pages are deduplicated; the live-browser toolbar is now a Chrome-style tab strip + pill omnibox.
 - A UI review pass against the [ui-ux-pro-max](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) checklist (`scripts/ux-audit.mjs` checks contrast, pointer targets, accessible names and minimum font size automatically): secondary / tertiary text, state colors and primary-button fills in all three styles now meet WCAG AA 4.5:1 (the Claude style's primary button went from #D97757 to #BA5A3A, dark Swiss buttons use dark text); every 11px label is now 12px; inputs get a visible focus ring; icon-only buttons, selects and textareas have accessible names; the sidebar "more" button and the zoom slider grew to 24px targets.
 
 ### 0.0.1 (2026-09-23) — first release

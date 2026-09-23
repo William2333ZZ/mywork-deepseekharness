@@ -35,7 +35,7 @@
 - **定时任务与提醒**：按计划在独立会话里跑任务，每个任务自己选"运行结束发到哪个聊天"；提醒到点弹窗、通知、提示音，也能发到 IM。
 - **微信 / 飞书助理**：微信、飞书、钉钉、企业微信、QQ、Telegram 接到本机 dsh，在聊天里派任务，也能从桌面主动发消息到聊天。
 - **MCP 连接器**：应用内添加 / 编辑 / 停用 MCP 服务器，粘贴 `mcpServers` JSON 导入，保存即挂载。
-- **三种风格 × 明暗 × 缩放**：Claude Code / Codex / Swiss 开发者风格，浅色 / 深色 / 跟随系统，界面缩放 80–150%。
+- **四种风格 × 明暗 × 缩放**：Claude Code / 柔和高级 / 极简编辑 / 工业粗野，浅色 / 深色 / 跟随系统，界面缩放 80–150%。
 - **插件市场与 Mermaid**：2300+ 社区插件一键装；回复里的 mermaid 代码块自动成图。
 
 ## 界面
@@ -82,11 +82,11 @@ Univer 在可拖动的实时窗口里边做边校验，完成后会话里留一�
 
 ### 外观与缩放
 
-三种风格里的 Swiss 开发者风格由 [ui-ux-pro-max](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) 设计系统生成（[design-system/mywork-kit/MASTER.md](design-system/mywork-kit/MASTER.md)）：slate 灰阶 + 一个绿色强调色，IBM Plex Sans + JetBrains Mono，对比度 ≥ 4.5:1。
+Claude Code 风格之外的三种来自 [taste-skill](https://github.com/Leonxlnx/taste-skill) 技能包：柔和高级（soft-skill：Plus Jakarta Sans、超柔和的环境阴影、胶囊按钮）、极简编辑（minimalist-skill：暖白纸色、1px 分割线、Newsreader 衬线标题）、工业粗野（brutalist-skill：直角、Archivo 黑体、等宽大写元数据、只有一个警示红；深色是 CRT 扫描线终端）。四种风格的所有文字都过 WCAG AA 4.5:1。
 
-| 浅色 | 深色 |
+| 柔和高级（浅色） | 工业粗野（深色） |
 | --- | --- |
-| ![Swiss 浅色](docs/screenshots/10-swiss-light.png) | ![Swiss 深色](docs/screenshots/11-swiss-dark.png) |
+| ![柔和高级](docs/screenshots/10-soft-light.png) | ![工业粗野](docs/screenshots/11-brutal-dark.png) |
 
 ## 演示案例
 
@@ -118,7 +118,7 @@ Univer 在可拖动的实时窗口里边做边校验，完成后会话里留一�
 
 ### 5. 换个风格、缩放界面
 
-设置 → MyWork → 外观：三种风格 × 浅色 / 深色 / 跟随系统，侧栏、设置页、气泡、输入框、按钮都跟着换；界面缩放 80–150%，所有弹层、拖动、Univer 窗口、实时浏览器在任何缩放下都对得上鼠标。
+设置 → MyWork → 外观：四种风格 × 浅色 / 深色 / 跟随系统，侧栏、设置页、气泡、输入框、按钮都跟着换；界面缩放 80–150%，所有弹层、拖动、Univer 窗口、实时浏览器在任何缩放下都对得上鼠标。
 
 ## 常用操作
 
@@ -165,7 +165,7 @@ dsh web
 | --- | --- |
 | `dsh-mywork-kit` | 组合包本体：成员清单 `kit.json`、设置页 MyWork 入口（成员 / 外观 / 日程 / 浏览器标签由各成员通过 `mywork.settings.tab` 槽贡献）、`mywork_kit_status` 工具、退役成员自动卸载 |
 | `dsh-mywork-codex-ui` | Codex 风格侧栏与设置页，fork 自 [@michengai/dsh-codex-ui](https://github.com/MichengAI/dsh-codex-ui)（Apache-2.0）：导航按已装功能收拾，定时任务 / IM助理 / MCP 连接器 是独立主区域页面，去掉了上游的 iframe 页面 |
-| `dsh-mywork-shell` | 主题叠加层（Claude Code / Codex / Swiss）与界面缩放 |
+| `dsh-mywork-shell` | 主题叠加层（Claude Code / 柔和高级 / 极简编辑 / 工业粗野）与界面缩放 |
 | `dsh-mywork-schedule` | 提醒（`/remind`、`reminder_*` 工具、日程面板）与定时任务的 IM 通知设置（注入 Automation 的任务弹窗） |
 | `dsh-mywork-browser` | 真实浏览器：后台拉起本机 Chrome，官方 browser-use + Playwright MCP 驱动，右侧栏实时画面、Chrome 式地址栏、书签、`open_url` / `/open` |
 | `dsh-mywork-im` | 主动发消息到 IM：`im_send` / `im_chats` / `automation_notify_set` 工具、`/imsend`、定时任务结束通知 |
@@ -241,7 +241,8 @@ Windows 包在 Mac 上交叉构建（npm `--os/--cpu` + pnpm `supportedArchitect
 | [dream-num/dsh-univer-office](https://github.com/dream-num/dsh-univer-office) | Univer 办公 |
 | [dsh-market/dsh-market](https://github.com/dsh-market/dsh-market) | 插件市场 |
 | [0xsline/awesome-deepseek-harness](https://github.com/0xsline/awesome-deepseek-harness) | dsh 插件与工具索引 |
-| [nextlevelbuilder/ui-ux-pro-max-skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) | Swiss 风格所用的设计系统生成器 |
+| [Leonxlnx/taste-skill](https://github.com/Leonxlnx/taste-skill) | 柔和 / 极简 / 粗野三种风格所依据的设计技能包 |
+| [nextlevelbuilder/ui-ux-pro-max-skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) | 界面审视用的 UX 规则库（`scripts/ux-audit.mjs`） |
 
 ## 目录结构
 
@@ -256,7 +257,6 @@ packages/
   browser/     src/chrome.js · src/cdp.js · src/links.js · src/history.js（地址栏历史 / 搜索）· src/index.js · src/client
 apps/desktop/  Electron 壳与打包脚本
 scripts/       build-client.mjs（零依赖 C6 打包器）· install.sh / uninstall.sh · dev-env.sh · profile-fixups.mjs
-design-system/ ui-ux-pro-max 生成的设计系统（Swiss 风格的来源）
 ```
 
 每个包：`node ../../scripts/build-client.mjs .` 构建（codex-ui 用 `pnpm run build`）；`pnpm -r test` 跑测试。
@@ -265,12 +265,13 @@ design-system/ ui-ux-pro-max 生成的设计系统（Swiss 风格的来源）
 
 ### 未发布
 
+- 风格重做：保留 Claude Code 风格，去掉 Codex / Swiss；按 [taste-skill](https://github.com/Leonxlnx/taste-skill) 的 soft-skill / minimalist-skill / brutalist-skill 新增「柔和高级」「极简编辑」「工业粗野」三种风格，各自带字体、圆角、阴影、动效规则，浅色深色文字全部过 WCAG AA。定时任务 / IM 助理页面里第三方插件的重复标题隐藏；实时浏览器工具条改成 Chrome 式标签条 + 胶囊地址栏。
 - 按 [ui-ux-pro-max](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) 的清单做了一轮界面审视（`scripts/ux-audit.mjs` 自动检查对比度、点击目标、无障碍名称、最小字号）：三种风格的次要 / 三级文字、状态色、主按钮填充全部达到 WCAG AA 4.5:1（Claude 风格的主按钮从 #D97757 改为 #BA5A3A，深色 Swiss 的主按钮改用深色文字）；所有 11px 文字提到 12px；输入框获得可见的焦点环；图标按钮、下拉框、文本域补上无障碍名称；侧栏「更多」按钮和缩放滑块放大到 24px 点击目标。
 
 ### 0.0.1（2026-09-23）— 首个版本
 
 - Codex 风格侧栏与设置页（fork 自 dsh-codex-ui，去掉 iframe 页面），新建对话页的四个起点：上网查资料 / 做表格和演示文稿 / 定时任务与提醒 / 微信·飞书助理。
-- 三种风格（Claude Code / Codex / Swiss 开发者）× 明暗 × 界面缩放 80–150%；缩放作用在应用根节点，浮层菜单、悬停卡片、拖动、Univer 窗口、实时浏览器在任何缩放下都对齐（[#2](https://github.com/William2333ZZ/mywork-deepseekharness/issues/2) [#5](https://github.com/William2333ZZ/mywork-deepseekharness/issues/5) [#6](https://github.com/William2333ZZ/mywork-deepseekharness/issues/6) [#7](https://github.com/William2333ZZ/mywork-deepseekharness/issues/7)）。
+- 三种风格（Claude Code / Codex / Swiss）× 明暗 × 界面缩放 80–150%；缩放作用在应用根节点，浮层菜单、悬停卡片、拖动、Univer 窗口、实时浏览器在任何缩放下都对齐（[#2](https://github.com/William2333ZZ/mywork-deepseekharness/issues/2) [#5](https://github.com/William2333ZZ/mywork-deepseekharness/issues/5) [#6](https://github.com/William2333ZZ/mywork-deepseekharness/issues/6) [#7](https://github.com/William2333ZZ/mywork-deepseekharness/issues/7)）。
 - 实时浏览器：后台真实 Chrome + Playwright MCP（每个会话可用），Chrome 式地址栏（网址 / 搜索 / 历史 / 书签 / 行内补全 / Ctrl+L），页面视口跟随面板大小，书签与 `open_url` / `/open`。
 - 提醒（`/remind`、日程面板、到点弹窗 + 通知 + 提示音，可发到 IM）与定时任务（Automation）；每个定时任务自己的设定里选「运行结束发到哪个聊天」。
 - IM助理（微信 / 飞书 / 钉钉 / 企业微信 / QQ / Telegram）与主动发消息（`im_send`、`/imsend`、发送卡片）；IM 账号工作区未登记时自动修正（[#1](https://github.com/William2333ZZ/mywork-deepseekharness/issues/1)）。

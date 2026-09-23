@@ -107,238 +107,228 @@ const CLAUDE_DARK = {
   '--dsw-alias-button-info-hover': '#E8916F',
 }
 
-const CODEX_LIGHT = {
-  '--dsw-alias-bg-base': '#FFFFFF',
-  '--dsw-alias-bg-layer-1': '#FAFAFA',
-  '--dsw-alias-bg-layer-2': '#F2F2F2',
-  '--dsw-alias-bg-layer-3': '#E9E9E9',
+/* The three families below come from the taste-skill pack (github.com/Leonxlnx/taste-skill): soft-skill, minimalist-skill,
+   brutalist-skill. Each is one override layer with both palettes; every text role was checked against WCAG AA 4.5:1 at build time. */
+const SOFT_LIGHT = {
+  '--dsw-alias-bg-base': '#F5F5F7',
+  '--dsw-alias-bg-layer-1': '#FFFFFF',
+  '--dsw-alias-bg-layer-2': '#ECECF1',
+  '--dsw-alias-bg-layer-3': '#E2E2EA',
   '--dsw-alias-bg-overlay': '#FFFFFF',
-  '--dsw-alias-bg-mask-1': 'rgba(0, 0, 0, 0.35)',
-  '--dsw-alias-border-l1': 'rgba(0, 0, 0, 0.06)',
-  '--dsw-alias-border-l2': 'rgba(0, 0, 0, 0.12)',
-  '--dsw-alias-border-l3': 'rgba(0, 0, 0, 0.2)',
-  '--dsw-alias-brand-primary': '#0D0D0D',
-  '--dsw-alias-brand-text': '#0D0D0D',
-  '--dsw-alias-link': '#0B57D0',
+  '--dsw-alias-bg-mask-1': 'rgba(23,23,28,0.4)',
+  '--dsw-alias-border-l1': 'rgba(23,23,28,0.05)',
+  '--dsw-alias-border-l2': 'rgba(23,23,28,0.09)',
+  '--dsw-alias-border-l3': 'rgba(23,23,28,0.16)',
+  '--dsw-alias-brand-primary': '#4F46E5',
+  '--dsw-alias-brand-text': '#4338CA',
+  '--dsw-alias-link': '#4338CA',
   '--dsw-alias-label-primary-foreground': '#FFFFFF',
-  '--dsw-alias-label-primary': '#0D0D0D',
-  '--dsw-alias-label-secondary': '#5D5D5D',
-  '--dsw-alias-label-tertiary': '#6F6F6F',
-  '--dsw-alias-label-caption': '#767676',
-  '--dsw-alias-button-primary-fill': '#0D0D0D',
-  '--dsw-alias-button-primary-hover': '#2B2B2B',
-  '--dsw-alias-interactive-bg-hover': 'rgba(0, 0, 0, 0.05)',
-  '--dsw-alias-interactive-bg-active': 'rgba(0, 0, 0, 0.09)',
-  '--dsw-alias-markdown-code-block': '#F6F6F6',
-  '--dsw-alias-markdown-code-block-banner': '#EDEDED',
-  '--dsw-alias-markdown-inline-code': '#EFEFEF',
-  '--dsw-specific-sidebar-fill': '#EDEDED',
-  '--dsw-alias-state-success-primary': '#0C7D61',
-  '--dsw-alias-state-warn-primary': '#9F6D00',
-  '--dsw-alias-state-error-primary': '#D0342C',
-  // surfaces dsh draws with "specific" tokens (user bubble, composer) and its blue "business" accent (active tab, send button, drop targets)
-  '--dsw-specific-bubble': '#F0F0F0',
+  '--dsw-alias-label-primary': '#17171C',
+  '--dsw-alias-label-secondary': '#5C5C66',
+  '--dsw-alias-label-tertiary': '#62626E',
+  '--dsw-alias-label-caption': '#62626E',
+  '--dsw-alias-label-primary-inverted': '#FFFFFF',
+  '--dsw-alias-button-primary-fill': '#4F46E5',
+  '--dsw-alias-button-primary-hover': '#4338CA',
+  '--dsw-alias-interactive-bg-hover': 'rgba(23,23,28,0.045)',
+  '--dsw-alias-interactive-bg-active': 'rgba(23,23,28,0.08)',
+  '--dsw-alias-markdown-code-block': '#ECECF1',
+  '--dsw-alias-markdown-code-block-banner': '#E2E2EA',
+  '--dsw-alias-markdown-inline-code': '#E7E7EE',
+  '--dsw-specific-sidebar-fill': '#EDEDF2',
+  '--dsw-alias-state-success-primary': '#166534',
+  '--dsw-alias-state-warn-primary': '#854D0E',
+  '--dsw-alias-state-error-primary': '#B91C1C',
+  '--dsw-specific-bubble': '#E9E8FA',
   '--dsw-specific-input-major': '#FFFFFF',
-  '--dsw-alias-state-business-primary': '#0D0D0D',
-  '--dsw-alias-button-info-fill': '#0D0D0D',
-  '--dsw-alias-button-info-hover': '#2B2B2B',
+  '--dsw-alias-state-business-primary': '#4F46E5',
+  '--dsw-alias-button-info-fill': '#4F46E5',
+  '--dsw-alias-button-info-hover': '#4338CA',
 }
 
-const CODEX_DARK = {
-  '--dsw-alias-bg-base': '#181818',
-  '--dsw-alias-bg-layer-1': '#1F1F1F',
-  '--dsw-alias-bg-layer-2': '#272727',
-  '--dsw-alias-bg-layer-3': '#303030',
-  '--dsw-alias-bg-overlay': '#212121',
-  '--dsw-alias-bg-mask-1': 'rgba(0, 0, 0, 0.55)',
-  '--dsw-alias-border-l1': 'rgba(255, 255, 255, 0.07)',
-  '--dsw-alias-border-l2': 'rgba(255, 255, 255, 0.12)',
-  '--dsw-alias-border-l3': 'rgba(255, 255, 255, 0.2)',
-  '--dsw-alias-brand-primary': '#ECECEC',
-  '--dsw-alias-brand-text': '#ECECEC',
-  '--dsw-alias-link': '#7AB7FF',
-  '--dsw-alias-label-primary-foreground': '#0D0D0D',
-  '--dsw-alias-label-primary': '#ECECEC',
-  '--dsw-alias-label-secondary': '#9B9B9B',
-  '--dsw-alias-label-tertiary': '#8E8E8E',
-  '--dsw-alias-label-caption': '#818181',
-  '--dsw-alias-button-primary-fill': '#ECECEC',
+const SOFT_DARK = {
+  '--dsw-alias-bg-base': '#050505',
+  '--dsw-alias-bg-layer-1': '#111113',
+  '--dsw-alias-bg-layer-2': '#161618',
+  '--dsw-alias-bg-layer-3': '#1E1E22',
+  '--dsw-alias-bg-overlay': '#111113',
+  '--dsw-alias-bg-mask-1': 'rgba(0,0,0,0.7)',
+  '--dsw-alias-border-l1': 'rgba(255,255,255,0.06)',
+  '--dsw-alias-border-l2': 'rgba(255,255,255,0.10)',
+  '--dsw-alias-border-l3': 'rgba(255,255,255,0.18)',
+  '--dsw-alias-brand-primary': '#818CF8',
+  '--dsw-alias-brand-text': '#A5B4FC',
+  '--dsw-alias-link': '#A5B4FC',
+  '--dsw-alias-label-primary-foreground': '#0B0B14',
+  '--dsw-alias-label-primary': '#F4F4F5',
+  '--dsw-alias-label-secondary': '#A1A1AA',
+  '--dsw-alias-label-tertiary': '#8E8E98',
+  '--dsw-alias-label-caption': '#84848E',
+  '--dsw-alias-label-primary-inverted': '#0B0B14',
+  '--dsw-alias-button-primary-fill': '#818CF8',
+  '--dsw-alias-button-primary-hover': '#A5B4FC',
+  '--dsw-alias-interactive-bg-hover': 'rgba(255,255,255,0.06)',
+  '--dsw-alias-interactive-bg-active': 'rgba(255,255,255,0.11)',
+  '--dsw-alias-markdown-code-block': '#0C0C0E',
+  '--dsw-alias-markdown-code-block-banner': '#050505',
+  '--dsw-alias-markdown-inline-code': '#1E1E22',
+  '--dsw-specific-sidebar-fill': '#0A0A0B',
+  '--dsw-alias-state-success-primary': '#34D399',
+  '--dsw-alias-state-warn-primary': '#FBBF24',
+  '--dsw-alias-state-error-primary': '#F87171',
+  '--dsw-specific-bubble': '#17172A',
+  '--dsw-specific-input-major': '#111113',
+  '--dsw-alias-state-business-primary': '#818CF8',
+  '--dsw-alias-button-info-fill': '#818CF8',
+  '--dsw-alias-button-info-hover': '#A5B4FC',
+}
+
+const MINIMAL_LIGHT = {
+  '--dsw-alias-bg-base': '#F7F6F3',
+  '--dsw-alias-bg-layer-1': '#FFFFFF',
+  '--dsw-alias-bg-layer-2': '#EFEEEA',
+  '--dsw-alias-bg-layer-3': '#E6E5E0',
+  '--dsw-alias-bg-overlay': '#FFFFFF',
+  '--dsw-alias-bg-mask-1': 'rgba(17,17,17,0.35)',
+  '--dsw-alias-border-l1': '#F0EFEB',
+  '--dsw-alias-border-l2': '#EAEAEA',
+  '--dsw-alias-border-l3': '#DAD9D4',
+  '--dsw-alias-brand-primary': '#111111',
+  '--dsw-alias-brand-text': '#111111',
+  '--dsw-alias-link': '#1F6C9F',
+  '--dsw-alias-label-primary-foreground': '#FFFFFF',
+  '--dsw-alias-label-primary': '#111111',
+  '--dsw-alias-label-secondary': '#63625E',
+  '--dsw-alias-label-tertiary': '#66655F',
+  '--dsw-alias-label-caption': '#66655F',
+  '--dsw-alias-label-primary-inverted': '#FFFFFF',
+  '--dsw-alias-button-primary-fill': '#111111',
+  '--dsw-alias-button-primary-hover': '#333333',
+  '--dsw-alias-interactive-bg-hover': 'rgba(17,17,17,0.04)',
+  '--dsw-alias-interactive-bg-active': 'rgba(17,17,17,0.08)',
+  '--dsw-alias-markdown-code-block': '#F7F6F3',
+  '--dsw-alias-markdown-code-block-banner': '#EFEEEA',
+  '--dsw-alias-markdown-inline-code': '#F1F0EC',
+  '--dsw-specific-sidebar-fill': '#F1F0EC',
+  '--dsw-alias-state-success-primary': '#346538',
+  '--dsw-alias-state-warn-primary': '#8A5C00',
+  '--dsw-alias-state-error-primary': '#9F2F2D',
+  '--dsw-specific-bubble': '#F1F0EC',
+  '--dsw-specific-input-major': '#FFFFFF',
+  '--dsw-alias-state-business-primary': '#111111',
+  '--dsw-alias-button-info-fill': '#111111',
+  '--dsw-alias-button-info-hover': '#333333',
+}
+
+const MINIMAL_DARK = {
+  '--dsw-alias-bg-base': '#191919',
+  '--dsw-alias-bg-layer-1': '#202020',
+  '--dsw-alias-bg-layer-2': '#262626',
+  '--dsw-alias-bg-layer-3': '#2E2E2E',
+  '--dsw-alias-bg-overlay': '#202020',
+  '--dsw-alias-bg-mask-1': 'rgba(0,0,0,0.6)',
+  '--dsw-alias-border-l1': 'rgba(232,230,225,0.07)',
+  '--dsw-alias-border-l2': 'rgba(232,230,225,0.12)',
+  '--dsw-alias-border-l3': 'rgba(232,230,225,0.22)',
+  '--dsw-alias-brand-primary': '#E8E6E1',
+  '--dsw-alias-brand-text': '#E8E6E1',
+  '--dsw-alias-link': '#8DC1E8',
+  '--dsw-alias-label-primary-foreground': '#111111',
+  '--dsw-alias-label-primary': '#E8E6E1',
+  '--dsw-alias-label-secondary': '#A3A19B',
+  '--dsw-alias-label-tertiary': '#96948E',
+  '--dsw-alias-label-caption': '#8E8C86',
+  '--dsw-alias-label-primary-inverted': '#111111',
+  '--dsw-alias-button-primary-fill': '#E8E6E1',
   '--dsw-alias-button-primary-hover': '#FFFFFF',
-  '--dsw-alias-interactive-bg-hover': 'rgba(255, 255, 255, 0.06)',
-  '--dsw-alias-interactive-bg-active': 'rgba(255, 255, 255, 0.1)',
-  '--dsw-alias-markdown-code-block': '#0F0F0F',
-  '--dsw-alias-markdown-code-block-banner': '#0A0A0A',
-  '--dsw-alias-markdown-inline-code': '#2C2C2C',
-  '--dsw-specific-sidebar-fill': '#0A0A0A',
-  '--dsw-alias-state-success-primary': '#19C37D',
-  '--dsw-alias-state-warn-primary': '#E3B341',
-  '--dsw-alias-state-error-primary': '#F26D5B',
-  // surfaces dsh draws with "specific" tokens (user bubble, composer) and its blue "business" accent (active tab, send button, drop targets)
-  '--dsw-specific-bubble': '#2A2A2A',
-  '--dsw-specific-input-major': '#272727',
-  '--dsw-alias-state-business-primary': '#ECECEC',
-  '--dsw-alias-button-info-fill': '#ECECEC',
+  '--dsw-alias-interactive-bg-hover': 'rgba(232,230,225,0.06)',
+  '--dsw-alias-interactive-bg-active': 'rgba(232,230,225,0.12)',
+  '--dsw-alias-markdown-code-block': '#111111',
+  '--dsw-alias-markdown-code-block-banner': '#0D0D0D',
+  '--dsw-alias-markdown-inline-code': '#2E2E2E',
+  '--dsw-specific-sidebar-fill': '#141414',
+  '--dsw-alias-state-success-primary': '#86C48A',
+  '--dsw-alias-state-warn-primary': '#E0B458',
+  '--dsw-alias-state-error-primary': '#F0908C',
+  '--dsw-specific-bubble': '#262626',
+  '--dsw-specific-input-major': '#202020',
+  '--dsw-alias-state-business-primary': '#E8E6E1',
+  '--dsw-alias-button-info-fill': '#E8E6E1',
   '--dsw-alias-button-info-hover': '#FFFFFF',
 }
 
-/**
- * "Swiss developer" — generated with the ui-ux-pro-max skill (design-system/mywork-kit/MASTER.md):
- * Minimalism & Swiss Style, slate surfaces, one green accent, IBM Plex Sans + JetBrains Mono.
- * Dark = the skill's "Developer Tool / IDE" palette verbatim; light = the same slate scale on white.
- * Contrast: light text #0F172A on #FFFFFF 17:1, secondary #475569 7.5:1, accent fill #15803D with white 4.8:1;
- * dark text #F8FAFC on #0F172A 16:1, secondary #94A3B8 6.4:1, accent fill #22C55E with #0F172A 8.6:1.
- */
-const SWISS_LIGHT = {
-  '--dsw-alias-bg-base': '#FFFFFF',
-  '--dsw-alias-bg-layer-1': '#F8FAFC',
-  '--dsw-alias-bg-layer-2': '#F1F5F9',
-  '--dsw-alias-bg-layer-3': '#E2E8F0',
-  '--dsw-alias-bg-overlay': '#FFFFFF',
-  '--dsw-alias-bg-mask-1': 'rgba(15, 23, 42, 0.4)',
-  '--dsw-alias-border-l1': 'rgba(15, 23, 42, 0.07)',
-  '--dsw-alias-border-l2': 'rgba(15, 23, 42, 0.13)',
-  '--dsw-alias-border-l3': 'rgba(15, 23, 42, 0.22)',
-  '--dsw-alias-brand-primary': '#15803D',
-  '--dsw-alias-brand-text': '#15803D',
-  '--dsw-alias-link': '#15803D',
-  '--dsw-alias-label-primary-foreground': '#FFFFFF',
-  '--dsw-alias-label-primary': '#0F172A',
-  '--dsw-alias-label-secondary': '#475569',
-  '--dsw-alias-label-tertiary': '#617187',
-  '--dsw-alias-label-caption': '#6C7786',
-  '--dsw-alias-label-primary-inverted': '#FFFFFF',
-  '--dsw-alias-button-primary-fill': '#15803D',
-  '--dsw-alias-button-primary-hover': '#166534',
-  '--dsw-alias-interactive-bg-hover': 'rgba(15, 23, 42, 0.05)',
-  '--dsw-alias-interactive-bg-active': 'rgba(15, 23, 42, 0.09)',
-  '--dsw-alias-markdown-code-block': '#F1F5F9',
-  '--dsw-alias-markdown-code-block-banner': '#E2E8F0',
-  '--dsw-alias-markdown-inline-code': '#E2E8F0',
-  '--dsw-specific-sidebar-fill': '#E2E8F0',
-  '--dsw-alias-state-success-primary': '#15803D',
-  '--dsw-alias-state-warn-primary': '#B45309',
-  '--dsw-alias-state-error-primary': '#DC2626',
-  // surfaces dsh draws with "specific" tokens (user bubble, composer) and its blue "business" accent (active tab, send button, drop targets)
-  '--dsw-specific-bubble': '#E2E8F0',
-  '--dsw-specific-input-major': '#FFFFFF',
-  '--dsw-alias-state-business-primary': '#15803D',
-  '--dsw-alias-button-info-fill': '#15803D',
-  '--dsw-alias-button-info-hover': '#166534',
-}
-
-const SWISS_DARK = {
-  '--dsw-alias-bg-base': '#0F172A',
-  '--dsw-alias-bg-layer-1': '#1B2336',
-  '--dsw-alias-bg-layer-2': '#272F42',
-  '--dsw-alias-bg-layer-3': '#334155',
-  '--dsw-alias-bg-overlay': '#1B2336',
-  '--dsw-alias-bg-mask-1': 'rgba(2, 6, 23, 0.6)',
-  '--dsw-alias-border-l1': 'rgba(148, 163, 184, 0.12)',
-  '--dsw-alias-border-l2': 'rgba(148, 163, 184, 0.22)',
-  '--dsw-alias-border-l3': '#475569',
-  '--dsw-alias-brand-primary': '#22C55E',
-  '--dsw-alias-brand-text': '#4ADE80',
-  '--dsw-alias-link': '#4ADE80',
-  '--dsw-alias-label-primary-foreground': '#0F172A',
-  '--dsw-alias-label-primary': '#F8FAFC',
-  '--dsw-alias-label-secondary': '#94A3B8',
-  '--dsw-alias-label-tertiary': '#8C98A9',
-  '--dsw-alias-label-caption': '#748297',
-  '--dsw-alias-label-primary-inverted': '#0F172A',
-  '--dsw-alias-button-primary-fill': '#22C55E',
-  '--dsw-alias-button-primary-hover': '#4ADE80',
-  '--dsw-alias-interactive-bg-hover': 'rgba(148, 163, 184, 0.08)',
-  '--dsw-alias-interactive-bg-active': 'rgba(148, 163, 184, 0.14)',
-  '--dsw-alias-markdown-code-block': '#0B1220',
-  '--dsw-alias-markdown-code-block-banner': '#070D1A',
-  '--dsw-alias-markdown-inline-code': '#272F42',
-  '--dsw-specific-sidebar-fill': '#020617',
-  '--dsw-alias-state-success-primary': '#22C55E',
-  '--dsw-alias-state-warn-primary': '#F59E0B',
-  '--dsw-alias-state-error-primary': '#F26B6B',
-  // surfaces dsh draws with "specific" tokens (user bubble, composer) and its blue "business" accent (active tab, send button, drop targets)
-  '--dsw-specific-bubble': '#272F42',
-  '--dsw-specific-input-major': '#1B2336',
-  '--dsw-alias-state-business-primary': '#22C55E',
-  '--dsw-alias-button-info-fill': '#22C55E',
-  '--dsw-alias-button-info-hover': '#4ADE80',
-}
-
-/* 科技感 (ui-ux-pro-max "HUD / Sci-Fi FUI" direction, design-system/mywork-tech): near-black surfaces, one electric-blue
-   accent, Exo + Roboto Mono, fine 1px lines, glow only on primary actions. Tokens were re-tuned so every text role
-   keeps WCAG AA 4.5:1 (the generator's raw palette does not). */
-const TECH_LIGHT = {
-  '--dsw-alias-bg-base': '#F4F6FB',
+const BRUTAL_LIGHT = {
+  '--dsw-alias-bg-base': '#F4F4F0',
   '--dsw-alias-bg-layer-1': '#FFFFFF',
-  '--dsw-alias-bg-layer-2': '#E9EDF5',
-  '--dsw-alias-bg-layer-3': '#DFE4EE',
+  '--dsw-alias-bg-layer-2': '#E8E8E2',
+  '--dsw-alias-bg-layer-3': '#DCDCD4',
   '--dsw-alias-bg-overlay': '#FFFFFF',
-  '--dsw-alias-bg-mask-1': 'rgba(15, 23, 42, 0.45)',
-  '--dsw-alias-border-l1': 'rgba(15, 23, 42, 0.08)',
-  '--dsw-alias-border-l2': 'rgba(15, 23, 42, 0.14)',
-  '--dsw-alias-border-l3': 'rgba(15, 23, 42, 0.24)',
-  '--dsw-alias-brand-primary': '#2563EB',
-  '--dsw-alias-brand-text': '#1D4ED8',
-  '--dsw-alias-link': '#1D4ED8',
+  '--dsw-alias-bg-mask-1': 'rgba(17,17,17,0.5)',
+  '--dsw-alias-border-l1': '#C9C9C1',
+  '--dsw-alias-border-l2': '#111111',
+  '--dsw-alias-border-l3': '#111111',
+  '--dsw-alias-brand-primary': '#D41616',
+  '--dsw-alias-brand-text': '#B91111',
+  '--dsw-alias-link': '#B91111',
   '--dsw-alias-label-primary-foreground': '#FFFFFF',
-  '--dsw-alias-label-primary': '#0F172A',
-  '--dsw-alias-label-secondary': '#4B5565',
-  '--dsw-alias-label-tertiary': '#5F6B80',
-  '--dsw-alias-label-caption': '#606C81',
+  '--dsw-alias-label-primary': '#111111',
+  '--dsw-alias-label-secondary': '#4A4A4A',
+  '--dsw-alias-label-tertiary': '#5E5E5E',
+  '--dsw-alias-label-caption': '#626262',
   '--dsw-alias-label-primary-inverted': '#FFFFFF',
-  '--dsw-alias-button-primary-fill': '#2563EB',
-  '--dsw-alias-button-primary-hover': '#1D4ED8',
-  '--dsw-alias-interactive-bg-hover': 'rgba(37, 99, 235, 0.08)',
-  '--dsw-alias-interactive-bg-active': 'rgba(37, 99, 235, 0.14)',
-  '--dsw-alias-markdown-code-block': '#E9EDF5',
-  '--dsw-alias-markdown-code-block-banner': '#DFE4EE',
-  '--dsw-alias-markdown-inline-code': '#E3E8F2',
-  '--dsw-specific-sidebar-fill': '#E9EDF5',
-  '--dsw-alias-state-success-primary': '#166534',
-  '--dsw-alias-state-warn-primary': '#92400E',
-  '--dsw-alias-state-error-primary': '#B91C1C',
-  '--dsw-specific-bubble': '#E3EAFB',
+  '--dsw-alias-button-primary-fill': '#111111',
+  '--dsw-alias-button-primary-hover': '#D41616',
+  '--dsw-alias-interactive-bg-hover': 'rgba(17,17,17,0.06)',
+  '--dsw-alias-interactive-bg-active': 'rgba(17,17,17,0.12)',
+  '--dsw-alias-markdown-code-block': '#111111',
+  '--dsw-alias-markdown-code-block-banner': '#050505',
+  '--dsw-alias-markdown-inline-code': '#E8E8E2',
+  '--dsw-specific-sidebar-fill': '#EAE8E3',
+  '--dsw-alias-state-success-primary': '#1F6B2A',
+  '--dsw-alias-state-warn-primary': '#8A5A00',
+  '--dsw-alias-state-error-primary': '#C41414',
+  '--dsw-specific-bubble': '#E8E8E2',
   '--dsw-specific-input-major': '#FFFFFF',
-  '--dsw-alias-state-business-primary': '#2563EB',
-  '--dsw-alias-button-info-fill': '#2563EB',
-  '--dsw-alias-button-info-hover': '#1D4ED8',
+  '--dsw-alias-state-business-primary': '#D41616',
+  '--dsw-alias-button-info-fill': '#111111',
+  '--dsw-alias-button-info-hover': '#D41616',
 }
 
-const TECH_DARK = {
-  '--dsw-alias-bg-base': '#0B0B10',
-  '--dsw-alias-bg-layer-1': '#15161C',
-  '--dsw-alias-bg-layer-2': '#1E1E23',
-  '--dsw-alias-bg-layer-3': '#25262E',
-  '--dsw-alias-bg-overlay': '#15161C',
-  '--dsw-alias-bg-mask-1': 'rgba(0, 0, 0, 0.65)',
-  '--dsw-alias-border-l1': 'rgba(148, 163, 184, 0.10)',
-  '--dsw-alias-border-l2': 'rgba(148, 163, 184, 0.18)',
-  '--dsw-alias-border-l3': '#3A3D48',
-  '--dsw-alias-brand-primary': '#3B82F6',
-  '--dsw-alias-brand-text': '#60A5FA',
-  '--dsw-alias-link': '#7DD3FC',
-  '--dsw-alias-label-primary-foreground': '#0B0B10',
-  '--dsw-alias-label-primary': '#F1F5F9',
-  '--dsw-alias-label-secondary': '#A6B0C3',
-  '--dsw-alias-label-tertiary': '#8A94A8',
-  '--dsw-alias-label-caption': '#7C8699',
-  '--dsw-alias-label-primary-inverted': '#0B0B10',
-  '--dsw-alias-button-primary-fill': '#3B82F6',
-  '--dsw-alias-button-primary-hover': '#60A5FA',
-  '--dsw-alias-interactive-bg-hover': 'rgba(96, 165, 250, 0.10)',
-  '--dsw-alias-interactive-bg-active': 'rgba(96, 165, 250, 0.18)',
-  '--dsw-alias-markdown-code-block': '#0F1016',
-  '--dsw-alias-markdown-code-block-banner': '#0B0B10',
-  '--dsw-alias-markdown-inline-code': '#25262E',
-  '--dsw-specific-sidebar-fill': '#08080C',
-  '--dsw-alias-state-success-primary': '#22C55E',
-  '--dsw-alias-state-warn-primary': '#F59E0B',
-  '--dsw-alias-state-error-primary': '#F87171',
-  '--dsw-specific-bubble': '#1E2230',
-  '--dsw-specific-input-major': '#15161C',
-  '--dsw-alias-state-business-primary': '#3B82F6',
-  '--dsw-alias-button-info-fill': '#3B82F6',
-  '--dsw-alias-button-info-hover': '#60A5FA',
+const BRUTAL_DARK = {
+  '--dsw-alias-bg-base': '#0A0A0A',
+  '--dsw-alias-bg-layer-1': '#121212',
+  '--dsw-alias-bg-layer-2': '#1A1A1A',
+  '--dsw-alias-bg-layer-3': '#222222',
+  '--dsw-alias-bg-overlay': '#121212',
+  '--dsw-alias-bg-mask-1': 'rgba(0,0,0,0.75)',
+  '--dsw-alias-border-l1': '#2A2A2A',
+  '--dsw-alias-border-l2': '#3A3A3A',
+  '--dsw-alias-border-l3': '#EAEAEA',
+  '--dsw-alias-brand-primary': '#FF2A2A',
+  '--dsw-alias-brand-text': '#FF6B6B',
+  '--dsw-alias-link': '#FF6B6B',
+  '--dsw-alias-label-primary-foreground': '#0A0A0A',
+  '--dsw-alias-label-primary': '#EAEAEA',
+  '--dsw-alias-label-secondary': '#B0B0B0',
+  '--dsw-alias-label-tertiary': '#9A9A9A',
+  '--dsw-alias-label-caption': '#909090',
+  '--dsw-alias-label-primary-inverted': '#0A0A0A',
+  '--dsw-alias-button-primary-fill': '#EAEAEA',
+  '--dsw-alias-button-primary-hover': '#FF2A2A',
+  '--dsw-alias-interactive-bg-hover': 'rgba(234,234,234,0.07)',
+  '--dsw-alias-interactive-bg-active': 'rgba(234,234,234,0.14)',
+  '--dsw-alias-markdown-code-block': '#050505',
+  '--dsw-alias-markdown-code-block-banner': '#000000',
+  '--dsw-alias-markdown-inline-code': '#222222',
+  '--dsw-specific-sidebar-fill': '#0E0E0E',
+  '--dsw-alias-state-success-primary': '#4AF626',
+  '--dsw-alias-state-warn-primary': '#F2C94C',
+  '--dsw-alias-state-error-primary': '#FF6B6B',
+  '--dsw-specific-bubble': '#1A1A1A',
+  '--dsw-specific-input-major': '#121212',
+  '--dsw-alias-state-business-primary': '#FF2A2A',
+  '--dsw-alias-button-info-fill': '#EAEAEA',
+  '--dsw-alias-button-info-hover': '#FF2A2A',
 }
 
 /**
@@ -349,13 +339,13 @@ const TECH_DARK = {
 const FAMILIES = [
   { id: 'official', light: null, dark: null, label: { zh: '官方默认', en: 'Official' } },
   { id: 'claude', light: CLAUDE_LIGHT, dark: CLAUDE_DARK, label: { zh: 'Claude Code 风格', en: 'Claude Code style' } },
-  { id: 'codex', light: CODEX_LIGHT, dark: CODEX_DARK, label: { zh: 'Codex 风格', en: 'Codex style' } },
-  { id: 'swiss', light: SWISS_LIGHT, dark: SWISS_DARK, label: { zh: 'Swiss 开发者风格', en: 'Swiss developer' }, fonts: 'https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap' },
-  { id: 'tech', light: TECH_LIGHT, dark: TECH_DARK, label: { zh: '科技感', en: 'Tech' }, fonts: 'https://fonts.googleapis.com/css2?family=Exo:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap' },
+  { id: 'soft', light: SOFT_LIGHT, dark: SOFT_DARK, label: { zh: '柔和高级', en: 'Soft premium' }, fonts: 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap' },
+  { id: 'minimal', light: MINIMAL_LIGHT, dark: MINIMAL_DARK, label: { zh: '极简编辑', en: 'Editorial minimal' }, fonts: 'https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500&family=Geist+Mono:wght@400;500&display=swap' },
+  { id: 'brutal', light: BRUTAL_LIGHT, dark: BRUTAL_DARK, label: { zh: '工业粗野', en: 'Industrial brutalist' }, fonts: 'https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap' },
 ]
 
 /** Family used until the user picks one (the kit's own look). */
-const DEFAULT_FAMILY = 'tech'
+const DEFAULT_FAMILY = 'claude'
 
 const SCHEMES = [
   { id: 'system', label: { zh: '跟随系统', en: 'System' } },
@@ -417,19 +407,6 @@ body[data-mywork-theme="codex"] :focus-visible {
   outline: 1.5px solid var(--dsw-alias-label-primary);
   outline-offset: 1px;
 }
-/* Swiss developer (ui-ux-pro-max design system): IBM Plex Sans UI, JetBrains Mono code, 1px borders,
-   200ms hover, 2px ring on the foreground color, subtle motion; falls back to system fonts when Google Fonts is unreachable. */
-body[data-mywork-theme="swiss"] {
-  --mywork-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  font-family: "IBM Plex Sans", -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
-}
-body[data-mywork-theme="swiss"] button, body[data-mywork-theme="swiss"] input, body[data-mywork-theme="swiss"] select { font-family: inherit; }
-body[data-mywork-theme="swiss"] textarea { font-family: inherit; }
-body[data-mywork-theme="swiss"] pre { border: 1px solid var(--dsw-alias-border-l2); border-radius: 8px; }
-body[data-mywork-theme="swiss"] a { text-decoration-thickness: 1px; text-underline-offset: 2px; }
-body[data-mywork-theme="swiss"] button, body[data-mywork-theme="swiss"] [role="button"], body[data-mywork-theme="swiss"] a { transition: background-color 200ms ease, border-color 200ms ease, color 200ms ease; }
-body[data-mywork-theme="swiss"] :focus-visible { outline: 2px solid var(--dsw-alias-label-primary); outline-offset: 2px; border-radius: 4px; }
-body[data-mywork-theme="swiss"] h1, body[data-mywork-theme="swiss"] h2, body[data-mywork-theme="swiss"] h3 { letter-spacing: -0.01em; }
 /* The Codex UI fork hardcodes its sidebar / settings-page palette (mint grey). Under a family, route those
    variables to the family's tokens so the whole chrome follows the style, not just the chat area. */
 body[data-mywork-theme][data-mywork-theme] .dcu-root { /* doubled attribute: outranks the fork's own dark-mode rule */
@@ -445,41 +422,83 @@ body[data-mywork-theme][data-mywork-theme] .dcu-settings-page {
   --dcu-sidebar-primary: var(--dsw-alias-label-primary); --dcu-sidebar-secondary: var(--dsw-alias-label-secondary); --dcu-sidebar-tertiary: var(--dsw-alias-label-tertiary);
   --sp-hover: var(--dsw-alias-interactive-bg-hover); --sp-active: var(--dsw-alias-interactive-bg-active);
 }
-body[data-mywork-theme="swiss"] .dcu-root, body[data-mywork-theme="swiss"] .dcu-settings-page { --dcu-font: "IBM Plex Sans", -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; }
-/* send button icon must stay readable on a green fill */
-body[data-mywork-theme="swiss"] [data-composer-card] [class*="_primary"] { color: var(--dsw-alias-label-primary-inverted) !important; }
-/* 科技感 (tech): Exo UI + Roboto Mono, faint blueprint grid on the sidebar, 1px accent lines, glow on primary actions,
-   gradient headline. All motion is transitions only and switches off under prefers-reduced-motion. */
-body[data-mywork-theme="tech"] {
-  --mywork-mono: "Roboto Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  --mywork-glow: 0 0 0 1px color-mix(in srgb, var(--dsw-alias-brand-primary) 45%, transparent), 0 0 18px color-mix(in srgb, var(--dsw-alias-brand-primary) 30%, transparent);
-  --mywork-grid: color-mix(in srgb, var(--dsw-alias-brand-primary) 13%, transparent);
-  font-family: "Exo", -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
-}
-body[data-mywork-theme="tech"] button, body[data-mywork-theme="tech"] input, body[data-mywork-theme="tech"] select, body[data-mywork-theme="tech"] textarea { font-family: inherit; }
-body[data-mywork-theme="tech"] .dcu-root, body[data-mywork-theme="tech"] .dcu-settings-page { --dcu-font: "Exo", -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; }
-body[data-mywork-theme="tech"] [class*="_sidebarCol"], body[data-mywork-theme="tech"] .dcu-settings-nav {
-  background-image: linear-gradient(var(--mywork-grid) 1px, transparent 1px), linear-gradient(90deg, var(--mywork-grid) 1px, transparent 1px) !important;
-  background-size: 24px 24px, 24px 24px !important; background-color: var(--dsw-specific-sidebar-fill) !important;
-}
-body[data-mywork-theme="tech"] .dcu-root { background: transparent; }
-body[data-mywork-theme="tech"] .dcu-wb-section-label, body[data-mywork-theme="tech"] .mwtc-title, body[data-mywork-theme="tech"] .dcu-settings-group-label { letter-spacing: 0.08em; text-transform: uppercase; font-size: 12px; }
-body[data-mywork-theme="tech"] [data-phase=hero] [class$="_headline"] { background: linear-gradient(90deg, var(--dsw-alias-label-primary) 0%, var(--dsw-alias-brand-text) 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
-body[data-mywork-theme="tech"] .dcu-home-card { border-color: color-mix(in srgb, var(--dsw-alias-brand-primary) 22%, transparent); background: color-mix(in srgb, var(--dsw-alias-brand-primary) 4%, transparent); }
-body[data-mywork-theme="tech"] .dcu-home-card:hover, body[data-mywork-theme="tech"] .dcu-home-card[aria-pressed=true] { border-color: color-mix(in srgb, var(--dsw-alias-brand-primary) 55%, transparent); box-shadow: var(--mywork-glow); }
-body[data-mywork-theme="tech"] .dcu-home-card svg { color: var(--dsw-alias-brand-primary); }
-body[data-mywork-theme="tech"] [data-composer-card] { border: 1px solid color-mix(in srgb, var(--dsw-alias-brand-primary) 28%, transparent) !important; box-shadow: 0 0 24px color-mix(in srgb, var(--dsw-alias-brand-primary) 10%, transparent) !important; }
-body[data-mywork-theme="tech"] [data-composer-card]:focus-within { border-color: color-mix(in srgb, var(--dsw-alias-brand-primary) 60%, transparent) !important; box-shadow: var(--mywork-glow) !important; }
-body[data-mywork-theme="tech"] [data-composer-card] [class*="_primary"], body[data-mywork-theme="tech"] .dsh-st-btn--primary, body[data-mywork-theme="tech"] .mwm-primary, body[data-mywork-theme="tech"] .mwi .btn, body[data-mywork-theme="tech"] .mwr-btn.primary { box-shadow: var(--mywork-glow); color: var(--dsw-alias-label-primary-foreground) !important; }
-body[data-mywork-theme="tech"] .mwb-bar { border-bottom: 1px solid color-mix(in srgb, var(--dsw-alias-brand-primary) 25%, transparent); }
-body[data-mywork-theme="tech"] .mwb-view { box-shadow: inset 0 1px 0 color-mix(in srgb, var(--dsw-alias-brand-primary) 35%, transparent); }
-body[data-mywork-theme="tech"] pre { border: 1px solid color-mix(in srgb, var(--dsw-alias-brand-primary) 20%, transparent); border-radius: 8px; }
-body[data-mywork-theme="tech"] .dcu-wb-session.dcu-wb-selected { box-shadow: inset 2px 0 0 var(--dsw-alias-brand-primary); }
-body[data-mywork-theme="tech"] .dcu-menu button[aria-current], body[data-mywork-theme="tech"] .dcu-settings-link[aria-current] { box-shadow: inset 2px 0 0 var(--dsw-alias-brand-primary); }
-body[data-mywork-theme="tech"] button, body[data-mywork-theme="tech"] [role="button"], body[data-mywork-theme="tech"] a { transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease, box-shadow 180ms ease; }
-body[data-mywork-theme="tech"] :focus-visible { outline: 2px solid var(--dsw-alias-brand-primary); outline-offset: 2px; border-radius: 4px; }
-body[data-mywork-theme="tech"] h1, body[data-mywork-theme="tech"] h2, body[data-mywork-theme="tech"] h3 { letter-spacing: 0.01em; }
 @media (prefers-reduced-motion: reduce) { body[data-mywork-theme="tech"] * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; } }
+
+/* 柔和高级 (soft-skill "Soft Structuralism / Ethereal Glass"): Plus Jakarta Sans + Geist Mono, squircle radii, ultra-diffuse ambient
+   shadows in light, white/10 hairlines in dark, pill primary buttons, spring-like easing. */
+body[data-mywork-theme="soft"] {
+  --mywork-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --mywork-ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --mywork-shadow: 0 1px 2px rgba(23, 23, 28, 0.04), 0 24px 48px -24px rgba(23, 23, 28, 0.22);
+  font-family: "Plus Jakarta Sans", -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", sans-serif;
+}
+body[data-ds-dark-theme][data-mywork-theme="soft"] { --mywork-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 24px 48px -24px rgba(0, 0, 0, 0.8); }
+body[data-mywork-theme="soft"] button, body[data-mywork-theme="soft"] input, body[data-mywork-theme="soft"] select, body[data-mywork-theme="soft"] textarea { font-family: inherit; }
+body[data-mywork-theme="soft"] .dcu-root, body[data-mywork-theme="soft"] .dcu-settings-page { --dcu-font: "Plus Jakarta Sans", -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; }
+body[data-mywork-theme="soft"] [data-composer-card] { border-radius: 24px !important; box-shadow: var(--mywork-shadow) !important; }
+body[data-mywork-theme="soft"] .dcu-home-card { border-radius: 24px; background: var(--dsw-alias-bg-layer-1); box-shadow: var(--mywork-shadow); border-color: transparent; }
+body[data-mywork-theme="soft"] .dcu-home-card:hover, body[data-mywork-theme="soft"] .dcu-home-card[aria-pressed=true] { transform: translateY(-2px); border-color: transparent; }
+body[data-mywork-theme="soft"] .dcu-home-task, body[data-mywork-theme="soft"] .mwtc-card, body[data-mywork-theme="soft"] .mwi, body[data-mywork-theme="soft"] .dsh-st-card, body[data-mywork-theme="soft"] .ima-platform, body[data-mywork-theme="soft"] .dcu-panel-body > div > div { border-radius: 16px; }
+body[data-mywork-theme="soft"] [data-composer-card] [class*="_primary"], body[data-mywork-theme="soft"] .dsh-st-btn--primary, body[data-mywork-theme="soft"] .mwm-primary, body[data-mywork-theme="soft"] .mwi .btn { border-radius: 999px !important; color: var(--dsw-alias-label-primary-foreground) !important; box-shadow: 0 8px 20px -10px var(--dsw-alias-brand-primary); }
+body[data-mywork-theme="soft"] .mwb-omni .mwb-in, body[data-mywork-theme="soft"] .dcu-settings-search { border-radius: 999px; }
+body[data-mywork-theme="soft"] .dcu-wb-session, body[data-mywork-theme="soft"] .dcu-menu button, body[data-mywork-theme="soft"] .dcu-settings-link { border-radius: 12px; }
+body[data-mywork-theme="soft"] button, body[data-mywork-theme="soft"] [role="button"], body[data-mywork-theme="soft"] a, body[data-mywork-theme="soft"] .dcu-home-card { transition: background-color 400ms var(--mywork-ease), border-color 400ms var(--mywork-ease), color 400ms var(--mywork-ease), box-shadow 400ms var(--mywork-ease), transform 400ms var(--mywork-ease); }
+body[data-mywork-theme="soft"] button:active { transform: scale(0.98); }
+body[data-mywork-theme="soft"] :focus-visible { outline: 2px solid var(--dsw-alias-brand-primary); outline-offset: 3px; border-radius: 12px; }
+body[data-mywork-theme="soft"] .dcu-wb-section-label, body[data-mywork-theme="soft"] .mwtc-title, body[data-mywork-theme="soft"] .dcu-settings-group-label { letter-spacing: 0.14em; text-transform: uppercase; font-size: 12px; font-weight: 500; }
+body[data-mywork-theme="soft"] h1, body[data-mywork-theme="soft"] h2, body[data-mywork-theme="soft"] h3 { letter-spacing: -0.02em; }
+
+/* 极简编辑 (minimalist-skill "Premium Utilitarian Minimalism"): warm bone canvas, exactly 1px #EAEAEA borders, radii ≤ 8px, no shadows,
+   Geist UI + Newsreader serif headline + Geist Mono, solid off-black primary button, invisible motion. */
+body[data-mywork-theme="minimal"] {
+  --mywork-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --mywork-serif: "Newsreader", "Songti SC", "Noto Serif CJK SC", Georgia, serif;
+  font-family: "Geist", -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", sans-serif;
+}
+body[data-mywork-theme="minimal"] button, body[data-mywork-theme="minimal"] input, body[data-mywork-theme="minimal"] select, body[data-mywork-theme="minimal"] textarea { font-family: inherit; }
+body[data-mywork-theme="minimal"] .dcu-root, body[data-mywork-theme="minimal"] .dcu-settings-page { --dcu-font: "Geist", -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; }
+body[data-mywork-theme="minimal"] [data-phase=hero] [class$="_headline"] { font-family: var(--mywork-serif); font-weight: 500; letter-spacing: -0.02em; }
+body[data-mywork-theme="minimal"] [data-composer-card] { border-radius: 8px !important; box-shadow: none !important; border: 1px solid var(--dsw-alias-border-l2) !important; }
+body[data-mywork-theme="minimal"] .dcu-home-card, body[data-mywork-theme="minimal"] .mwtc-card, body[data-mywork-theme="minimal"] .mwi, body[data-mywork-theme="minimal"] .dsh-st-card { border: 1px solid var(--dsw-alias-border-l2); border-radius: 8px; background: var(--dsw-alias-bg-layer-1); box-shadow: none; }
+body[data-mywork-theme="minimal"] .dcu-home-card:hover, body[data-mywork-theme="minimal"] .dcu-home-card[aria-pressed=true] { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04); border-color: var(--dsw-alias-border-l3); }
+body[data-mywork-theme="minimal"] .dcu-home-task, body[data-mywork-theme="minimal"] .mwtc-zbtn, body[data-mywork-theme="minimal"] .mwb-mini.framed, body[data-mywork-theme="minimal"] .mwr-in, body[data-mywork-theme="minimal"] .mwm-in, body[data-mywork-theme="minimal"] .mwb-in { border-radius: 6px; }
+body[data-mywork-theme="minimal"] [data-composer-card] [class*="_primary"], body[data-mywork-theme="minimal"] .dsh-st-btn--primary, body[data-mywork-theme="minimal"] .mwm-primary, body[data-mywork-theme="minimal"] .mwi .btn { border-radius: 6px !important; box-shadow: none !important; color: var(--dsw-alias-label-primary-foreground) !important; }
+body[data-mywork-theme="minimal"] .dcu-wb-session, body[data-mywork-theme="minimal"] .dcu-menu button, body[data-mywork-theme="minimal"] .dcu-settings-link { border-radius: 6px; }
+body[data-mywork-theme="minimal"] .dcu-wb-section-label, body[data-mywork-theme="minimal"] .mwtc-title, body[data-mywork-theme="minimal"] .dcu-settings-group-label { letter-spacing: 0.05em; text-transform: uppercase; font-size: 12px; }
+body[data-mywork-theme="minimal"] .mwr-pill, body[data-mywork-theme="minimal"] .dsh-st-chip { border-radius: 999px; font-size: 12px; letter-spacing: 0.04em; }
+body[data-mywork-theme="minimal"] kbd { border: 1px solid var(--dsw-alias-border-l2); border-radius: 4px; background: var(--dsw-alias-bg-base); font-family: var(--mywork-mono); }
+body[data-mywork-theme="minimal"] pre { border: 1px solid var(--dsw-alias-border-l2); border-radius: 8px; }
+body[data-mywork-theme="minimal"] button, body[data-mywork-theme="minimal"] [role="button"], body[data-mywork-theme="minimal"] a { transition: background-color 200ms cubic-bezier(0.16, 1, 0.3, 1), border-color 200ms cubic-bezier(0.16, 1, 0.3, 1), color 200ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 200ms cubic-bezier(0.16, 1, 0.3, 1); }
+body[data-mywork-theme="minimal"] button:active { transform: scale(0.98); }
+body[data-mywork-theme="minimal"] :focus-visible { outline: 2px solid var(--dsw-alias-label-primary); outline-offset: 2px; border-radius: 4px; }
+
+/* 工业粗野 (brutalist-skill "Swiss Industrial Print" in light / "Tactical Telemetry" in dark): Archivo heavy headings, JetBrains Mono
+   uppercase metadata, hazard red as the only accent, 90° corners everywhere, visible 1px compartment lines, scanlines in dark. */
+body[data-mywork-theme="brutal"] {
+  --mywork-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-family: "Archivo", -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+}
+body[data-mywork-theme="brutal"] button, body[data-mywork-theme="brutal"] input, body[data-mywork-theme="brutal"] select, body[data-mywork-theme="brutal"] textarea { font-family: inherit; }
+body[data-mywork-theme="brutal"] .dcu-root, body[data-mywork-theme="brutal"] .dcu-settings-page { --dcu-font: "Archivo", -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; }
+body[data-mywork-theme="brutal"] #root *:not(svg):not(svg *):not([role="switch"]):not([role="switch"] *):not(input[type="checkbox"]):not(input[type="radio"]):not(img) { border-radius: 0 !important; }
+body[data-mywork-theme="brutal"] [class*="_sidebarCol"] { border-right: 2px solid var(--dsw-alias-label-primary) !important; }
+body[data-mywork-theme="brutal"] .dcu-head, body[data-mywork-theme="brutal"] .dcu-foot, body[data-mywork-theme="brutal"] .dcu-workspaces { border-color: var(--dsw-alias-label-primary) !important; }
+body[data-mywork-theme="brutal"] .dcu-wb-section-label, body[data-mywork-theme="brutal"] .mwtc-title, body[data-mywork-theme="brutal"] .dcu-settings-group-label, body[data-mywork-theme="brutal"] .dcu-menu button, body[data-mywork-theme="brutal"] .dcu-settings-link, body[data-mywork-theme="brutal"] .mwk-tab, body[data-mywork-theme="brutal"] .dsh-st-chip, body[data-mywork-theme="brutal"] .mwr-pill, body[data-mywork-theme="brutal"] .mwb-foot { font-family: var(--mywork-mono); text-transform: uppercase; letter-spacing: 0.08em; font-size: 12px; }
+body[data-mywork-theme="brutal"] [data-phase=hero] [class$="_headline"] { font-weight: 900; letter-spacing: -0.04em; text-transform: uppercase; }
+body[data-mywork-theme="brutal"] .dcu-panel-head, body[data-mywork-theme="brutal"] h1, body[data-mywork-theme="brutal"] h2, body[data-mywork-theme="brutal"] h3 { font-weight: 800; letter-spacing: -0.02em; text-transform: uppercase; }
+body[data-mywork-theme="brutal"] [data-composer-card] { border: 2px solid var(--dsw-alias-label-primary) !important; box-shadow: 6px 6px 0 var(--dsw-alias-label-primary) !important; }
+body[data-mywork-theme="brutal"] .dcu-home-card, body[data-mywork-theme="brutal"] .mwtc-card, body[data-mywork-theme="brutal"] .mwi, body[data-mywork-theme="brutal"] .dsh-st-card, body[data-mywork-theme="brutal"] .ima-platform { border: 1px solid var(--dsw-alias-label-primary); background: var(--dsw-alias-bg-layer-1); box-shadow: none; }
+body[data-mywork-theme="brutal"] .dcu-home-card:hover, body[data-mywork-theme="brutal"] .dcu-home-card[aria-pressed=true], body[data-mywork-theme="brutal"] .mwtc-card.active { box-shadow: 4px 4px 0 var(--dsw-alias-brand-primary); border-color: var(--dsw-alias-label-primary); }
+body[data-mywork-theme="brutal"] .dcu-home-card svg { color: var(--dsw-alias-brand-primary); }
+body[data-mywork-theme="brutal"] [data-composer-card] [class*="_primary"], body[data-mywork-theme="brutal"] .dsh-st-btn--primary, body[data-mywork-theme="brutal"] .mwm-primary, body[data-mywork-theme="brutal"] .mwi .btn { box-shadow: 3px 3px 0 var(--dsw-alias-label-primary) !important; color: var(--dsw-alias-label-primary-foreground) !important; text-transform: uppercase; letter-spacing: 0.06em; }
+body[data-mywork-theme="brutal"] .mwb-omni .mwb-in, body[data-mywork-theme="brutal"] .mwr-in, body[data-mywork-theme="brutal"] .mwm-in, body[data-mywork-theme="brutal"] .mwb-in { border: 1px solid var(--dsw-alias-label-primary); font-family: var(--mywork-mono); }
+body[data-mywork-theme="brutal"] .mwb-bar { border-bottom: 1px solid var(--dsw-alias-label-primary); }
+body[data-mywork-theme="brutal"] .dcu-wb-session.dcu-wb-selected, body[data-mywork-theme="brutal"] .dcu-menu button[aria-current], body[data-mywork-theme="brutal"] .dcu-settings-link[aria-current] { box-shadow: inset 3px 0 0 var(--dsw-alias-brand-primary); }
+body[data-mywork-theme="brutal"] pre { border: 1px solid var(--dsw-alias-label-primary); }
+body[data-mywork-theme="brutal"] button, body[data-mywork-theme="brutal"] [role="button"], body[data-mywork-theme="brutal"] a { transition: background-color 80ms linear, color 80ms linear, box-shadow 80ms linear; }
+body[data-mywork-theme="brutal"] :focus-visible { outline: 2px solid var(--dsw-alias-brand-primary); outline-offset: 0; }
+body[data-ds-dark-theme][data-mywork-theme="brutal"]::after { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 2147483000; background: repeating-linear-gradient(0deg, transparent 0 2px, rgba(0, 0, 0, 0.16) 2px 4px); }
+@media (prefers-reduced-motion: reduce) { body[data-mywork-theme] * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; } }
 /* Every family: the sidebar is its own tinted surface (warm sand / neutral grey / cool slate) with a hairline edge,
    solid on every platform (dsh blends it to 60 % on macOS, which washes the tint out). */
 body[data-mywork-theme] [class*="_sidebarCol"] { background: var(--dsw-specific-sidebar-fill) !important; border-right: 1px solid var(--dsw-alias-border-l2); }

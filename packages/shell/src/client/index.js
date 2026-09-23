@@ -44,29 +44,30 @@ const CLAUDE_LIGHT = {
   '--dsw-alias-border-l2': 'rgba(31, 30, 29, 0.11)',
   '--dsw-alias-border-l3': 'rgba(31, 30, 29, 0.18)',
   '--dsw-alias-brand-primary': '#D97757',
-  '--dsw-alias-brand-text': '#B85C3C',
-  '--dsw-alias-link': '#B85C3C',
+  '--dsw-alias-brand-text': '#A75437',
+  '--dsw-alias-link': '#A75437',
+  '--dsw-alias-label-primary-foreground': '#FFFFFF',
   '--dsw-alias-label-primary': '#1F1E1D',
-  '--dsw-alias-label-secondary': '#6B6860',
-  '--dsw-alias-label-tertiary': '#8F8B82',
-  '--dsw-alias-label-caption': '#A8A49B',
-  '--dsw-alias-button-primary-fill': '#D97757',
-  '--dsw-alias-button-primary-hover': '#C4633F',
+  '--dsw-alias-label-secondary': '#5B5852',
+  '--dsw-alias-label-tertiary': '#67645E',
+  '--dsw-alias-label-caption': '#706D66',
+  '--dsw-alias-button-primary-fill': '#BA5A3A',
+  '--dsw-alias-button-primary-hover': '#A84D2C',
   '--dsw-alias-interactive-bg-hover': 'rgba(31, 30, 29, 0.05)',
   '--dsw-alias-interactive-bg-active': 'rgba(31, 30, 29, 0.09)',
   '--dsw-alias-markdown-code-block': '#EEEBE3',
   '--dsw-alias-markdown-code-block-banner': '#E5E1D6',
   '--dsw-alias-markdown-inline-code': '#ECE8DF',
   '--dsw-specific-sidebar-fill': '#E8E1CF',
-  '--dsw-alias-state-success-primary': '#5B8C5A',
-  '--dsw-alias-state-warn-primary': '#D9A441',
-  '--dsw-alias-state-error-primary': '#C8553D',
+  '--dsw-alias-state-success-primary': '#4A7249',
+  '--dsw-alias-state-warn-primary': '#8B692A',
+  '--dsw-alias-state-error-primary': '#B84E38',
   // surfaces dsh draws with "specific" tokens (user bubble, composer) and its blue "business" accent (active tab, send button, drop targets)
   '--dsw-specific-bubble': '#EFE8D8',
   '--dsw-specific-input-major': '#FFFFFF',
-  '--dsw-alias-state-business-primary': '#B85C3C',
-  '--dsw-alias-button-info-fill': '#D97757',
-  '--dsw-alias-button-info-hover': '#C4633F',
+  '--dsw-alias-state-business-primary': '#A75437',
+  '--dsw-alias-button-info-fill': '#BA5A3A',
+  '--dsw-alias-button-info-hover': '#A84D2C',
 }
 
 const CLAUDE_DARK = {
@@ -82,11 +83,12 @@ const CLAUDE_DARK = {
   '--dsw-alias-brand-primary': '#D97757',
   '--dsw-alias-brand-text': '#E8916F',
   '--dsw-alias-link': '#E8916F',
+  '--dsw-alias-label-primary-foreground': '#FFFFFF',
   '--dsw-alias-label-primary': '#EDECE8',
   '--dsw-alias-label-secondary': '#A8A59E',
-  '--dsw-alias-label-tertiary': '#7F7C75',
-  '--dsw-alias-label-caption': '#6A6761',
-  '--dsw-alias-button-primary-fill': '#D97757',
+  '--dsw-alias-label-tertiary': '#9A9791',
+  '--dsw-alias-label-caption': '#8F8D88',
+  '--dsw-alias-button-primary-fill': '#BA5A3A',
   '--dsw-alias-button-primary-hover': '#E8916F',
   '--dsw-alias-interactive-bg-hover': 'rgba(255, 255, 255, 0.06)',
   '--dsw-alias-interactive-bg-active': 'rgba(255, 255, 255, 0.1)',
@@ -96,12 +98,12 @@ const CLAUDE_DARK = {
   '--dsw-specific-sidebar-fill': '#1C1915',
   '--dsw-alias-state-success-primary': '#7FB77E',
   '--dsw-alias-state-warn-primary': '#E0B458',
-  '--dsw-alias-state-error-primary': '#E06C55',
+  '--dsw-alias-state-error-primary': '#E68674',
   // surfaces dsh draws with "specific" tokens (user bubble, composer) and its blue "business" accent (active tab, send button, drop targets)
   '--dsw-specific-bubble': '#3B3934',
   '--dsw-specific-input-major': '#30302D',
   '--dsw-alias-state-business-primary': '#E8916F',
-  '--dsw-alias-button-info-fill': '#D97757',
+  '--dsw-alias-button-info-fill': '#BA5A3A',
   '--dsw-alias-button-info-hover': '#E8916F',
 }
 
@@ -118,10 +120,11 @@ const CODEX_LIGHT = {
   '--dsw-alias-brand-primary': '#0D0D0D',
   '--dsw-alias-brand-text': '#0D0D0D',
   '--dsw-alias-link': '#0B57D0',
+  '--dsw-alias-label-primary-foreground': '#FFFFFF',
   '--dsw-alias-label-primary': '#0D0D0D',
   '--dsw-alias-label-secondary': '#5D5D5D',
-  '--dsw-alias-label-tertiary': '#8E8E8E',
-  '--dsw-alias-label-caption': '#A6A6A6',
+  '--dsw-alias-label-tertiary': '#6F6F6F',
+  '--dsw-alias-label-caption': '#767676',
   '--dsw-alias-button-primary-fill': '#0D0D0D',
   '--dsw-alias-button-primary-hover': '#2B2B2B',
   '--dsw-alias-interactive-bg-hover': 'rgba(0, 0, 0, 0.05)',
@@ -130,8 +133,8 @@ const CODEX_LIGHT = {
   '--dsw-alias-markdown-code-block-banner': '#EDEDED',
   '--dsw-alias-markdown-inline-code': '#EFEFEF',
   '--dsw-specific-sidebar-fill': '#EDEDED',
-  '--dsw-alias-state-success-primary': '#10A37F',
-  '--dsw-alias-state-warn-primary': '#C98A00',
+  '--dsw-alias-state-success-primary': '#0C7D61',
+  '--dsw-alias-state-warn-primary': '#9F6D00',
   '--dsw-alias-state-error-primary': '#D0342C',
   // surfaces dsh draws with "specific" tokens (user bubble, composer) and its blue "business" accent (active tab, send button, drop targets)
   '--dsw-specific-bubble': '#F0F0F0',
@@ -154,10 +157,11 @@ const CODEX_DARK = {
   '--dsw-alias-brand-primary': '#ECECEC',
   '--dsw-alias-brand-text': '#ECECEC',
   '--dsw-alias-link': '#7AB7FF',
+  '--dsw-alias-label-primary-foreground': '#0D0D0D',
   '--dsw-alias-label-primary': '#ECECEC',
   '--dsw-alias-label-secondary': '#9B9B9B',
-  '--dsw-alias-label-tertiary': '#737373',
-  '--dsw-alias-label-caption': '#5F5F5F',
+  '--dsw-alias-label-tertiary': '#8E8E8E',
+  '--dsw-alias-label-caption': '#818181',
   '--dsw-alias-button-primary-fill': '#ECECEC',
   '--dsw-alias-button-primary-hover': '#FFFFFF',
   '--dsw-alias-interactive-bg-hover': 'rgba(255, 255, 255, 0.06)',
@@ -197,10 +201,11 @@ const SWISS_LIGHT = {
   '--dsw-alias-brand-primary': '#15803D',
   '--dsw-alias-brand-text': '#15803D',
   '--dsw-alias-link': '#15803D',
+  '--dsw-alias-label-primary-foreground': '#FFFFFF',
   '--dsw-alias-label-primary': '#0F172A',
   '--dsw-alias-label-secondary': '#475569',
-  '--dsw-alias-label-tertiary': '#64748B',
-  '--dsw-alias-label-caption': '#94A3B8',
+  '--dsw-alias-label-tertiary': '#617187',
+  '--dsw-alias-label-caption': '#6C7786',
   '--dsw-alias-label-primary-inverted': '#FFFFFF',
   '--dsw-alias-button-primary-fill': '#15803D',
   '--dsw-alias-button-primary-hover': '#166534',
@@ -234,10 +239,11 @@ const SWISS_DARK = {
   '--dsw-alias-brand-primary': '#22C55E',
   '--dsw-alias-brand-text': '#4ADE80',
   '--dsw-alias-link': '#4ADE80',
+  '--dsw-alias-label-primary-foreground': '#0F172A',
   '--dsw-alias-label-primary': '#F8FAFC',
   '--dsw-alias-label-secondary': '#94A3B8',
-  '--dsw-alias-label-tertiary': '#64748B',
-  '--dsw-alias-label-caption': '#475569',
+  '--dsw-alias-label-tertiary': '#8C98A9',
+  '--dsw-alias-label-caption': '#748297',
   '--dsw-alias-label-primary-inverted': '#0F172A',
   '--dsw-alias-button-primary-fill': '#22C55E',
   '--dsw-alias-button-primary-hover': '#4ADE80',
@@ -249,7 +255,7 @@ const SWISS_DARK = {
   '--dsw-specific-sidebar-fill': '#020617',
   '--dsw-alias-state-success-primary': '#22C55E',
   '--dsw-alias-state-warn-primary': '#F59E0B',
-  '--dsw-alias-state-error-primary': '#EF4444',
+  '--dsw-alias-state-error-primary': '#F26B6B',
   // surfaces dsh draws with "specific" tokens (user bubble, composer) and its blue "business" accent (active tab, send button, drop targets)
   '--dsw-specific-bubble': '#272F42',
   '--dsw-specific-input-major': '#1B2336',
@@ -355,6 +361,7 @@ body[data-mywork-theme][data-mywork-theme] .dcu-root { /* doubled attribute: out
 body[data-mywork-theme][data-mywork-theme] .dcu-settings-page {
   --sp-bg: var(--dsw-alias-bg-base); --sp-nav: var(--dsw-specific-sidebar-fill); --sp-card: var(--dsw-alias-bg-layer-1);
   --sp-border: var(--dsw-alias-border-l2); --sp-text: var(--dsw-alias-label-primary); --sp-muted: var(--dsw-alias-label-secondary);
+  --dcu-sidebar-primary: var(--dsw-alias-label-primary); --dcu-sidebar-secondary: var(--dsw-alias-label-secondary); --dcu-sidebar-tertiary: var(--dsw-alias-label-tertiary);
   --sp-hover: var(--dsw-alias-interactive-bg-hover); --sp-active: var(--dsw-alias-interactive-bg-active);
 }
 body[data-mywork-theme="swiss"] .dcu-root, body[data-mywork-theme="swiss"] .dcu-settings-page { --dcu-font: "IBM Plex Sans", -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; }
@@ -372,15 +379,15 @@ body[data-mywork-theme] [class*="_sidebarCol"] { background: var(--dsw-specific-
 .mwtc-swatch { display: flex; gap: 4px; margin-bottom: 8px; }
 .mwtc-swatch span { flex: 1; height: 22px; border-radius: 6px; border: 0.5px solid rgba(127,127,127,.25); }
 .mwtc-name { font-size: 13px; font-weight: 600; }
-.mwtc-sub { font-size: 11px; color: var(--dsw-alias-label-secondary); margin-top: 2px; font-family: var(--mywork-mono, monospace); }
+.mwtc-sub { font-size: 12px; color: var(--dsw-alias-label-secondary); margin-top: 2px; font-family: var(--mywork-mono, monospace); }
 .mwtc-hint { font-size: 12px; color: var(--dsw-alias-label-secondary); margin: 6px 0 12px; line-height: 1.6; }
 .mwtc-title { font-size: 13px; font-weight: 600; margin: 14px 0 4px; }
 .mwtc-zoom { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
-.mwtc-zoom input[type=range] { flex: 1; min-width: 160px; accent-color: var(--dsw-alias-brand-primary); }
-.mwtc-zoom .val { font-family: var(--mywork-mono, monospace); font-size: 12px; min-width: 44px; text-align: right; }
+.mwtc-zoom input[type=range] { flex: 1; min-width: 160px; height: 24px; accent-color: var(--dsw-alias-brand-primary); }
+.mwtc-zoom .val { font-family: var(--mywork-mono, monospace); font-size: 12px; min-width: 44px; text-align: right; margin-right: 8px; font-variant-numeric: tabular-nums; }
 .mwtc-zbtn { border: 0.5px solid var(--dsw-alias-border-l2); background: transparent; color: var(--dsw-alias-label-primary); border-radius: 8px; padding: 4px 10px; cursor: pointer; font: inherit; font-size: 12px; }
 .mwtc-zbtn:hover { background: var(--dsw-alias-interactive-bg-hover); }
-.mwtc-zbtn.on { border-color: var(--dsw-alias-brand-primary); color: var(--dsw-alias-brand-primary); }
+.mwtc-zbtn.on { border-color: var(--dsw-alias-brand-primary); color: var(--dsw-alias-brand-text, var(--dsw-alias-label-primary)); font-weight: 600; }
 `
 
 // ---------------------------------------------------------------------------
@@ -394,7 +401,7 @@ const zh = {
   scheme: '明暗方案',
   current: '当前',
   zoom: '界面缩放',
-  zoomHint: '整体放大 / 缩小侧栏、按钮和文字（本浏览器记忆）。会话正文的字号和行距请用 设置 → 常规 → 字号大小（12–17 px），缩放不改变行距比例。',
+  zoomHint: '整体放大 / 缩小侧栏、按钮和文字（本浏览器记忆）。会话正文的字号和行距请用 设置 → 常规 → 字号大小（12–17 px），缩放不改变行距比例。', zoomOut: '缩小', zoomIn: '放大',
   reset: '重置',
 }
 const en = {
@@ -404,7 +411,7 @@ const en = {
   scheme: 'Color scheme',
   current: 'current',
   zoom: 'UI zoom',
-  zoomHint: 'Scale the whole UI (sidebar, buttons, text); remembered in this browser. For the conversation text size use Settings → General → Font size (12–17 px).',
+  zoomHint: 'Scale the whole UI (sidebar, buttons, text); remembered in this browser. For the conversation text size use Settings → General → Font size (12–17 px).', zoomOut: 'Zoom out', zoomIn: 'Zoom in',
   reset: 'Reset',
 }
 
@@ -556,10 +563,10 @@ exports.apply = function apply(ctx) {
       h('div', { className: 'mwtc-title' }, t('zoom')),
       h('div', { className: 'mwtc-hint' }, t('zoomHint')),
       h('div', { className: 'mwtc-zoom' },
-        h('button', { className: 'mwtc-zbtn', onClick: () => setZoom(zoom - 5) }, '−'),
-        h('input', { type: 'range', min: ZOOM_MIN, max: ZOOM_MAX, step: 5, value: zoom, onChange: (e) => setZoom(Number(e.target.value)) }),
-        h('button', { className: 'mwtc-zbtn', onClick: () => setZoom(zoom + 5) }, '+'),
-        h('span', { className: 'val' }, zoom + '%'),
+        h('button', { className: 'mwtc-zbtn', 'aria-label': t('zoomOut'), title: t('zoomOut'), onClick: () => setZoom(zoom - 5) }, '−'),
+        h('input', { type: 'range', 'aria-label': t('zoom'), min: ZOOM_MIN, max: ZOOM_MAX, step: 5, value: zoom, onChange: (e) => setZoom(Number(e.target.value)) }),
+        h('button', { className: 'mwtc-zbtn', 'aria-label': t('zoomIn'), title: t('zoomIn'), onClick: () => setZoom(zoom + 5) }, '+'),
+        h('output', { className: 'val', 'aria-live': 'polite' }, zoom + '%'),
         [90, 100, 110, 125].map((n) => h('button', { key: n, className: 'mwtc-zbtn' + (zoom === n ? ' on' : ''), onClick: () => setZoom(n) }, n === 100 ? t('reset') : n + '%')),
       ),
     )

@@ -419,17 +419,17 @@ const CSS = `
 .mwr-row.off{opacity:.55}
 .mwr-main{flex:1;min-width:0}
 .mwr-title{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mwr-meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:11px;color:var(--dsw-alias-label-secondary);margin-top:2px}
+.mwr-meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--dsw-alias-label-secondary);margin-top:2px}
 .mwr-pill{background:var(--dsw-alias-bg-layer-2);border-radius:5px;padding:0 6px;line-height:17px}
 .mwr-pill.due{color:var(--dsw-alias-state-warn-primary)}
-.mwr-note{font-size:11.5px;color:var(--dsw-alias-label-secondary);margin-top:2px;white-space:pre-wrap}
+.mwr-note{font-size:12px;color:var(--dsw-alias-label-secondary);margin-top:2px;white-space:pre-wrap}
 .mwr-acts{display:flex;gap:2px;flex:none}
 .mwr-mini{border:0;background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer;font-size:12px;padding:0 6px;height:24px;display:inline-flex;align-items:center;gap:4px;border-radius:6px;font-family:inherit}
 .mwr-mini:hover{background:var(--dsw-alias-interactive-bg-active);color:var(--dsw-alias-label-primary)}
 .mwr-mini.danger{color:var(--dsw-alias-state-error-primary)}
 .mwr-form{padding:10px 12px;border-top:0.5px solid var(--dsw-alias-border-l2);display:flex;flex-direction:column;gap:6px}
 .mwr-in{width:100%;box-sizing:border-box;background:var(--dsw-alias-bg-layer-2);border:0.5px solid var(--dsw-alias-border-l2);border-radius:8px;padding:6px 9px;font:inherit;color:inherit}
-.mwr-in:focus{outline:none;border-color:var(--dsw-alias-brand-primary)}
+.mwr-in:focus{outline:none;border-color:var(--dsw-alias-brand-primary);box-shadow:0 0 0 2px color-mix(in srgb,var(--dsw-alias-brand-primary) 35%,transparent)}
 .mwr-line{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 .mwr-line .mwr-in{width:auto;flex:1;min-width:90px}
 .mwr-seg{display:inline-flex;border:0.5px solid var(--dsw-alias-border-l2);border-radius:8px;overflow:hidden}
@@ -438,10 +438,10 @@ const CSS = `
 .mwr-wd{display:flex;gap:3px}
 .mwn-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .mwn-select{flex:1;min-width:200px;height:35px;padding:0 10px;border-radius:12px;border:0.5px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);color:inherit;font:inherit;font-size:13.3px}
-.mwn-select:focus{outline:none;border-color:var(--dsw-alias-brand-primary)}
+.mwn-select:focus{outline:none;border-color:var(--dsw-alias-brand-primary);box-shadow:0 0 0 2px color-mix(in srgb,var(--dsw-alias-brand-primary) 35%,transparent)}
 .mwn-hint{font-size:12px;color:var(--dsw-alias-label-secondary);line-height:1.5}
 .mwn-chip svg{width:14px;height:14px}
-.mwn-chip{white-space:nowrap}
+.mwn-chip{white-space:nowrap;min-height:24px;color:var(--dsw-alias-label-primary)}
 .dsh-st-card-foot{flex-wrap:wrap;row-gap:6px}
 .mwr-wd button{width:26px;height:26px;border-radius:50%;corner-shape:round;border:0.5px solid var(--dsw-alias-border-l2);background:transparent;color:inherit;cursor:pointer;font-size:11px;padding:0}
 .mwr-wd button.on{background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-inverted,#fff);border-color:transparent}
@@ -452,13 +452,13 @@ const CSS = `
 .mwr-toast{pointer-events:auto;width:340px;max-width:calc(100vw - 32px);background:var(--dsw-alias-bg-overlay,var(--dsw-alias-bg-layer-1));color:var(--dsw-alias-label-primary);border-radius:12px;box-shadow:var(--dsw-elevation-prominent,0 10px 40px rgba(0,0,0,.28));padding:12px 14px;display:flex;gap:10px;align-items:flex-start;animation:mwr-in .25s ease}
 .mwr-toast .ic{color:var(--dsw-alias-brand-primary);padding-top:2px}
 .mwr-toast .tt{font-weight:600}
-.mwr-toast .ts{font-size:11.5px;color:var(--dsw-alias-label-secondary);margin-top:2px}
+.mwr-toast .ts{font-size:12px;color:var(--dsw-alias-label-secondary);margin-top:2px}
 .mwr-toast .mwr-primary{padding:4px 10px;font-size:12px;align-self:center}
 @keyframes mwr-in{from{transform:translateY(-8px);opacity:0}to{transform:none;opacity:1}}
 .mwr-set{display:flex;flex-direction:column;gap:10px;font-size:13px}
 .mwr-set .row{display:flex;align-items:center;gap:10px}
 .mwr-set .row .lab{width:140px;color:var(--dsw-alias-label-secondary)}
-.mwr-set code{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:var(--dsw-alias-label-secondary)}
+.mwr-set code{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--dsw-alias-label-secondary)}
 `
 
 function injectStyles() {
@@ -655,7 +655,7 @@ exports.apply = function apply(ctx) {
       ),
       h('div', { className: 'mwr-acts' },
         h('button', { className: 'mwr-mini', title: r.enabled ? t('pause') : t('enable'), onClick: () => update(r.id, { enabled: !r.enabled }) }, r.enabled ? icon('pause', { size: 13 }) : icon('play', { size: 13 })),
-        h('button', { className: 'mwr-mini danger', onClick: () => { if (confirm) remove(r.id); else setConfirm(true) } }, confirm ? t('confirm') : icon('x', { size: 13 })),
+        h('button', { className: 'mwr-mini danger', title: confirm ? t('confirm') : t('remove'), 'aria-label': confirm ? t('confirm') : t('remove'), onClick: () => { if (confirm) remove(r.id); else setConfirm(true) } }, confirm ? t('confirm') : icon('x', { size: 13 })),
       ),
     )
   }
@@ -692,7 +692,7 @@ exports.apply = function apply(ctx) {
     }
     const seg = (id, label) => h('button', { type: 'button', className: kind === id ? 'on' : '', onClick: () => setKind(id) }, label)
     return h('div', { className: 'mwr-form' },
-      h('input', { className: 'mwr-in', placeholder: d.placeholder, value: title, onChange: (e) => setTitle(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter') submit() } }),
+      h('input', { className: 'mwr-in', placeholder: d.placeholder, 'aria-label': d.placeholder, value: title, onChange: (e) => setTitle(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter') submit() } }),
       h('div', { className: 'mwr-line' },
         h('div', { className: 'mwr-seg' }, seg('once', d.once), seg('daily', d.daily), seg('weekly', d.weekly), seg('interval', d.interval)),
       ),
@@ -703,10 +703,10 @@ exports.apply = function apply(ctx) {
         kind === 'interval' ? h('span', null, d.minutes) : null,
         kind === 'weekly' ? h('div', { className: 'mwr-wd' }, [1, 2, 3, 4, 5, 6, 7].map((n) => h('button', { key: n, type: 'button', className: days.includes(n) ? 'on' : '', onClick: () => setDays(days.includes(n) ? days.filter((x) => x !== n) : days.concat([n]).sort()) }, d.weekdays[n - 1]))) : null,
       ),
-      h('input', { className: 'mwr-in', placeholder: d.note, value: note, onChange: (e) => setNote(e.target.value) }),
+      h('input', { className: 'mwr-in', placeholder: d.note, 'aria-label': d.note, value: note, onChange: (e) => setNote(e.target.value) }),
       imChats.length ? h('div', { className: 'mwr-line', style: { fontSize: 12 } },
         h('label', { style: { display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer' } }, h('input', { type: 'checkbox', checked: toIm, onChange: (e) => setToIm(e.target.checked) }), d.toIm),
-        toIm ? h('select', { className: 'mwr-in', style: { flex: 1 }, value: imTarget, onChange: (e) => setImTarget(e.target.value) }, imChats.length === 1 ? null : h('option', { value: '' }, lang() === 'zh' ? '请选择聊天' : 'choose a chat'), imChats.map((c) => h('option', { key: c.sessionId, value: c.sessionId }, `${c.platform} · ${c.channelName} · ${c.title}`))) : null) : null,
+        toIm ? h('select', { className: 'mwr-in', 'aria-label': d.toIm, style: { flex: 1 }, value: imTarget, onChange: (e) => setImTarget(e.target.value) }, imChats.length === 1 ? null : h('option', { value: '' }, lang() === 'zh' ? '请选择聊天' : 'choose a chat'), imChats.map((c) => h('option', { key: c.sessionId, value: c.sessionId }, `${c.platform} · ${c.channelName} · ${c.title}`))) : null) : null,
       err ? h('div', { className: 'mwr-err' }, err) : null,
       h('div', { className: 'mwr-line' }, h('span', { style: { flex: 1 } }), h('button', { className: 'mwr-primary', disabled: busy || !title.trim(), onClick: submit }, d.add)),
     )

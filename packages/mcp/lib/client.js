@@ -132,7 +132,7 @@ const en = {
 const CSS = `
 .mwm{display:flex;flex-direction:column;gap:14px;font-size:13px;color:var(--dsw-alias-label-primary)}
 .mwm-hint{color:var(--dsw-alias-label-secondary);line-height:1.6}
-.mwm-hint code{font-family:ui-monospace,Menlo,monospace;font-size:11.5px}
+.mwm-hint code{font-family:ui-monospace,Menlo,monospace;font-size:12px}
 .mwm-head{display:flex;align-items:center;gap:8px}
 .mwm-head h3{margin:0;font-size:14px;font-weight:600;flex:1}
 .mwm-list{display:flex;flex-direction:column;gap:8px}
@@ -143,8 +143,8 @@ const CSS = `
 .mwm-pill{font-size:11px;font-weight:500;border-radius:999px;padding:1px 8px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-secondary)}
 .mwm-pill.ok{color:var(--dsw-alias-state-success-primary)}
 .mwm-pill.warn{color:var(--dsw-alias-state-warn-primary)}
-.mwm-sub{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:var(--dsw-alias-label-secondary);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mwm-tools{font-size:11.5px;color:var(--dsw-alias-label-tertiary,var(--dsw-alias-label-secondary));margin-top:4px;line-height:1.5}
+.mwm-sub{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--dsw-alias-label-secondary);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mwm-tools{font-size:12px;color:var(--dsw-alias-label-secondary);margin-top:4px;line-height:1.5}
 .mwm-acts{display:flex;gap:2px;flex:none}
 .mwm-mini{border:0;background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer;font-size:12px;padding:0 6px;height:24px;display:inline-flex;align-items:center;gap:4px;border-radius:6px;font-family:inherit}
 .mwm-mini:hover{background:var(--dsw-alias-interactive-bg-active);color:var(--dsw-alias-label-primary)}
@@ -154,13 +154,13 @@ const CSS = `
 .mwm-form .full{grid-column:1 / -1}
 .mwm-form label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--dsw-alias-label-secondary)}
 .mwm-in{width:100%;box-sizing:border-box;background:var(--dsw-alias-bg-layer-2);border:0.5px solid var(--dsw-alias-border-l2);border-radius:8px;padding:6px 9px;font:inherit;color:var(--dsw-alias-label-primary)}
-.mwm-in:focus{outline:none;border-color:var(--dsw-alias-brand-primary)}
+.mwm-in:focus{outline:none;border-color:var(--dsw-alias-brand-primary);box-shadow:0 0 0 2px color-mix(in srgb,var(--dsw-alias-brand-primary) 35%,transparent)}
 textarea.mwm-in{font-family:ui-monospace,Menlo,monospace;font-size:12px;min-height:64px;resize:vertical}
 .mwm-seg{display:inline-flex;border:0.5px solid var(--dsw-alias-border-l2);border-radius:8px;overflow:hidden;width:max-content}
 .mwm-seg button{border:0;background:transparent;color:var(--dsw-alias-label-secondary);padding:5px 10px;cursor:pointer;font:inherit;font-size:12px}
 .mwm-seg button.on{background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-inverted,#fff)}
 .mwm-row{display:flex;gap:8px;align-items:center;justify-content:flex-end}
-.mwm-primary{border:0;border-radius:8px;background:var(--dsw-alias-button-primary-fill,var(--dsw-alias-brand-primary));color:var(--dsw-alias-label-primary-inverted,#fff);padding:6px 14px;cursor:pointer;font:inherit;font-weight:600}
+.mwm-primary{border:0;border-radius:8px;background:var(--dsw-alias-button-primary-fill,var(--dsw-alias-brand-primary));color:var(--dsw-alias-label-primary-foreground,var(--dsw-alias-label-primary-inverted,#fff));padding:6px 14px;cursor:pointer;font:inherit;font-weight:600}
 .mwm-primary:disabled{opacity:.5;cursor:default}
 .mwm-err{color:var(--dsw-alias-state-error-primary);font-size:12px;white-space:pre-wrap}
 .mwm-ok{color:var(--dsw-alias-state-success-primary);font-size:12px}
@@ -284,7 +284,7 @@ exports.apply = function apply(ctx) {
         : h(Card, { key: r.id, r, onEdit: (rec) => setEditing(rec) }))),
       h('div', { className: 'mwm-head' }, h('h3', null, t('importTitle'))),
       h('div', { className: 'mwm-hint' }, t('importHint')),
-      h('textarea', { className: 'mwm-in', value: importText, onChange: (e) => setImportText(e.target.value), placeholder: '{ "mcpServers": { "github": { "command": "npx", "args": ["-y", "@modelcontextprotocol/server-github"], "env": { "GITHUB_TOKEN": "…" } } } }' }),
+      h('textarea', { className: 'mwm-in', 'aria-label': t('importTitle'), value: importText, onChange: (e) => setImportText(e.target.value), placeholder: '{ "mcpServers": { "github": { "command": "npx", "args": ["-y", "@modelcontextprotocol/server-github"], "env": { "GITHUB_TOKEN": "…" } } } }' }),
       h('div', { className: 'mwm-row' }, importMsg ? h('span', { className: 'mwm-ok' }, importMsg) : null, h('button', { className: 'mwm-primary', disabled: !importText.trim(), onClick: doImport }, t('importBtn'))),
       importErr ? h('div', { className: 'mwm-err' }, importErr) : null,
     )

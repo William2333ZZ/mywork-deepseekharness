@@ -29,7 +29,7 @@ const zh = {
   nav: '浏览器', bookmarks: '书签', addCurrent: '收藏当前页', noBookmarks: '还没有书签。', name: '名称', url: '网址（http/https）', add: '添加',
   up: '上移', down: '下移', del: '删除', edit: '重命名', save: '保存', openLive: '在实时浏览器打开', openSys: '用系统浏览器打开',
   status: '状态', running: '运行中', stopped: '未运行', engine: '内核', port: 'DevTools 端口', headless: '无头', yes: '是', no: '否', tabs: '标签页', dataFile: '书签文件',
-  omniPlaceholder: '搜索或输入网址', goTo: '前往', searchWith: '用 %e 搜索', fromHistory: '历史', fromBookmarks: '书签', searchEngine: '地址栏搜索引擎', searchEngineHint: '地址栏里输入的不是网址时，用它搜索。网址（如 github.com）直接打开，书签名也可以直接输。', history: '地址栏历史', historyCount: '%n 条', clearHistory: '清除历史', cleared: '已清除',
+  omniPlaceholder: '搜索或输入网址', tabs: '标签页', liveView: '实时浏览器画面：可直接点击、滚动、输入，按 Ctrl/Cmd+L 跳到地址栏', goTo: '前往', searchWith: '用 %e 搜索', fromHistory: '历史', fromBookmarks: '书签', searchEngine: '地址栏搜索引擎', searchEngineHint: '地址栏里输入的不是网址时，用它搜索。网址（如 github.com）直接打开，书签名也可以直接输。', history: '地址栏历史', historyCount: '%n 条', clearHistory: '清除历史', cleared: '已清除',
   help: '后台 Chrome 由本插件拉起，模型通过 Playwright MCP 操作它；它每次导航都会自动在右侧栏展示。模型可用 open_url / quick_links 工具，你可用 /open <网址或书签名> 命令。',
 }
 const en = {
@@ -41,7 +41,7 @@ const en = {
   nav: 'Browser', bookmarks: 'Bookmarks', addCurrent: 'Bookmark this page', noBookmarks: 'No bookmarks yet.', name: 'Name', url: 'URL (http/https)', add: 'Add',
   up: 'Up', down: 'Down', del: 'Delete', edit: 'Rename', save: 'Save', openLive: 'Open in live browser', openSys: 'Open in system browser',
   status: 'Status', running: 'running', stopped: 'not running', engine: 'Engine', port: 'DevTools port', headless: 'Headless', yes: 'yes', no: 'no', tabs: 'Tabs', dataFile: 'Bookmarks file',
-  omniPlaceholder: 'Search or type a URL', goTo: 'Go to', searchWith: 'Search with %e', fromHistory: 'History', fromBookmarks: 'Bookmarks', searchEngine: 'Address-bar search engine', searchEngineHint: 'Used when what you type is not an address. Addresses (github.com) open directly; a bookmark name works too.', history: 'Address-bar history', historyCount: '%n entries', clearHistory: 'Clear history', cleared: 'cleared',
+  omniPlaceholder: 'Search or type a URL', tabs: 'Tabs', liveView: 'Live browser view: click, scroll and type directly; Ctrl/Cmd+L jumps to the address bar', goTo: 'Go to', searchWith: 'Search with %e', fromHistory: 'History', fromBookmarks: 'Bookmarks', searchEngine: 'Address-bar search engine', searchEngineHint: 'Used when what you type is not an address. Addresses (github.com) open directly; a bookmark name works too.', history: 'Address-bar history', historyCount: '%n entries', clearHistory: 'Clear history', cleared: 'cleared',
   help: 'This plugin starts the background Chrome; the model drives it through Playwright MCP, and every navigation is shown in the right sidebar automatically. The model can use the open_url / quick_links tools, you can type /open <url or bookmark name>.',
 }
 
@@ -52,7 +52,7 @@ const CSS = `
 .mwb-bar select{flex:1;min-width:0}
 .mwb-bar select{background:var(--dsw-alias-bg-layer-2);border:0.5px solid var(--dsw-alias-border-l2);border-radius:8px;color:inherit;font:inherit;font-size:12px;padding:3px 6px}
 .mwb-in{flex:1;min-width:120px;background:var(--dsw-alias-bg-layer-2);border:0.5px solid var(--dsw-alias-border-l2);border-radius:8px;padding:4px 8px;font:inherit;font-size:12px;color:inherit;font-family:ui-monospace,Menlo,monospace}
-.mwb-in:focus{outline:none;border-color:var(--dsw-alias-brand-primary)}
+.mwb-in:focus{outline:none;border-color:var(--dsw-alias-brand-primary);box-shadow:0 0 0 2px color-mix(in srgb,var(--dsw-alias-brand-primary) 35%,transparent)}
 .mwb-omni{position:relative;flex:1;min-width:140px;display:flex}
 .mwb-omni .mwb-in{width:100%;font-family:inherit;font-size:12.5px;padding-left:26px}
 .mwb-omni .lead{position:absolute;left:8px;top:50%;transform:translateY(-50%);color:var(--dsw-alias-label-tertiary,var(--dsw-alias-label-secondary));pointer-events:none;display:inline-flex}
@@ -72,7 +72,7 @@ const CSS = `
 /* width/height 100%: the page viewport equals the pane in SCREEN px; under UI zoom the pane's CSS box is larger than that, so the frame must scale to the box (1 page px = 1 screen px) instead of stopping at its intrinsic size. */
 .mwb-img{width:100%;height:100%;object-fit:contain;object-position:top left;display:block;cursor:default;user-select:none;-webkit-user-drag:none}
 .mwb-msg{flex:1;display:flex;flex-direction:column;gap:10px;align-items:center;justify-content:center;padding:24px;text-align:center;color:var(--dsw-alias-label-secondary);line-height:1.7;font-size:12.5px}
-.mwb-foot{flex:none;font-size:11px;color:var(--dsw-alias-label-tertiary,var(--dsw-alias-label-secondary));padding:3px 8px;border-top:0.5px solid var(--dsw-alias-border-l2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mwb-foot{flex:none;font-size:12px;color:var(--dsw-alias-label-secondary);padding:3px 8px;border-top:0.5px solid var(--dsw-alias-border-l2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mwb-composer{display:inline-flex;align-items:center;justify-content:center;background:transparent;border:0;border-radius:8px;width:28px;height:28px;padding:0;cursor:pointer;color:var(--dsw-alias-label-secondary)}
 .mwb-composer:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}
 .mwb-bm{position:relative;display:inline-flex}
@@ -85,15 +85,15 @@ const CSS = `
 .mwb-empty{padding:8px;color:var(--dsw-alias-label-secondary)}
 .mwb-set{font-size:13px;display:flex;flex-direction:column;gap:10px}
 .mwb-hint{color:var(--dsw-alias-label-secondary);line-height:1.6}
-.mwb-hint code{font-family:ui-monospace,Menlo,monospace;font-size:11.5px}
+.mwb-hint code{font-family:ui-monospace,Menlo,monospace;font-size:12px}
 .mwb-title{font-size:13px;font-weight:600;margin-top:6px}
 .mwb-kv{display:grid;grid-template-columns:140px 1fr;gap:4px 10px;align-items:center}
 .mwb-kv .k{color:var(--dsw-alias-label-secondary)}
-.mwb-kv .v{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mwb-kv .v{font-family:ui-monospace,Menlo,monospace;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mwb-row{display:flex;gap:8px;align-items:center;padding:6px 8px;border-radius:8px}
 .mwb-row:hover{background:var(--dsw-alias-interactive-bg-hover)}
 .mwb-row .nm{font-weight:600;min-width:120px}
-.mwb-row .u{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-secondary);font-family:ui-monospace,Menlo,monospace;font-size:11.5px}
+.mwb-row .u{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-secondary);font-family:ui-monospace,Menlo,monospace;font-size:12px}
 .mwb-mini{border:0;background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer;font-size:12px;padding:0 6px;height:24px;display:inline-flex;align-items:center;gap:4px;border-radius:6px;font-family:inherit}
 .mwb-mini:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-active);color:var(--dsw-alias-label-primary)}
 .mwb-mini:disabled{opacity:.4;cursor:default}
@@ -265,7 +265,7 @@ exports.apply = function apply(ctx) {
     const ic = (kind) => icon(kind === 'search' ? 'search' : kind === 'history' ? 'history' : kind === 'bookmark' ? 'bookmark' : 'globe', { size: 13 })
     return h('div', { className: 'mwb-omni' },
       h('span', { className: 'lead' }, icon(isUrl || !typed ? 'globe' : 'search', { size: 13 })),
-      h('input', { ref: inputRef, className: 'mwb-in', placeholder: t('omniPlaceholder'), value: focused ? draft : prettyUrlClient(draft), spellCheck: false, autoComplete: 'off',
+      h('input', { ref: inputRef, className: 'mwb-in', placeholder: t('omniPlaceholder'), 'aria-label': t('omniPlaceholder'), value: focused ? draft : prettyUrlClient(draft), spellCheck: false, autoComplete: 'off',
         onChange, onKeyDown,
         onMouseDown: () => { if (document.activeElement !== inputRef.current) selectAllPending.current = true },
         onMouseUp: (e) => { if (selectAllPending.current) { e.preventDefault(); selectAllPending.current = false; try { e.target.select() } catch { /* ignore */ } } },
@@ -430,7 +430,7 @@ exports.apply = function apply(ctx) {
     }
     return h('div', { className: 'mwb' },
       h('div', { className: 'mwb-bar' },
-        h('select', { value: target || '', onChange: (e) => { setFollow(false); setTarget(e.target.value || null) }, title: 'tabs' },
+        h('select', { value: target || '', onChange: (e) => { setFollow(false); setTarget(e.target.value || null) }, title: t('tabs'), 'aria-label': t('tabs') },
           status.targets.length === 0 ? h('option', { value: '' }, '—') : null,
           status.targets.map((x) => h('option', { key: x.id, value: x.id }, (x.title || hostOf(x.url) || 'about:blank').slice(0, 40)))),
         h('button', { className: 'mwb-b', title: t('newTab'), onClick: newTab }, icon('plus', { size: 14 })),
@@ -447,7 +447,7 @@ exports.apply = function apply(ctx) {
       ),
       status.targets.length === 0 || !target
         ? h('div', { className: 'mwb-msg' }, t('noTabs'))
-        : h('div', { ref: viewRef, className: 'mwb-view', tabIndex: 0, onKeyDown, onPaste, onContextMenu: (e) => e.preventDefault() },
+        : h('div', { ref: viewRef, className: 'mwb-view', tabIndex: 0, 'aria-label': t('liveView'), onKeyDown, onPaste, onContextMenu: (e) => e.preventDefault() },
           frame ? h('img', { ref: imgRef, className: 'mwb-img', src: 'data:image/jpeg;base64,' + frame.data, draggable: false, onMouseDown, onMouseUp, onMouseMove, onWheel, alt: '' }) : h('div', { className: 'mwb-msg' }, conn === 'connecting' ? t('starting') : conn)),
       h('div', { className: 'mwb-foot' }, (current ? (current.title ? current.title + ' · ' : '') + current.url : '') + (conn.startsWith('error') ? ' · ' + conn : '') + ' · ' + t('hint')),
     )
@@ -548,7 +548,7 @@ exports.apply = function apply(ctx) {
       h('div', { className: 'mwb-title' }, t('searchEngine')),
       h('div', { className: 'mwb-hint' }, t('searchEngineHint')),
       prefs ? h('div', { className: 'mwb-form' },
-        h('select', { className: 'mwb-in', style: { flex: 'none', width: 180 }, value: prefs.searchEngine, onChange: (e) => setEngine(e.target.value) }, prefs.engines.map((e) => h('option', { key: e.id, value: e.id }, e.name))),
+        h('select', { className: 'mwb-in', 'aria-label': t('searchEngine'), style: { flex: 'none', width: 180 }, value: prefs.searchEngine, onChange: (e) => setEngine(e.target.value) }, prefs.engines.map((e) => h('option', { key: e.id, value: e.id }, e.name))),
         h('span', { className: 'mwb-hint' }, t('history') + ' · ' + t('historyCount').replace('%n', String(prefs.historyCount))),
         h('button', { className: 'mwb-mini framed danger', disabled: !prefs.historyCount, onClick: clearHistory }, icon('trash', { size: 12 }), t('clearHistory')),
         msg ? h('span', { className: 'mwb-hint' }, msg) : null,
@@ -566,8 +566,8 @@ exports.apply = function apply(ctx) {
         h('button', { className: 'mwb-mini danger', title: t('del'), onClick: () => bmRemove(it.id) }, icon('trash', { size: 13 })),
       ))),
       h('div', { className: 'mwb-form' },
-        h('input', { className: 'mwb-in', placeholder: t('name'), value: nm, onChange: (e) => setNm(e.target.value) }),
-        h('input', { className: 'mwb-in', placeholder: t('url'), value: url, onChange: (e) => setUrl(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter') add() } }),
+        h('input', { className: 'mwb-in', placeholder: t('name'), 'aria-label': t('name'), value: nm, onChange: (e) => setNm(e.target.value) }),
+        h('input', { className: 'mwb-in', placeholder: t('url'), 'aria-label': t('url'), value: url, onChange: (e) => setUrl(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter') add() } }),
         h('button', { className: 'mwb-primary', disabled: !normalizeUrl(url), onClick: add }, t('add')),
       ),
       err ? h('div', { className: 'mwb-err' }, err) : null,

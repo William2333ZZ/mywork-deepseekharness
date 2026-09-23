@@ -142,11 +142,11 @@ exports.apply = function apply(ctx) {
       h('div', { className: 'hint' }, t('hint')),
       chats.length === 0 ? h('div', { className: 'hint' }, t('none')) : null,
       h('div', { className: 'row' }, h('span', null, t('target')),
-        h('select', { value: target, onChange: (e) => setTarget(e.target.value) },
+        h('select', { 'aria-label': t('target'), value: target, onChange: (e) => setTarget(e.target.value) },
           chats.length === 1 ? null : h('option', { value: '' }, t('choose')),
           chats.map((c) => h('option', { key: c.sessionId, value: c.sessionId }, `${c.platform} · ${c.channelName} · ${c.title}`))),
         h('button', { className: 'mini', onClick: load }, t('refresh'))),
-      h('textarea', { value: text, placeholder: t('placeholder'), onChange: (e) => setText(e.target.value) }),
+      h('textarea', { value: text, placeholder: t('placeholder'), 'aria-label': t('placeholder'), onChange: (e) => setText(e.target.value) }),
       h('div', { className: 'row', style: { justifyContent: 'flex-end', marginTop: 8 } }, ok ? h('span', { className: 'ok' }, ok) : null, h('button', { className: 'btn', disabled: busy || !text.trim() || !target, onClick: submit }, icon('send', { size: 13 }), t('send'))),
       err ? h('div', { className: 'err' }, err) : null,
     )

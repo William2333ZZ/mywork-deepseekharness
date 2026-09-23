@@ -12,7 +12,7 @@ body[data-ds-dark-theme] .dcu-settings-nav{--sp-text:var(--dcu-sidebar-navigatio
 .dcu-settings-back:hover,.dcu-settings-link:hover{background:var(--sp-hover)}
 .dcu-settings-search{display:flex;align-items:center;gap:8px;padding:5px 9px;margin:12px 0 18px;background:var(--sp-hover);border:1px solid transparent;border-radius:8px;color:var(--sp-muted)}
 .dcu-settings-search:focus-within{border-color:#459cff}
-.dcu-settings-search input{width:100%;min-width:0;border:0;background:transparent;color:var(--sp-text);outline:none;font-size:13px}
+.dcu-settings-search input{width:100%;min-width:0;min-height:24px;border:0;background:transparent;color:var(--sp-text);outline:none;font-size:13px}
 .dcu-settings-search input[type=search]{appearance:none;padding:0;border-radius:0;box-shadow:none;line-height:20px}
 .dcu-settings-search input:focus,.dcu-settings-search input:focus-visible{outline:none;box-shadow:none}
 .dcu-settings-search input::placeholder{color:var(--sp-muted)}

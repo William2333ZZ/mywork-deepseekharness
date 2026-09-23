@@ -93,7 +93,7 @@ const CSS = `
 .mwk-btn.primary{background:var(--dsw-alias-button-primary-fill,var(--dsw-alias-brand-primary));color:var(--dsw-alias-label-primary-inverted,#fff);border-color:transparent;font-weight:600}
 .mwk-banner{border-radius:10px;padding:9px 12px;margin:0 0 12px;font-size:12.5px;line-height:1.6;border:0.5px solid color-mix(in srgb,var(--dsw-alias-brand-primary) 40%,var(--dsw-alias-border-l2));background:color-mix(in srgb,var(--dsw-alias-brand-primary) 8%,transparent)}
 .mwk-banner.err{border-color:color-mix(in srgb,var(--dsw-alias-state-error-primary) 50%,transparent);background:color-mix(in srgb,var(--dsw-alias-state-error-primary) 8%,transparent)}
-.mwk-banner code{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;user-select:all}
+.mwk-banner code{font-family:ui-monospace,Menlo,monospace;font-size:12px;user-select:all}
 .mwk-desc{color:var(--dsw-alias-label-secondary);line-height:1.6;margin-bottom:12px}
 .mwk-group{font-size:12px;font-weight:600;color:var(--dsw-alias-label-secondary);margin:14px 0 4px;letter-spacing:.02em}
 .mwk-row{display:flex;gap:12px;align-items:flex-start;padding:10px 8px;border-radius:10px}

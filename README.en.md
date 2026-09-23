@@ -265,6 +265,10 @@ Each package builds with `node ../../scripts/build-client.mjs .` (codex-ui with 
 
 ## Changelog
 
+### Unreleased
+
+- A UI review pass against the [ui-ux-pro-max](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) checklist (`scripts/ux-audit.mjs` checks contrast, pointer targets, accessible names and minimum font size automatically): secondary / tertiary text, state colors and primary-button fills in all three styles now meet WCAG AA 4.5:1 (the Claude style's primary button went from #D97757 to #BA5A3A, dark Swiss buttons use dark text); every 11px label is now 12px; inputs get a visible focus ring; icon-only buttons, selects and textareas have accessible names; the sidebar "more" button and the zoom slider grew to 24px targets.
+
 ### 0.0.1 (2026-09-23) — first release
 
 - Codex-style sidebar and settings pages (forked from dsh-codex-ui, iframe pages removed); four starting points on the New conversation page: web research / spreadsheets and slides / scheduled tasks and reminders / WeChat · Feishu assistant.

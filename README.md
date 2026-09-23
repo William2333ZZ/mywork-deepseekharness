@@ -263,6 +263,10 @@ design-system/ ui-ux-pro-max 生成的设计系统（Swiss 风格的来源）
 
 ## 更新记录
 
+### 未发布
+
+- 按 [ui-ux-pro-max](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) 的清单做了一轮界面审视（`scripts/ux-audit.mjs` 自动检查对比度、点击目标、无障碍名称、最小字号）：三种风格的次要 / 三级文字、状态色、主按钮填充全部达到 WCAG AA 4.5:1（Claude 风格的主按钮从 #D97757 改为 #BA5A3A，深色 Swiss 的主按钮改用深色文字）；所有 11px 文字提到 12px；输入框获得可见的焦点环；图标按钮、下拉框、文本域补上无障碍名称；侧栏「更多」按钮和缩放滑块放大到 24px 点击目标。
+
 ### 0.0.1（2026-09-23）— 首个版本
 
 - Codex 风格侧栏与设置页（fork 自 dsh-codex-ui，去掉 iframe 页面），新建对话页的四个起点：上网查资料 / 做表格和演示文稿 / 定时任务与提醒 / 微信·飞书助理。

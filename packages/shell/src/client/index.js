@@ -339,8 +339,8 @@ const BRUTAL_DARK = {
 const FAMILIES = [
   { id: 'official', light: null, dark: null, label: { zh: '官方默认', en: 'Official' } },
   { id: 'claude', light: CLAUDE_LIGHT, dark: CLAUDE_DARK, label: { zh: 'Claude Code 风格', en: 'Claude Code style' } },
-  { id: 'soft', light: SOFT_LIGHT, dark: SOFT_DARK, label: { zh: '柔和高级', en: 'Soft premium' }, fonts: 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap' },
-  { id: 'minimal', light: MINIMAL_LIGHT, dark: MINIMAL_DARK, label: { zh: '极简编辑', en: 'Editorial minimal' }, fonts: 'https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500&family=Geist+Mono:wght@400;500&display=swap' },
+  { id: 'soft', light: SOFT_LIGHT, dark: SOFT_DARK, label: { zh: '柔和高级', en: 'Soft premium' }, fonts: 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap' },
+  { id: 'minimal', light: MINIMAL_LIGHT, dark: MINIMAL_DARK, label: { zh: '极简编辑', en: 'Editorial minimal' }, fonts: 'https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500&family=Noto+Sans+SC:wght@400;500;600&family=Noto+Serif+SC:wght@500;600&family=Geist+Mono:wght@400;500&display=swap' },
   { id: 'brutal', light: BRUTAL_LIGHT, dark: BRUTAL_DARK, label: { zh: '工业粗野', en: 'Industrial brutalist' }, fonts: 'https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap' },
 ]
 
@@ -433,11 +433,11 @@ body[data-mywork-theme="soft"] {
   --mywork-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --mywork-ease: cubic-bezier(0.32, 0.72, 0, 1);
   --mywork-shadow: 0 1px 2px rgba(23, 23, 28, 0.04), 0 24px 48px -24px rgba(23, 23, 28, 0.22);
-  font-family: "Plus Jakarta Sans", -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", sans-serif;
+  font-family: "Plus Jakarta Sans", "Yuanti SC", "Noto Sans SC", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", sans-serif;
 }
 body[data-ds-dark-theme][data-mywork-theme="soft"] { --mywork-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 24px 48px -24px rgba(0, 0, 0, 0.8); }
 body[data-mywork-theme="soft"] button, body[data-mywork-theme="soft"] input, body[data-mywork-theme="soft"] select, body[data-mywork-theme="soft"] textarea { font-family: inherit; }
-body[data-mywork-theme="soft"][data-mywork-theme] .dcu-root, body[data-mywork-theme="soft"][data-mywork-theme] .dcu-settings-page { --dcu-font: "Plus Jakarta Sans", -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; }
+body[data-mywork-theme="soft"][data-mywork-theme] .dcu-root, body[data-mywork-theme="soft"][data-mywork-theme] .dcu-settings-page { --dcu-font: "Plus Jakarta Sans", "Yuanti SC", "Noto Sans SC", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", sans-serif; }
 body[data-mywork-theme="soft"] [data-composer-card] { border-radius: 24px !important; box-shadow: var(--mywork-shadow) !important; }
 body[data-mywork-theme="soft"] .dcu-home-card { border-radius: 24px; background: var(--dsw-alias-bg-layer-1); box-shadow: var(--mywork-shadow); border-color: transparent; }
 body[data-mywork-theme="soft"] .dcu-home-card:hover, body[data-mywork-theme="soft"] .dcu-home-card[aria-pressed=true] { transform: translateY(-2px); border-color: transparent; }
@@ -455,12 +455,13 @@ body[data-mywork-theme="soft"] h1, body[data-mywork-theme="soft"] h2, body[data-
    Geist UI + Newsreader serif headline + Geist Mono, solid off-black primary button, invisible motion. */
 body[data-mywork-theme="minimal"] {
   --mywork-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  --mywork-serif: "Newsreader", "Songti SC", "Noto Serif CJK SC", Georgia, serif;
-  font-family: "Geist", -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", sans-serif;
+  --mywork-serif: "Newsreader", "Noto Serif SC", "Songti SC", "STSong", "SimSun", Georgia, serif;
+  font-family: "Geist", "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
 }
 body[data-mywork-theme="minimal"] button, body[data-mywork-theme="minimal"] input, body[data-mywork-theme="minimal"] select, body[data-mywork-theme="minimal"] textarea { font-family: inherit; }
-body[data-mywork-theme="minimal"][data-mywork-theme] .dcu-root, body[data-mywork-theme="minimal"][data-mywork-theme] .dcu-settings-page { --dcu-font: "Geist", -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; }
+body[data-mywork-theme="minimal"][data-mywork-theme] .dcu-root, body[data-mywork-theme="minimal"][data-mywork-theme] .dcu-settings-page { --dcu-font: "Geist", "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; }
 body[data-mywork-theme="minimal"] [data-phase=hero] [class$="_headline"] { font-family: var(--mywork-serif); font-weight: 500; letter-spacing: -0.02em; }
+body[data-mywork-theme="minimal"] .dcu-panel-head, body[data-mywork-theme="minimal"] .dcu-settings-heading h1, body[data-mywork-theme="minimal"] .mwtc-title, body[data-mywork-theme="minimal"] .dsh-st-card h3, body[data-mywork-theme="minimal"] h1, body[data-mywork-theme="minimal"] h2, body[data-mywork-theme="minimal"] .dcu-home-card span { font-family: var(--mywork-serif); font-weight: 500; letter-spacing: -0.01em; }
 body[data-mywork-theme="minimal"] [data-composer-card] { border-radius: 8px !important; box-shadow: none !important; border: 1px solid var(--dsw-alias-border-l2) !important; }
 body[data-mywork-theme="minimal"] .dcu-home-card, body[data-mywork-theme="minimal"] .mwtc-card, body[data-mywork-theme="minimal"] .mwi, body[data-mywork-theme="minimal"] .dsh-st-card { border: 1px solid var(--dsw-alias-border-l2); border-radius: 8px; background: var(--dsw-alias-bg-layer-1); box-shadow: none; }
 body[data-mywork-theme="minimal"] .dcu-home-card:hover, body[data-mywork-theme="minimal"] .dcu-home-card[aria-pressed=true] { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04); border-color: var(--dsw-alias-border-l3); }
@@ -482,12 +483,14 @@ body[data-mywork-theme="brutal"] {
   font-family: "Archivo", -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
 }
 body[data-mywork-theme="brutal"] button, body[data-mywork-theme="brutal"] input, body[data-mywork-theme="brutal"] select, body[data-mywork-theme="brutal"] textarea { font-family: inherit; }
-body[data-mywork-theme="brutal"][data-mywork-theme] .dcu-root, body[data-mywork-theme="brutal"][data-mywork-theme] .dcu-settings-page { --dcu-font: "Archivo", -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; }
+body[data-mywork-theme="brutal"][data-mywork-theme] .dcu-root, body[data-mywork-theme="brutal"][data-mywork-theme] .dcu-settings-page { --dcu-font: "Archivo", -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif; }
 body[data-mywork-theme="brutal"] #root *:not(svg):not(svg *):not([role="switch"]):not([role="switch"] *):not(input[type="checkbox"]):not(input[type="radio"]):not(img) { border-radius: 0 !important; }
 body[data-mywork-theme="brutal"] [class*="_sidebarCol"] { border-right: 2px solid var(--dsw-alias-label-primary) !important; }
 body[data-mywork-theme="brutal"] .dcu-head, body[data-mywork-theme="brutal"] .dcu-foot, body[data-mywork-theme="brutal"] .dcu-workspaces { border-color: var(--dsw-alias-label-primary) !important; }
 body[data-mywork-theme="brutal"] .dcu-wb-section-label, body[data-mywork-theme="brutal"] .mwtc-title, body[data-mywork-theme="brutal"] .dcu-settings-group-label, body[data-mywork-theme="brutal"] .dcu-menu button, body[data-mywork-theme="brutal"] .dcu-im-tab, body[data-mywork-theme="brutal"] .dcu-settings-link, body[data-mywork-theme="brutal"] .mwk-tab, body[data-mywork-theme="brutal"] .dsh-st-chip, body[data-mywork-theme="brutal"] .mwr-pill, body[data-mywork-theme="brutal"] .mwb-foot { font-family: var(--mywork-mono); text-transform: uppercase; letter-spacing: 0.08em; font-size: 12px; }
-body[data-mywork-theme="brutal"] [data-phase=hero] [class$="_headline"] { font-weight: 900; letter-spacing: -0.04em; text-transform: uppercase; }
+body[data-mywork-theme="brutal"] { --mywork-display: "Archivo", -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; }
+body[data-mywork-theme="brutal"] [data-phase=hero] [class$="_headline"] { font-family: var(--mywork-display); font-weight: 900; letter-spacing: -0.04em; text-transform: uppercase; }
+body[data-mywork-theme="brutal"] .dcu-panel-head, body[data-mywork-theme="brutal"] .dcu-home-card, body[data-mywork-theme="brutal"] .mwtc-card .mwtc-name, body[data-mywork-theme="brutal"] .dcu-wb-project-title, body[data-mywork-theme="brutal"] .dcu-settings-heading h1, body[data-mywork-theme="brutal"] .dsh-st-card h3, body[data-mywork-theme="brutal"] .ima-platform-name, body[data-mywork-theme="brutal"] h1, body[data-mywork-theme="brutal"] h2, body[data-mywork-theme="brutal"] h3 { font-family: var(--mywork-display); }
 body[data-mywork-theme="brutal"] .dcu-panel-head, body[data-mywork-theme="brutal"] h1, body[data-mywork-theme="brutal"] h2, body[data-mywork-theme="brutal"] h3 { font-weight: 800; letter-spacing: -0.02em; text-transform: uppercase; }
 body[data-mywork-theme="brutal"] [data-composer-card] { border: 2px solid var(--dsw-alias-label-primary) !important; box-shadow: 6px 6px 0 var(--dsw-alias-label-primary) !important; }
 body[data-mywork-theme="brutal"] .dcu-home-card, body[data-mywork-theme="brutal"] .mwtc-card, body[data-mywork-theme="brutal"] .mwi, body[data-mywork-theme="brutal"] .dsh-st-card, body[data-mywork-theme="brutal"] .ima-platform { border: 1px solid var(--dsw-alias-label-primary); background: var(--dsw-alias-bg-layer-1); box-shadow: none; }
@@ -500,13 +503,21 @@ body[data-mywork-theme="brutal"] .dcu-wb-session.dcu-wb-selected, body[data-mywo
 body[data-mywork-theme="brutal"] pre { border: 1px solid var(--dsw-alias-label-primary); }
 body[data-mywork-theme="brutal"] button, body[data-mywork-theme="brutal"] [role="button"], body[data-mywork-theme="brutal"] a { transition: background-color 80ms linear, color 80ms linear, box-shadow 80ms linear; }
 body[data-mywork-theme="brutal"] :focus-visible { outline: 2px solid var(--dsw-alias-brand-primary); outline-offset: 0; }
+/* brutalist type runs one step smaller: dense telemetry, not display */
+:root:has(body[data-mywork-theme="brutal"]) { --dsh-content-font-size: 13px; }
+body[data-mywork-theme="brutal"] .dcu-root { font-size: 13px; }
+body[data-mywork-theme="brutal"] .dcu-wb-project-title, body[data-mywork-theme="brutal"] .dcu-wb-session-title, body[data-mywork-theme="brutal"] .dcu-menu button, body[data-mywork-theme="brutal"] .dcu-footer-link, body[data-mywork-theme="brutal"] .dcu-settings-seat > button { font-size: 13px; }
+body[data-mywork-theme="brutal"] .dcu-menu button, body[data-mywork-theme="brutal"] .dcu-im-tab { font-size: 11.5px; }
+body[data-mywork-theme="brutal"] .dcu-panel-head { font-size: 16px; }
+body[data-mywork-theme="brutal"] [data-phase=hero] [class$="_headline"] { font-size: 28px; line-height: 36px; }
+body[data-mywork-theme="brutal"] .dcu-home-card { font-size: 12.5px; }
 body[data-ds-dark-theme][data-mywork-theme="brutal"]::after { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 2147483000; background: repeating-linear-gradient(0deg, transparent 0 2px, rgba(0, 0, 0, 0.16) 2px 4px); }
 @media (prefers-reduced-motion: reduce) { body[data-mywork-theme] * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; } }
 /* dsh derives every font shorthand (--dsw-font-xs-*, markdown, tables) from --dsw-font-family at :root, so a family must
    override the base variable on :root itself; body-level font-family alone leaves message text, the right-sidebar guide and
    hosted plugins on the system font. */
-:root:has(body[data-mywork-theme="soft"]) { --dsw-font-family: "Plus Jakarta Sans", -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", sans-serif; --dsw-font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace; --dsw-font-family-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
-:root:has(body[data-mywork-theme="minimal"]) { --dsw-font-family: "Geist", -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", sans-serif; --dsw-font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace; --dsw-font-family-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+:root:has(body[data-mywork-theme="soft"]) { --dsw-font-family: "Plus Jakarta Sans", "Yuanti SC", "Noto Sans SC", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", sans-serif; --dsw-font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace; --dsw-font-family-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+:root:has(body[data-mywork-theme="minimal"]) { --dsw-font-family: "Geist", "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; --dsw-font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace; --dsw-font-family-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
 :root:has(body[data-mywork-theme="brutal"]) { --dsw-font-family: "Archivo", -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif; --dsw-font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace; --dsw-font-family-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
 /* Theme switch: one 220ms colour cross-fade instead of a hard cut; class is set by the shell for ~280ms. */
 body.mywork-theming, body.mywork-theming * { transition: background-color 220ms ease, color 220ms ease, border-color 220ms ease, fill 220ms ease, box-shadow 220ms ease !important; }

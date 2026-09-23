@@ -505,6 +505,9 @@ body[data-mywork-theme="brutal"] button, body[data-mywork-theme="brutal"] [role=
 body[data-mywork-theme="brutal"] :focus-visible { outline: 2px solid var(--dsw-alias-brand-primary); outline-offset: 0; }
 body[data-ds-dark-theme][data-mywork-theme="brutal"]::after { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 2147483000; background: repeating-linear-gradient(0deg, transparent 0 2px, rgba(0, 0, 0, 0.16) 2px 4px); }
 @media (prefers-reduced-motion: reduce) { body[data-mywork-theme] * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; } }
+/* Theme switch: one 220ms colour cross-fade instead of a hard cut; class is set by the shell for ~280ms. */
+body.mywork-theming, body.mywork-theming * { transition: background-color 220ms ease, color 220ms ease, border-color 220ms ease, fill 220ms ease, box-shadow 220ms ease !important; }
+@media (prefers-reduced-motion: reduce) { body.mywork-theming, body.mywork-theming * { transition: none !important; } }
 /* Every family: the sidebar is its own tinted surface (warm sand / neutral grey / cool slate) with a hairline edge,
    solid on every platform (dsh blends it to 60 % on macOS, which washes the tint out). */
 body[data-mywork-theme] [class*="_sidebarCol"] { background: var(--dsw-specific-sidebar-fill) !important; border-right: 1px solid var(--dsw-alias-border-l2); }
@@ -615,8 +618,16 @@ exports.apply = function apply(ctx) {
   const subs = new Set()
   const notify = () => { subs.forEach((fn) => { try { fn() } catch { /* ignore */ } }) }
 
+  // Cross-fade colours for one beat when the user switches family / scheme (never on boot).
+  let booted = false, fadeTimer = null
+  const crossfade = () => {
+    if (!booted) return
+    document.body.classList.add('mywork-theming')
+    clearTimeout(fadeTimer); fadeTimer = setTimeout(() => document.body.classList.remove('mywork-theming'), 280)
+  }
   const applyFamily = (id) => {
     const fam = familyById(id) || FAMILIES[0]
+    crossfade()
     if (disposeLayer) { try { disposeLayer() } catch { /* ignore */ } disposeLayer = null }
     const tokens = overridesFor(fam)
     if (tokens) disposeLayer = theme.overrideTokens(PLUGIN, tokens)
@@ -642,6 +653,7 @@ exports.apply = function apply(ctx) {
 
   const chooseFamily = (id) => { applyFamily(id); writeStored(id === 'official' ? null : id) }
   const chooseScheme = (id) => {
+    crossfade()
     try { theme.setTheme(id) } catch (e) { console.error(`[${PLUGIN}] setTheme failed`, e) }
   }
 
@@ -654,6 +666,7 @@ exports.apply = function apply(ctx) {
   // Restore the remembered family right away (no event dependency).
   const stored = readStored()
   applyFamily(stored && familyById(stored) ? stored : DEFAULT_FAMILY)
+  booted = true
 
   // Re-render the settings card whenever the host theme changes.
   ctx.effect(() => ctx.on('theme/change', notify, { global: true }), `${PLUGIN}: card refresh`)

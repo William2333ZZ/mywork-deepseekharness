@@ -1,5 +1,5 @@
 /**
- * MyWork DSH — desktop shell (Electron main process).
+ * Mywork-DSH_desktop — desktop shell (Electron main process).
  *
  * The app is a thin window around DeepSeek Harness: it starts the bundled dsh with
  * the bundled Node runtime, waits for the token URL on stdout, and loads it in a
@@ -16,7 +16,7 @@ const { existsSync, mkdirSync, cpSync, readFileSync, writeFileSync, appendFileSy
 const { join, dirname } = require('node:path')
 const net = require('node:net')
 
-const APP_NAME = 'MyWork DSH'
+const APP_NAME = 'Mywork-DSH_desktop'
 const RUNTIME = join(process.resourcesPath, 'runtime')
 const IS_WIN = process.platform === 'win32'
 const NODE = join(RUNTIME, 'node', IS_WIN ? 'node.exe' : 'bin/node')

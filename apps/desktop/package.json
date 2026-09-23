@@ -1,6 +1,6 @@
 {
   "name": "mywork-dsh-desktop",
-  "productName": "MyWork DSH",
+  "productName": "Mywork-DSH_desktop",
   "version": "0.1.0",
   "private": true,
   "description": "Desktop shell for DeepSeek Harness with the MyWork Kit pre-installed (Electron window + bundled Node, dsh and Chrome for Testing).",

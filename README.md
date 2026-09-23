@@ -17,7 +17,7 @@
 
 | 方式 | 适合谁 | 怎么做 | 状态 |
 | --- | --- | --- | --- |
-| **桌面版 Windows x64**（免安装 zip） | 不想装 Node / dsh 的人 | [Releases](https://github.com/William2333ZZ/mywork-deepseekharness/releases) 下载 `MyWork-DSH-win-x64.zip` → 解压 → 双击 `MyWork DSH.exe` | 预览：未签名（首次过一次 SmartScreen），在 Mac 上交叉构建，欢迎反馈 |
+| **桌面版 Windows x64**（免安装 zip） | 不想装 Node / dsh 的人 | [Releases](https://github.com/William2333ZZ/mywork-deepseekharness/releases) 下载 `Mywork-DSH_desktop-win-x64.zip` → 解压 → 双击 `Mywork-DSH_desktop.exe` | 预览：未签名（首次过一次 SmartScreen），在 Mac 上交叉构建，欢迎反馈 |
 | **桌面版 macOS arm64**（.dmg） | Apple 芯片 Mac | `node apps/desktop/build.mjs mac-arm64 && bash apps/desktop/package-mac.sh` 自行打包 | 自行构建，未签名（首次过一次 Gatekeeper） |
 | **一条命令试用** | 机器上有 Node ≥ 24 | `git clone … && bash scripts/dev-env.sh`，不碰 `~/.dsh` | 稳定 |
 | **装进自己的 dsh** | 已经在用 dsh 的人 | `bash scripts/install.sh web && dsh web` | 稳定 |
@@ -195,7 +195,7 @@ dsh web
 `apps/desktop/` 把 dsh + 全部插件打成自包含的桌面应用：Electron 窗口壳 + 自带 Node 24 + 自带 dsh + 自带 Chrome for Testing + 预装好的 profile。dsh 作为子进程运行，窗口只加载它的地址。
 
 ```bash
-node apps/desktop/build.mjs win-x64     # → apps/desktop/dist/MyWork-DSH-win-x64.zip
+node apps/desktop/build.mjs win-x64     # → apps/desktop/dist/Mywork-DSH_desktop-win-x64.zip
 node apps/desktop/build.mjs mac-arm64 && bash apps/desktop/package-mac.sh   # → .dmg
 ```
 
@@ -203,7 +203,7 @@ Windows 包在 Mac 上交叉构建（npm `--os/--cpu` + pnpm `supportedArchitect
 
 ## 数据与权限
 
-- 所有个人数据都在 `$DSH_HOME` 下（桌面版：Windows `%APPDATA%\MyWork DSH\home`，macOS `~/Library/Application Support/MyWork DSH/home`）；套件自己的文件在 `$DSH_HOME/mywork/`：提醒 `reminders.json`、书签 `links.json`、地址栏历史 `browser-history.json`、MCP 记录 `mcp.json`、IM 通知规则 `im-notify.json`、Chrome 登录态 `chrome-profile/`。
+- 所有个人数据都在 `$DSH_HOME` 下（桌面版：Windows `%APPDATA%\Mywork-DSH_desktop\home`，macOS `~/Library/Application Support/Mywork-DSH_desktop/home`）；套件自己的文件在 `$DSH_HOME/mywork/`：提醒 `reminders.json`、书签 `links.json`、地址栏历史 `browser-history.json`、MCP 记录 `mcp.json`、IM 通知规则 `im-notify.json`、Chrome 登录态 `chrome-profile/`。
 - API key、dsh 登录（`.credentials.yaml`）、IM 账号登录态（`dsh-im-connect/`）也在同一目录，重启和升级都保留；换机器把目录拷走即可（含明文 key，注意保管）。
 - 安装包里不含任何账号信息；每台机器首次启动自己填 key、自己扫码。
 - 浏览器内安装插件 = 在你机器上跑 pnpm。远程 / 共享部署请在 profile patch 里把 kit 配成 `allowInstall: false`。

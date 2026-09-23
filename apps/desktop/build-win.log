@@ -1,30 +1,17 @@
 
 == MyWork DSH desktop build: win-x64
 
-downloading https://github.com/electron/electron/releases/download/v44.4.3/electron-v44.4.3-win32-x64.zip
-$ curl -L --fail --retry 3 -o /Volumes/KESU/deepseek_harness_projects/Mywork_deepseekharness/apps/desktop/.cache/electron-v44.4.3-win32-x64.zip.part https://github.com/electron/electron/releases/download/v44.4.3/electron-v44.4.3-win32-x64.zip
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:01 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:01 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:01 --:--:--     0
-  0  150M    0 16375    0     0   6527      0  6:44:05  0:00:02  6:44:03  6527  0  150M    0  399k    0     0   117k      0  0:21:55  0:00:03  0:21:52  428k  1  150M    1 2668k    0     0   605k      0  0:04:15  0:00:04  0:04:11 1398k  5  150M    5 8988k    0     0  1640k      0  0:01:34  0:00:05  0:01:29 3018k  9  150M    9 13.8M    0     0  2193k      0  0:01:10  0:00:06  0:01:04 3576k 10  150M   10 15.9M    0     0  2120k      0  0:01:12  0:00:07  0:01:05 3142k 15  150M   15 23.1M    0     0  2816k      0  0:00:54  0:00:08  0:00:46 4654k 19  150M   19 30.0M    0     0  3267k      0  0:00:47  0:00:09  0:00:38 5613k 24  150M   24 36.8M    0     0  3627k      0  0:00:42  0:00:10  0:00:32 5838k 28  150M   28 43.7M    0     0  3924k      0  0:00:39  0:00:11  0:00:28 6200k 32  150M   32 49.1M    0     0  4054k      0  0:00:38  0:00:12  0:00:26 7215k 36  150M   36 54.4M    0     0  4109k      0  0:00:37  0:00:13  0:00:24 6218k 39  150M   39 58.9M    0     0  4188k      0  0:00:36  0:00:14  0:00:22 5921k 43  150M   43 65.7M    0     0  4369k      0  0:00:35  0:00:15  0:00:20 5913k 46  150M   46 69.4M    0     0  4310k      0  0:00:35  0:00:16  0:00:19 5172k 51  150M   51 77.9M    0     0  4588k      0  0:00:33  0:00:17  0:00:16 5911k 55  150M   55 83.7M    0     0  4658k      0  0:00:33  0:00:18  0:00:15 6197k 60  150M   60 90.6M    0     0  4780k      0  0:00:32  0:00:19  0:00:13 6485k 62  150M   62 94.4M    0     0  4738k      0  0:00:32  0:00:20  0:00:12 5877k 68  150M   68  102M    0     0  4918k      0  0:00:31  0:00:21  0:00:10 6964k 72  150M   72  109M    0     0  5012k      0  0:00:30  0:00:22  0:00:08 6487k 77  150M   77  116M    0     0  5087k      0  0:00:30  0:00:23  0:00:07 6667k 80  150M   80  120M    0     0  5066k      0  0:00:30  0:00:24  0:00:06 6171k 82  150M   82  124M    0     0  4990k      0  0:00:30  0:00:25  0:00:05 5993k 84  150M   84  127M    0     0  4922k      0  0:00:31  0:00:26  0:00:05 4938k 86  150M   86  130M    0     0  4824k      0  0:00:32  0:00:27  0:00:05 4046k 90  150M   90  136M    0     0  4912k      0  0:00:31  0:00:28  0:00:03 4087k 93  150M   93  141M    0     0  4917k      0  0:00:31  0:00:29  0:00:02 4192k 97  150M   97  146M    0     0  4942k      0  0:00:31  0:00:30  0:00:01 4687k100  150M  100  150M    0     0  4930k      0  0:00:31  0:00:31 --:--:-- 4975k
-downloading https://nodejs.org/dist/v24.21.0/node-v24.21.0-win-x64.zip
-$ curl -L --fail --retry 3 -o /Volumes/KESU/deepseek_harness_projects/Mywork_deepseekharness/apps/desktop/.cache/node-v24.21.0-win-x64.zip.part https://nodejs.org/dist/v24.21.0/node-v24.21.0-win-x64.zip
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0 35.8M    0 77306    0     0  40980      0  0:15:17  0:00:01  0:15:16 40967  0 35.8M    0  303k    0     0   105k      0  0:05:47  0:00:02  0:05:45  105k  2 35.8M    2  982k    0     0   233k      0  0:02:37  0:00:04  0:02:33  233k  9 35.8M    9 3408k    0     0   678k      0  0:00:54  0:00:05  0:00:49  678k 13 35.8M   13 5089k    0     0   861k      0  0:00:42  0:00:05  0:00:37 1014k 23 35.8M   23 8636k    0     0  1264k      0  0:00:29  0:00:06  0:00:23 1730k 32 35.8M   32 11.8M    0     0  1543k      0  0:00:23  0:00:07  0:00:16 2376k 41 35.8M   41 14.8M    0     0  1694k      0  0:00:21  0:00:08  0:00:13 2977k 45 35.8M   45 16.1M    0     0  1688k      0  0:00:21  0:00:09  0:00:12 2743k 46 35.8M   46 16.6M    0     0  1571k      0  0:00:23  0:00:10  0:00:13 2421k 56 35.8M   56 20.1M    0     0  1658k      0  0:00:22  0:00:12  0:00:10 2140k 56 35.8M   56 20.1M    0     0  1561k      0  0:00:23  0:00:13  0:00:10 1587k 64 35.8M   64 23.2M    0     0  1699k      0  0:00:21  0:00:14  0:00:07 1707k 67 35.8M   67 24.3M    0     0  1676k      0  0:00:21  0:00:14  0:00:07 1653k 74 35.8M   74 26.6M    0     0  1721k      0  0:00:21  0:00:15  0:00:06 2047k 84 35.8M   84 30.3M    0     0  1849k      0  0:00:19  0:00:16  0:00:03 2387k 91 35.8M   91 32.6M    0     0  1839k      0  0:00:19  0:00:18  0:00:01 2582k 98 35.8M   98 35.4M    0     0  1855k      0  0:00:19  0:00:19 --:--:-- 2247k100 35.8M  100 35.8M    0     0  1877k      0  0:00:19  0:00:19 --:--:-- 2522k
-downloading https://storage.googleapis.com/chrome-for-testing-public/153.0.8010.52/win64/chrome-win64.zip
-$ curl -L --fail --retry 3 -o /Volumes/KESU/deepseek_harness_projects/Mywork_deepseekharness/apps/desktop/.cache/chrome-win64.zip.part https://storage.googleapis.com/chrome-for-testing-public/153.0.8010.52/win64/chrome-win64.zip
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0  195M    0 17894    0     0  16330      0  3:29:22  0:00:01  3:29:21 16326  0  195M    0  461k    0     0   221k      0  0:15:05  0:00:02  0:15:03  221k  2  195M    2 5119k    0     0  1660k      0  0:02:00  0:00:03  0:01:57 1660k  6  195M    6 11.8M    0     0  2973k      0  0:01:07  0:00:04  0:01:03 2973k  8  195M    8 17.3M    0     0  3469k      0  0:00:57  0:00:05  0:00:52 4019k 12  195M   12 24.8M    0     0  4185k      0  0:00:47  0:00:06  0:00:41 5100k 15  195M   15 30.2M    0     0  4311k      0  0:00:46  0:00:07  0:00:39 5990k 18  195M   18 36.1M    0     0  4520k      0  0:00:44  0:00:08  0:00:36 6248k 20  195M   20 40.7M    0     0  4598k      0  0:00:43  0:00:09  0:00:34 5926k 24  195M   24 47.6M    0     0  4834k      0  0:00:41  0:00:10  0:00:31 6235k 26  195M   26 52.4M    0     0  4804k      0  0:00:41  0:00:11  0:00:30 5546k 29  195M   29 58.3M    0     0  4947k      0  0:00:40  0:00:12  0:00:28 5876k 31  195M   31 60.6M    0     0  4652k      0  0:00:43  0:00:13  0:00:30 4862k 34  195M   34 68.0M    0     0  4946k      0  0:00:40  0:00:14  0:00:26 5578k 38  195M   38 74.8M    0     0  5082k      0  0:00:39  0:00:15  0:00:24 5580k 40  195M   40 79.6M    0     0  5069k      0  0:00:39  0:00:16  0:00:23 5672k 43  195M   43 85.4M    0     0  4994k      0  0:00:40  0:00:17  0:00:23 5100k 45  195M   45 88.4M    0     0  5005k      0  0:00:40  0:00:18  0:00:22 5996k 49  195M   49 97.2M    0     0  5220k      0  0:00:38  0:00:19  0:00:19 5990k 52  195M   52  103M    0     0  5282k      0  0:00:37  0:00:20  0:00:17 5883k 55  195M   55  109M    0     0  5302k      0  0:00:37  0:00:21  0:00:16 6051k 59  195M   59  116M    0     0  5381k      0  0:00:37  0:00:22  0:00:15 6866k 62  195M   62  122M    0     0  5437k      0  0:00:36  0:00:23  0:00:13 7009k 66  195M   66  129M    0     0  5506k      0  0:00:36  0:00:24  0:00:12 6601k 69  195M   69  136M    0     0  5567k      0  0:00:35  0:00:25  0:00:10 6714k 73  195M   73  143M    0     0  5621k      0  0:00:35  0:00:26  0:00:09 6963k 75  195M   75  148M    0     0  5565k      0  0:00:35  0:00:27  0:00:08 6339k 78  195M   78  152M    0     0  5569k      0  0:00:35  0:00:28  0:00:07 6176k 81  195M   81  158M    0     0  5588k      0  0:00:35  0:00:29  0:00:06 5982k 83  195M   83  163M    0     0  5570k      0  0:00:35  0:00:30  0:00:05 5583k 86  195M   86  168M    0     0  5551k      0  0:00:36  0:00:31  0:00:05 5185k 88  195M   88  172M    0     0  5500k      0  0:00:36  0:00:32  0:00:04 5125k 91  195M   91  179M    0     0  5547k      0  0:00:36  0:00:33  0:00:03 5421k 95  195M   95  186M    0     0  5589k      0  0:00:35  0:00:34  0:00:01 5595k 98  195M   98  192M    0     0  5626k      0  0:00:35  0:00:35 --:--:-- 5966k100  195M  100  195M    0     0  5646k      0  0:00:35  0:00:35 --:--:-- 6323k
+cached electron-v44.4.3-win32-x64.zip
+cached node-v24.21.0-win-x64.zip
+cached chrome-win64.zip
 
 == building in-repo plugins
 shell$ node /Volumes/KESU/deepseek_harness_projects/Mywork_deepseekharness/scripts/build-client.mjs .
-[build-client] dsh-mywork-shell: lib/client.js (19306 source bytes)
+[build-client] dsh-mywork-shell: lib/client.js (31405 source bytes)
 schedule$ node /Volumes/KESU/deepseek_harness_projects/Mywork_deepseekharness/scripts/build-client.mjs .
-[build-client] dsh-mywork-schedule: lib/client.js (27835 source bytes)
+[build-client] dsh-mywork-schedule: lib/client.js (39376 source bytes)
 browser$ node /Volumes/KESU/deepseek_harness_projects/Mywork_deepseekharness/scripts/build-client.mjs .
-[build-client] dsh-mywork-browser: lib/client.js (31231 source bytes)
+[build-client] dsh-mywork-browser: lib/client.js (43973 source bytes)
 kit$ node /Volumes/KESU/deepseek_harness_projects/Mywork_deepseekharness/scripts/build-client.mjs .
 [build-client] dsh-mywork-kit: lib/client.js (14998 source bytes)
 mcp$ node /Volumes/KESU/deepseek_harness_projects/Mywork_deepseekharness/scripts/build-client.mjs .
@@ -32,32 +19,22 @@ mcp$ node /Volumes/KESU/deepseek_harness_projects/Mywork_deepseekharness/scripts
 codex-ui$ pnpm run --silent build
 [34mℹ[39m [34mtsdown v0.22.14[39m powered by [91mrolldown v1.2.9[39m
 [34mℹ[39m config file: [4m/Volumes/KESU/deepseek_harness_projects/Mywork_deepseekharness/packages/codex-ui/tsdown.config.ts[24m 
-[34mℹ[39m entry: [34msrc/index.ts, src/session-title-plugin.ts[39m
+[34mℹ[39m entry: [34msrc/client/index.ts[39m
 [34mℹ[39m target: [34mes2022[39m
 [34mℹ[39m tsconfig: [34mtsconfig.json[39m
-[34mℹ[39m entry: [34msrc/client/index.ts[39m
+[34mℹ[39m entry: [34msrc/index.ts, src/session-title-plugin.ts[39m
 [34mℹ[39m target: [34mes2022[39m
 [34mℹ[39m tsconfig: [34mtsconfig.json[39m
 [34mℹ[39m Build start
 [34mℹ[39m Cleaning 5 files
 [34mℹ[39m [34m[ESM][39m [2mlib/[22m[1mindex.mjs[22m                   [2m94.86 kB[22m [2m│ gzip: 24.89 kB[22m
-[34mℹ[39m [34m[ESM][39m [2mlib/[22m[1msession-title-plugin.mjs[22m    [2m48.78 kB[22m [2m│ gzip: 15.08 kB[22m
+[34mℹ[39m [34m[ESM][39m [2mlib/[22m[1msession-title-plugin.mjs[22m    [2m48.63 kB[22m [2m│ gzip: 15.11 kB[22m
 [34mℹ[39m [34m[ESM][39m [2mlib/[22m[32m[1mindex.d.mts[22m[39m                 [2m 0.93 kB[22m [2m│ gzip:  0.64 kB[22m
 [34mℹ[39m [34m[ESM][39m [2mlib/[22m[32m[1msession-title-plugin.d.mts[22m[39m  [2m 0.38 kB[22m [2m│ gzip:  0.31 kB[22m
-[34mℹ[39m [34m[ESM][39m 4 files, total: 144.95 kB
-[32m✔[39m Build complete in [32m10142ms[39m
-[34mℹ[39m [33m[CJS][39m [2mlib/[22m[1mclient.js[22m  [2m552.49 kB[22m [2m│ gzip: 127.60 kB[22m
-[34mℹ[39m [33m[CJS][39m 1 files, total: 552.49 kB
-../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/context.mjs (2:0) [33m[MODULE_LEVEL_DIRECTIVE] [0mThe semantics of the module level directive "use client" in "../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/context.mjs" may not be preserved when bundling.
-   [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/context.mjs:2:1 [38;5;246m][0m
-   [38;5;246m│[0m
- [38;5;246m2 │[0m "use client";
- [38;5;240m  │[0m ──────┬──────  
- [38;5;240m  │[0m       ╰──────── module level directive may not be preserved
- [38;5;240m  │[0m 
- [38;5;240m  │[0m [38;5;115mHelp[0m: For more information, see https://rolldown.rs/in-depth/directives#other-directives
-[38;5;246m───╯[0m
-
+[34mℹ[39m [34m[ESM][39m 4 files, total: 144.81 kB
+[32m✔[39m Build complete in [32m13223ms[39m
+[34mℹ[39m [33m[CJS][39m [2mlib/[22m[1mclient.js[22m  [2m551.97 kB[22m [2m│ gzip: 127.39 kB[22m
+[34mℹ[39m [33m[CJS][39m 1 files, total: 551.97 kB
 ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/Icon.mjs (2:0) [33m[MODULE_LEVEL_DIRECTIVE] [0mThe semantics of the module level directive "use client" in "../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/Icon.mjs" may not be preserved when bundling.
    [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/Icon.mjs:2:1 [38;5;246m][0m
    [38;5;246m│[0m
@@ -68,215 +45,23 @@ codex-ui$ pnpm run --silent build
  [38;5;240m  │[0m [38;5;115mHelp[0m: For more information, see https://rolldown.rs/in-depth/directives#other-directives
 [38;5;246m───╯[0m
 
-[33m[PLUGIN_TIMINGS] [0mPlugin hooks ran for 945ms of this 13.5s build (7%).
+../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/context.mjs (2:0) [33m[MODULE_LEVEL_DIRECTIVE] [0mThe semantics of the module level directive "use client" in "../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/context.mjs" may not be preserved when bundling.
+   [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/context.mjs:2:1 [38;5;246m][0m
+   [38;5;246m│[0m
+ [38;5;246m2 │[0m "use client";
+ [38;5;240m  │[0m ──────┬──────  
+ [38;5;240m  │[0m       ╰──────── module level directive may not be preserved
+ [38;5;240m  │[0m 
+ [38;5;240m  │[0m [38;5;115mHelp[0m: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[38;5;246m───╯[0m
+
+[33m[PLUGIN_TIMINGS] [0mPlugin hooks ran for 2.1s of this 22.7s build (9%).
 1 hook is listed without a time. Its calls overlapped, so the time inside one call includes work from other calls. To find its cost, profile the build with `node --cpu-prof`:
   - tsdown:deps resolveId (18 calls)
 See https://rolldown.rs/reference/InputOptions.checks#plugintimings for more details.
 
-[32m✔[39m Build complete in [32m15515ms[39m
-packed: dsh-mywork-codex-ui, dsh-mywork-shell, dsh-mywork-schedule, dsh-mywork-browser, dsh-mywork-mcp, dsh-mywork-kit
+[32m✔[39m Build complete in [32m24286ms[39m
+packed: dsh-mywork-codex-ui, dsh-mywork-shell, dsh-mywork-schedule, dsh-mywork-browser, dsh-mywork-im, dsh-mywork-mcp, dsh-mywork-kit
 
 == installing @deepseek-ai/dsh for win32/x64
 dsh$ npm install @deepseek-ai/dsh@0.1.6-alpha.2 --os=win32 --cpu=x64 --omit=dev --ignore-scripts --no-audit --no-fund --loglevel=error
-
-added 486 packages in 5m
-
-== installing the profile template
-profile$ pnpm install --ignore-scripts --config.confirmModulesPurge=false
-Progress: resolved 1, reused 0, downloaded 0, added 0
-Progress: resolved 8, reused 0, downloaded 0, added 0
-Progress: resolved 8, reused 0, downloaded 1, added 0
-Progress: resolved 18, reused 0, downloaded 6, added 0
-Progress: resolved 21, reused 0, downloaded 6, added 0
-Progress: resolved 33, reused 0, downloaded 6, added 0
-Progress: resolved 44, reused 0, downloaded 6, added 0
-Progress: resolved 60, reused 0, downloaded 6, added 0
-Progress: resolved 97, reused 0, downloaded 6, added 0
-Progress: resolved 111, reused 0, downloaded 6, added 0
-Progress: resolved 130, reused 0, downloaded 6, added 0
-Progress: resolved 148, reused 0, downloaded 6, added 0
-Progress: resolved 156, reused 0, downloaded 6, added 0
-Progress: resolved 158, reused 0, downloaded 6, added 0
-Progress: resolved 160, reused 0, downloaded 6, added 0
- WARN  Issues with peer dependencies found
-.
-├─┬ @deepseek-ai/dsh-browser-use 0.1.6-alpha.2
-│ ├── ✕ missing peer @deepseek-ai/cordis@^4.0.2
-│ └── ✕ missing peer @deepseek-ai/dsh-brand@^0.1.6-alpha.2
-├─┬ @deepseek-ai/dsh-experimental-browser-use-playwright-mcp 0.1.6-alpha.2
-│ ├── ✕ missing peer @deepseek-ai/cordis@^4.0.2
-│ ├── ✕ missing peer @deepseek-ai/dsh-agent@^0.1.6-alpha.2
-│ ├── ✕ missing peer @deepseek-ai/dsh-tools@^0.1.6-alpha.2
-│ ├── ✕ missing peer @deepseek-ai/dsh-system-prompt@^0.1.6-alpha.2
-│ └─┬ @deepseek-ai/dsh-experimental-browser-use-runtime 0.1.6-alpha.2
-│   ├── ✕ missing peer @deepseek-ai/cordis@^4.0.2
-│   ├── ✕ missing peer @deepseek-ai/dsh-agent@^0.1.6-alpha.2
-│   ├── ✕ missing peer @deepseek-ai/dsh-tools@^0.1.6-alpha.2
-│   └── ✕ missing peer @deepseek-ai/dsh-system-prompt@^0.1.6-alpha.2
-├─┬ @michengai/dsh-automation 0.1.45
-│ ├── ✕ missing peer @deepseek-ai/cordis@">=4.0.1 <5.0.0"
-│ ├── ✕ missing peer @deepseek-ai/dsh-agent@"0.1.0-rc.8 || 0.1.1-rc.2 || 0.1.2-rc.1 || 0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-│ ├── ✕ missing peer @deepseek-ai/dsh-tools@"0.1.0-rc.8 || 0.1.1-rc.2 || 0.1.2-rc.1 || 0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-│ ├── ✕ missing peer react@^18.2.0
-│ ├── ✕ missing peer @deepseek-ai/dsh-llm@"0.1.0-rc.8 || 0.1.1-rc.2 || 0.1.2-rc.1 || 0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-│ ├── ✕ missing peer @deepseek-ai/dsh-session@"0.1.0-rc.8 || 0.1.1-rc.2 || 0.1.2-rc.1 || 0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-│ ├── ✕ missing peer @deepseek-ai/dsh-workspace@"0.1.0-rc.8 || 0.1.1-rc.2 || 0.1.2-rc.1 || 0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-│ ├── ✕ missing peer @deepseek-ai/dsh-agent-presets@"0.1.0-rc.8 || 0.1.1-rc.2 || 0.1.2-rc.1 || 0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-│ ├── ✕ missing peer @deepseek-ai/dsh-client-locale@"0.1.0-rc.8 || 0.1.1-rc.2 || 0.1.2-rc.1 || 0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-│ ├── ✕ missing peer @deepseek-ai/dsh-user-approval@"0.1.0-rc.8 || 0.1.1-rc.2 || 0.1.2-rc.1 || 0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-│ ├── ✕ missing peer @deepseek-ai/dsh-host-webserver@"0.1.0-rc.8 || 0.1.1-rc.2 || 0.1.2-rc.1 || 0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-│ ├── ✕ missing peer @deepseek-ai/dsh-storage-domain@"0.1.0-rc.8 || 0.1.1-rc.2 || 0.1.2-rc.1 || 0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-│ ├── ✕ missing peer @deepseek-ai/dsh-client-connection@"0.1.0-rc.8 || 0.1.1-rc.2 || 0.1.2-rc.1 || 0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-│ ├── ✕ missing peer @deepseek-ai/dsh-client-ui-settings@"0.1.0-rc.8 || 0.1.1-rc.2 || 0.1.2-rc.1 || 0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-│ ├── ✕ missing peer @deepseek-ai/dsh-permission-presets@"0.1.0-rc.8 || 0.1.1-rc.2 || 0.1.2-rc.1 || 0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-│ ├── ✕ missing peer @deepseek-ai/dsh-agent-default-model@"0.1.0-rc.8 || 0.1.1-rc.2 || 0.1.2-rc.1 || 0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-│ ├── ✕ missing peer @deepseek-ai/dsh-client-ui-primitives@"0.1.0-rc.8 || 0.1.1-rc.2 || 0.1.2-rc.1 || 0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-│ └── ✕ missing peer @deepseek-ai/dsh-client-ui-conversation@"0.1.0-rc.8 || 0.1.1-rc.2 || 0.1.2-rc.1 || 0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-├─┬ @michengai/dsh-im-connect 0.1.51
-│ ├── ✕ missing peer @deepseek-ai/cordis@^4.0.2
-│ ├── ✕ missing peer @deepseek-ai/dsh-agent@"0.1.2-rc.1 || 0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-│ ├── ✕ missing peer @deepseek-ai/dsh-client-locale@"0.1.2-rc.1 || 0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-│ ├── ✕ missing peer @deepseek-ai/dsh-host-webserver@"0.1.2-rc.1 || 0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-│ ├── ✕ missing peer @deepseek-ai/dsh-client-ui-settings@"0.1.2-rc.1 || 0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-│ ├── ✕ missing peer @deepseek-ai/dsh-client-ui-primitives@"0.1.2-rc.1 || 0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-│ └── ✕ missing peer @deepseek-ai/dsh-client-ui-slots@"0.1.2-rc.1 || 0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-├─┬ dsh-mywork-browser 0.1.0
-│ └── ✕ missing peer @deepseek-ai/cordis@"*"
-├─┬ dsh-mywork-codex-ui 1.1.14-mywork.1
-│ ├── ✕ missing peer @deepseek-ai/cordis@">=4.0.2 <5.0.0"
-│ ├── ✕ missing peer react@^18.2.0
-│ ├── ✕ missing peer @deepseek-ai/dsh-client-locale@">=0.1.0-rc.5 <0.2.0 || 0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-│ ├── ✕ missing peer @deepseek-ai/dsh-client-connection@">=0.1.2-rc.1 <0.2.0 || 0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-│ ├── ✕ missing peer @deepseek-ai/dsh-client-ui-settings@">=0.1.0-rc.5 <0.2.0 || 0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-│ ├── ✕ missing peer @deepseek-ai/dsh-client-ui-primitives@">=0.1.0-rc.5 <0.2.0 || 0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-│ ├── ✕ missing peer @deepseek-ai/dsh-client-ui-conversation@">=0.1.0-rc.5 <0.2.0 || 0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-│ ├── ✕ missing peer @deepseek-ai/dsh-client-ui-slots@">=0.1.0-rc.5 <0.2.0 || 0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-│ ├── ✕ missing peer react-dom@^18.2.0
-│ ├── ✕ missing peer @deepseek-ai/dsh-client-ui-input-trigger@">=0.1.0-rc.5 <0.2.0 || 0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-│ ├── ✕ missing peer @deepseek-ai/dsh-client-ui-layout@">=0.1.0-rc.5 <0.2.0 || 0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-│ ├── ✕ missing peer @deepseek-ai/dsh-client-ui-settings-general@">=0.1.0-rc.5 <0.2.0 || 0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-│ ├── ✕ missing peer @deepseek-ai/dsh-client-ui-sidebar@">=0.1.0-rc.5 <0.2.0 || 0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-│ ├── ✕ missing peer @deepseek-ai/dsh-client-ui-workspace@">=0.1.0-rc.5 <0.2.0 || 0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-│ └─┬ lucide-react 1.47.0
-│   └── ✕ missing peer react@"^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0"
-├─┬ dsh-mywork-kit 0.1.0
-│ └── ✕ missing peer @deepseek-ai/cordis@"*"
-├─┬ dsh-mywork-mcp 0.1.0
-│ └── ✕ missing peer @deepseek-ai/cordis@"*"
-├─┬ dsh-mywork-schedule 0.1.0
-│ └── ✕ missing peer @deepseek-ai/cordis@"*"
-├─┬ dsh-mywork-shell 0.1.0
-│ └── ✕ missing peer @deepseek-ai/cordis@"*"
-├─┬ dsh-univer-office 0.3.2
-│ ├── ✕ missing peer @deepseek-ai/cordis@^4.0.2
-│ ├── ✕ missing peer @deepseek-ai/dsh-tools@"^0.1.5-rc.1 || ^0.1.6-alpha.1"
-│ ├── ✕ missing peer @deepseek-ai/dsh-llm@"^0.1.5-rc.1 || ^0.1.6-alpha.1"
-│ ├── ✕ missing peer @deepseek-ai/dsh-session@"^0.1.5-rc.1 || ^0.1.6-alpha.1"
-│ ├── ✕ missing peer @deepseek-ai/dsh-host-webserver@"^0.1.5-rc.1 || ^0.1.6-alpha.1"
-│ ├── ✕ missing peer @deepseek-ai/dsh-attachment@"^0.1.5-rc.1 || ^0.1.6-alpha.1"
-│ ├── ✕ missing peer @deepseek-ai/dsh-settings@"^0.1.5-rc.1 || ^0.1.6-alpha.1"
-│ └── ✕ missing peer @deepseek-ai/dsh-skill@"^0.1.5-rc.1 || ^0.1.6-alpha.1"
-├─┬ dshmarket 1.52.0
-│ ├── ✕ missing peer @deepseek-ai/cordis@^4.0.1
-│ └── ✕ missing peer @deepseek-ai/dsh-settings@"^0.1.0-rc.7 || ^0.1.1-rc.2 || ^0.1.2-alpha.2"
-├─┬ dsh-mermaid-render 0.1.11
-│ ├── ✕ missing peer @deepseek-ai/dsh-system-prompt@^0.1.5-rc.2
-│ ├── ✕ missing peer react@"^18.2.0 || ^19.3.0"
-│ └── ✕ missing peer react-dom@"^18.2.0 || ^19.3.0"
-└─┬ dsh-chat-tidy 0.4.0
-  └── ✕ missing peer react@^18.2.0
-✕ Conflicting peer dependencies:
-  @deepseek-ai/dsh-agent
-  @deepseek-ai/dsh-host-webserver
-  @deepseek-ai/dsh-llm
-  @deepseek-ai/dsh-session
-  @deepseek-ai/dsh-tools
-Peer dependencies that should be installed:
-  @deepseek-ai/cordis@">=4.0.2 <5.0.0-0"
-  @deepseek-ai/dsh-agent-default-model@"0.1.0-rc.8 || 0.1.1-rc.2 || 0.1.2-rc.1 || 0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-  @deepseek-ai/dsh-agent-presets@"0.1.0-rc.8 || 0.1.1-rc.2 || 0.1.2-rc.1 || 0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-  @deepseek-ai/dsh-attachment@"^0.1.5-rc.1 || ^0.1.6-alpha.1"
-  @deepseek-ai/dsh-brand@^0.1.6-alpha.2
-  @deepseek-ai/dsh-client-connection@"0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-  @deepseek-ai/dsh-client-locale@"0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-  @deepseek-ai/dsh-client-ui-conversation@"0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-  @deepseek-ai/dsh-client-ui-input-trigger@">=0.1.0-rc.5 <0.2.0 || 0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-  @deepseek-ai/dsh-client-ui-layout@">=0.1.0-rc.5 <0.2.0 || 0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-  @deepseek-ai/dsh-client-ui-primitives@"0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-  @deepseek-ai/dsh-client-ui-settings-general@">=0.1.0-rc.5 <0.2.0 || 0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-  @deepseek-ai/dsh-client-ui-settings@"0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-  @deepseek-ai/dsh-client-ui-sidebar@">=0.1.0-rc.5 <0.2.0 || 0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-  @deepseek-ai/dsh-client-ui-slots@"0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-  @deepseek-ai/dsh-client-ui-workspace@">=0.1.0-rc.5 <0.2.0 || 0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-  @deepseek-ai/dsh-permission-presets@"0.1.0-rc.8 || 0.1.1-rc.2 || 0.1.2-rc.1 || 0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-  @deepseek-ai/dsh-settings@">=0.1.5 <0.2.0-0"
-  @deepseek-ai/dsh-skill@"^0.1.5-rc.1 || ^0.1.6-alpha.1"
-  @deepseek-ai/dsh-storage-domain@"0.1.0-rc.8 || 0.1.1-rc.2 || 0.1.2-rc.1 || 0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-  @deepseek-ai/dsh-system-prompt@">=0.1.6 <0.2.0-0"
-  @deepseek-ai/dsh-user-approval@"0.1.0-rc.8 || 0.1.1-rc.2 || 0.1.2-rc.1 || 0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-  @deepseek-ai/dsh-workspace@"0.1.0-rc.8 || 0.1.1-rc.2 || 0.1.2-rc.1 || 0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2"
-  react-dom@">=18.2.0 <19.0.0-0"
-  react@">=18.2.0 <19.0.0-0"
-
-Packages: +147
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Progress: resolved 161, reused 0, downloaded 6, added 0
-Progress: resolved 161, reused 1, downloaded 6, added 0
-Progress: resolved 161, reused 2, downloaded 6, added 0
-Progress: resolved 161, reused 5, downloaded 6, added 0
-Progress: resolved 161, reused 6, downloaded 6, added 0
-Progress: resolved 161, reused 7, downloaded 6, added 0
-Progress: resolved 161, reused 8, downloaded 6, added 0
-Progress: resolved 161, reused 9, downloaded 6, added 0
-Progress: resolved 161, reused 12, downloaded 6, added 0
-Progress: resolved 161, reused 13, downloaded 6, added 0
-Progress: resolved 161, reused 17, downloaded 6, added 0
-Progress: resolved 161, reused 18, downloaded 6, added 0
-Progress: resolved 161, reused 20, downloaded 6, added 0
-Progress: resolved 161, reused 23, downloaded 6, added 0
-Progress: resolved 161, reused 25, downloaded 6, added 0
-Progress: resolved 161, reused 26, downloaded 6, added 0
-Progress: resolved 161, reused 27, downloaded 6, added 0
-Progress: resolved 161, reused 28, downloaded 6, added 0
-Progress: resolved 161, reused 29, downloaded 6, added 0
-Progress: resolved 161, reused 30, downloaded 6, added 0
-Progress: resolved 161, reused 33, downloaded 6, added 0
-Progress: resolved 161, reused 35, downloaded 6, added 0
-Progress: resolved 161, reused 37, downloaded 6, added 0
-Progress: resolved 161, reused 40, downloaded 6, added 0
-Progress: resolved 161, reused 45, downloaded 6, added 0
-Progress: resolved 161, reused 48, downloaded 6, added 0
-Progress: resolved 161, reused 56, downloaded 6, added 0
-Progress: resolved 161, reused 64, downloaded 6, added 0
-Progress: resolved 161, reused 76, downloaded 6, added 0
-Progress: resolved 161, reused 92, downloaded 6, added 0
-Progress: resolved 161, reused 104, downloaded 6, added 0
-Progress: resolved 161, reused 115, downloaded 6, added 0
-Progress: resolved 161, reused 131, downloaded 6, added 1
-Progress: resolved 161, reused 135, downloaded 6, added 25
-Progress: resolved 161, reused 135, downloaded 6, added 34
-Progress: resolved 161, reused 136, downloaded 6, added 46
-Progress: resolved 161, reused 136, downloaded 6, added 77
-Progress: resolved 161, reused 136, downloaded 6, added 103
-Progress: resolved 161, reused 136, downloaded 6, added 108
-Progress: resolved 161, reused 136, downloaded 6, added 120
-Progress: resolved 161, reused 136, downloaded 6, added 139
-Progress: resolved 161, reused 136, downloaded 6, added 142
-Progress: resolved 161, reused 136, downloaded 7, added 145
-Progress: resolved 161, reused 136, downloaded 8, added 145
-Progress: resolved 161, reused 136, downloaded 8, added 146
-Progress: resolved 161, reused 137, downloaded 8, added 146
-Progress: resolved 161, reused 137, downloaded 8, added 147
-Progress: resolved 161, reused 137, downloaded 8, added 147, done
-Done in 1m 19.4s using pnpm v10.13.1
-compat patches: dsh-univer-office turnTail: list-slot id instead of chain select, dsh-univer-office PreviewCard resolves its own turn match, dsh-univer-office settings card on the alpha.2 Plugins page, dsh-univer-office settings card summary view
-
-== assembling
-$ unzip -q -o /Volumes/KESU/deepseek_harness_projects/Mywork_deepseekharness/apps/desktop/.cache/electron-v44.4.3-win32-x64.zip -d /Volumes/KESU/deepseek_harness_projects/Mywork_deepseekharness/apps/desktop/dist/win-x64/MyWork DSH
-$ unzip -q -o /Volumes/KESU/deepseek_harness_projects/Mywork_deepseekharness/apps/desktop/.cache/node-v24.21.0-win-x64.zip -d /Volumes/KESU/deepseek_harness_projects/Mywork_deepseekharness/apps/desktop/staging/node
-$ unzip -q -o /Volumes/KESU/deepseek_harness_projects/Mywork_deepseekharness/apps/desktop/.cache/chrome-win64.zip -d /Volumes/KESU/deepseek_harness_projects/Mywork_deepseekharness/apps/desktop/dist/win-x64/MyWork DSH/resources/runtime/chrome
-
-== archiving
-win-x64$ zip -q -r -X /Volumes/KESU/deepseek_harness_projects/Mywork_deepseekharness/apps/desktop/dist/MyWork-DSH-win-x64.zip MyWork DSH
-
-OK → /Volumes/KESU/deepseek_harness_projects/Mywork_deepseekharness/apps/desktop/dist/MyWork-DSH-win-x64.zip (659 MB)

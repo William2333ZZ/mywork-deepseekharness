@@ -13,3 +13,5 @@ node_modules/
 apps/desktop/.cache/
 apps/desktop/dist/
 apps/desktop/staging/
+
+apps/desktop/build-*.log

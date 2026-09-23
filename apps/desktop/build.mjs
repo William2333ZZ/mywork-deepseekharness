@@ -167,8 +167,8 @@ writeFileSync(join(T.os === 'win32' ? APP : join(DIST, target), T.os === 'win32'
   'Mywork-DSH_desktop — DeepSeek Harness + MyWork Kit（免安装）',
   '',
   T.os === 'win32'
-    ? '1. 把整个文件夹解压到任意位置（路径最好不含中文和空格以外的特殊字符），双击 "Mywork-DSH_desktop.exe"。\n2. 首次运行 Windows SmartScreen 可能拦截：点“更多信息”→“仍要运行”（应用未签名）。\n3. 首次启动会把插件环境复制到 %APPDATA%\\MyWork DSH\\ ，之后的会话、设置、书签都在那里。'
-    : '1. 把 "Mywork-DSH_desktop.app" 拖到“应用程序”。\n2. 首次打开右键 → 打开（应用未签名）。\n3. 数据在 ~/Library/Application Support/MyWork DSH/。',
+    ? '1. 把整个文件夹解压到任意位置（路径最好不含中文和空格以外的特殊字符），双击 "Mywork-DSH_desktop.exe"。\n2. 首次运行 Windows SmartScreen 可能拦截：点“更多信息”→“仍要运行”（应用未签名）。\n3. 首次启动会把插件环境复制到 %APPDATA%\\Mywork-DSH_desktop\\ ，之后的会话、设置、书签都在那里。'
+    : '1. 把 "Mywork-DSH_desktop.app" 拖到“应用程序”。\n2. 首次打开右键 → 打开（应用未签名）。\n3. 数据在 ~/Library/Application Support/Mywork-DSH_desktop/。',
   '4. 打开后到 设置 → 模型 填 DeepSeek API key。',
   '5. 自带 Chrome for Testing：实时浏览器和 Univer 截图不依赖系统 Chrome。',
   '6. 日志：数据目录下的 dsh.log。',

@@ -401,7 +401,7 @@ exports.apply = function apply(ctx) {
       refresh()
       const id = setInterval(refresh, 5000)
       const off = onActivity((ev) => {
-        if (follow && ev && (ev.type === 'created' || ev.type === 'changed') && ev.targetId && ev.url && ev.url !== 'about:blank') setTarget(ev.targetId)
+        if (follow && ev && (ev.type === 'created' || ev.type === 'changed') && ev.targetId && ev.url && ev.url !== 'about:blank' && !ev.url.startsWith(location.origin)) setTarget(ev.targetId)
         refresh()
       })
       return () => { clearInterval(id); off() }
@@ -419,12 +419,12 @@ exports.apply = function apply(ctx) {
       const el = viewRef.current
       if (!el || !target) return undefined
       let timer = null
-      const measure = () => { const r = el.getBoundingClientRect(); const next = { w: Math.floor(r.width), h: Math.floor(r.height) }; if (sizeRef.current && Math.abs(sizeRef.current.w - next.w) < 4 && Math.abs(sizeRef.current.h - next.h) < 4) return; sizeRef.current = next; sendSize(target, next.w, next.h) }
+      const measure = () => { const r = el.getBoundingClientRect(); const next = { w: Math.floor(r.width), h: Math.floor(r.height) }; if (sizeRef.current && Math.abs(sizeRef.current.w - next.w) < 4 && Math.abs(sizeRef.current.h - next.h) < 4) return; sizeRef.current = next; const info = status && status.targets ? status.targets.find((x) => x.id === target) : null; if (info && String(info.url || '').startsWith(location.origin)) return; sendSize(target, next.w, next.h) }
       const ro = new ResizeObserver(() => { if (timer) clearTimeout(timer); timer = setTimeout(measure, 250) })
       ro.observe(el)
       sizeRef.current = null; measure()
       return () => { ro.disconnect(); if (timer) clearTimeout(timer) }
-    }, [target, sendSize, running])
+    }, [target, sendSize, running, status])
 
     // SSE frames for the active target.
     React.useEffect(() => {
@@ -579,6 +579,8 @@ exports.apply = function apply(ctx) {
       let lastReveal = 0
       return onActivity((ev) => {
         if (ev.type === 'destroyed' || !ev.url || ev.url === 'about:blank') return
+        // a page showing dsh itself (screenshots, a second dsh tab) is not something to reveal
+        if (ev.url.startsWith(location.origin)) return
         const now = Date.now()
         if (now - lastReveal < 800) return
         lastReveal = now

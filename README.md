@@ -18,7 +18,7 @@
 | 方式 | 适合谁 | 怎么做 | 状态 |
 | --- | --- | --- | --- |
 | **桌面版 Windows x64**（免安装 zip） | 不想装 Node / dsh 的人 | [Releases](https://github.com/William2333ZZ/mywork-deepseekharness/releases) 下载 `Mywork-DSH_desktop-win-x64.zip` → 解压 → 双击 `Mywork-DSH_desktop.exe` | 预览：未签名（首次过一次 SmartScreen），在 Mac 上交叉构建，欢迎反馈 |
-| **桌面版 macOS arm64**（.dmg） | Apple 芯片 Mac | `node apps/desktop/build.mjs mac-arm64 && bash apps/desktop/package-mac.sh` 自行打包 | 自行构建，未签名（首次过一次 Gatekeeper） |
+| **桌面版 macOS arm64**（.dmg） | Apple 芯片 Mac | [Releases](https://github.com/William2333ZZ/mywork-deepseekharness/releases) 下载 `Mywork-DSH_desktop-mac-arm64.dmg` → 拖到「应用程序」 → 首次右键打开 | 预览：未签名（首次过一次 Gatekeeper） |
 | **一条命令试用** | 机器上有 Node ≥ 24 | `git clone … && bash scripts/dev-env.sh`，不碰 `~/.dsh` | 稳定 |
 | **装进自己的 dsh** | 已经在用 dsh 的人 | `bash scripts/install.sh web && dsh web` | 稳定 |
 

@@ -261,19 +261,16 @@ design-system/ ui-ux-pro-max 生成的设计系统（Swiss 风格的来源）
 
 ## 更新记录
 
-### 0.2.0（2026-09-22）
+### 0.0.1（2026-09-23）— 首个版本
 
-- 定时任务的 IM 通知改到每个任务自己的设定里（新建 / 编辑弹窗多一栏「运行结束发到 IM」，卡片显示当前设置）；保存失败、取消都不会写入。
-- 界面缩放重做：缩放作用在应用根节点，dsh 的浮层菜单、悬停卡片、拖动、Univer 窗口、实时浏览器在 80–150% 下全部对齐（[#2](https://github.com/William2333ZZ/mywork-deepseekharness/issues/2) [#6](https://github.com/William2333ZZ/mywork-deepseekharness/issues/6) [#7](https://github.com/William2333ZZ/mywork-deepseekharness/issues/7)）。
-- 移除 dsh-chat-tidy（[#4](https://github.com/William2333ZZ/mywork-deepseekharness/issues/4)）；折叠工具调用组上方的空白带修掉（[#3](https://github.com/William2333ZZ/mywork-deepseekharness/issues/3)）。
-- 风格切换真正换肤（[#5](https://github.com/William2333ZZ/mywork-deepseekharness/issues/5)）；新增「Swiss 开发者风格」。
-- 实时浏览器：Chrome 式地址栏，页面视口跟随面板大小，右侧栏引导入口换成和 dsh 一致的图标。
-- 新建对话页的起点改成 上网查资料 / 做表格和演示文稿 / 定时任务与提醒 / 微信·飞书助理。
-- IM 账号工作区未登记时自动修正（[#1](https://github.com/William2333ZZ/mywork-deepseekharness/issues/1)）。
-
-### 0.1.0（2026-09-21）
-
-- 首个公开版本：Codex 风格侧栏、主题与缩放、提醒与定时任务、实时浏览器、IM助理、MCP 连接器、Univer、插件市场、桌面版打包。
+- Codex 风格侧栏与设置页（fork 自 dsh-codex-ui，去掉 iframe 页面），新建对话页的四个起点：上网查资料 / 做表格和演示文稿 / 定时任务与提醒 / 微信·飞书助理。
+- 三种风格（Claude Code / Codex / Swiss 开发者）× 明暗 × 界面缩放 80–150%；缩放作用在应用根节点，浮层菜单、悬停卡片、拖动、Univer 窗口、实时浏览器在任何缩放下都对齐（[#2](https://github.com/William2333ZZ/mywork-deepseekharness/issues/2) [#5](https://github.com/William2333ZZ/mywork-deepseekharness/issues/5) [#6](https://github.com/William2333ZZ/mywork-deepseekharness/issues/6) [#7](https://github.com/William2333ZZ/mywork-deepseekharness/issues/7)）。
+- 实时浏览器：后台真实 Chrome + Playwright MCP（每个会话可用），Chrome 式地址栏（网址 / 搜索 / 历史 / 书签 / 行内补全 / Ctrl+L），页面视口跟随面板大小，书签与 `open_url` / `/open`。
+- 提醒（`/remind`、日程面板、到点弹窗 + 通知 + 提示音，可发到 IM）与定时任务（Automation）；每个定时任务自己的设定里选「运行结束发到哪个聊天」。
+- IM助理（微信 / 飞书 / 钉钉 / 企业微信 / QQ / Telegram）与主动发消息（`im_send`、`/imsend`、发送卡片）；IM 账号工作区未登记时自动修正（[#1](https://github.com/William2333ZZ/mywork-deepseekharness/issues/1)）。
+- MCP 连接器页面（应用内配置、mcpServers JSON 导入、保存即挂载）、Univer 表格 / 演示文稿、插件市场、Mermaid。
+- 移除不兼容 alpha.2 的 dsh-chat-tidy（[#4](https://github.com/William2333ZZ/mywork-deepseekharness/issues/4)）；折叠工具调用组的空白带修掉（[#3](https://github.com/William2333ZZ/mywork-deepseekharness/issues/3)）。
+- 桌面版打包（Mywork-DSH_desktop：Electron + 自带 Node / dsh / Chrome / profile）。
 
 ## 许可证
 

@@ -1,6 +1,6 @@
 {
   "name": "dsh-mywork-shell",
-  "version": "0.2.0",
+  "version": "0.0.1",
   "description": "MyWork 外观 for DeepSeek Harness Web：Claude Code / Codex 主题（覆盖 dsh 自带浅色/深色 token，明暗跟随 dsh 设置）+ 界面缩放；作为「设置 → MyWork → 外观」标签页出现。侧栏由 dsh-mywork-codex-ui 提供。",
   "license": "MIT",
   "type": "module",

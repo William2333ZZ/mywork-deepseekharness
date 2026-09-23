@@ -32,7 +32,7 @@ codex-ui$ pnpm run --silent build
 [34mℹ[39m [34m[ESM][39m [2mlib/[22m[32m[1mindex.d.mts[22m[39m                 [2m 0.93 kB[22m [2m│ gzip:  0.64 kB[22m
 [34mℹ[39m [34m[ESM][39m [2mlib/[22m[32m[1msession-title-plugin.d.mts[22m[39m  [2m 0.38 kB[22m [2m│ gzip:  0.31 kB[22m
 [34mℹ[39m [34m[ESM][39m 4 files, total: 144.81 kB
-[32m✔[39m Build complete in [32m11397ms[39m
+[32m✔[39m Build complete in [32m9132ms[39m
 [34mℹ[39m [33m[CJS][39m [2mlib/[22m[1mclient.js[22m  [2m551.97 kB[22m [2m│ gzip: 127.39 kB[22m
 [34mℹ[39m [33m[CJS][39m 1 files, total: 551.97 kB
 ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/context.mjs (2:0) [33m[MODULE_LEVEL_DIRECTIVE] [0mThe semantics of the module level directive "use client" in "../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/context.mjs" may not be preserved when bundling.
@@ -55,12 +55,12 @@ codex-ui$ pnpm run --silent build
  [38;5;240m  │[0m [38;5;115mHelp[0m: For more information, see https://rolldown.rs/in-depth/directives#other-directives
 [38;5;246m───╯[0m
 
-[33m[PLUGIN_TIMINGS] [0mPlugin hooks ran for 1.3s of this 16.7s build (8%).
+[33m[PLUGIN_TIMINGS] [0mPlugin hooks ran for 919ms of this 15.5s build (6%).
 1 hook is listed without a time. Its calls overlapped, so the time inside one call includes work from other calls. To find its cost, profile the build with `node --cpu-prof`:
   - tsdown:deps resolveId (18 calls)
 See https://rolldown.rs/reference/InputOptions.checks#plugintimings for more details.
 
-[32m✔[39m Build complete in [32m18136ms[39m
+[32m✔[39m Build complete in [32m16750ms[39m
 packed: dsh-mywork-codex-ui, dsh-mywork-shell, dsh-mywork-schedule, dsh-mywork-browser, dsh-mywork-im, dsh-mywork-mcp, dsh-mywork-kit
 
 == installing @deepseek-ai/dsh for win32/x64

@@ -1,6 +1,6 @@
 {
   "name": "dsh-mywork-im",
-  "version": "0.2.0",
+  "version": "0.0.1",
   "description": "主动向 IM 频道发消息 for DeepSeek Harness：im_send / im_chats 模型工具、HTTP API 与「IM助理」页面里的发送卡片。把内容作为转发指令投递到该聊天对应的 IM 会话（@michengai/dsh-im-connect 的映射），由它的投递链路发到微信 / 飞书 / 钉钉等；定时任务、提醒都能借此通知到手机。",
   "license": "MIT",
   "type": "module",

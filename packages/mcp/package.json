@@ -1,6 +1,6 @@
 {
   "name": "dsh-mywork-mcp",
-  "version": "0.2.0",
+  "version": "0.0.1",
   "description": "MCP 服务器配置 for DeepSeek Harness Web：在侧栏「MCP 连接器」页面里添加 / 编辑 / 停用 MCP 服务器（stdio 或 streamable-http），支持导入 Claude Desktop / Cursor 风格的 mcpServers JSON；通过 dsh 的 loader 动态生成官方 @deepseek-ai/dsh-mcp-client 条目，不重启即生效。配置在 $DSH_HOME/mywork/mcp.json。",
   "license": "MIT",
   "type": "module",

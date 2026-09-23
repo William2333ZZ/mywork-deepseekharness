@@ -3,6 +3,8 @@
 <p align="center"><b>基于 DeepSeek Harness 的个人工作台组合包：不改 dsh 本体，一切皆插件。</b></p>
 <p align="center">上网查资料、做表格和演示文稿、定时任务与提醒、微信 / 飞书助理，都跑在同一个 dsh profile 里，全程没有 iframe。</p>
 
+<p align="center">中文 · <a href="README.en.md">English</a> · <a href="https://zhuanlan.zhihu.com/p/2086048468519466606">知乎介绍文章</a></p>
+
 <p align="center">
   <a href="https://github.com/William2333ZZ/mywork-deepseekharness/releases"><img src="https://img.shields.io/github/v/release/William2333ZZ/mywork-deepseekharness?include_prereleases&label=release" alt="release"></a>
   <a href="https://github.com/deepseek-ai/deepseek-harness"><img src="https://img.shields.io/badge/dsh-0.1.6--alpha.2-blue" alt="dsh"></a>

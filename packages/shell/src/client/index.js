@@ -502,6 +502,12 @@ body[data-mywork-theme="brutal"] button, body[data-mywork-theme="brutal"] [role=
 body[data-mywork-theme="brutal"] :focus-visible { outline: 2px solid var(--dsw-alias-brand-primary); outline-offset: 0; }
 body[data-ds-dark-theme][data-mywork-theme="brutal"]::after { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 2147483000; background: repeating-linear-gradient(0deg, transparent 0 2px, rgba(0, 0, 0, 0.16) 2px 4px); }
 @media (prefers-reduced-motion: reduce) { body[data-mywork-theme] * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; } }
+/* dsh derives every font shorthand (--dsw-font-xs-*, markdown, tables) from --dsw-font-family at :root, so a family must
+   override the base variable on :root itself; body-level font-family alone leaves message text, the right-sidebar guide and
+   hosted plugins on the system font. */
+:root:has(body[data-mywork-theme="soft"]) { --dsw-font-family: "Plus Jakarta Sans", -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", sans-serif; --dsw-font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace; --dsw-font-family-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+:root:has(body[data-mywork-theme="minimal"]) { --dsw-font-family: "Geist", -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", sans-serif; --dsw-font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace; --dsw-font-family-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+:root:has(body[data-mywork-theme="brutal"]) { --dsw-font-family: "Archivo", -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif; --dsw-font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace; --dsw-font-family-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
 /* Theme switch: one 220ms colour cross-fade instead of a hard cut; class is set by the shell for ~280ms. */
 body.mywork-theming, body.mywork-theming * { transition: background-color 220ms ease, color 220ms ease, border-color 220ms ease, fill 220ms ease, box-shadow 220ms ease !important; }
 @media (prefers-reduced-motion: reduce) { body.mywork-theming, body.mywork-theming * { transition: none !important; } }

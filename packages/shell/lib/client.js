@@ -421,12 +421,15 @@ body[data-mywork-theme][data-mywork-theme] .dcu-root { /* doubled attribute: out
   --dcu-sidebar-navigation: var(--dsw-alias-label-primary); --dcu-sidebar-icon: var(--dsw-alias-label-secondary);
   --dcu-sidebar-hover: var(--dsw-alias-interactive-bg-active); --dcu-sidebar-border: var(--dsw-alias-border-l2);
   --dcu-tip-bg: var(--dsw-alias-bg-overlay);
+  /* The fork hardcodes Inter for the sidebar; under a family the sidebar uses the same font as the rest of the app (families with their own font override this below). */
+  --dcu-font: var(--dsw-font-family, -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif);
 }
 body[data-mywork-theme][data-mywork-theme] .dcu-settings-page {
   --sp-bg: var(--dsw-alias-bg-base); --sp-nav: var(--dsw-specific-sidebar-fill); --sp-card: var(--dsw-alias-bg-layer-1);
   --sp-border: var(--dsw-alias-border-l2); --sp-text: var(--dsw-alias-label-primary); --sp-muted: var(--dsw-alias-label-secondary);
   --dcu-sidebar-primary: var(--dsw-alias-label-primary); --dcu-sidebar-secondary: var(--dsw-alias-label-secondary); --dcu-sidebar-tertiary: var(--dsw-alias-label-tertiary);
   --sp-hover: var(--dsw-alias-interactive-bg-hover); --sp-active: var(--dsw-alias-interactive-bg-active);
+  --dcu-font: var(--dsw-font-family, -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif);
 }
 @media (prefers-reduced-motion: reduce) { body[data-mywork-theme="tech"] * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; } }
 
@@ -440,7 +443,7 @@ body[data-mywork-theme="soft"] {
 }
 body[data-ds-dark-theme][data-mywork-theme="soft"] { --mywork-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 24px 48px -24px rgba(0, 0, 0, 0.8); }
 body[data-mywork-theme="soft"] button, body[data-mywork-theme="soft"] input, body[data-mywork-theme="soft"] select, body[data-mywork-theme="soft"] textarea { font-family: inherit; }
-body[data-mywork-theme="soft"] .dcu-root, body[data-mywork-theme="soft"] .dcu-settings-page { --dcu-font: "Plus Jakarta Sans", -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; }
+body[data-mywork-theme="soft"][data-mywork-theme] .dcu-root, body[data-mywork-theme="soft"][data-mywork-theme] .dcu-settings-page { --dcu-font: "Plus Jakarta Sans", -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; }
 body[data-mywork-theme="soft"] [data-composer-card] { border-radius: 24px !important; box-shadow: var(--mywork-shadow) !important; }
 body[data-mywork-theme="soft"] .dcu-home-card { border-radius: 24px; background: var(--dsw-alias-bg-layer-1); box-shadow: var(--mywork-shadow); border-color: transparent; }
 body[data-mywork-theme="soft"] .dcu-home-card:hover, body[data-mywork-theme="soft"] .dcu-home-card[aria-pressed=true] { transform: translateY(-2px); border-color: transparent; }
@@ -462,7 +465,7 @@ body[data-mywork-theme="minimal"] {
   font-family: "Geist", -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", sans-serif;
 }
 body[data-mywork-theme="minimal"] button, body[data-mywork-theme="minimal"] input, body[data-mywork-theme="minimal"] select, body[data-mywork-theme="minimal"] textarea { font-family: inherit; }
-body[data-mywork-theme="minimal"] .dcu-root, body[data-mywork-theme="minimal"] .dcu-settings-page { --dcu-font: "Geist", -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; }
+body[data-mywork-theme="minimal"][data-mywork-theme] .dcu-root, body[data-mywork-theme="minimal"][data-mywork-theme] .dcu-settings-page { --dcu-font: "Geist", -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; }
 body[data-mywork-theme="minimal"] [data-phase=hero] [class$="_headline"] { font-family: var(--mywork-serif); font-weight: 500; letter-spacing: -0.02em; }
 body[data-mywork-theme="minimal"] [data-composer-card] { border-radius: 8px !important; box-shadow: none !important; border: 1px solid var(--dsw-alias-border-l2) !important; }
 body[data-mywork-theme="minimal"] .dcu-home-card, body[data-mywork-theme="minimal"] .mwtc-card, body[data-mywork-theme="minimal"] .mwi, body[data-mywork-theme="minimal"] .dsh-st-card { border: 1px solid var(--dsw-alias-border-l2); border-radius: 8px; background: var(--dsw-alias-bg-layer-1); box-shadow: none; }
@@ -485,11 +488,11 @@ body[data-mywork-theme="brutal"] {
   font-family: "Archivo", -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
 }
 body[data-mywork-theme="brutal"] button, body[data-mywork-theme="brutal"] input, body[data-mywork-theme="brutal"] select, body[data-mywork-theme="brutal"] textarea { font-family: inherit; }
-body[data-mywork-theme="brutal"] .dcu-root, body[data-mywork-theme="brutal"] .dcu-settings-page { --dcu-font: "Archivo", -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; }
+body[data-mywork-theme="brutal"][data-mywork-theme] .dcu-root, body[data-mywork-theme="brutal"][data-mywork-theme] .dcu-settings-page { --dcu-font: "Archivo", -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; }
 body[data-mywork-theme="brutal"] #root *:not(svg):not(svg *):not([role="switch"]):not([role="switch"] *):not(input[type="checkbox"]):not(input[type="radio"]):not(img) { border-radius: 0 !important; }
 body[data-mywork-theme="brutal"] [class*="_sidebarCol"] { border-right: 2px solid var(--dsw-alias-label-primary) !important; }
 body[data-mywork-theme="brutal"] .dcu-head, body[data-mywork-theme="brutal"] .dcu-foot, body[data-mywork-theme="brutal"] .dcu-workspaces { border-color: var(--dsw-alias-label-primary) !important; }
-body[data-mywork-theme="brutal"] .dcu-wb-section-label, body[data-mywork-theme="brutal"] .mwtc-title, body[data-mywork-theme="brutal"] .dcu-settings-group-label, body[data-mywork-theme="brutal"] .dcu-menu button, body[data-mywork-theme="brutal"] .dcu-settings-link, body[data-mywork-theme="brutal"] .mwk-tab, body[data-mywork-theme="brutal"] .dsh-st-chip, body[data-mywork-theme="brutal"] .mwr-pill, body[data-mywork-theme="brutal"] .mwb-foot { font-family: var(--mywork-mono); text-transform: uppercase; letter-spacing: 0.08em; font-size: 12px; }
+body[data-mywork-theme="brutal"] .dcu-wb-section-label, body[data-mywork-theme="brutal"] .mwtc-title, body[data-mywork-theme="brutal"] .dcu-settings-group-label, body[data-mywork-theme="brutal"] .dcu-menu button, body[data-mywork-theme="brutal"] .dcu-im-tab, body[data-mywork-theme="brutal"] .dcu-settings-link, body[data-mywork-theme="brutal"] .mwk-tab, body[data-mywork-theme="brutal"] .dsh-st-chip, body[data-mywork-theme="brutal"] .mwr-pill, body[data-mywork-theme="brutal"] .mwb-foot { font-family: var(--mywork-mono); text-transform: uppercase; letter-spacing: 0.08em; font-size: 12px; }
 body[data-mywork-theme="brutal"] [data-phase=hero] [class$="_headline"] { font-weight: 900; letter-spacing: -0.04em; text-transform: uppercase; }
 body[data-mywork-theme="brutal"] .dcu-panel-head, body[data-mywork-theme="brutal"] h1, body[data-mywork-theme="brutal"] h2, body[data-mywork-theme="brutal"] h3 { font-weight: 800; letter-spacing: -0.02em; text-transform: uppercase; }
 body[data-mywork-theme="brutal"] [data-composer-card] { border: 2px solid var(--dsw-alias-label-primary) !important; box-shadow: 6px 6px 0 var(--dsw-alias-label-primary) !important; }

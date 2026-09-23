@@ -264,6 +264,83 @@ const SWISS_DARK = {
   '--dsw-alias-button-info-hover': '#4ADE80',
 }
 
+/* 科技感 (ui-ux-pro-max "HUD / Sci-Fi FUI" direction, design-system/mywork-tech): near-black surfaces, one electric-blue
+   accent, Exo + Roboto Mono, fine 1px lines, glow only on primary actions. Tokens were re-tuned so every text role
+   keeps WCAG AA 4.5:1 (the generator's raw palette does not). */
+const TECH_LIGHT = {
+  '--dsw-alias-bg-base': '#F4F6FB',
+  '--dsw-alias-bg-layer-1': '#FFFFFF',
+  '--dsw-alias-bg-layer-2': '#E9EDF5',
+  '--dsw-alias-bg-layer-3': '#DFE4EE',
+  '--dsw-alias-bg-overlay': '#FFFFFF',
+  '--dsw-alias-bg-mask-1': 'rgba(15, 23, 42, 0.45)',
+  '--dsw-alias-border-l1': 'rgba(15, 23, 42, 0.08)',
+  '--dsw-alias-border-l2': 'rgba(15, 23, 42, 0.14)',
+  '--dsw-alias-border-l3': 'rgba(15, 23, 42, 0.24)',
+  '--dsw-alias-brand-primary': '#2563EB',
+  '--dsw-alias-brand-text': '#1D4ED8',
+  '--dsw-alias-link': '#1D4ED8',
+  '--dsw-alias-label-primary-foreground': '#FFFFFF',
+  '--dsw-alias-label-primary': '#0F172A',
+  '--dsw-alias-label-secondary': '#4B5565',
+  '--dsw-alias-label-tertiary': '#5F6B80',
+  '--dsw-alias-label-caption': '#606C81',
+  '--dsw-alias-label-primary-inverted': '#FFFFFF',
+  '--dsw-alias-button-primary-fill': '#2563EB',
+  '--dsw-alias-button-primary-hover': '#1D4ED8',
+  '--dsw-alias-interactive-bg-hover': 'rgba(37, 99, 235, 0.08)',
+  '--dsw-alias-interactive-bg-active': 'rgba(37, 99, 235, 0.14)',
+  '--dsw-alias-markdown-code-block': '#E9EDF5',
+  '--dsw-alias-markdown-code-block-banner': '#DFE4EE',
+  '--dsw-alias-markdown-inline-code': '#E3E8F2',
+  '--dsw-specific-sidebar-fill': '#E9EDF5',
+  '--dsw-alias-state-success-primary': '#166534',
+  '--dsw-alias-state-warn-primary': '#92400E',
+  '--dsw-alias-state-error-primary': '#B91C1C',
+  '--dsw-specific-bubble': '#E3EAFB',
+  '--dsw-specific-input-major': '#FFFFFF',
+  '--dsw-alias-state-business-primary': '#2563EB',
+  '--dsw-alias-button-info-fill': '#2563EB',
+  '--dsw-alias-button-info-hover': '#1D4ED8',
+}
+
+const TECH_DARK = {
+  '--dsw-alias-bg-base': '#0B0B10',
+  '--dsw-alias-bg-layer-1': '#15161C',
+  '--dsw-alias-bg-layer-2': '#1E1E23',
+  '--dsw-alias-bg-layer-3': '#25262E',
+  '--dsw-alias-bg-overlay': '#15161C',
+  '--dsw-alias-bg-mask-1': 'rgba(0, 0, 0, 0.65)',
+  '--dsw-alias-border-l1': 'rgba(148, 163, 184, 0.10)',
+  '--dsw-alias-border-l2': 'rgba(148, 163, 184, 0.18)',
+  '--dsw-alias-border-l3': '#3A3D48',
+  '--dsw-alias-brand-primary': '#3B82F6',
+  '--dsw-alias-brand-text': '#60A5FA',
+  '--dsw-alias-link': '#7DD3FC',
+  '--dsw-alias-label-primary-foreground': '#0B0B10',
+  '--dsw-alias-label-primary': '#F1F5F9',
+  '--dsw-alias-label-secondary': '#A6B0C3',
+  '--dsw-alias-label-tertiary': '#8A94A8',
+  '--dsw-alias-label-caption': '#7C8699',
+  '--dsw-alias-label-primary-inverted': '#0B0B10',
+  '--dsw-alias-button-primary-fill': '#3B82F6',
+  '--dsw-alias-button-primary-hover': '#60A5FA',
+  '--dsw-alias-interactive-bg-hover': 'rgba(96, 165, 250, 0.10)',
+  '--dsw-alias-interactive-bg-active': 'rgba(96, 165, 250, 0.18)',
+  '--dsw-alias-markdown-code-block': '#0F1016',
+  '--dsw-alias-markdown-code-block-banner': '#0B0B10',
+  '--dsw-alias-markdown-inline-code': '#25262E',
+  '--dsw-specific-sidebar-fill': '#08080C',
+  '--dsw-alias-state-success-primary': '#22C55E',
+  '--dsw-alias-state-warn-primary': '#F59E0B',
+  '--dsw-alias-state-error-primary': '#F87171',
+  '--dsw-specific-bubble': '#1E2230',
+  '--dsw-specific-input-major': '#15161C',
+  '--dsw-alias-state-business-primary': '#3B82F6',
+  '--dsw-alias-button-info-fill': '#3B82F6',
+  '--dsw-alias-button-info-hover': '#60A5FA',
+}
+
 /**
  * Theme families. Each family is one override layer with BOTH palettes, so
  * it follows the host's light / dark / system preference (which dsh itself
@@ -274,7 +351,11 @@ const FAMILIES = [
   { id: 'claude', light: CLAUDE_LIGHT, dark: CLAUDE_DARK, label: { zh: 'Claude Code 风格', en: 'Claude Code style' } },
   { id: 'codex', light: CODEX_LIGHT, dark: CODEX_DARK, label: { zh: 'Codex 风格', en: 'Codex style' } },
   { id: 'swiss', light: SWISS_LIGHT, dark: SWISS_DARK, label: { zh: 'Swiss 开发者风格', en: 'Swiss developer' }, fonts: 'https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap' },
+  { id: 'tech', light: TECH_LIGHT, dark: TECH_DARK, label: { zh: '科技感', en: 'Tech' }, fonts: 'https://fonts.googleapis.com/css2?family=Exo:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap' },
 ]
+
+/** Family used until the user picks one (the kit's own look). */
+const DEFAULT_FAMILY = 'tech'
 
 const SCHEMES = [
   { id: 'system', label: { zh: '跟随系统', en: 'System' } },
@@ -367,6 +448,38 @@ body[data-mywork-theme][data-mywork-theme] .dcu-settings-page {
 body[data-mywork-theme="swiss"] .dcu-root, body[data-mywork-theme="swiss"] .dcu-settings-page { --dcu-font: "IBM Plex Sans", -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; }
 /* send button icon must stay readable on a green fill */
 body[data-mywork-theme="swiss"] [data-composer-card] [class*="_primary"] { color: var(--dsw-alias-label-primary-inverted) !important; }
+/* 科技感 (tech): Exo UI + Roboto Mono, faint blueprint grid on the sidebar, 1px accent lines, glow on primary actions,
+   gradient headline. All motion is transitions only and switches off under prefers-reduced-motion. */
+body[data-mywork-theme="tech"] {
+  --mywork-mono: "Roboto Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --mywork-glow: 0 0 0 1px color-mix(in srgb, var(--dsw-alias-brand-primary) 45%, transparent), 0 0 18px color-mix(in srgb, var(--dsw-alias-brand-primary) 30%, transparent);
+  --mywork-grid: color-mix(in srgb, var(--dsw-alias-brand-primary) 13%, transparent);
+  font-family: "Exo", -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+}
+body[data-mywork-theme="tech"] button, body[data-mywork-theme="tech"] input, body[data-mywork-theme="tech"] select, body[data-mywork-theme="tech"] textarea { font-family: inherit; }
+body[data-mywork-theme="tech"] .dcu-root, body[data-mywork-theme="tech"] .dcu-settings-page { --dcu-font: "Exo", -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; }
+body[data-mywork-theme="tech"] [class*="_sidebarCol"], body[data-mywork-theme="tech"] .dcu-settings-nav {
+  background-image: linear-gradient(var(--mywork-grid) 1px, transparent 1px), linear-gradient(90deg, var(--mywork-grid) 1px, transparent 1px) !important;
+  background-size: 24px 24px, 24px 24px !important; background-color: var(--dsw-specific-sidebar-fill) !important;
+}
+body[data-mywork-theme="tech"] .dcu-root { background: transparent; }
+body[data-mywork-theme="tech"] .dcu-wb-section-label, body[data-mywork-theme="tech"] .mwtc-title, body[data-mywork-theme="tech"] .dcu-settings-group-label { letter-spacing: 0.08em; text-transform: uppercase; font-size: 12px; }
+body[data-mywork-theme="tech"] [data-phase=hero] [class$="_headline"] { background: linear-gradient(90deg, var(--dsw-alias-label-primary) 0%, var(--dsw-alias-brand-text) 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+body[data-mywork-theme="tech"] .dcu-home-card { border-color: color-mix(in srgb, var(--dsw-alias-brand-primary) 22%, transparent); background: color-mix(in srgb, var(--dsw-alias-brand-primary) 4%, transparent); }
+body[data-mywork-theme="tech"] .dcu-home-card:hover, body[data-mywork-theme="tech"] .dcu-home-card[aria-pressed=true] { border-color: color-mix(in srgb, var(--dsw-alias-brand-primary) 55%, transparent); box-shadow: var(--mywork-glow); }
+body[data-mywork-theme="tech"] .dcu-home-card svg { color: var(--dsw-alias-brand-primary); }
+body[data-mywork-theme="tech"] [data-composer-card] { border: 1px solid color-mix(in srgb, var(--dsw-alias-brand-primary) 28%, transparent) !important; box-shadow: 0 0 24px color-mix(in srgb, var(--dsw-alias-brand-primary) 10%, transparent) !important; }
+body[data-mywork-theme="tech"] [data-composer-card]:focus-within { border-color: color-mix(in srgb, var(--dsw-alias-brand-primary) 60%, transparent) !important; box-shadow: var(--mywork-glow) !important; }
+body[data-mywork-theme="tech"] [data-composer-card] [class*="_primary"], body[data-mywork-theme="tech"] .dsh-st-btn--primary, body[data-mywork-theme="tech"] .mwm-primary, body[data-mywork-theme="tech"] .mwi .btn, body[data-mywork-theme="tech"] .mwr-btn.primary { box-shadow: var(--mywork-glow); color: var(--dsw-alias-label-primary-foreground) !important; }
+body[data-mywork-theme="tech"] .mwb-bar { border-bottom: 1px solid color-mix(in srgb, var(--dsw-alias-brand-primary) 25%, transparent); }
+body[data-mywork-theme="tech"] .mwb-view { box-shadow: inset 0 1px 0 color-mix(in srgb, var(--dsw-alias-brand-primary) 35%, transparent); }
+body[data-mywork-theme="tech"] pre { border: 1px solid color-mix(in srgb, var(--dsw-alias-brand-primary) 20%, transparent); border-radius: 8px; }
+body[data-mywork-theme="tech"] .dcu-wb-session.dcu-wb-selected { box-shadow: inset 2px 0 0 var(--dsw-alias-brand-primary); }
+body[data-mywork-theme="tech"] .dcu-menu button[aria-current], body[data-mywork-theme="tech"] .dcu-settings-link[aria-current] { box-shadow: inset 2px 0 0 var(--dsw-alias-brand-primary); }
+body[data-mywork-theme="tech"] button, body[data-mywork-theme="tech"] [role="button"], body[data-mywork-theme="tech"] a { transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease, box-shadow 180ms ease; }
+body[data-mywork-theme="tech"] :focus-visible { outline: 2px solid var(--dsw-alias-brand-primary); outline-offset: 2px; border-radius: 4px; }
+body[data-mywork-theme="tech"] h1, body[data-mywork-theme="tech"] h2, body[data-mywork-theme="tech"] h3 { letter-spacing: 0.01em; }
+@media (prefers-reduced-motion: reduce) { body[data-mywork-theme="tech"] * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; } }
 /* Every family: the sidebar is its own tinted surface (warm sand / neutral grey / cool slate) with a hairline edge,
    solid on every platform (dsh blends it to 60 % on macOS, which washes the tint out). */
 body[data-mywork-theme] [class*="_sidebarCol"] { background: var(--dsw-specific-sidebar-fill) !important; border-right: 1px solid var(--dsw-alias-border-l2); }
@@ -515,7 +628,7 @@ exports.apply = function apply(ctx) {
 
   // Restore the remembered family right away (no event dependency).
   const stored = readStored()
-  applyFamily(stored && familyById(stored) ? stored : 'official')
+  applyFamily(stored && familyById(stored) ? stored : DEFAULT_FAMILY)
 
   // Re-render the settings card whenever the host theme changes.
   ctx.effect(() => ctx.on('theme/change', notify, { global: true }), `${PLUGIN}: card refresh`)

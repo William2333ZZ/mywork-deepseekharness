@@ -47,15 +47,17 @@ const en = {
 
 const CSS = `
 .mwb{display:flex;flex-direction:column;height:100%;min-height:0;background:var(--dsw-alias-bg-base)}
-.mwb-bar{display:flex;gap:4px;align-items:center;padding:5px 8px 0;flex:none}
-.mwb-bar2{display:flex;gap:4px;align-items:center;padding:4px 8px 5px;border-bottom:0.5px solid var(--dsw-alias-border-l2);flex:none}
+.mwb-bar{display:flex;gap:4px;align-items:center;padding:6px 8px 0;flex:none;background:color-mix(in srgb,var(--dsw-alias-label-primary) 5%,var(--dsw-alias-bg-base))}
+.mwb-bar2{display:flex;gap:4px;align-items:center;padding:6px 8px;border-bottom:0.5px solid var(--dsw-alias-border-l2);flex:none;background:var(--dsw-alias-bg-base)}
 .mwb-bar select{flex:1;min-width:0}
-.mwb-bar select{background:var(--dsw-alias-bg-layer-2);border:0.5px solid var(--dsw-alias-border-l2);border-radius:8px;color:inherit;font:inherit;font-size:12px;padding:3px 6px}
+.mwb-bar select{appearance:none;-webkit-appearance:none;height:30px;background:var(--dsw-alias-bg-base);border:0;border-radius:10px 10px 0 0;color:inherit;font:inherit;font-size:12.5px;font-weight:500;padding:0 26px 0 12px;cursor:pointer;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>");background-repeat:no-repeat;background-position:right 9px center}
+.mwb-bar select:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:-2px}
 .mwb-in{flex:1;min-width:120px;background:var(--dsw-alias-bg-layer-2);border:0.5px solid var(--dsw-alias-border-l2);border-radius:8px;padding:4px 8px;font:inherit;font-size:12px;color:inherit;font-family:ui-monospace,Menlo,monospace}
 .mwb-in:focus{outline:none;border-color:var(--dsw-alias-brand-primary);box-shadow:0 0 0 2px color-mix(in srgb,var(--dsw-alias-brand-primary) 35%,transparent)}
 .mwb-omni{position:relative;flex:1;min-width:140px;display:flex}
-.mwb-omni .mwb-in{width:100%;font-family:inherit;font-size:12.5px;padding-left:26px}
-.mwb-omni .lead{position:absolute;left:8px;top:50%;transform:translateY(-50%);color:var(--dsw-alias-label-tertiary,var(--dsw-alias-label-secondary));pointer-events:none;display:inline-flex}
+.mwb-omni .mwb-in{width:100%;height:28px;font-family:inherit;font-size:12.5px;padding-left:28px;border-radius:999px;background:color-mix(in srgb,var(--dsw-alias-label-primary) 5%,var(--dsw-alias-bg-base))}
+.mwb-omni .mwb-in:focus{background:var(--dsw-alias-bg-base)}
+.mwb-omni .lead{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--dsw-alias-label-tertiary,var(--dsw-alias-label-secondary));pointer-events:none;display:inline-flex}
 .mwb-sugg{position:absolute;left:0;right:0;top:calc(100% + 4px);background:var(--dsw-alias-bg-overlay,var(--dsw-alias-bg-layer-1));color:var(--dsw-alias-label-primary);border:0.5px solid var(--dsw-alias-border-l2);border-radius:12px;box-shadow:var(--dsw-elevation-prominent,0 10px 40px rgba(0,0,0,.28));padding:6px;z-index:1100;font-size:12.5px;max-height:min(50vh,420px);overflow:auto}
 .mwb-sugg .row{display:flex;align-items:center;gap:8px;width:100%;border:0;background:transparent;color:inherit;padding:6px 8px;border-radius:8px;cursor:pointer;text-align:left;font:inherit;font-size:12.5px}
 .mwb-sugg .row.sel,.mwb-sugg .row:hover{background:var(--dsw-alias-interactive-bg-hover)}
@@ -63,10 +65,11 @@ const CSS = `
 .mwb-sugg .row .main{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mwb-sugg .row .sub{flex:none;max-width:45%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-secondary);font-size:11.5px}
 .mwb-sugg .grp{font-size:11px;color:var(--dsw-alias-label-tertiary,var(--dsw-alias-label-secondary));padding:6px 8px 2px}
-.mwb-b{border:0;background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer;width:26px;height:26px;padding:0;display:inline-flex;align-items:center;justify-content:center;border-radius:6px}
-.mwb-b:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-active);color:var(--dsw-alias-label-primary)}
-.mwb-b:disabled{opacity:.4;cursor:default}
-.mwb-b.on{color:var(--dsw-alias-brand-primary)}
+.mwb-b{appearance:none;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;flex:none;border:0;border-radius:8px;background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer;padding:0}
+.mwb-b:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:-2px}
+.mwb-b:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}
+.mwb-b:disabled{opacity:.35;cursor:default}
+.mwb-b.on{color:var(--dsw-alias-brand-primary);background:color-mix(in srgb,var(--dsw-alias-brand-primary) 12%,transparent)}
 .mwb-view{flex:1;min-height:0;position:relative;display:flex;align-items:flex-start;justify-content:center;background:#1a1a1a;overflow:hidden;outline:none}
 .mwb-view:focus-visible{box-shadow:inset 0 0 0 2px var(--dsw-alias-brand-primary)}
 /* width/height 100%: the page viewport equals the pane in SCREEN px; under UI zoom the pane's CSS box is larger than that, so the frame must scale to the box (1 page px = 1 screen px) instead of stopping at its intrinsic size. */

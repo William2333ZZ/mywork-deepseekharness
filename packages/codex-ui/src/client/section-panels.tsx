@@ -49,6 +49,12 @@ const stylesheet = `
 .dcu-panel-head{display:flex;align-items:center;gap:10px;padding:18px 28px 8px;font-size:18px;font-weight:600}
 .dcu-panel-head svg{color:var(--dsw-alias-label-secondary)}
 .dcu-panel-body{flex:1;min-height:0;padding:4px 28px 28px}
+/* Hosted sections (dsh-automation, dsh-im-connect) repeat the page title in their own heading row; keep their links, hide the duplicate title visually. */
+.dcu-panel-body .dsh-st-heading-row>h1,.dcu-panel-body .ima-title-row>h2{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.dcu-panel-body .dsh-st-heading-row,.dcu-panel-body .ima-title-row{display:flex;justify-content:flex-end;align-items:center;min-height:0;margin:0 0 8px;padding:0}
+.dcu-panel-body>.dcu-panel-hosted:first-child .dsh-st-heading-row,.dcu-panel-body .dsh-st-shell .dsh-st-heading-row{margin-top:-40px}
+.dcu-panel-body .dsh-st-heading-row .mpi-version,.dcu-panel-body .ima-title-row .mpi-version{position:static;margin:0 8px 0 0;font-size:12px;color:var(--dsw-alias-label-secondary)}
+.dcu-panel-body .dsh-st-heading-links,.dcu-panel-body .ima-title-links{display:flex;gap:6px;margin-left:auto}
 .dcu-panel-empty{max-width:560px;margin:24px 0;line-height:1.7;color:var(--dsw-alias-label-secondary);font-size:13px}
 .dcu-panel-hint{max-width:720px;margin:0 0 16px;line-height:1.7;color:var(--dsw-alias-label-secondary);font-size:13px}
 .dcu-panel-hint code{font-family:ui-monospace,Menlo,monospace;font-size:12px}

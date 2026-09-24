@@ -14,7 +14,8 @@
  *     configured PER TASK (tool automation_notify_set, API /mywork-im/api/notify, UI on the 定时任务 page)
  */
 import { randomBytes } from 'node:crypto'
-import { listChats, resolveChat, relayPrompt } from './chats.js'
+import { listChats, resolveChat, relayPrompt, directAccount } from './chats.js'
+import { sendFeishuText } from './feishu.js'
 import { configSchema, defineRawTool, rejectUntrusted } from './harness.js'
 import { createAutomationWatcher, listAutomationTasks, readNotifyConfig, resolveTask, writeNotifyConfig } from './notify.js'
 
@@ -35,9 +36,16 @@ export function apply(ctx, config = {}) {
     const body = String(text || '').trim()
     if (!body) throw new Error('text is required')
     if (body.length > maxChars) throw new Error(`text too long (${body.length} > ${maxChars})`)
-    if (!controller) throw new Error('session controller not available')
     const r = resolveChat(target, listChats())
     if (r.error) throw new Error(r.error)
+    if (r.chat.direct) {
+      // Feishu / Lark: straight through the bot API, no session and no first inbound message needed.
+      const account = directAccount(r.chat)
+      if (!account) throw new Error('the Feishu account behind this target is gone')
+      const sent = await sendFeishuText(account, account.ownerOpenId, body)
+      return { accepted: true, direct: true, channel: r.chat.channel, platform: r.chat.platform, chatId: r.chat.chatId, messageId: sent.messageId, note: 'Delivered through the Feishu bot API to the account owner.' }
+    }
+    if (!controller) throw new Error('session controller not available')
     const requestId = 'mywork-im-' + randomBytes(6).toString('hex')
     await controller.prompt({ requestId, sessionId: r.chat.sessionId, mode: 'queue', content: [{ type: 'text', text: relayPrompt(body) }] }, AbortSignal.timeout(20000))
     return { accepted: true, requestId, sessionId: r.chat.sessionId, channel: r.chat.channel, platform: r.chat.platform, chatId: r.chat.chatId, title: r.chat.title, note: 'Queued in the chat\'s IM session; its assistant forwards the text and dsh-im-connect delivers it.' }

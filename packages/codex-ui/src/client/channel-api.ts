@@ -8,10 +8,20 @@ export type ChannelSession = {
   running: boolean
 }
 
+export type ChannelAccount = {
+  id: string
+  name: string
+  platform: string
+  connected: boolean
+  status: string
+}
+
 export type ChannelGroup = {
   id: string
   label: string
   sessions: ChannelSession[]
+  /** Configured accounts of this platform; present so an account that has not received a message yet still shows up. */
+  accounts: ChannelAccount[]
 }
 
 /** DSH 会话头不能写 origin=im，频道会话只靠 id 前缀。 */
@@ -45,22 +55,51 @@ export function parseChannelSession(value: unknown): ChannelSession | undefined 
   }
 }
 
+function parseAccounts(value: unknown, platform: string): ChannelAccount[] {
+  if (!Array.isArray(value)) return []
+  return value.flatMap(item => {
+    if (item === null || typeof item !== 'object') return []
+    const row = item as Record<string, unknown>
+    const id = text(row.id)
+    if (id === '') return []
+    return [{ id, name: text(row.name, id), platform: text(row.platform, platform), connected: row.connected === true, status: text(row.status) }]
+  })
+}
+
 export function parseChannelGroups(payload: unknown, fallbackLabel = ''): ChannelGroup[] {
   const root = payload !== null && typeof payload === 'object' ? payload as Record<string, unknown> : {}
   const raw = Array.isArray(root.groups) ? root.groups : Array.isArray(payload) ? payload : []
-  return raw.flatMap((item, index) => {
+  const accountsByPlatform = new Map<string, { label: string; accounts: ChannelAccount[] }>()
+  if (Array.isArray(root.channels)) {
+    for (const item of root.channels) {
+      if (item === null || typeof item !== 'object') continue
+      const channel = item as Record<string, unknown>
+      const id = text(channel.id)
+      const accounts = parseAccounts(channel.accounts, id)
+      if (id !== '' && accounts.length > 0) accountsByPlatform.set(id, { label: text(channel.label, id), accounts })
+    }
+  }
+  const groups = raw.flatMap((item, index) => {
     if (item === null || typeof item !== 'object') return []
     const group = item as Record<string, unknown>
     const sessions = Array.isArray(group.sessions) ? group.sessions.flatMap(session => {
       const parsed = parseChannelSession(session)
       return parsed === undefined ? [] : [parsed]
     }) : []
+    const id = text(group.id, `channel-${index}`)
     return [{
-      id: text(group.id, `channel-${index}`),
+      id,
       label: text(group.label, text(group.title, fallbackLabel)),
       sessions,
+      accounts: accountsByPlatform.get(id)?.accounts ?? [],
     }]
   })
+  // Platforms with a configured account but no conversation yet (nobody has messaged the bot) still get a group,
+  // so a freshly connected Feishu / DingTalk account is visible right away instead of an empty tab.
+  for (const [id, info] of accountsByPlatform) {
+    if (!groups.some(group => group.id === id)) groups.push({ id, label: info.label, sessions: [], accounts: info.accounts })
+  }
+  return groups
 }
 
 /** 读取 IM 频道分组；失败时交给界面显示空态或错误。 */

@@ -112,7 +112,7 @@ function ChannelBrowserTree({ openSession, archiveSession, deleteSession, forkSe
   const visibleGroups = groups.map(group => ({
     ...group,
     sessions: group.sessions.filter(session => !archived.has(session.sessionId)),
-  })).filter(group => group.sessions.length > 0)
+  })).filter(group => group.sessions.length > 0 || group.accounts.length > 0)
   const banner = pollError ?? error
   return <section className="dcu-wb" aria-label={t('sidebar.channelsTab')}>
     <style>{WORKSPACE_TREE_STYLE}</style>
@@ -124,7 +124,11 @@ function ChannelBrowserTree({ openSession, archiveSession, deleteSession, forkSe
         const label = channelLabel(group.id, group.label, t)
         return <div className="dcu-wb-project" key={group.id}>
           <GroupHead expanded={isExpanded} title={label} icon={<ChannelBrandIcon id={group.id} />} onToggle={() => { setExpanded(current => ({ ...current, [group.id]: !isExpanded })) }} />
-          {isExpanded && <div className="dcu-wb-project-body">{group.sessions.map(session => {
+          {isExpanded && group.sessions.length === 0 && <div className="dcu-wb-project-body">{group.accounts.map(account => <div className="dcu-wb-nochat" key={account.id}>
+            {account.name} · {account.connected ? t('channels.waiting') : (account.status || t('channels.disconnected'))}
+            {(account.platform === 'feishu' || account.platform === 'lark') && <span className="dcu-wb-nochat-sub">{t('channels.directPush')}</span>}
+          </div>)}</div>}
+          {isExpanded && group.sessions.length > 0 && <div className="dcu-wb-project-body">{group.sessions.map(session => {
             const id = session.sessionId
             const title = session.title
             const selected = selectedId === id

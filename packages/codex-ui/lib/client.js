@@ -1376,6 +1376,9 @@ window.__ModuleLoader__.load({
 			"sidebar.runsTab": "执行记录",
 			"sidebar.overviewTab": "任务总览",
 			"channels.empty": "还没有频道会话。先在设置 → IM助理 里连接渠道。",
+			"channels.waiting": "已连接，等第一条消息。给机器人发一句话，会话就会出现在这里。",
+			"channels.disconnected": "未连接",
+			"channels.directPush": "定时任务通知可以直接推送，不用先发消息。",
 			"channels.loadError": "无法读取频道会话。",
 			"channel.dingtalk": "钉钉",
 			"channel.feishu": "飞书",
@@ -1672,6 +1675,9 @@ window.__ModuleLoader__.load({
 			"sidebar.runsTab": "Run history",
 			"sidebar.overviewTab": "Task overview",
 			"channels.empty": "No channel conversations yet. Connect a channel in Settings → IM Assistant.",
+			"channels.waiting": "Connected, waiting for the first message. Say anything to the bot and the conversation appears here.",
+			"channels.disconnected": "not connected",
+			"channels.directPush": "Scheduled-task notifications can be pushed directly, no first message needed.",
 			"channels.loadError": "Could not load channel conversations.",
 			"channel.dingtalk": "DingTalk",
 			"channel.feishu": "Feishu",
@@ -2584,21 +2590,58 @@ window.__ModuleLoader__.load({
 				running: row.running === true
 			};
 		}
+		function parseAccounts(value, platform) {
+			if (!Array.isArray(value)) return [];
+			return value.flatMap((item) => {
+				if (item === null || typeof item !== "object") return [];
+				const row = item;
+				const id = text(row.id);
+				if (id === "") return [];
+				return [{
+					id,
+					name: text(row.name, id),
+					platform: text(row.platform, platform),
+					connected: row.connected === true,
+					status: text(row.status)
+				}];
+			});
+		}
 		function parseChannelGroups(payload, fallbackLabel = "") {
 			const root = payload !== null && typeof payload === "object" ? payload : {};
-			return (Array.isArray(root.groups) ? root.groups : Array.isArray(payload) ? payload : []).flatMap((item, index) => {
+			const raw = Array.isArray(root.groups) ? root.groups : Array.isArray(payload) ? payload : [];
+			const accountsByPlatform = /* @__PURE__ */ new Map();
+			if (Array.isArray(root.channels)) for (const item of root.channels) {
+				if (item === null || typeof item !== "object") continue;
+				const channel = item;
+				const id = text(channel.id);
+				const accounts = parseAccounts(channel.accounts, id);
+				if (id !== "" && accounts.length > 0) accountsByPlatform.set(id, {
+					label: text(channel.label, id),
+					accounts
+				});
+			}
+			const groups = raw.flatMap((item, index) => {
 				if (item === null || typeof item !== "object") return [];
 				const group = item;
 				const sessions = Array.isArray(group.sessions) ? group.sessions.flatMap((session) => {
 					const parsed = parseChannelSession(session);
 					return parsed === void 0 ? [] : [parsed];
 				}) : [];
+				const id = text(group.id, `channel-${index}`);
 				return [{
-					id: text(group.id, `channel-${index}`),
+					id,
 					label: text(group.label, text(group.title, fallbackLabel)),
-					sessions
+					sessions,
+					accounts: accountsByPlatform.get(id)?.accounts ?? []
 				}];
 			});
+			for (const [id, info] of accountsByPlatform) if (!groups.some((group) => group.id === id)) groups.push({
+				id,
+				label: info.label,
+				sessions: [],
+				accounts: info.accounts
+			});
+			return groups;
 		}
 		/** 读取 IM 频道分组；失败时交给界面显示空态或错误。 */
 		async function loadChannelGroups(signal, fallbackLabel = "") {
@@ -4586,7 +4629,8 @@ header [data-dcu-title-folder] svg,header [data-dcu-title-more] svg{display:bloc
 .dcu-wb-collection-body .dcu-wb-project-head{padding-left:8px}
 .dcu-wb-collection-body>.dcu-wb-empty{padding:8px 8px 8px 26px}
 .dcu-wb-collection-body>.dcu-wb-empty,.dcu-wb-nochat{font-size:13px;line-height:18px;color:var(--dcu-sidebar-tertiary)}
-.dcu-wb-nochat{padding:1px 8px 5px 30px}
+.dcu-wb-nochat{padding:1px 8px 5px 30px;white-space:normal;line-height:18px}
+.dcu-wb-nochat-sub{display:block;margin-top:2px;color:var(--dcu-sidebar-tertiary)}
 .dcu-wb-collection:has(+.dcu-wb-collection)>.dcu-wb-collection-body>.dcu-wb-empty,.dcu-wb-collection:has(+.dcu-wb-ungrouped)>.dcu-wb-collection-body>.dcu-wb-empty{padding-top:14px;padding-bottom:2px}
 .dcu-wb-collection-body::before,.dcu-wb-group-member::after{display:none}
 .dcu-wb-collections{gap:12px}
@@ -7022,7 +7066,7 @@ header [data-dcu-title-folder] svg,header [data-dcu-title-more] svg{display:bloc
 			const visibleGroups = groups.map((group) => ({
 				...group,
 				sessions: group.sessions.filter((session) => !archived.has(session.sessionId))
-			})).filter((group) => group.sessions.length > 0);
+			})).filter((group) => group.sessions.length > 0 || group.accounts.length > 0);
 			const banner = pollError ?? error;
 			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("section", {
 				className: "dcu-wb",
@@ -7047,95 +7091,113 @@ header [data-dcu-title-folder] svg,header [data-dcu-title-more] svg{display:bloc
 								const label = channelLabel(group.id, group.label, t);
 								return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 									className: "dcu-wb-project",
-									children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(GroupHead, {
-										expanded: isExpanded,
-										title: label,
-										icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(ChannelBrandIcon, { id: group.id }),
-										onToggle: () => {
-											setExpanded((current) => ({
-												...current,
-												[group.id]: !isExpanded
-											}));
-										}
-									}), isExpanded && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
-										className: "dcu-wb-project-body",
-										children: group.sessions.map((session) => {
-											const id = session.sessionId;
-											const title = session.title;
-											const selected = selectedId === id;
-											const status = sessionStatus.get(id);
-											const running = sessionIsRunning({ running: session.running === true || sessions.byId[id]?.running === true }, status);
-											const updatedAt = session.updatedAt ?? sessions.byId[id]?.updatedAt;
-											const unread = sessionRowUnread(flags.unreadSessionIds.includes(id), status, selected);
-											const pendingInteraction = pendingInteractionForSession(id, pendingInteractions, sessions.byId[id]?.pendingInteraction);
-											const moveTargets = moveSession === void 0 || workspaces === void 0 ? void 0 : sessionMoveTargets(workspaces.items, id).map((target) => ({
-												...target,
-												id: moveSessionActionId(target.id)
-											}));
-											const canDelete = canDeleteSession?.() === true;
-											return /* @__PURE__ */ (0, react_jsx_runtime.jsx)(SessionRow, {
-												id,
-												title,
-												selected,
-												menuOpen: menu?.id === id,
-												unread,
-												running,
-												pendingInteraction,
-												time: updatedAt === void 0 ? void 0 : formatCompactTime(updatedAt, t, now),
-												t,
-												menuItems: sessionMenuItems(t, {
+									children: [
+										/* @__PURE__ */ (0, react_jsx_runtime.jsx)(GroupHead, {
+											expanded: isExpanded,
+											title: label,
+											icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(ChannelBrandIcon, { id: group.id }),
+											onToggle: () => {
+												setExpanded((current) => ({
+													...current,
+													[group.id]: !isExpanded
+												}));
+											}
+										}),
+										isExpanded && group.sessions.length === 0 && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+											className: "dcu-wb-project-body",
+											children: group.accounts.map((account) => /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+												className: "dcu-wb-nochat",
+												children: [
+													account.name,
+													" · ",
+													account.connected ? t("channels.waiting") : account.status || t("channels.disconnected"),
+													(account.platform === "feishu" || account.platform === "lark") && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+														className: "dcu-wb-nochat-sub",
+														children: t("channels.directPush")
+													})
+												]
+											}, account.id))
+										}),
+										isExpanded && group.sessions.length > 0 && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+											className: "dcu-wb-project-body",
+											children: group.sessions.map((session) => {
+												const id = session.sessionId;
+												const title = session.title;
+												const selected = selectedId === id;
+												const status = sessionStatus.get(id);
+												const running = sessionIsRunning({ running: session.running === true || sessions.byId[id]?.running === true }, status);
+												const updatedAt = session.updatedAt ?? sessions.byId[id]?.updatedAt;
+												const unread = sessionRowUnread(flags.unreadSessionIds.includes(id), status, selected);
+												const pendingInteraction = pendingInteractionForSession(id, pendingInteractions, sessions.byId[id]?.pendingInteraction);
+												const moveTargets = moveSession === void 0 || workspaces === void 0 ? void 0 : sessionMoveTargets(workspaces.items, id).map((target) => ({
+													...target,
+													id: moveSessionActionId(target.id)
+												}));
+												const canDelete = canDeleteSession?.() === true;
+												return /* @__PURE__ */ (0, react_jsx_runtime.jsx)(SessionRow, {
+													id,
+													title,
+													selected,
+													menuOpen: menu?.id === id,
 													unread,
-													moveTargets,
-													canDelete
-												}),
-												menuPoint: menu?.id === id && menu.x !== void 0 && menu.y !== void 0 ? {
-													x: menu.x,
-													y: menu.y
-												} : void 0,
-												onOpen: () => {
-													flags.setUnreadSessionIds((ids) => ids.filter((item) => item !== id));
-													openSession(id);
-												},
-												onMenuChange: (open) => {
-													setMenu(open ? { id } : void 0);
-												},
-												onArchive: () => {
-													run("archive", () => archiveSession(id));
-												},
-												onHover: (event) => {
-													const box = hoverCardAnchor(event.currentTarget.getBoundingClientRect());
-													showTip({
-														title,
-														project: label,
-														time: updatedAt === void 0 ? void 0 : formatHoverTime(updatedAt, t, now),
-														left: box.left,
-														top: box.top
-													});
-												},
-												onLeave: hideTip,
-												onContextMenu: (event) => {
-													event.preventDefault();
-													event.stopPropagation();
-													dismissTip();
-													setMenu({
-														id,
-														x: event.clientX,
-														y: event.clientY
-													});
-												},
-												onSelectAction: (action) => {
-													if (busy !== void 0) return;
-													const targetWorkspaceId = parseMoveSessionActionId(action);
-													if (targetWorkspaceId !== void 0 && moveSession !== void 0) {
-														setMenu(void 0);
-														run("session-move", () => moveSession(id, targetWorkspaceId));
-														return;
+													running,
+													pendingInteraction,
+													time: updatedAt === void 0 ? void 0 : formatCompactTime(updatedAt, t, now),
+													t,
+													menuItems: sessionMenuItems(t, {
+														unread,
+														moveTargets,
+														canDelete
+													}),
+													menuPoint: menu?.id === id && menu.x !== void 0 && menu.y !== void 0 ? {
+														x: menu.x,
+														y: menu.y
+													} : void 0,
+													onOpen: () => {
+														flags.setUnreadSessionIds((ids) => ids.filter((item) => item !== id));
+														openSession(id);
+													},
+													onMenuChange: (open) => {
+														setMenu(open ? { id } : void 0);
+													},
+													onArchive: () => {
+														run("archive", () => archiveSession(id));
+													},
+													onHover: (event) => {
+														const box = hoverCardAnchor(event.currentTarget.getBoundingClientRect());
+														showTip({
+															title,
+															project: label,
+															time: updatedAt === void 0 ? void 0 : formatHoverTime(updatedAt, t, now),
+															left: box.left,
+															top: box.top
+														});
+													},
+													onLeave: hideTip,
+													onContextMenu: (event) => {
+														event.preventDefault();
+														event.stopPropagation();
+														dismissTip();
+														setMenu({
+															id,
+															x: event.clientX,
+															y: event.clientY
+														});
+													},
+													onSelectAction: (action) => {
+														if (busy !== void 0) return;
+														const targetWorkspaceId = parseMoveSessionActionId(action);
+														if (targetWorkspaceId !== void 0 && moveSession !== void 0) {
+															setMenu(void 0);
+															run("session-move", () => moveSession(id, targetWorkspaceId));
+															return;
+														}
+														dialogs.handleAction(action, id, title);
 													}
-													dialogs.handleAction(action, id, title);
-												}
-											}, id);
+												}, id);
+											})
 										})
-									})]
+									]
 								}, group.id);
 							})
 						]

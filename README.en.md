@@ -267,6 +267,7 @@ Each package builds with `node ../../scripts/build-client.mjs .` (codex-ui with 
 
 ### Unreleased
 
+- Feishu notifications no longer need a first message to the bot: a configured Feishu account shows up in the Channels tab immediately, and scheduled-task notifications / `im_send` get a "push to me directly" target that goes through the Feishu bot API to the account owner. WeChat keeps its platform limit.
 - The live-browser pane now follows the Claude desktop browser's layout: a pill tab strip (close / new tab per pill), a wider rounded address bar, the follow / take-over button next to it, a themed empty state; secondary buttons collapse in narrow panes.
 - Live browser can run as a real window: Settings → MyWork → Browser → "Show the real browser window". The background Chrome becomes a visible window, so QR codes, SMS codes and slider checks are done there by you and the login sticks; the pane keeps streaming it. Off returns to headless. Switching restarts the browser. Headed frames follow the screen's own pixel ratio.
 - Live browser: import login state. Settings → MyWork → Browser → "Login state (cookie import)" takes the cookies of a session you already have in your own browser (`name=value` list + domain / Cookie-Editor JSON / cookies.txt) and writes them into the background Chrome, so QR-only sites such as Xiaohongshu work; the model gets a `browser_set_cookies` tool that only writes values you pasted. Loopback-only endpoint; values are never shown or uploaded.

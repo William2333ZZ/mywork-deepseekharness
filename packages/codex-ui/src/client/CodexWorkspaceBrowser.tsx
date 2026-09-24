@@ -239,7 +239,8 @@ const collectionLayoutStyles = `
 .dcu-wb-collection-body .dcu-wb-project-head{padding-left:8px}
 .dcu-wb-collection-body>.dcu-wb-empty{padding:8px 8px 8px 26px}
 .dcu-wb-collection-body>.dcu-wb-empty,.dcu-wb-nochat{font-size:13px;line-height:18px;color:var(--dcu-sidebar-tertiary)}
-.dcu-wb-nochat{padding:1px 8px 5px 30px}
+.dcu-wb-nochat{padding:1px 8px 5px 30px;white-space:normal;line-height:18px}
+.dcu-wb-nochat-sub{display:block;margin-top:2px;color:var(--dcu-sidebar-tertiary)}
 .dcu-wb-collection:has(+.dcu-wb-collection)>.dcu-wb-collection-body>.dcu-wb-empty,.dcu-wb-collection:has(+.dcu-wb-ungrouped)>.dcu-wb-collection-body>.dcu-wb-empty{padding-top:14px;padding-bottom:2px}
 .dcu-wb-collection-body::before,.dcu-wb-group-member::after{display:none}
 .dcu-wb-collections{gap:12px}

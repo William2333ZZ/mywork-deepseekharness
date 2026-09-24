@@ -32,6 +32,7 @@ const zh = {
   nav: '浏览器', bookmarks: '书签', addCurrent: '收藏当前页', noBookmarks: '还没有书签。', name: '名称', url: '网址（http/https）', add: '添加',
   up: '上移', down: '下移', del: '删除', edit: '重命名', save: '保存', openLive: '在实时浏览器打开', openSys: '用系统浏览器打开',
   status: '状态', running: '运行中', stopped: '未运行', engine: '内核', port: 'DevTools 端口', headless: '无头', yes: '是', no: '否', tabs: '标签页', dataFile: '书签文件',
+  cookies: '登录态（Cookie 导入）', cookiesHint: '有些网站在实时浏览器里不好登录（扫码、短信）。把你在自己浏览器里已登录的 Cookie 粘进来，后台 Chrome 就直接是登录状态。三种格式都行：name=value; name2=value2（要填域名）、Cookie-Editor 导出的 JSON、cookies.txt。取法：自己的 Chrome 里 F12 → Application → Cookies，或装 Cookie-Editor 一键导出。Cookie 只写进本机的后台浏览器，不会显示、不会上传。', cookieDomain: '域名，例如 .xiaohongshu.com', cookieText: '粘贴 Cookie（name=value; … / JSON / cookies.txt）', importCookies: '导入', cookiesImported: '已写入 %n 个 Cookie，刷新页面即可', cookieDomains: '当前已有登录态的域名', noCookies: '后台浏览器里还没有 Cookie。', clearDomain: '清除', modelCookieHint: '也可以在对话里直接把 Cookie 粘给模型，它会用 browser_set_cookies 写进去。',
   omniPlaceholder: '搜索或输入网址', tabs: '标签页', liveView: '实时浏览器画面：可直接点击、滚动、输入，按 Ctrl/Cmd+L 跳到地址栏', goTo: '前往', searchWith: '用 %e 搜索', fromHistory: '历史', fromBookmarks: '书签', searchEngine: '地址栏搜索引擎', searchEngineHint: '地址栏里输入的不是网址时，用它搜索。网址（如 github.com）直接打开，书签名也可以直接输。', history: '地址栏历史', historyCount: '%n 条', clearHistory: '清除历史', cleared: '已清除',
   help: '后台 Chrome 由本插件拉起，模型通过 Playwright MCP 操作它；它每次导航都会自动在右侧栏展示。模型可用 open_url / quick_links 工具，你可用 /open <网址或书签名> 命令。',
 }
@@ -44,6 +45,7 @@ const en = {
   modelBrowsing: 'The model is browsing', takeOverHint: 'click the page to take over', takenOver: 'You are driving this page', resumeFollow: 'Follow the model',
   nav: 'Browser', bookmarks: 'Bookmarks', addCurrent: 'Bookmark this page', noBookmarks: 'No bookmarks yet.', name: 'Name', url: 'URL (http/https)', add: 'Add',
   up: 'Up', down: 'Down', del: 'Delete', edit: 'Rename', save: 'Save', openLive: 'Open in live browser', openSys: 'Open in system browser',
+  cookies: 'Login state (cookie import)', cookiesHint: 'Some sites are hard to sign into inside the live browser (QR / SMS). Paste the cookies of a session you already have in your own browser and the background Chrome is signed in. Any of: name=value; name2=value2 (domain required), a Cookie-Editor JSON export, or cookies.txt. Get them from your Chrome via F12 → Application → Cookies, or export with Cookie-Editor. Cookies only go into the local background browser; they are never shown or uploaded.', cookieDomain: 'domain, e.g. .xiaohongshu.com', cookieText: 'paste cookies (name=value; … / JSON / cookies.txt)', importCookies: 'Import', cookiesImported: '%n cookies written; reload the page', cookieDomains: 'Domains with cookies', noCookies: 'No cookies in the background browser yet.', clearDomain: 'Clear', modelCookieHint: 'You can also paste cookies to the model in chat; it writes them with browser_set_cookies.',
   status: 'Status', running: 'running', stopped: 'not running', engine: 'Engine', port: 'DevTools port', headless: 'Headless', yes: 'yes', no: 'no', tabs: 'Tabs', dataFile: 'Bookmarks file',
   omniPlaceholder: 'Search or type a URL', tabs: 'Tabs', liveView: 'Live browser view: click, scroll and type directly; Ctrl/Cmd+L jumps to the address bar', goTo: 'Go to', searchWith: 'Search with %e', fromHistory: 'History', fromBookmarks: 'Bookmarks', searchEngine: 'Address-bar search engine', searchEngineHint: 'Used when what you type is not an address. Addresses (github.com) open directly; a bookmark name works too.', history: 'Address-bar history', historyCount: '%n entries', clearHistory: 'Clear history', cleared: 'cleared',
   help: 'This plugin starts the background Chrome; the model drives it through Playwright MCP, and every navigation is shown in the right sidebar automatically. The model can use the open_url / quick_links tools, you can type /open <url or bookmark name>.',
@@ -561,6 +563,15 @@ exports.apply = function apply(ctx) {
     const setEngine = (id) => api('/prefs', { searchEngine: id }).then(setPrefs).catch((e) => setErr(String(e.message || e)))
     const clearHistory = () => api('/history/clear', {}).then(() => { setMsg(t('cleared')); loadPrefs() }).catch((e) => setErr(String(e.message || e)))
     const kv = (k, v) => h(React.Fragment, { key: k }, h('span', { className: 'k' }, k), h('span', { className: 'v', title: String(v) }, String(v)))
+    // login state
+    const [ckDomain, setCkDomain] = React.useState(''); const [ckText, setCkText] = React.useState(''); const [ckMsg, setCkMsg] = React.useState(''); const [ckErr, setCkErr] = React.useState(''); const [ckDomains, setCkDomains] = React.useState(null); const [ckBusy, setCkBusy] = React.useState(false)
+    const loadCookies = React.useCallback(() => api('/cookies/list').then((d) => setCkDomains(d.domains || [])).catch(() => setCkDomains([])), [])
+    React.useEffect(() => { loadCookies() }, [loadCookies])
+    const importCk = async () => {
+      setCkErr(''); setCkMsg(''); setCkBusy(true)
+      try { const r = await api('/cookies/import', { text: ckText, domain: ckDomain }); setCkMsg(t('cookiesImported').replace('%n', String(r.set))); setCkText(''); loadCookies() } catch (e) { setCkErr(String(e.message || e)) } finally { setCkBusy(false) }
+    }
+    const clearCk = (domain) => api('/cookies/clear', { domain }).then(loadCookies).catch((e) => setCkErr(String(e.message || e)))
     return h('div', { className: 'mwb-set' },
       h('div', { className: 'mwb-hint' }, t('help')),
       h('div', { className: 'mwb-title' }, t('status')),
@@ -584,6 +595,22 @@ exports.apply = function apply(ctx) {
         h('button', { className: 'mwb-mini framed danger', disabled: !prefs.historyCount, onClick: clearHistory }, icon('trash', { size: 12 }), t('clearHistory')),
         msg ? h('span', { className: 'mwb-hint' }, msg) : null,
       ) : null,
+      h('div', { className: 'mwb-title' }, t('cookies')),
+      h('div', { className: 'mwb-hint' }, t('cookiesHint')),
+      h('div', { className: 'mwb-form', style: { flexDirection: 'column', alignItems: 'stretch' } },
+        h('input', { className: 'mwb-in', placeholder: t('cookieDomain'), 'aria-label': t('cookieDomain'), value: ckDomain, onChange: (e) => setCkDomain(e.target.value), style: { flex: 'none', width: 260 } }),
+        h('textarea', { className: 'mwb-in', placeholder: t('cookieText'), 'aria-label': t('cookieText'), value: ckText, rows: 4, spellCheck: false, onChange: (e) => setCkText(e.target.value), style: { fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 12, resize: 'vertical' } }),
+        h('div', { style: { display: 'flex', gap: 8, alignItems: 'center' } },
+          h('button', { className: 'mwb-mini framed', disabled: ckBusy || !ckText.trim(), onClick: importCk }, icon('check', { size: 12 }), t('importCookies')),
+          ckMsg ? h('span', { className: 'mwb-hint' }, ckMsg) : null,
+          ckErr ? h('span', { className: 'mwb-hint', style: { color: 'var(--dsw-alias-state-error-primary)' } }, ckErr) : null),
+        h('div', { className: 'mwb-hint' }, t('modelCookieHint')),
+      ),
+      h('div', { className: 'mwb-hint', style: { marginTop: 6 } }, t('cookieDomains')),
+      ckDomains === null ? null : ckDomains.length === 0 ? h('div', { className: 'mwb-empty' }, t('noCookies')) : h('div', null, ckDomains.slice(0, 40).map((g) => h('div', { className: 'mwb-row', key: g.domain },
+        h('span', { className: 'nm' }, g.domain),
+        h('span', { className: 'u', title: g.names.join(', ') }, g.count + ' · ' + g.names.join(', ')),
+        h('button', { className: 'mwb-mini danger', title: t('clearDomain'), 'aria-label': t('clearDomain') + ' ' + g.domain, onClick: () => clearCk(g.domain) }, icon('trash', { size: 13 }))))),
       h('div', { className: 'mwb-title' }, t('bookmarks')),
       h('div', null, items.length === 0 ? h('div', { className: 'mwb-empty' }, t('noBookmarks')) : items.map((it, i) => h('div', { className: 'mwb-row', key: it.id },
         editing === it.id

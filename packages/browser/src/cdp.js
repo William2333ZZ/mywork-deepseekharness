@@ -201,6 +201,32 @@ export class ViewerHub {
     }
     return v.size
   }
+  /** Browser-level CDP session (no page needed) for cookie management; reconnects lazily. */
+  async browser() {
+    if (this.browserClient && !this.browserClient.closed) return this.browserClient
+    const v = await fetch(`http://127.0.0.1:${this.port}/json/version`, { signal: AbortSignal.timeout(2000) }).then((r) => r.json())
+    this.browserClient = await new CdpClient(v.webSocketDebuggerUrl).connect()
+    return this.browserClient
+  }
+  /** Write cookies into the default browser context (login state the user pasted). */
+  async setCookies(cookies) {
+    const b = await this.browser()
+    const list = (cookies || []).map((c) => ({ name: c.name, value: c.value, domain: c.domain, path: c.path || '/', ...(c.secure !== undefined ? { secure: !!c.secure } : {}), ...(c.httpOnly !== undefined ? { httpOnly: !!c.httpOnly } : {}), ...(c.sameSite ? { sameSite: c.sameSite } : {}), ...(c.expires ? { expires: c.expires } : {}) }))
+    if (list.length === 0) return { set: 0 }
+    await b.send('Storage.setCookies', { cookies: list })
+    return { set: list.length }
+  }
+  /** All cookies of the default context (values included; callers summarise before showing anything). */
+  async getCookies() { const b = await this.browser(); const r = await b.send('Storage.getCookies', {}); return r.cookies || [] }
+  /** Delete every cookie of a domain (and its subdomains) by expiring it; `all` wipes the context. */
+  async clearCookies(domain) {
+    const b = await this.browser()
+    if (!domain) { await b.send('Storage.clearCookies', {}); return { cleared: 'all' } }
+    const want = String(domain).replace(/^\./, '').toLowerCase()
+    const mine = (await this.getCookies()).filter((c) => { const d = String(c.domain || '').replace(/^\./, '').toLowerCase(); return d === want || d.endsWith('.' + want) })
+    if (mine.length) await b.send('Storage.setCookies', { cookies: mine.map((c) => ({ name: c.name, value: '', domain: c.domain, path: c.path, expires: 1 })) })
+    return { cleared: mine.length }
+  }
   async navigate(id, url) { const v = await this.view(id); return v.client.send('Page.navigate', { url }) }
   async reload(id) { const v = await this.view(id); return v.client.send('Page.reload') }
   async history(id, delta) {

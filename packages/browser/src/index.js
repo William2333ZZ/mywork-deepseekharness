@@ -22,6 +22,7 @@ import { configSchema, defineRawTool, rejectUntrusted } from './harness.js'
 import { LinkStore, defaultLinksPath, normalizeUrl, openInSystemBrowser } from './links.js'
 import { mountSharedPlaywright } from './mcp-provider.js'
 import { HistoryStore, SEARCH_ENGINES, defaultHistoryPath, resolveOmni } from './history.js'
+import { parseCookies, summarize, groupByDomain } from './cookies.js'
 import { existsSync as existsSyncHistory } from 'node:fs'
 
 export const name = 'dsh-mywork-browser'
@@ -147,6 +148,23 @@ export function apply(ctx, config = {}) {
     },
     async execute(args) { return openUrl(args.url, args.target === 'system' ? 'system' : 'live') },
   }))
+  /** Import pasted login cookies into the background browser; never invents values, never returns them. */
+  async function importCookies(text, domain) {
+    const r = parseCookies(text, domain)
+    if (r.error) throw new Error(r.error)
+    if (r.cookies.length === 0) throw new Error('no cookies found in the pasted text')
+    const res = await hub.setCookies(r.cookies)
+    return { set: res.set, format: r.format, cookies: summarize(r.cookies) }
+  }
+  ctx.tools.register(defineRawTool({
+    name: 'browser_set_cookies',
+    description: '把用户提供的 Cookie（登录态）写进实时浏览器的后台 Chrome，用于免登录访问需要账号的网站（例如小红书的 web_session）。只能使用用户明确粘贴给你的 Cookie，绝不能自己编造或猜测；写入后重新打开页面即可生效。支持三种格式：name=value; name2=value2（需给 domain）、Cookie-Editor 导出的 JSON 数组、Netscape cookies.txt。',
+    parameters: {
+      cookies: { type: 'string', required: true, description: '用户粘贴的 Cookie 文本：name=value 列表 / JSON 数组 / cookies.txt' },
+      domain: { type: 'string', description: '域名，例如 .xiaohongshu.com；name=value 格式必填，JSON 里没有 domain 时作为默认值' },
+    },
+    async execute(args) { return importCookies(String(args.cookies || ''), args.domain ? String(args.domain) : '') },
+  }))
   ctx.tools.register(defineRawTool({
     name: 'quick_links',
     description: '列出用户在实时浏览器里保存的书签（名称 + URL）。',
@@ -182,6 +200,7 @@ export function apply(ctx, config = {}) {
           text: [
             '## Real browser',
             'A real Chromium browser is available through the `mcp__playwright-mcp__*` tools (navigate, click, type, snapshot, screenshot). Whatever you navigate to is shown to the user automatically in the DSH right sidebar ("实时浏览器", a live view of that browser); the user may take over at any time.',
+            'Sites that need an account: the user can paste their own cookies (e.g. `web_session` for xiaohongshu.com) and you write them into that browser with `browser_set_cookies` (domain required for name=value text); reload the page afterwards. Never guess or fabricate cookie values, and never read them back to the user.',
             'Use it whenever the user asks you to open, browse, read or operate a web page. Do not claim a page is open unless a navigate/snapshot tool call succeeded. `open_url` shows a page in that same live browser without you reading it; `quick_links` lists the user\'s saved bookmarks.',
           ].join('\n'),
         })
@@ -264,6 +283,22 @@ export function apply(ctx, config = {}) {
     route('/prefs', async (req, res) => {
       if (req.method === 'POST') { const b = await readBody(req); if (b.searchEngine) history.setEngine(String(b.searchEngine)) }
       json(res, { searchEngine: history.engine, engines: Object.entries(SEARCH_ENGINES).map(([id, e]) => ({ id, name: e.name })), historyCount: history.size(), historyPath: history.path })
+    })
+    // Cookies (login state): loopback only, values never leave the host.
+    const loopback = (req) => { const a = req.socket && req.socket.remoteAddress; return a === '127.0.0.1' || a === '::1' || a === '::ffff:127.0.0.1' }
+    route('/cookies/list', async (req, res) => {
+      if (!loopback(req)) return json(res, { error: 'cookies are limited to loopback requests' }, 403)
+      try { json(res, { domains: groupByDomain(await hub.getCookies()) }) } catch (e) { json(res, { error: e.message }, 500) }
+    })
+    route('/cookies/import', async (req, res) => {
+      if (!loopback(req)) return json(res, { error: 'cookies are limited to loopback requests' }, 403)
+      const b = await readBody(req)
+      try { json(res, await importCookies(String(b.text || ''), String(b.domain || ''))) } catch (e) { json(res, { error: e.message }, 400) }
+    })
+    route('/cookies/clear', async (req, res) => {
+      if (!loopback(req)) return json(res, { error: 'cookies are limited to loopback requests' }, 403)
+      const b = await readBody(req)
+      try { json(res, await hub.clearCookies(b.domain ? String(b.domain) : '')) } catch (e) { json(res, { error: e.message }, 500) }
     })
     route('/resize', async (req, res) => { const b = await readBody(req); json(res, await hub.resize(String(b.target), Number(b.width), Number(b.height), Number(b.scale) || 1, String(b.viewer || req.headers['x-forwarded-for'] || 'default').slice(0, 64))) })
     route('/reload', async (req, res) => { const b = await readBody(req); await hub.reload(String(b.target)); json(res, { ok: true }) })

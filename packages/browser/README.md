@@ -65,3 +65,7 @@ profile 的 `cordis.patch.yml`（patch 会整体替换 config，所以要把需�
 - 在实时画面里按 Ctrl/Cmd + L 跳到地址栏。
 - 历史记在 `$DSH_HOME/mywork/browser-history.json`（最多 3000 条，模型和你打开的页面都算；本机 dsh 的 token 页不记）；设置页可一键清除。接口：`POST /mywork-browser/api/omni/go {target?, text}`、`GET /history/search?q=`、`POST /history/clear`、`GET|POST /prefs`。
 - 页面视口跟随面板：实时画面不再固定 1280 × 800 留黑边，面板多大（拖侧栏、全屏、缩放）后台页面就按多大排版，画面铺满；模型截图看到的也是同一尺寸。接口 `POST /mywork-browser/api/resize {target, width, height, scale}`（CDP `Emulation.setDeviceMetricsOverride` + 重开 screencast）。
+
+## 登录态：把已有的 Cookie 导进后台浏览器
+
+有些网站在实时浏览器里不方便登录（扫码、短信）。设置 → MyWork → 浏览器 → 「登录态（Cookie 导入）」，把你自己浏览器里已登录的 Cookie 粘进去即可，支持 `name=value; name2=value2`（需填域名）、Cookie-Editor 导出的 JSON、Netscape `cookies.txt`。也可以在对话里把 Cookie 粘给模型，它会调用 `browser_set_cookies` 写入。接口只接受本机请求，Cookie 只进后台 Chrome 的 profile，不显示、不上传、不落我们自己的文件。

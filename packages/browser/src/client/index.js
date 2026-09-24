@@ -26,6 +26,7 @@ const zh = {
   newTab: '新标签页', closeTab: '关闭标签页', back: '后退', forward: '前进', reload: '刷新', go: '前往',
   follow: '跟随模型', system: '用系统浏览器打开', noTabs: '没有打开的页面。输入网址，或让模型去浏览。',
   hint: '点击、滚动、输入都会转发到后台浏览器；按 Esc 退出输入焦点。',
+  modelBrowsing: '模型正在浏览', takeOverHint: '点击画面即可接管', takenOver: '你在操作这个页面', resumeFollow: '跟随模型',
   nav: '浏览器', bookmarks: '书签', addCurrent: '收藏当前页', noBookmarks: '还没有书签。', name: '名称', url: '网址（http/https）', add: '添加',
   up: '上移', down: '下移', del: '删除', edit: '重命名', save: '保存', openLive: '在实时浏览器打开', openSys: '用系统浏览器打开',
   status: '状态', running: '运行中', stopped: '未运行', engine: '内核', port: 'DevTools 端口', headless: '无头', yes: '是', no: '否', tabs: '标签页', dataFile: '书签文件',
@@ -38,6 +39,7 @@ const en = {
   newTab: 'New tab', closeTab: 'Close tab', back: 'Back', forward: 'Forward', reload: 'Reload', go: 'Go',
   follow: 'Follow model', system: 'Open in system browser', noTabs: 'No pages open. Type a URL, or ask the model to browse.',
   hint: 'Clicks, scrolling and typing are forwarded to the background browser; press Esc to leave input focus.',
+  modelBrowsing: 'The model is browsing', takeOverHint: 'click the page to take over', takenOver: 'You are driving this page', resumeFollow: 'Follow the model',
   nav: 'Browser', bookmarks: 'Bookmarks', addCurrent: 'Bookmark this page', noBookmarks: 'No bookmarks yet.', name: 'Name', url: 'URL (http/https)', add: 'Add',
   up: 'Up', down: 'Down', del: 'Delete', edit: 'Rename', save: 'Save', openLive: 'Open in live browser', openSys: 'Open in system browser',
   status: 'Status', running: 'running', stopped: 'not running', engine: 'Engine', port: 'DevTools port', headless: 'Headless', yes: 'yes', no: 'no', tabs: 'Tabs', dataFile: 'Bookmarks file',
@@ -72,6 +74,15 @@ const CSS = `
 .mwb-b.on{color:var(--dsw-alias-brand-primary);background:color-mix(in srgb,var(--dsw-alias-brand-primary) 12%,transparent)}
 .mwb-view{flex:1;min-height:0;position:relative;display:flex;align-items:flex-start;justify-content:center;background:#1a1a1a;overflow:hidden;outline:none}
 .mwb-view:focus-visible{box-shadow:inset 0 0 0 2px var(--dsw-alias-brand-primary)}
+.mwb-pill{position:absolute;top:10px;left:50%;transform:translateX(-50%);display:inline-flex;align-items:center;gap:8px;max-width:calc(100% - 24px);padding:0 12px 0 10px;height:28px;border-radius:999px;background:color-mix(in srgb,var(--dsw-alias-bg-overlay,var(--dsw-alias-bg-layer-1)) 92%,transparent);color:var(--dsw-alias-label-primary);border:0.5px solid var(--dsw-alias-border-l2);box-shadow:0 4px 16px rgba(0,0,0,.18);font-size:12px;line-height:16px;white-space:nowrap;pointer-events:none;backdrop-filter:blur(6px)}
+.mwb-pill.user{pointer-events:auto}
+.mwb-pill .dot{width:7px;height:7px;border-radius:50%;background:var(--dsw-alias-label-tertiary);flex:none}
+.mwb-pill.model .dot{background:var(--dsw-alias-brand-primary)}
+.mwb-pill .dot.pulse{box-shadow:0 0 0 0 color-mix(in srgb,var(--dsw-alias-brand-primary) 45%,transparent);animation:mwb-pulse 1.6s ease-out infinite}
+@keyframes mwb-pulse{to{box-shadow:0 0 0 7px transparent}}
+@media (prefers-reduced-motion:reduce){.mwb-pill .dot.pulse{animation:none}}
+.mwb-pill .sub{color:var(--dsw-alias-label-secondary)}
+.mwb-pill-btn{appearance:none;border:0;border-radius:999px;padding:3px 10px;margin-left:2px;background:var(--dsw-alias-button-primary-fill,var(--dsw-alias-brand-primary));color:var(--dsw-alias-label-primary-foreground,#fff);font:inherit;font-size:12px;cursor:pointer}
 /* width/height 100%: the page viewport equals the pane in SCREEN px; under UI zoom the pane's CSS box is larger than that, so the frame must scale to the box (1 page px = 1 screen px) instead of stopping at its intrinsic size. */
 .mwb-img{width:100%;height:100%;object-fit:contain;object-position:top left;display:block;cursor:default;user-select:none;-webkit-user-drag:none}
 .mwb-msg{flex:1;display:flex;flex-direction:column;gap:10px;align-items:center;justify-content:center;padding:24px;text-align:center;color:var(--dsw-alias-label-secondary);line-height:1.7;font-size:12.5px}
@@ -287,11 +298,22 @@ exports.apply = function apply(ctx) {
   }
   function prettyUrlClient(url) { return String(url || '').replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/\/$/, '') }
 
+  /** Claude-Code-style status over the live view: who is driving. Follow mode shows "the model is browsing" for a few
+   *  seconds after each navigation it makes; any click / scroll in the view hands control to the user until they resume. */
+  function FollowPill({ follow, modelAt, onResume }) {
+    const [, tick] = React.useState(0)
+    React.useEffect(() => { if (!follow || !modelAt) return undefined; const id = setInterval(() => tick((n) => n + 1), 1000); return () => clearInterval(id) }, [follow, modelAt])
+    if (!follow) return h('div', { className: 'mwb-pill user' }, h('span', { className: 'dot' }), t('takenOver'), h('button', { type: 'button', className: 'mwb-pill-btn', onClick: onResume }, t('resumeFollow')))
+    if (modelAt && Date.now() - modelAt < 6000) return h('div', { className: 'mwb-pill model', 'aria-live': 'polite' }, h('span', { className: 'dot pulse' }), t('modelBrowsing'), h('span', { className: 'sub' }, ' · ' + t('takeOverHint')))
+    return null
+  }
+
   function LiveBrowser(props) {
     const [status, setStatus] = React.useState(null)
     const [target, setTarget] = React.useState(null)
     const [follow, setFollow] = React.useState(true)
-    const [frame, setFrame] = React.useState(null) // { data, metadata }
+    const [frame, setFrame] = React.useState(null) // { data, format, metadata, still }
+    const [modelAt, setModelAt] = React.useState(0) // last time the model navigated / opened a page
     const [draft, setDraft] = React.useState('')
     const [conn, setConn] = React.useState('idle')
     const omniRef = React.useRef(null)
@@ -320,7 +342,9 @@ exports.apply = function apply(ctx) {
       refresh()
       const id = setInterval(refresh, 5000)
       const off = onActivity((ev) => {
-        if (follow && ev && (ev.type === 'created' || ev.type === 'changed') && ev.targetId && ev.url && ev.url !== 'about:blank' && !ev.url.startsWith(location.origin)) setTarget(ev.targetId)
+        const modelNav = ev && (ev.type === 'created' || ev.type === 'changed') && ev.targetId && ev.url && ev.url !== 'about:blank' && !ev.url.startsWith(location.origin)
+        if (modelNav) setModelAt(Date.now())
+        if (follow && modelNav) setTarget(ev.targetId)
         refresh()
       })
       return () => { clearInterval(id); off() }
@@ -352,7 +376,7 @@ exports.apply = function apply(ctx) {
       const es = new EventSource(`${API}/stream?target=${encodeURIComponent(target)}`)
       es.onmessage = (ev) => {
         let msg; try { msg = JSON.parse(ev.data) } catch { return }
-        if (msg.type === 'frame') { setFrame({ data: msg.data, metadata: msg.metadata }); setConn('live') }
+        if (msg.type === 'frame') { setFrame({ data: msg.data, format: msg.format || 'jpeg', metadata: msg.metadata, still: !!msg.still }); setConn('live') }
         else if (msg.type === 'nav') { lastUrl.current = target + '|' + msg.url; setDraft(msg.url === 'about:blank' ? '' : msg.url); refresh() }
         else if (msg.type === 'closed') { setConn('closed'); refresh() }
         else if (msg.type === 'error') { setConn('error:' + msg.message) }
@@ -394,10 +418,11 @@ exports.apply = function apply(ctx) {
       return { x: Math.max(0, Math.round((e.clientX - r.left) * sx)), y: Math.max(0, Math.round((e.clientY - r.top) * sy)) }
     }
     const btn = (e) => (e.button === 2 ? 'right' : e.button === 1 ? 'middle' : 'left')
-    const onMouseDown = (e) => { const p = pageXY(e); if (!p) return; e.preventDefault(); viewRef.current && viewRef.current.focus(); push({ kind: 'mouse', type: 'mousePressed', ...p, button: btn(e), buttons: e.buttons, clickCount: e.detail || 1, modifiers: mods(e) }, true) }
+    const takeOver = () => { if (follow) setFollow(false) }
+    const onMouseDown = (e) => { const p = pageXY(e); if (!p) return; e.preventDefault(); takeOver(); viewRef.current && viewRef.current.focus(); push({ kind: 'mouse', type: 'mousePressed', ...p, button: btn(e), buttons: e.buttons, clickCount: e.detail || 1, modifiers: mods(e) }, true) }
     const onMouseUp = (e) => { const p = pageXY(e); if (!p) return; push({ kind: 'mouse', type: 'mouseReleased', ...p, button: btn(e), buttons: e.buttons, clickCount: e.detail || 1, modifiers: mods(e) }, true) }
     const onMouseMove = (e) => { const now = Date.now(); if (now - lastMove.current < 50) return; lastMove.current = now; const p = pageXY(e); if (!p) return; push({ kind: 'mouse', type: 'mouseMoved', ...p, buttons: e.buttons, modifiers: mods(e) }) }
-    const onWheel = (e) => { const p = pageXY(e); if (!p) return; e.preventDefault(); push({ kind: 'mouse', type: 'mouseWheel', ...p, deltaX: Math.round(e.deltaX), deltaY: Math.round(e.deltaY), modifiers: mods(e) }, true) }
+    const onWheel = (e) => { const p = pageXY(e); if (!p) return; e.preventDefault(); takeOver(); push({ kind: 'mouse', type: 'mouseWheel', ...p, deltaX: Math.round(e.deltaX), deltaY: Math.round(e.deltaY), modifiers: mods(e) }, true) }
     const onKeyDown = (e) => {
       if ((e.metaKey || e.ctrlKey) && (e.key === 'l' || e.key === 'L')) { e.preventDefault(); omniRef.current && omniRef.current.focus(); return }
       if (e.key === 'Escape') { e.preventDefault(); viewRef.current && viewRef.current.blur(); return }
@@ -451,7 +476,8 @@ exports.apply = function apply(ctx) {
       status.targets.length === 0 || !target
         ? h('div', { className: 'mwb-msg' }, t('noTabs'))
         : h('div', { ref: viewRef, className: 'mwb-view', tabIndex: 0, 'aria-label': t('liveView'), onKeyDown, onPaste, onContextMenu: (e) => e.preventDefault() },
-          frame ? h('img', { ref: imgRef, className: 'mwb-img', src: 'data:image/jpeg;base64,' + frame.data, draggable: false, onMouseDown, onMouseUp, onMouseMove, onWheel, alt: '' }) : h('div', { className: 'mwb-msg' }, conn === 'connecting' ? t('starting') : conn)),
+          frame ? h('img', { ref: imgRef, className: 'mwb-img', src: 'data:image/' + (frame.format || 'jpeg') + ';base64,' + frame.data, draggable: false, onMouseDown, onMouseUp, onMouseMove, onWheel, alt: '' }) : h('div', { className: 'mwb-msg' }, conn === 'connecting' ? t('starting') : conn),
+          h(FollowPill, { follow, modelAt, onResume: () => { setFollow(true); refresh() } })),
       h('div', { className: 'mwb-foot' }, (current ? (current.title ? current.title + ' · ' : '') + current.url : '') + (conn.startsWith('error') ? ' · ' + conn : '') + ' · ' + t('hint')),
     )
   }

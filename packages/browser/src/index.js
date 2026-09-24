@@ -86,7 +86,7 @@ export function apply(ctx, config = {}) {
       handle = { child: null, port, version: v, adopted: true }
       return handle
     }
-    handle = await launchChrome({ port, headless: config.headless !== false, executablePath: config.executablePath || undefined, userDataDir: config.userDataDir || undefined, pixelRatio: config.pixelRatio === undefined ? 2 : config.pixelRatio, width: config.width || 1280, height: config.height || 800, proxy: config.proxy || undefined })
+    handle = await launchChrome({ port, headless: history.headed ? false : config.headless !== false, executablePath: config.executablePath || undefined, userDataDir: config.userDataDir || undefined, pixelRatio: config.pixelRatio === undefined ? 2 : config.pixelRatio, width: config.width || 1280, height: config.height || 800, proxy: config.proxy || undefined })
     log(`${handle.adopted ? 'attached to' : 'started'} browser on 127.0.0.1:${port}${handle.executable ? ' (' + handle.executable + ')' : ''}`)
     watcher.start().catch(() => {})
     return handle
@@ -229,7 +229,10 @@ export function apply(ctx, config = {}) {
       await ready
       if (!handle) return json(res, { running: false, error: launchError ? launchError.message : 'not started', port })
       let targets = []
-      try { targets = await hub.targets() } catch (e) { return json(res, { running: false, error: 'DevTools unreachable: ' + e.message, port }) }
+      try { targets = await hub.targets() } catch (e) {
+        if (handle.adopted && !(await probe(port))) { handle = null; ensureBrowser().catch((err) => { launchError = err }) }
+        return json(res, { running: false, error: 'DevTools unreachable: ' + e.message, port })
+      }
       json(res, { running: true, port, headless: config.headless !== false, adopted: !!handle.adopted, executable: handle.executable || null, browser: handle.version && handle.version.Browser, targets, size: { width: config.width || 1280, height: config.height || 800 }, allowSystem: config.allowSystemBrowser !== false })
     })
 
@@ -281,8 +284,8 @@ export function apply(ctx, config = {}) {
     route('/history/search', async (req, res) => { const q = query(req); json(res, { items: history.search(q.get('q') || '', Math.min(20, Number(q.get('limit')) || 8)) }) })
     route('/history/clear', async (_req, res) => { history.clear(); json(res, { ok: true }) })
     route('/prefs', async (req, res) => {
-      if (req.method === 'POST') { const b = await readBody(req); if (b.searchEngine) history.setEngine(String(b.searchEngine)) }
-      json(res, { searchEngine: history.engine, engines: Object.entries(SEARCH_ENGINES).map(([id, e]) => ({ id, name: e.name })), historyCount: history.size(), historyPath: history.path })
+      if (req.method === 'POST') { const b = await readBody(req); if (b.searchEngine) history.setEngine(String(b.searchEngine)); if (b.headed !== undefined) history.setHeaded(!!b.headed) }
+      json(res, { searchEngine: history.engine, engines: Object.entries(SEARCH_ENGINES).map(([id, e]) => ({ id, name: e.name })), historyCount: history.size(), historyPath: history.path, headed: !!history.headed })
     })
     // Cookies (login state): loopback only, values never leave the host.
     const loopback = (req) => { const a = req.socket && req.socket.remoteAddress; return a === '127.0.0.1' || a === '::1' || a === '::ffff:127.0.0.1' }
@@ -336,6 +339,8 @@ export function apply(ctx, config = {}) {
       watcher.stop(); hub.close()
       if (handle && !handle.adopted) killChrome(handle)
       handle = null; launchError = null
+      // wait until the old process has really released the port, otherwise ensureBrowser() adopts the dying instance
+      for (let i = 0; i < 40 && await probe(port); i++) await new Promise((r) => setTimeout(r, 150))
       try { await ensureBrowser(); json(res, { ok: true }) } catch (e) { launchError = e; json(res, { ok: false, error: e.message }, 500) }
     })
   })

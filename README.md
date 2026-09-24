@@ -265,6 +265,7 @@ scripts/       build-client.mjs（零依赖 C6 打包器）· install.sh / unins
 
 ### 未发布
 
+- 实时浏览器可以切成真实窗口：设置 → MyWork → 浏览器 → 「显示真实浏览器窗口」。打开后后台 Chrome 是一个真窗口，扫码、短信、滑块验证都在窗口里自己做，登录态直接保留，面板照常显示画面；关掉回到无头。切换会重启浏览器。有头模式下画面按屏幕自己的像素比输出。
 - 实时浏览器支持导入登录态：设置 → MyWork → 浏览器 → 「登录态（Cookie 导入）」，把自己浏览器里已登录的 Cookie 粘进去（`name=value` 列表 + 域名 / Cookie-Editor JSON / cookies.txt），后台 Chrome 立刻是登录状态，小红书这类扫码登录的站点也能用；模型也有 `browser_set_cookies` 工具，只能写你粘给它的值。接口只接受本机请求，Cookie 不显示、不上传。
 - 实时浏览器：Retina 屏上全程高清。后台 Chrome 现在按屏幕像素比启动（`pixelRatio`，默认 2），实时流本身就是 2x。多个面板同时看同一页时按最大的那个面板设置视口，不再来回抖动。画面上方有状态条：模型刚导航过时显示「模型正在浏览 · 点击画面即可接管」，你一点画面就切到「你在操作」并停止跟随，按「跟随模型」恢复。
 - 风格重做：保留 Claude Code 风格，去掉 Codex / Swiss；按 [taste-skill](https://github.com/Leonxlnx/taste-skill) 的 soft-skill / minimalist-skill / brutalist-skill 新增「柔和高级」「极简编辑」「工业粗野」三种风格，各自带字体、圆角、阴影、动效规则，浅色深色文字全部过 WCAG AA。定时任务 / IM 助理页面里第三方插件的重复标题隐藏；实时浏览器工具条改成 Chrome 式标签条 + 胶囊地址栏。

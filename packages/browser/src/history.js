@@ -77,6 +77,7 @@ export class HistoryStore {
     try {
       const doc = JSON.parse(readFileSync(this.path, 'utf8'))
       if (doc && SEARCH_ENGINES[doc.engine]) this.engine = doc.engine
+      this.headed = !!(doc && doc.headed)
       for (const it of Array.isArray(doc && doc.items) ? doc.items : []) if (it && typeof it.url === 'string' && !ignorable(it.url)) this.items.set(it.url, { url: it.url, title: String(it.title || ''), count: Number(it.count) || 1, last: Number(it.last) || 0 })
     } catch { /* first run or unreadable */ }
     return this.items
@@ -86,7 +87,7 @@ export class HistoryStore {
     const items = [...this.items.values()].sort((a, b) => b.last - a.last).slice(0, this.max)
     mkdirSync(dirname(this.path), { recursive: true })
     const tmp = this.path + '.tmp-' + process.pid
-    writeFileSync(tmp, JSON.stringify({ engine: this.engine, items }, null, 2) + '\n')
+    writeFileSync(tmp, JSON.stringify({ engine: this.engine, headed: !!this.headed, items }, null, 2) + '\n')
     renameSync(tmp, this.path)
   }
   scheduleSave() { if (this.timer) return; this.timer = setTimeout(() => { this.timer = null; try { this.save() } catch { /* ignore */ } }, this.saveDelayMs); if (this.timer.unref) this.timer.unref() }
@@ -105,6 +106,8 @@ export class HistoryStore {
     this.scheduleSave()
     return true
   }
+  /** Show the real browser window (headed) instead of the headless one; takes effect on the next launch. */
+  setHeaded(on) { this.load(); this.headed = !!on; this.save() }
   setEngine(engine) { if (!SEARCH_ENGINES[engine]) throw new Error('unknown search engine: ' + engine); this.load(); this.engine = engine; this.scheduleSave() }
   clear() { this.load(); this.items.clear(); this.scheduleSave() }
   size() { return this.load().size }

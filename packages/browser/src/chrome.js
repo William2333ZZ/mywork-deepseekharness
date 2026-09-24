@@ -78,7 +78,7 @@ export async function launchChrome(opts) {
     `--user-data-dir=${userDataDir}`,
     // headless new sizes the window in physical pixels: scale it with the forced ratio, otherwise the screencast
     // surface is smaller than the emulated viewport and frames come back cropped
-    `--window-size=${Math.round(opts.width * (Number(opts.pixelRatio) > 1 ? Number(opts.pixelRatio) : 1))},${Math.round(opts.height * (Number(opts.pixelRatio) > 1 ? Number(opts.pixelRatio) : 1))}`,
+    `--window-size=${Math.round(opts.width * (opts.headless && Number(opts.pixelRatio) > 1 ? Number(opts.pixelRatio) : 1))},${Math.round(opts.height * (opts.headless && Number(opts.pixelRatio) > 1 ? Number(opts.pixelRatio) : 1))}`,
     '--no-first-run', '--no-default-browser-check', '--disable-background-timer-throttling',
     '--disable-renderer-backgrounding', '--disable-backgrounding-occluded-windows',
     '--disable-features=TranslateUI', '--hide-crash-restore-bubble',
@@ -87,8 +87,9 @@ export async function launchChrome(opts) {
   if (proxy) args.push(`--proxy-server=${proxy}`)
   // The screencast streams at the browser's own scale factor: launch at the viewer's (Retina) ratio so live
   // frames are crisp instead of 1x-upscaled. Emulation overrides per tab still apply on top.
+  // A headed window already renders at the screen's scale factor; forcing one there would blow up Chrome's own UI.
   const ratio = Number(opts.pixelRatio)
-  if (ratio > 1 && ratio <= 3) args.push(`--force-device-scale-factor=${ratio}`)
+  if (opts.headless && ratio > 1 && ratio <= 3) args.push(`--force-device-scale-factor=${ratio}`)
   if (opts.headless) args.push('--headless=new', '--disable-gpu')
   args.push('about:blank')
   const child = spawn(executable, args, { stdio: ['ignore', 'ignore', 'pipe'], detached: false })

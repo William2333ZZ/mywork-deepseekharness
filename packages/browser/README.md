@@ -28,7 +28,7 @@ profile 的 `cordis.patch.yml`（patch 会整体替换 config，所以要把需�
 - id: mywork-browser
   config:
     autoLaunch: true      # false = 你自己起一个带 --remote-debugging-port 的浏览器
-    headless: false       # 想同时看到真窗口就关掉无头
+    headless: false       # 默认值；设置页里的「显示真实浏览器窗口」开关会覆盖它（存在 browser-history.json 的 headed 字段）
     port: 9333
     executablePath: ''    # 留空自动找 Chrome / Chromium / Edge；或设环境变量 MYWORK_BROWSER_EXECUTABLE
     width: 1280

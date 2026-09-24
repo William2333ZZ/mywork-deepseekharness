@@ -288,7 +288,8 @@ export function apply(ctx, config = {}) {
     const loopback = (req) => { const a = req.socket && req.socket.remoteAddress; return a === '127.0.0.1' || a === '::1' || a === '::ffff:127.0.0.1' }
     route('/cookies/list', async (req, res) => {
       if (!loopback(req)) return json(res, { error: 'cookies are limited to loopback requests' }, 403)
-      try { json(res, { domains: groupByDomain(await hub.getCookies()) }) } catch (e) { json(res, { error: e.message }, 500) }
+      // dsh's own session cookie lives in this browser too (the live view is served from it); keep loopback hosts out of the list so nobody clears themselves out
+      try { json(res, { domains: groupByDomain(await hub.getCookies()).filter((g) => !/^(127\.0\.0\.1|localhost|\[?::1\]?)$/.test(g.domain)) }) } catch (e) { json(res, { error: e.message }, 500) }
     })
     route('/cookies/import', async (req, res) => {
       if (!loopback(req)) return json(res, { error: 'cookies are limited to loopback requests' }, 403)

@@ -233,7 +233,7 @@ export function apply(ctx, config = {}) {
         if (handle.adopted && !(await probe(port))) { handle = null; ensureBrowser().catch((err) => { launchError = err }) }
         return json(res, { running: false, error: 'DevTools unreachable: ' + e.message, port })
       }
-      json(res, { running: true, port, headless: config.headless !== false, adopted: !!handle.adopted, executable: handle.executable || null, browser: handle.version && handle.version.Browser, targets, size: { width: config.width || 1280, height: config.height || 800 }, allowSystem: config.allowSystemBrowser !== false })
+      json(res, { running: true, port, headless: history.headed ? false : config.headless !== false, headed: !!history.headed, adopted: !!handle.adopted, executable: handle.executable || null, browser: handle.version && handle.version.Browser, targets, size: { width: config.width || 1280, height: config.height || 800 }, allowSystem: config.allowSystemBrowser !== false })
     })
 
     // Browser activity feed (page created / navigated / closed) for the whole

@@ -26,7 +26,7 @@ const zh = {
   tab: '实时浏览器', guide: '实时浏览器', guideDesc: '后台 Chrome 的实时画面，可围观模型操作，也可自己点',
   open: '打开实时浏览器', notRunning: '浏览器未运行', starting: '连接中…', restart: '重启浏览器',
   newTab: '新标签页', closeTab: '关闭标签页', back: '后退', forward: '前进', reload: '刷新', go: '前往',
-  follow: '跟随模型', system: '用系统浏览器打开', noTabs: '没有打开的页面。输入网址，或让模型去浏览。',
+  follow: '跟随模型', system: '用系统浏览器打开', noTabs: '没有打开的页面。输入网址，或让模型去浏览。', emptyTitle: '和模型一起上网', emptySub: '输入网址，或让模型打开一个网站。模型可以阅读、点击、输入，你随时可以接管。', untitled: '新标签页',
   hint: '点击、滚动、输入都会转发到后台浏览器；按 Esc 退出输入焦点。',
   modelBrowsing: '模型正在浏览', takeOverHint: '点击画面即可接管', takenOver: '你在操作这个页面', resumeFollow: '跟随模型',
   nav: '浏览器', bookmarks: '书签', addCurrent: '收藏当前页', noBookmarks: '还没有书签。', name: '名称', url: '网址（http/https）', add: '添加',
@@ -41,7 +41,7 @@ const en = {
   tab: 'Live browser', guide: 'Live browser', guideDesc: 'Live view of the background Chrome: watch the model, take over anytime',
   open: 'Open live browser', notRunning: 'browser not running', starting: 'connecting…', restart: 'Restart browser',
   newTab: 'New tab', closeTab: 'Close tab', back: 'Back', forward: 'Forward', reload: 'Reload', go: 'Go',
-  follow: 'Follow model', system: 'Open in system browser', noTabs: 'No pages open. Type a URL, or ask the model to browse.',
+  follow: 'Follow model', system: 'Open in system browser', noTabs: 'No pages open. Type a URL, or ask the model to browse.', emptyTitle: 'Browse with the model', emptySub: 'Type a URL or ask the model to open a site. It can read, click and type; you can take over any time.', untitled: 'New tab',
   hint: 'Clicks, scrolling and typing are forwarded to the background browser; press Esc to leave input focus.',
   modelBrowsing: 'The model is browsing', takeOverHint: 'click the page to take over', takenOver: 'You are driving this page', resumeFollow: 'Follow the model',
   nav: 'Browser', bookmarks: 'Bookmarks', addCurrent: 'Bookmark this page', noBookmarks: 'No bookmarks yet.', name: 'Name', url: 'URL (http/https)', add: 'Add',
@@ -54,18 +54,27 @@ const en = {
 }
 
 const CSS = `
-.mwb{display:flex;flex-direction:column;height:100%;min-height:0;background:var(--dsw-alias-bg-base)}
-.mwb-bar{display:flex;gap:4px;align-items:center;padding:6px 8px 0;flex:none;background:color-mix(in srgb,var(--dsw-alias-label-primary) 5%,var(--dsw-alias-bg-base))}
-.mwb-bar2{display:flex;gap:4px;align-items:center;padding:6px 8px;border-bottom:0.5px solid var(--dsw-alias-border-l2);flex:none;background:var(--dsw-alias-bg-base)}
-.mwb-bar select{flex:1;min-width:0}
-.mwb-bar select{appearance:none;-webkit-appearance:none;height:30px;background:var(--dsw-alias-bg-base);border:0;border-radius:10px 10px 0 0;color:inherit;font:inherit;font-size:12.5px;font-weight:500;padding:0 26px 0 12px;cursor:pointer;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>");background-repeat:no-repeat;background-position:right 9px center}
-.mwb-bar select:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:-2px}
+.mwb{display:flex;flex-direction:column;height:100%;min-height:0;background:var(--dsw-alias-bg-base);container-type:inline-size}
+/* narrow pane: the address bar wins, secondary buttons go */
+@container (max-width:420px){.mwb-bm,.mwb-b.sys{display:none}}
+@container (max-width:330px){.mwb-bar2 .mwb-b[title]:nth-child(2){display:none}}
+.mwb-bar{display:flex;gap:4px;align-items:center;padding:6px 6px 0 6px;flex:none;background:var(--dsw-alias-bg-base)}
+.mwb-bar2{display:flex;gap:4px;align-items:center;padding:6px 8px 8px;border-bottom:0.5px solid var(--dsw-alias-border-l2);flex:none;background:var(--dsw-alias-bg-base)}
+.mwb-tabs{display:flex;gap:2px;align-items:center;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none}
+.mwb-tabs::-webkit-scrollbar{display:none}
+.mwb-tab{display:inline-flex;align-items:center;gap:4px;flex:0 1 auto;min-width:0;max-width:190px;height:30px;padding:0 4px 0 12px;border-radius:10px;color:var(--dsw-alias-label-secondary);font-size:12.5px;line-height:16px;cursor:pointer;user-select:none;transition:background-color 120ms,color 120ms}
+.mwb-tab:hover{background:color-mix(in srgb,var(--dsw-alias-label-primary) 5%,transparent);color:var(--dsw-alias-label-primary)}
+.mwb-tab.on{background:color-mix(in srgb,var(--dsw-alias-label-primary) 9%,transparent);color:var(--dsw-alias-label-primary)}
+.mwb-tab .tt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mwb-tab .x{appearance:none;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;flex:none;border:0;border-radius:6px;background:transparent;color:var(--dsw-alias-label-tertiary);cursor:pointer;padding:0;opacity:.7}
+.mwb-tab .x:hover{background:color-mix(in srgb,var(--dsw-alias-label-primary) 10%,transparent);color:var(--dsw-alias-label-primary);opacity:1}
+.mwb-tab:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:-2px}
 .mwb-in{flex:1;min-width:120px;background:var(--dsw-alias-bg-layer-2);border:0.5px solid var(--dsw-alias-border-l2);border-radius:8px;padding:4px 8px;font:inherit;font-size:12px;color:inherit;font-family:ui-monospace,Menlo,monospace}
 .mwb-in:focus{outline:none;border-color:var(--dsw-alias-brand-primary);box-shadow:0 0 0 2px color-mix(in srgb,var(--dsw-alias-brand-primary) 35%,transparent)}
-.mwb-omni{position:relative;flex:1;min-width:140px;display:flex}
-.mwb-omni .mwb-in{width:100%;height:28px;font-family:inherit;font-size:12.5px;padding-left:28px;border-radius:999px;background:color-mix(in srgb,var(--dsw-alias-label-primary) 5%,var(--dsw-alias-bg-base))}
+.mwb-omni{position:relative;flex:1;min-width:90px;display:flex}
+.mwb-omni .mwb-in{width:100%;height:32px;font-family:inherit;font-size:13px;padding-left:30px;border-radius:10px;background:color-mix(in srgb,var(--dsw-alias-label-primary) 5%,var(--dsw-alias-bg-base))}
 .mwb-omni .mwb-in:focus{background:var(--dsw-alias-bg-base)}
-.mwb-omni .lead{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--dsw-alias-label-tertiary,var(--dsw-alias-label-secondary));pointer-events:none;display:inline-flex}
+.mwb-omni .lead{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--dsw-alias-label-tertiary,var(--dsw-alias-label-secondary));pointer-events:none;display:inline-flex}
 .mwb-sugg{position:absolute;left:0;right:0;top:calc(100% + 4px);background:var(--dsw-alias-bg-overlay,var(--dsw-alias-bg-layer-1));color:var(--dsw-alias-label-primary);border:0.5px solid var(--dsw-alias-border-l2);border-radius:12px;box-shadow:var(--dsw-elevation-prominent,0 10px 40px rgba(0,0,0,.28));padding:6px;z-index:1100;font-size:12.5px;max-height:min(50vh,420px);overflow:auto}
 .mwb-sugg .row{display:flex;align-items:center;gap:8px;width:100%;border:0;background:transparent;color:inherit;padding:6px 8px;border-radius:8px;cursor:pointer;text-align:left;font:inherit;font-size:12.5px}
 .mwb-sugg .row.sel,.mwb-sugg .row:hover{background:var(--dsw-alias-interactive-bg-hover)}
@@ -73,12 +82,12 @@ const CSS = `
 .mwb-sugg .row .main{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mwb-sugg .row .sub{flex:none;max-width:45%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-secondary);font-size:11.5px}
 .mwb-sugg .grp{font-size:11px;color:var(--dsw-alias-label-tertiary,var(--dsw-alias-label-secondary));padding:6px 8px 2px}
-.mwb-b{appearance:none;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;flex:none;border:0;border-radius:8px;background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer;padding:0}
+.mwb-b{appearance:none;display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;flex:none;border:0;border-radius:8px;background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer;padding:0}
 .mwb-b:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:-2px}
 .mwb-b:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}
 .mwb-b:disabled{opacity:.35;cursor:default}
 .mwb-b.on{color:var(--dsw-alias-brand-primary);background:color-mix(in srgb,var(--dsw-alias-brand-primary) 12%,transparent)}
-.mwb-view{flex:1;min-height:0;position:relative;display:flex;align-items:flex-start;justify-content:center;background:#1a1a1a;overflow:hidden;outline:none}
+.mwb-view{flex:1;min-height:0;position:relative;display:flex;align-items:flex-start;justify-content:center;background:var(--dsw-alias-bg-layer-2);overflow:hidden;outline:none}
 .mwb-view:focus-visible{box-shadow:inset 0 0 0 2px var(--dsw-alias-brand-primary)}
 .mwb-pill{position:absolute;top:10px;left:50%;transform:translateX(-50%);display:inline-flex;align-items:center;gap:8px;max-width:calc(100% - 24px);padding:0 12px 0 10px;height:28px;border-radius:999px;background:color-mix(in srgb,var(--dsw-alias-bg-overlay,var(--dsw-alias-bg-layer-1)) 92%,transparent);color:var(--dsw-alias-label-primary);border:0.5px solid var(--dsw-alias-border-l2);box-shadow:0 4px 16px rgba(0,0,0,.18);font-size:12px;line-height:16px;white-space:nowrap;pointer-events:none;backdrop-filter:blur(6px)}
 .mwb-pill.user{pointer-events:auto}
@@ -92,6 +101,10 @@ const CSS = `
 /* width/height 100%: the page viewport equals the pane in SCREEN px; under UI zoom the pane's CSS box is larger than that, so the frame must scale to the box (1 page px = 1 screen px) instead of stopping at its intrinsic size. */
 .mwb-img{width:100%;height:100%;object-fit:contain;object-position:top left;display:block;cursor:default;user-select:none;-webkit-user-drag:none}
 .mwb-msg{flex:1;display:flex;flex-direction:column;gap:10px;align-items:center;justify-content:center;padding:24px;text-align:center;color:var(--dsw-alias-label-secondary);line-height:1.7;font-size:12.5px}
+.mwb-empty-state{gap:6px;background:var(--dsw-alias-bg-base)}
+.mwb-empty-state .ic{color:var(--dsw-alias-label-secondary);margin-bottom:10px}
+.mwb-empty-state .tt{font-size:16px;font-weight:600;color:var(--dsw-alias-label-primary)}
+.mwb-empty-state .sub{max-width:340px;font-size:13px;color:var(--dsw-alias-label-secondary)}
 .mwb-foot{flex:none;font-size:12px;color:var(--dsw-alias-label-secondary);padding:3px 8px;border-top:0.5px solid var(--dsw-alias-border-l2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mwb-composer{display:inline-flex;align-items:center;justify-content:center;background:transparent;border:0;border-radius:8px;width:28px;height:28px;padding:0;cursor:pointer;color:var(--dsw-alias-label-secondary)}
 .mwb-composer:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}
@@ -464,24 +477,24 @@ exports.apply = function apply(ctx) {
       return h('div', { className: 'mwb' }, h('div', { className: 'mwb-msg' }, h('div', null, t('notRunning')), h('div', { style: { fontSize: 11.5 } }, status.error || ''), h('button', { className: 'mwb-b on', onClick: () => api('/restart', {}).then(refresh).catch(refresh) }, t('restart'))))
     }
     return h('div', { className: 'mwb' },
-      h('div', { className: 'mwb-bar' },
-        h('select', { value: target || '', onChange: (e) => { setFollow(false); setTarget(e.target.value || null) }, title: t('tabs'), 'aria-label': t('tabs') },
-          status.targets.length === 0 ? h('option', { value: '' }, '—') : null,
-          status.targets.map((x) => h('option', { key: x.id, value: x.id }, (x.title || hostOf(x.url) || 'about:blank').slice(0, 40)))),
-        h('button', { className: 'mwb-b', title: t('newTab'), onClick: newTab }, icon('plus', { size: 14 })),
-        h('button', { className: 'mwb-b', title: t('closeTab'), disabled: !target, onClick: act('/close-tab') }, icon('x', { size: 14 })),
-        h('button', { className: 'mwb-b' + (follow ? ' on' : ''), title: t('follow'), onClick: () => setFollow(!follow) }, icon('crosshair', { size: 14 })),
+      h('div', { className: 'mwb-bar', role: 'tablist', 'aria-label': t('tabs') },
+        h('div', { className: 'mwb-tabs' }, status.targets.map((x) => h('div', { key: x.id, className: 'mwb-tab' + (x.id === target ? ' on' : ''), role: 'tab', 'aria-selected': x.id === target, tabIndex: 0, title: x.title || x.url,
+          onClick: () => { setFollow(false); setTarget(x.id) }, onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setFollow(false); setTarget(x.id) } } },
+          h('span', { className: 'tt' }, (x.title || hostOf(x.url) || t('untitled')).slice(0, 40)),
+          h('button', { type: 'button', className: 'x', title: t('closeTab'), 'aria-label': t('closeTab') + ' ' + (x.title || hostOf(x.url) || ''), onClick: (e) => { e.stopPropagation(); api('/close-tab', { target: x.id }).then(refresh).catch(() => {}) } }, icon('x', { size: 12 }))))),
+        h('button', { className: 'mwb-b', title: t('newTab'), 'aria-label': t('newTab'), onClick: newTab }, icon('plus', { size: 15 })),
       ),
       h('div', { className: 'mwb-bar2' },
         h('button', { className: 'mwb-b', title: t('back'), disabled: !target, onClick: act('/back') }, icon('arrow-left', { size: 14 })),
         h('button', { className: 'mwb-b', title: t('forward'), disabled: !target, onClick: act('/forward') }, icon('arrow-right', { size: 14 })),
         h('button', { className: 'mwb-b', title: t('reload'), disabled: !target, onClick: act('/reload') }, icon('refresh-cw', { size: 13 })),
         h(Omnibox, { target, currentUrl: draft, focusRef: omniRef, onNavigated: (url) => { setDraft(url); refresh() } }),
+        h('button', { className: 'mwb-b' + (follow ? ' on' : ''), title: t('follow'), 'aria-pressed': follow, onClick: () => setFollow(!follow) }, icon('crosshair', { size: 14 })),
         h(BookmarkMenu, { current, target }),
-        h('button', { className: 'mwb-b', title: t('system'), disabled: !current || !/^https?:/.test(current.url), onClick: () => { if (current) openSystem(current.url) } }, icon('external-link', { size: 14 })),
+        h('button', { className: 'mwb-b sys', title: t('system'), disabled: !current || !/^https?:/.test(current.url), onClick: () => { if (current) openSystem(current.url) } }, icon('external-link', { size: 14 })),
       ),
       status.targets.length === 0 || !target
-        ? h('div', { className: 'mwb-msg' }, t('noTabs'))
+        ? h('div', { className: 'mwb-msg mwb-empty-state' }, h('div', { className: 'ic' }, icon('globe', { size: 36 })), h('div', { className: 'tt' }, t('emptyTitle')), h('div', { className: 'sub' }, t('emptySub')))
         : h('div', { ref: viewRef, className: 'mwb-view', tabIndex: 0, 'aria-label': t('liveView'), onKeyDown, onPaste, onContextMenu: (e) => e.preventDefault() },
           frame ? h('img', { ref: imgRef, className: 'mwb-img', src: 'data:image/' + (frame.format || 'jpeg') + ';base64,' + frame.data, draggable: false, onMouseDown, onMouseUp, onMouseMove, onWheel, alt: '' }) : h('div', { className: 'mwb-msg' }, conn === 'connecting' ? t('starting') : conn),
           h(FollowPill, { follow, modelAt, onResume: () => { setFollow(true); refresh() } })),

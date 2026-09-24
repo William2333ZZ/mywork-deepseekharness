@@ -130,9 +130,7 @@ const en = {
 }
 
 const CSS = `
-.mwb{display:flex;flex-direction:column;height:100%;min-height:0;background:var(--dsw-alias-bg-base);animation:mwb-in 260ms cubic-bezier(.2,.8,.2,1) both}
-@keyframes mwb-in{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:none}}
-@media (prefers-reduced-motion:reduce){.mwb{animation:none}}
+.mwb{display:flex;flex-direction:column;height:100%;min-height:0;background:var(--dsw-alias-bg-base)}
 .mwb-bar{display:flex;gap:4px;align-items:center;padding:6px 8px 0;flex:none;background:color-mix(in srgb,var(--dsw-alias-label-primary) 5%,var(--dsw-alias-bg-base))}
 .mwb-bar2{display:flex;gap:4px;align-items:center;padding:6px 8px;border-bottom:0.5px solid var(--dsw-alias-border-l2);flex:none;background:var(--dsw-alias-bg-base)}
 .mwb-bar select{flex:1;min-width:0}

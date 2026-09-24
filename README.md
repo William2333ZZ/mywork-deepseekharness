@@ -265,7 +265,6 @@ scripts/       build-client.mjs（零依赖 C6 打包器）· install.sh / unins
 
 ### 未发布
 
-- 五个有信息量的微动效：右侧实时浏览器面板滑入、提醒弹窗进出、新建对话卡片悬停上浮和示例条目错位进入、切换风格 / 明暗时 220ms 颜色过渡、定时任务的通知标签保存后闪一下。只动 transform 和 opacity，150–400ms，系统「减少动态效果」下全部关闭。
 - 风格重做：保留 Claude Code 风格，去掉 Codex / Swiss；按 [taste-skill](https://github.com/Leonxlnx/taste-skill) 的 soft-skill / minimalist-skill / brutalist-skill 新增「柔和高级」「极简编辑」「工业粗野」三种风格，各自带字体、圆角、阴影、动效规则，浅色深色文字全部过 WCAG AA。定时任务 / IM 助理页面里第三方插件的重复标题隐藏；实时浏览器工具条改成 Chrome 式标签条 + 胶囊地址栏。
 - 按 [ui-ux-pro-max](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) 的清单做了一轮界面审视（`scripts/ux-audit.mjs` 自动检查对比度、点击目标、无障碍名称、最小字号）：三种风格的次要 / 三级文字、状态色、主按钮填充全部达到 WCAG AA 4.5:1（Claude 风格的主按钮从 #D97757 改为 #BA5A3A，深色 Swiss 的主按钮改用深色文字）；所有 11px 文字提到 12px；输入框获得可见的焦点环；图标按钮、下拉框、文本域补上无障碍名称；侧栏「更多」按钮和缩放滑块放大到 24px 点击目标。
 

@@ -7706,13 +7706,8 @@ header [data-dcu-title-folder] svg,header [data-dcu-title-more] svg{display:bloc
 [data-phase=hero] [class*="_heroWorkspaceRow"]>[class$="_workspace"]{min-width:0;max-width:100%;font-weight:400}
 .dcu-home-suggestions{width:100%;color:var(--dsw-alias-label-primary);font:13px/20px var(--dsw-font-family,system-ui)}
 .dcu-home-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
-.dcu-home-card{appearance:none;display:flex;flex-direction:column;justify-content:space-between;gap:22px;min-width:0;min-height:106px;padding:16px;border:1px solid color-mix(in srgb,var(--dsw-alias-label-primary) 10%,transparent);border-radius:20px;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer;transition:background-color 150ms,border-color 150ms,transform 200ms cubic-bezier(.2,.8,.2,1)}
+.dcu-home-card{appearance:none;display:flex;flex-direction:column;justify-content:space-between;gap:22px;min-width:0;min-height:106px;padding:16px;border:1px solid color-mix(in srgb,var(--dsw-alias-label-primary) 10%,transparent);border-radius:20px;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer;transition:background-color 150ms,border-color 150ms}
 .dcu-home-card:hover,.dcu-home-card[aria-pressed=true]{background:color-mix(in srgb,var(--dsw-alias-label-primary) 5%,transparent);border-color:color-mix(in srgb,var(--dsw-alias-label-primary) 20%,transparent)}
-.dcu-home-card:hover{transform:translateY(-1px)}
-.dcu-home-card:active{transform:translateY(0) scale(.99)}
-.dcu-home-tasks[data-active=true] .dcu-home-task{animation:dcu-task-in 220ms cubic-bezier(.2,.8,.2,1) both}
-.dcu-home-tasks[data-active=true] .dcu-home-task:nth-child(2){animation-delay:60ms}
-@keyframes dcu-task-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .dcu-home-card svg{width:16px;height:16px;flex:none;color:var(--dcu-home-icon)}
 .dcu-home-card:focus-visible,.dcu-home-task:focus-visible{outline:2px solid var(--dsw-alias-label-primary);outline-offset:3px}
 .dcu-home-details,.dcu-home-status{display:grid}
@@ -7726,7 +7721,7 @@ header [data-dcu-title-folder] svg,header [data-dcu-title-more] svg{display:bloc
   .dcu-home-cards{grid-template-columns:repeat(2,minmax(0,1fr))}
   [data-phase=hero] [class*="_composerHero"]>:first-child{padding:32px 24px;min-height:420px}
 }
-@media(prefers-reduced-motion:reduce){.dcu-home-card{transition:none}.dcu-home-tasks[data-active=true] .dcu-home-task{animation:none}}
+@media(prefers-reduced-motion:reduce){.dcu-home-card{transition:none}}
 `;
 		//#endregion
 		//#region src/client/composer-tool-menus.ts

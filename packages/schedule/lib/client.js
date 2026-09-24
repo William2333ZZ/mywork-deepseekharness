@@ -450,13 +450,6 @@ const CSS = `
 .mwr-err{color:var(--dsw-alias-state-error-primary);font-size:12px}
 .mwr-toasts{position:fixed;top:16px;right:18px;display:flex;flex-direction:column;gap:8px;z-index:1300;pointer-events:none}
 .mwr-toast{pointer-events:auto;width:340px;max-width:calc(100vw - 32px);background:var(--dsw-alias-bg-overlay,var(--dsw-alias-bg-layer-1));color:var(--dsw-alias-label-primary);border-radius:12px;box-shadow:var(--dsw-elevation-prominent,0 10px 40px rgba(0,0,0,.28));padding:12px 14px;display:flex;gap:10px;align-items:flex-start;animation:mwr-in .25s ease}
-.mwr-toast{animation:mwr-toast-in 260ms cubic-bezier(.2,.8,.2,1) both}
-.mwr-toast.out{animation:mwr-toast-out 180ms ease-in both;pointer-events:none}
-@keyframes mwr-toast-in{from{opacity:0;transform:translateY(-10px) scale(.98)}to{opacity:1;transform:none}}
-@keyframes mwr-toast-out{from{opacity:1;transform:none}to{opacity:0;transform:translateY(-8px)}}
-.mwn-chip.mwn-flash{animation:mwn-flash 700ms ease-out}
-@keyframes mwn-flash{0%{box-shadow:0 0 0 2px color-mix(in srgb,var(--dsw-alias-brand-primary) 55%,transparent);background:color-mix(in srgb,var(--dsw-alias-brand-primary) 18%,transparent)}100%{box-shadow:0 0 0 0 transparent}}
-@media (prefers-reduced-motion:reduce){.mwr-toast,.mwr-toast.out,.mwn-chip.mwn-flash{animation:none}}
 .mwr-toast .ic{color:var(--dsw-alias-brand-primary);padding-top:2px}
 .mwr-toast .tt{font-weight:600}
 .mwr-toast .ts{font-size:12px;color:var(--dsw-alias-label-secondary);margin-top:2px}
@@ -601,11 +594,7 @@ exports.apply = function apply(ctx) {
       await refresh()
     } finally { firing.delete(key) }
   }
-  function dismiss(key) {
-    // Play the exit animation first (180ms), then drop the toast; reduced-motion users see no delay worth noticing.
-    if (state.toasts.some((x) => x.key === key && !x.leaving)) { set({ toasts: state.toasts.map((x) => (x.key === key ? { ...x, leaving: true } : x)) }); setTimeout(() => set({ toasts: state.toasts.filter((x) => x.key !== key) }), 180) }
-    else set({ toasts: state.toasts.filter((x) => x.key !== key) })
-  }
+  function dismiss(key) { set({ toasts: state.toasts.filter((x) => x.key !== key) }) }
 
   function tick() {
     const now = new Date()
@@ -770,10 +759,9 @@ exports.apply = function apply(ctx) {
         if (!rule) { if (chip) chip.remove(); return }
         const chat = chats.find((c) => c.sessionId === rule.target)
         const text = (chat ? `${chat.platform} · ${chat.title}` : d.notifyUnknownChat) + ' · ' + (rule.when === 'failed' ? d.notifyFailed : d.notifyAlways)
-        if (!chip) { chip = document.createElement('span'); chip.className = 'dsh-st-chip mwn-chip'; chip.dataset.fresh = '1'; chip.innerHTML = ICON_SEND; chip.appendChild(document.createTextNode('')); foot.insertBefore(chip, foot.firstChild ? foot.firstChild.nextSibling : null) }
+        if (!chip) { chip = document.createElement('span'); chip.className = 'dsh-st-chip mwn-chip'; chip.innerHTML = ICON_SEND; chip.appendChild(document.createTextNode('')); foot.insertBefore(chip, foot.firstChild ? foot.firstChild.nextSibling : null) }
         chip.title = d.notifyTitle + '：' + text
-        if (chip.lastChild.textContent !== text) { chip.lastChild.textContent = text; if (!chip.dataset.fresh) { chip.classList.remove('mwn-flash'); void chip.offsetWidth; chip.classList.add('mwn-flash') } }
-        chip.dataset.fresh = ''
+        chip.lastChild.textContent = text
       })
     }
 
@@ -891,7 +879,7 @@ exports.apply = function apply(ctx) {
   function Toasts() {
     const toasts = useState(() => state.toasts)
     if (toasts.length === 0) return null
-    return h('div', { className: 'mwr-toasts' }, toasts.map((x) => h('div', { className: 'mwr-toast' + (x.leaving ? ' out' : ''), key: x.key },
+    return h('div', { className: 'mwr-toasts' }, toasts.map((x) => h('div', { className: 'mwr-toast', key: x.key },
       h('div', { className: 'ic' }, icon('bell', { size: 18 })),
       h('div', { style: { flex: 1, minWidth: 0 } },
         h('div', { className: 'tt' }, x.title),

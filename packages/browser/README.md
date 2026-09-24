@@ -34,6 +34,7 @@ profile 的 `cordis.patch.yml`（patch 会整体替换 config，所以要把需�
     width: 1280
     height: 800
     quality: 60           # 实时画面 JPEG 质量
+    pixelRatio: 2         # 后台浏览器的像素比：无头 Chrome 的实时流按启动时的像素比输出，2 = Retina 高清；1 = 帧更小
     proxy: ''             # 例如 socks5://127.0.0.1:1080；留空用系统代理设置（或环境变量 MYWORK_BROWSER_PROXY）
     linksPath: ''         # 书签文件，默认 $DSH_HOME/mywork/links.json
     allowSystemBrowser: true

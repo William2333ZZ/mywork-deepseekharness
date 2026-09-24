@@ -37,6 +37,8 @@ export const inject = ['tools', 'browserUse', 'agents', 'systemPrompt']
  *   userDataDir:    profile dir; default $DSH_HOME/mywork/chrome-profile (logins persist)
  *   width, height:  window / screencast size (default 1280 × 800)
  *   quality:        JPEG quality of the live view (default 60)
+ *   pixelRatio:     device scale factor the browser is launched with (default 2). Headless Chrome screencasts at
+ *                   its launch scale factor, so 2 makes the live stream itself Retina-sharp; 1 = smaller frames
  *   proxy:          --proxy-server for the launched browser, e.g. socks5://127.0.0.1:1080
  *                   (or MYWORK_BROWSER_PROXY); empty = system proxy settings
  *   promptHint:     add the "Real browser" system prompt section (default true)
@@ -51,7 +53,7 @@ export const inject = ['tools', 'browserUse', 'agents', 'systemPrompt']
  */
 export const Config = configSchema({
   autoLaunch: true, headless: true, port: Number(process.env.MYWORK_BROWSER_PORT) || 9333,
-  executablePath: '', userDataDir: '', width: 1280, height: 800, quality: 60, promptHint: true, proxy: '',
+  executablePath: '', userDataDir: '', width: 1280, height: 800, quality: 60, pixelRatio: 2, promptHint: true, proxy: '',
   linksPath: '', allowSystemBrowser: true, modelTools: true, toolCallTimeoutMs: 0, historyPath: '', searchEngine: 'bing',
   seedLinks: [
     { name: 'DeepSeek Harness 文档', url: 'https://deepseek-harness.github.io/deepseek-harness/' },
@@ -83,7 +85,7 @@ export function apply(ctx, config = {}) {
       handle = { child: null, port, version: v, adopted: true }
       return handle
     }
-    handle = await launchChrome({ port, headless: config.headless !== false, executablePath: config.executablePath || undefined, userDataDir: config.userDataDir || undefined, width: config.width || 1280, height: config.height || 800, proxy: config.proxy || undefined })
+    handle = await launchChrome({ port, headless: config.headless !== false, executablePath: config.executablePath || undefined, userDataDir: config.userDataDir || undefined, pixelRatio: config.pixelRatio === undefined ? 2 : config.pixelRatio, width: config.width || 1280, height: config.height || 800, proxy: config.proxy || undefined })
     log(`${handle.adopted ? 'attached to' : 'started'} browser on 127.0.0.1:${port}${handle.executable ? ' (' + handle.executable + ')' : ''}`)
     watcher.start().catch(() => {})
     return handle
@@ -263,7 +265,7 @@ export function apply(ctx, config = {}) {
       if (req.method === 'POST') { const b = await readBody(req); if (b.searchEngine) history.setEngine(String(b.searchEngine)) }
       json(res, { searchEngine: history.engine, engines: Object.entries(SEARCH_ENGINES).map(([id, e]) => ({ id, name: e.name })), historyCount: history.size(), historyPath: history.path })
     })
-    route('/resize', async (req, res) => { const b = await readBody(req); json(res, await hub.resize(String(b.target), Number(b.width), Number(b.height), Number(b.scale) || 1)) })
+    route('/resize', async (req, res) => { const b = await readBody(req); json(res, await hub.resize(String(b.target), Number(b.width), Number(b.height), Number(b.scale) || 1, String(b.viewer || req.headers['x-forwarded-for'] || 'default').slice(0, 64))) })
     route('/reload', async (req, res) => { const b = await readBody(req); await hub.reload(String(b.target)); json(res, { ok: true }) })
     route('/back', async (req, res) => { const b = await readBody(req); json(res, await hub.history(String(b.target), -1)) })
     route('/forward', async (req, res) => { const b = await readBody(req); json(res, await hub.history(String(b.target), 1)) })

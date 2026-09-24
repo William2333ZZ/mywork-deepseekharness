@@ -76,13 +76,19 @@ export async function launchChrome(opts) {
     `--remote-debugging-port=${port}`,
     '--remote-debugging-address=127.0.0.1',
     `--user-data-dir=${userDataDir}`,
-    `--window-size=${opts.width},${opts.height}`,
+    // headless new sizes the window in physical pixels: scale it with the forced ratio, otherwise the screencast
+    // surface is smaller than the emulated viewport and frames come back cropped
+    `--window-size=${Math.round(opts.width * (Number(opts.pixelRatio) > 1 ? Number(opts.pixelRatio) : 1))},${Math.round(opts.height * (Number(opts.pixelRatio) > 1 ? Number(opts.pixelRatio) : 1))}`,
     '--no-first-run', '--no-default-browser-check', '--disable-background-timer-throttling',
     '--disable-renderer-backgrounding', '--disable-backgrounding-occluded-windows',
     '--disable-features=TranslateUI', '--hide-crash-restore-bubble',
   ]
   const proxy = opts.proxy || process.env.MYWORK_BROWSER_PROXY
   if (proxy) args.push(`--proxy-server=${proxy}`)
+  // The screencast streams at the browser's own scale factor: launch at the viewer's (Retina) ratio so live
+  // frames are crisp instead of 1x-upscaled. Emulation overrides per tab still apply on top.
+  const ratio = Number(opts.pixelRatio)
+  if (ratio > 1 && ratio <= 3) args.push(`--force-device-scale-factor=${ratio}`)
   if (opts.headless) args.push('--headless=new', '--disable-gpu')
   args.push('about:blank')
   const child = spawn(executable, args, { stdio: ['ignore', 'ignore', 'pipe'], detached: false })

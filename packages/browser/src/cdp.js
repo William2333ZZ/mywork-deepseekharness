@@ -127,6 +127,14 @@ export class ViewerHub {
     client.on('Page.screencastFrame', (p) => {
       v.lastFrame = { data: p.data, metadata: p.metadata }
       v.hiFresh = false
+      // Another CDP client (Playwright adopting a new page, a second viewer) can replace or clear our viewport
+      // emulation; the frame metadata says what is really being streamed. Re-assert our size, at most once a second.
+      const m = p.metadata
+      if (v.size && m && (Math.abs(m.deviceWidth - v.size.w) > 2 || Math.abs(m.deviceHeight - v.size.h) > 2) && Date.now() - (v.reassertedAt || 0) > 1000) {
+        v.reassertedAt = Date.now()
+        const { w, h, dsf } = v.size
+        client.send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: dsf, mobile: false }).catch(() => {})
+      }
       client.send('Page.screencastFrameAck', { sessionId: p.sessionId }).catch(() => {})
       for (const fn of v.subscribers) { try { fn({ type: 'frame', data: p.data, metadata: p.metadata }) } catch { /* ignore */ } }
       this.scheduleStill(v)
@@ -200,10 +208,16 @@ export class ViewerHub {
    * letterboxed; `scale` = device pixel ratio of the viewer for crisp frames. Restarts the screencast
    * with matching bounds; the mouse mapping stays in CSS px (metadata.deviceWidth/Height).
    */
-  async resize(id, width, height, scale = 1) {
+  async resize(id, width, height, scale = 1, viewer = 'default') {
     const v = await this.view(id)
-    const w = Math.max(200, Math.min(4096, Math.round(width))); const h = Math.max(150, Math.min(4096, Math.round(height)))
-    const dsf = Math.max(1, Math.min(3, Number(scale) || 1))
+    // Several open panes (two browser tabs, the desktop app and a phone) may watch the same page with different
+    // sizes; picking the largest of the recently-seen viewers keeps every pane uncropped instead of thrashing.
+    v.viewers = v.viewers || new Map()
+    v.viewers.set(String(viewer), { w: Math.round(width), h: Math.round(height), dsf: Number(scale) || 1, at: Date.now() })
+    for (const [k, r] of v.viewers) if (Date.now() - r.at > 15000) v.viewers.delete(k)
+    const want = [...v.viewers.values()].reduce((a, r) => ({ w: Math.max(a.w, r.w), h: Math.max(a.h, r.h), dsf: Math.max(a.dsf, r.dsf) }), { w: 0, h: 0, dsf: 1 })
+    const w = Math.max(200, Math.min(4096, want.w)); const h = Math.max(150, Math.min(4096, want.h))
+    const dsf = Math.max(1, Math.min(3, want.dsf))
     if (v.size && v.size.w === w && v.size.h === h && v.size.dsf === dsf) return v.size
     v.size = { w, h, dsf }
     v.hiFresh = false

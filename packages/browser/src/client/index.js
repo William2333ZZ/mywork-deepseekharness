@@ -18,6 +18,8 @@ const API = '/mywork-browser/api'
 // builtin iframe tab, so the guide page, Markdown link clicks and openTab('browser')
 // from any plugin all land in the live browser (no iframe anywhere).
 const KIND = 'browser'
+/** One id per page load so the host can tell panes apart when several watch the same tab. */
+const VIEWER_ID = Math.random().toString(36).slice(2, 10)
 const TAB_SLOT = 'mywork.settings.tab'
 
 const zh = {
@@ -356,7 +358,7 @@ exports.apply = function apply(ctx) {
     const sendSize = React.useCallback((id, w, h) => {
       if (!id || w < 50 || h < 50) return
       const scale = Math.min(2, Math.max(1, window.devicePixelRatio || 1))
-      api('/resize', { target: id, width: Math.floor(w), height: Math.floor(h), scale }).catch(() => {})
+      api('/resize', { target: id, width: Math.floor(w), height: Math.floor(h), scale, viewer: VIEWER_ID }).catch(() => {})
     }, [])
     React.useEffect(() => {
       const el = viewRef.current

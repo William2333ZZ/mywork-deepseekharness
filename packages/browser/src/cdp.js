@@ -121,23 +121,23 @@ export class ViewerHub {
     const t = list.find((x) => x.id === id && x.webSocketDebuggerUrl)
     if (!t) throw new Error('target not found: ' + id)
     const client = await new CdpClient(t.webSocketDebuggerUrl).connect()
-    const v = { id, client, subscribers: new Set(), lastFrame: null, info: { title: t.title, url: t.url }, casting: false, idleTimer: null, hiInFlight: false, hiFresh: false }
+    const v = { id, client, subscribers: new Set(), lastFrame: null, info: { title: t.title, url: t.url }, casting: false }
     this.views.set(id, v)
     client.on('__close', () => { this.views.delete(id); for (const fn of v.subscribers) { try { fn({ type: 'closed' }) } catch { /* ignore */ } } })
     client.on('Page.screencastFrame', (p) => {
       v.lastFrame = { data: p.data, metadata: p.metadata }
-      v.hiFresh = false
       // Another CDP client (Playwright adopting a new page, a second viewer) can replace or clear our viewport
       // emulation; the frame metadata says what is really being streamed. Re-assert our size, at most once a second.
       const m = p.metadata
-      if (v.size && m && (Math.abs(m.deviceWidth - v.size.w) > 2 || Math.abs(m.deviceHeight - v.size.h) > 2) && Date.now() - (v.reassertedAt || 0) > 1000) {
-        v.reassertedAt = Date.now()
+      const mismatch = v.size && m && (Math.abs(m.deviceWidth - v.size.w) > 2 || Math.abs(m.deviceHeight - v.size.h) > 2)
+      v.mismatches = mismatch ? (v.mismatches || 0) + 1 : 0
+      if (mismatch && v.mismatches >= 2 && Date.now() - (v.reassertedAt || 0) > 3000) {
+        v.reassertedAt = Date.now(); v.mismatches = 0
         const { w, h, dsf } = v.size
         client.send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: dsf, mobile: false }).catch(() => {})
       }
       client.send('Page.screencastFrameAck', { sessionId: p.sessionId }).catch(() => {})
       for (const fn of v.subscribers) { try { fn({ type: 'frame', data: p.data, metadata: p.metadata }) } catch { /* ignore */ } }
-      this.scheduleStill(v)
     })
     client.on('Page.frameNavigated', (p) => {
       if (p.frame && !p.frame.parentId) { v.info.url = p.frame.url; this.broadcast(v, { type: 'nav', url: p.frame.url }) }
@@ -148,31 +148,6 @@ export class ViewerHub {
   }
 
   broadcast(v, msg) { for (const fn of v.subscribers) { try { fn(msg) } catch { /* ignore */ } } }
-
-  /**
-   * Headless Chrome screencasts at 1x whatever the deviceScaleFactor, so the live stream looks soft on Retina
-   * panes. Once no screencast frame has arrived for a moment (the page is still), take ONE Page.captureScreenshot
-   * with a clip (a clipped capture honours the emulated deviceScaleFactor; an unclipped one does not) and push it as a "still" frame: crisp while
-   * you read, fluid while things move. Re-armed by the next screencast frame; skipped on 1x displays.
-   */
-  scheduleStill(v) {
-    if (v.idleTimer) clearTimeout(v.idleTimer)
-    if (!v.size || v.size.dsf <= 1) return
-    v.idleTimer = setTimeout(() => { v.idleTimer = null; this.captureStill(v).catch(() => {}) }, 320)
-  }
-  async captureStill(v) {
-    if (v.hiInFlight || v.hiFresh || v.subscribers.size === 0 || !v.size || v.client.closed) return
-    v.hiInFlight = true
-    try {
-      const { w, h, dsf } = v.size
-      const shot = await v.client.send('Page.captureScreenshot', { format: 'webp', quality: 82, clip: { x: 0, y: 0, width: w, height: h, scale: 1 }, fromSurface: true }) // the emulated deviceScaleFactor already multiplies a clipped capture
-      if (!shot || !shot.data || v.hiFresh !== false) return
-      const still = { data: shot.data, format: 'webp', metadata: { deviceWidth: w, deviceHeight: h, scale: dsf }, still: true }
-      v.hiFresh = true
-      v.lastFrame = still
-      this.broadcast(v, { type: 'frame', ...still })
-    } finally { v.hiInFlight = false }
-  }
 
   async subscribe(id, fn) {
     const v = await this.view(id)
@@ -188,7 +163,6 @@ export class ViewerHub {
     }
     return () => {
       v.subscribers.delete(fn)
-      if (v.subscribers.size === 0 && v.idleTimer) { clearTimeout(v.idleTimer); v.idleTimer = null }
       if (v.subscribers.size === 0 && v.casting) {
         v.casting = false
         v.client.send('Page.stopScreencast').catch(() => {})
@@ -220,9 +194,7 @@ export class ViewerHub {
     const dsf = Math.max(1, Math.min(3, want.dsf))
     if (v.size && v.size.w === w && v.size.h === h && v.size.dsf === dsf) return v.size
     v.size = { w, h, dsf }
-    v.hiFresh = false
     await v.client.send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: dsf, mobile: false })
-    this.scheduleStill(v)
     if (v.casting) {
       await v.client.send('Page.stopScreencast').catch(() => {})
       await v.client.send('Page.startScreencast', { format: 'jpeg', quality: this.opts.quality, maxWidth: Math.round(w * dsf), maxHeight: Math.round(h * dsf), everyNthFrame: 1 }).catch(() => {})

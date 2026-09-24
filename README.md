@@ -265,7 +265,7 @@ scripts/       build-client.mjs（零依赖 C6 打包器）· install.sh / unins
 
 ### 未发布
 
-- 实时浏览器：Retina 屏上全程高清。后台 Chrome 现在按屏幕像素比启动（`pixelRatio`，默认 2），实时流本身就是 2x；画面静止后再补一张更高质量的 webp 帧。多个面板同时看同一页时按最大的那个面板设置视口，不再来回抖动。画面上方有状态条：模型刚导航过时显示「模型正在浏览 · 点击画面即可接管」，你一点画面就切到「你在操作」并停止跟随，按「跟随模型」恢复。
+- 实时浏览器：Retina 屏上全程高清。后台 Chrome 现在按屏幕像素比启动（`pixelRatio`，默认 2），实时流本身就是 2x。多个面板同时看同一页时按最大的那个面板设置视口，不再来回抖动。画面上方有状态条：模型刚导航过时显示「模型正在浏览 · 点击画面即可接管」，你一点画面就切到「你在操作」并停止跟随，按「跟随模型」恢复。
 - 风格重做：保留 Claude Code 风格，去掉 Codex / Swiss；按 [taste-skill](https://github.com/Leonxlnx/taste-skill) 的 soft-skill / minimalist-skill / brutalist-skill 新增「柔和高级」「极简编辑」「工业粗野」三种风格，各自带字体、圆角、阴影、动效规则，浅色深色文字全部过 WCAG AA。定时任务 / IM 助理页面里第三方插件的重复标题隐藏；实时浏览器工具条改成 Chrome 式标签条 + 胶囊地址栏。
 - 按 [ui-ux-pro-max](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) 的清单做了一轮界面审视（`scripts/ux-audit.mjs` 自动检查对比度、点击目标、无障碍名称、最小字号）：三种风格的次要 / 三级文字、状态色、主按钮填充全部达到 WCAG AA 4.5:1（Claude 风格的主按钮从 #D97757 改为 #BA5A3A，深色 Swiss 的主按钮改用深色文字）；所有 11px 文字提到 12px；输入框获得可见的焦点环；图标按钮、下拉框、文本域补上无障碍名称；侧栏「更多」按钮和缩放滑块放大到 24px 点击目标。
 

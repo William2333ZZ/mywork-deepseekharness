@@ -227,6 +227,42 @@ export class ViewerHub {
     if (mine.length) await b.send('Storage.setCookies', { cookies: mine.map((c) => ({ name: c.name, value: '', domain: c.domain, path: c.path, expires: 1 })) })
     return { cleared: mine.length }
   }
+  /**
+   * Text layer: every visible text run of the page with its box in CSS px (viewport coordinates) plus links,
+   * so the viewer can lay transparent, selectable text over the frame (select / copy / find, like a PDF viewer).
+   * Capped so huge pages stay cheap; runs in the page's main world, read-only.
+   */
+  async textLayer(id, limit = 1500) {
+    const v = await this.view(id)
+    const expr = `(() => {
+      const out = []; const vw = innerWidth, vh = innerHeight; const limit = ${Number(limit) || 1500}
+      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, { acceptNode: (n) => {
+        if (!n.nodeValue || !n.nodeValue.trim()) return NodeFilter.FILTER_REJECT
+        const p = n.parentElement; if (!p) return NodeFilter.FILTER_REJECT
+        const tag = p.tagName; if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'NOSCRIPT' || tag === 'TEMPLATE') return NodeFilter.FILTER_REJECT
+        return NodeFilter.FILTER_ACCEPT } })
+      let n
+      while ((n = walker.nextNode()) && out.length < limit) {
+        const range = document.createRange(); range.selectNodeContents(n)
+        const rects = range.getClientRects(); if (!rects.length) continue
+        const first = rects[0], last = rects[rects.length - 1]
+        const top = Math.min(first.top, last.top), bottom = Math.max(first.bottom, last.bottom)
+        if (bottom < 0 || top > vh || first.right < 0 || first.left > vw) continue
+        const cs = getComputedStyle(n.parentElement)
+        if (cs.visibility === 'hidden' || cs.opacity === '0') continue
+        const a = n.parentElement.closest('a[href]')
+        if (rects.length === 1) out.push({ t: n.nodeValue, x: first.left, y: first.top, w: first.width, h: first.height, f: parseFloat(cs.fontSize), ff: cs.fontFamily.split(',')[0], href: a ? a.href : undefined })
+        else {
+          // multi-line text node: emit one box per line, splitting the text proportionally by width
+          const total = [...rects].reduce((s, r) => s + r.width, 0) || 1; let pos = 0; const text = n.nodeValue
+          for (const r of rects) { const len = Math.max(1, Math.round(text.length * (r.width / total))); const piece = text.slice(pos, pos + len); pos += len; if (piece.trim()) out.push({ t: piece, x: r.left, y: r.top, w: r.width, h: r.height, f: parseFloat(cs.fontSize), ff: cs.fontFamily.split(',')[0], href: a ? a.href : undefined }) }
+        }
+      }
+      return { vw, vh, scrollX, scrollY, items: out }
+    })()`
+    const r = await v.client.send('Runtime.evaluate', { expression: expr, returnByValue: true })
+    return r && r.result && r.result.value ? r.result.value : { vw: 0, vh: 0, items: [] }
+  }
   async navigate(id, url) { const v = await this.view(id); return v.client.send('Page.navigate', { url }) }
   async reload(id) { const v = await this.view(id); return v.client.send('Page.reload') }
   async history(id, delta) {
@@ -314,6 +350,8 @@ export class BrowserWatcher {
   }
 
   subscribe(fn) { this.subscribers.add(fn); return () => { this.subscribers.delete(fn) } }
+  /** Push a custom event to every /events listener (used to ask the desktop shell's page to open a native tab). */
+  emit(ev) { const e = { seq: ++this.seq, at: Date.now(), ...ev }; for (const fn of this.subscribers) { try { fn(e) } catch { /* ignore */ } } }
 
   stop() {
     this.stopped = true

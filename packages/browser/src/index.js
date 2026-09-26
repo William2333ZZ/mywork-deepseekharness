@@ -24,6 +24,7 @@ import { mountSharedPlaywright } from './mcp-provider.js'
 import { HistoryStore, SEARCH_ENGINES, defaultHistoryPath, resolveOmni } from './history.js'
 import { parseCookies, summarize, groupByDomain } from './cookies.js'
 import { existsSync as existsSyncHistory } from 'node:fs'
+import { randomBytes } from 'node:crypto'
 
 export const name = 'dsh-mywork-browser'
 // browserUse / agents / systemPrompt are what the Playwright runtime needs to mount per session.
@@ -53,7 +54,8 @@ export const inject = ['tools', 'browserUse', 'agents', 'systemPrompt']
  *                   (the user's later choice in 设置 → 浏览器 is kept in the history file)
  */
 export const Config = configSchema({
-  autoLaunch: true, headless: true, port: Number(process.env.MYWORK_BROWSER_PORT) || 9333,
+  // The desktop shell (MYWORK_DESKTOP=1) exposes its own DevTools port: never spawn a Chrome there, only attach.
+  autoLaunch: !(process.env.MYWORK_BROWSER_AUTOLAUNCH === '0' || process.env.MYWORK_DESKTOP), headless: true, port: Number(process.env.MYWORK_BROWSER_PORT) || 9333,
   executablePath: '', userDataDir: '', width: 1280, height: 800, quality: 60, pixelRatio: 2, promptHint: true, proxy: '',
   linksPath: '', allowSystemBrowser: true, modelTools: true, toolCallTimeoutMs: 0, historyPath: '', searchEngine: 'bing',
   seedLinks: [
@@ -84,9 +86,11 @@ export function apply(ctx, config = {}) {
       const v = await probe(port)
       if (!v) throw new Error(`autoLaunch is off and nothing listens on 127.0.0.1:${port}`)
       handle = { child: null, port, version: v, adopted: true }
+      log(`attached to browser on 127.0.0.1:${port}`)
+      watcher.start().catch(() => {})
       return handle
     }
-    handle = await launchChrome({ port, headless: history.headed ? false : config.headless !== false, executablePath: config.executablePath || undefined, userDataDir: config.userDataDir || undefined, pixelRatio: config.pixelRatio === undefined ? 2 : config.pixelRatio, width: config.width || 1280, height: config.height || 800, proxy: config.proxy || undefined })
+    handle = await launchChrome({ port, headless: (history.headed && !process.env.MYWORK_DESKTOP) ? false : config.headless !== false, executablePath: config.executablePath || undefined, userDataDir: config.userDataDir || undefined, pixelRatio: config.pixelRatio === undefined ? 2 : config.pixelRatio, width: config.width || 1280, height: config.height || 800, proxy: config.proxy || undefined })
     log(`${handle.adopted ? 'attached to' : 'started'} browser on 127.0.0.1:${port}${handle.executable ? ' (' + handle.executable + ')' : ''}`)
     watcher.start().catch(() => {})
     return handle
@@ -119,10 +123,19 @@ export function apply(ctx, config = {}) {
     const targets = await hub.targets()
     const blank = targets.find((x) => x.url === 'about:blank')
     if (blank) { await hub.navigate(blank.id, url); await hub.activate(blank.id); return { target: blank.id } }
+    if (process.env.MYWORK_DESKTOP) {
+      // Electron has no Target.createTarget: the page (which owns the native views) opens the tab for us and acks.
+      const id = 'open-' + randomBytes(4).toString('hex')
+      const done = new Promise((resolve, reject) => { pendingOpens.set(id, resolve); setTimeout(() => { if (pendingOpens.delete(id)) reject(new Error('no live-browser pane answered; open the 实时浏览器 pane in the desktop app first')) }, 8000) })
+      watcher.emit({ type: 'open-request', id, url })
+      const target = await done
+      return { target }
+    }
     const created = await hub.newTab(url)
     if (created && created.id) await hub.activate(created.id)
     return { target: created && created.id }
   }
+  const pendingOpens = new Map()
   /** A bookmark name wins over a bare word (`github` → the saved link, not https://github/). */
   const looksLikeUrl = (text) => /^[a-z][a-z0-9+.-]*:\/\//i.test(text) || /[./]/.test(text)
   const openUrl = async (rawUrl, target) => {
@@ -225,15 +238,18 @@ export function apply(ctx, config = {}) {
     })
     const query = (req) => new URL(req.url || '/', 'http://dsh.local').searchParams
 
-    route('/status', async (_req, res) => {
+    route('/status', async (req, res) => {
       await ready
+      if (!handle && config.autoLaunch === false) { try { await ensureBrowser(); launchError = null } catch (e) { launchError = e } }
       if (!handle) return json(res, { running: false, error: launchError ? launchError.message : 'not started', port })
       let targets = []
       try { targets = await hub.targets() } catch (e) {
         if (handle.adopted && !(await probe(port))) { handle = null; ensureBrowser().catch((err) => { launchError = err }) }
         return json(res, { running: false, error: 'DevTools unreachable: ' + e.message, port })
       }
-      json(res, { running: true, port, headless: history.headed ? false : config.headless !== false, headed: !!history.headed, adopted: !!handle.adopted, executable: handle.executable || null, browser: handle.version && handle.version.Browser, targets, size: { width: config.width || 1280, height: config.height || 800 }, allowSystem: config.allowSystemBrowser !== false })
+      const self = String(req.headers.host || '').toLowerCase()
+      if (self) targets = targets.filter((x) => { try { return new URL(x.url).host.toLowerCase() !== self } catch { return true } })
+      json(res, { running: true, port, desktop: !!process.env.MYWORK_DESKTOP, headless: history.headed ? false : config.headless !== false, headed: !!history.headed, adopted: !!handle.adopted, executable: handle.executable || null, browser: handle.version && handle.version.Browser, targets, size: { width: config.width || 1280, height: config.height || 800 }, allowSystem: config.allowSystemBrowser !== false })
     })
 
     // Browser activity feed (page created / navigated / closed) for the whole
@@ -305,6 +321,8 @@ export function apply(ctx, config = {}) {
       try { json(res, await hub.clearCookies(b.domain ? String(b.domain) : '')) } catch (e) { json(res, { error: e.message }, 500) }
     })
     route('/resize', async (req, res) => { const b = await readBody(req); json(res, await hub.resize(String(b.target), Number(b.width), Number(b.height), Number(b.scale) || 1, String(b.viewer || req.headers['x-forwarded-for'] || 'default').slice(0, 64))) })
+    route('/open-ack', async (req, res) => { const b = await readBody(req); const resolve = pendingOpens.get(String(b.id)); if (resolve) { pendingOpens.delete(String(b.id)); resolve(b.target ? String(b.target) : null) } json(res, { ok: !!resolve }) })
+    route('/text', async (req, res) => { const id = query(req).get('target'); if (!id) return json(res, { error: 'target required' }, 400); json(res, await hub.textLayer(id)) })
     route('/reload', async (req, res) => { const b = await readBody(req); await hub.reload(String(b.target)); json(res, { ok: true }) })
     route('/back', async (req, res) => { const b = await readBody(req); json(res, await hub.history(String(b.target), -1)) })
     route('/forward', async (req, res) => { const b = await readBody(req); json(res, await hub.history(String(b.target), 1)) })

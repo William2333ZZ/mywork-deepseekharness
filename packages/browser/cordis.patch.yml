@@ -28,7 +28,8 @@
     - id: mywork-browser
       name: dsh-mywork-browser
       config:
-        autoLaunch: true
+        # the desktop shell (MYWORK_DESKTOP=1) exposes its own DevTools port: attach only, never spawn a Chrome there
+        autoLaunch: !!js process.env.MYWORK_BROWSER_AUTOLAUNCH !== '0' && !process.env.MYWORK_DESKTOP
         headless: true
         port: !!js Number(process.env.MYWORK_BROWSER_PORT) || 9333
         width: 1280

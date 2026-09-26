@@ -339,9 +339,9 @@ const BRUTAL_DARK = {
 const FAMILIES = [
   { id: 'official', light: null, dark: null, label: { zh: '官方默认', en: 'Official' } },
   { id: 'claude', light: CLAUDE_LIGHT, dark: CLAUDE_DARK, label: { zh: 'Claude Code 风格', en: 'Claude Code style' } },
-  { id: 'soft', light: SOFT_LIGHT, dark: SOFT_DARK, label: { zh: '柔和高级', en: 'Soft premium' }, fonts: 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap' },
-  { id: 'minimal', light: MINIMAL_LIGHT, dark: MINIMAL_DARK, label: { zh: '极简编辑', en: 'Editorial minimal' }, fonts: 'https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500&family=Noto+Sans+SC:wght@400;500;600&family=Noto+Serif+SC:wght@500;600&family=Geist+Mono:wght@400;500&display=swap' },
-  { id: 'brutal', light: BRUTAL_LIGHT, dark: BRUTAL_DARK, label: { zh: '工业粗野', en: 'Industrial brutalist' }, fonts: 'https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap' },
+  { id: 'soft', light: SOFT_LIGHT, dark: SOFT_DARK, label: { zh: '柔和高级', en: 'Soft premium' }, fonts: '/mywork-shell/fonts.css', cjkFonts: 'https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&display=swap' },
+  { id: 'minimal', light: MINIMAL_LIGHT, dark: MINIMAL_DARK, label: { zh: '极简编辑', en: 'Editorial minimal' }, fonts: '/mywork-shell/fonts.css', cjkFonts: 'https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600&family=Noto+Serif+SC:wght@500;600&display=swap' },
+  { id: 'brutal', light: BRUTAL_LIGHT, dark: BRUTAL_DARK, label: { zh: '工业粗野', en: 'Industrial brutalist' }, fonts: '/mywork-shell/fonts.css' },
 ]
 
 /** Family used until the user picks one (the kit's own look). */
@@ -637,21 +637,24 @@ exports.apply = function apply(ctx) {
     current = fam.id
     if (fam.id === 'official') document.body.removeAttribute('data-mywork-theme')
     else document.body.setAttribute('data-mywork-theme', fam.id)
-    applyFonts(fam.fonts || null)
+    applyFonts(fam)
     notify()
   }
-  /** Optional web fonts for a family (one <link>, swapped when the family changes; the UI falls back to system fonts while loading or offline). */
+  /** Web fonts for a family: the Latin faces are served by this plugin's host (offline-safe); Chinese faces come from
+   *  Google Fonts when reachable and fall back to the system fonts in the stack otherwise. One <link> each, swapped per family. */
   const FONT_LINK_ID = 'mywork-shell-fonts'
-  const applyFonts = (href) => {
-    let link = document.getElementById(FONT_LINK_ID)
+  const CJK_LINK_ID = 'mywork-shell-fonts-cjk'
+  const setLink = (id, href) => {
+    let link = document.getElementById(id)
     if (!href) { if (link) link.remove(); return }
-    if (!link) { link = document.createElement('link'); link.id = FONT_LINK_ID; link.rel = 'stylesheet'; document.head.appendChild(link) }
+    if (!link) { link = document.createElement('link'); link.id = id; link.rel = 'stylesheet'; document.head.appendChild(link) }
     if (link.getAttribute('href') !== href) link.setAttribute('href', href)
   }
+  const applyFonts = (fam) => { setLink(FONT_LINK_ID, fam && fam.fonts ? fam.fonts : null); setLink(CJK_LINK_ID, fam && fam.cjkFonts ? fam.cjkFonts : null) }
   ctx.effect(() => () => {
     if (disposeLayer) { try { disposeLayer() } catch { /* ignore */ } disposeLayer = null }
     document.body.removeAttribute('data-mywork-theme')
-    const link = document.getElementById(FONT_LINK_ID); if (link) link.remove()
+    for (const id of [FONT_LINK_ID, CJK_LINK_ID]) { const link = document.getElementById(id); if (link) link.remove() }
   }, `${PLUGIN}: override layer`)
 
   const chooseFamily = (id) => { applyFamily(id); writeStored(id === 'official' ? null : id) }

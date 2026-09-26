@@ -7,7 +7,7 @@
  *   • the official Playwright MCP provider (mode: attach) — the model drives it
  *   • this plugin's CDP viewer (src/cdp.js) — the web UI renders and controls it
  */
-import { existsSync, mkdirSync } from 'node:fs'
+import { existsSync, mkdirSync, readlinkSync, unlinkSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { spawn } from 'node:child_process'
@@ -72,6 +72,31 @@ export async function launchChrome(opts) {
   if (!executable) throw new Error('no Chrome / Chromium / Edge found; set MYWORK_BROWSER_EXECUTABLE or config.executablePath')
   const userDataDir = opts.userDataDir || join(dshHome(), 'mywork', 'chrome-profile')
   mkdirSync(userDataDir, { recursive: true })
+  clearStaleSingleton(userDataDir)
+  try { return await launchOnce(opts, port, executable, userDataDir) } catch (e) {
+    // A previous instance that was still shutting down can swallow our launch (Chrome's singleton hands the
+    // request to it and exits). Give it a moment, clear its lock and try exactly once more.
+    if (!/exited early|did not answer/.test(String(e.message))) throw e
+    await new Promise((r) => setTimeout(r, 1500))
+    if (await probe(port)) { const version = await probe(port); return { child: null, port, version, executable: null, adopted: true } }
+    clearStaleSingleton(userDataDir)
+    return launchOnce(opts, port, executable, userDataDir)
+  }
+}
+
+/** Chrome refuses a profile whose Singleton* links point at a live process; remove them when that process is gone. */
+function clearStaleSingleton(userDataDir) {
+  const lock = join(userDataDir, 'SingletonLock')
+  let target
+  try { target = readlinkSync(lock) } catch { return }
+  const pid = Number((String(target).match(/-(\d+)$/) || [])[1])
+  let alive = false
+  if (pid) { try { process.kill(pid, 0); alive = true } catch (e) { alive = e && e.code === 'EPERM' } }
+  if (alive) return
+  for (const f of ['SingletonLock', 'SingletonSocket', 'SingletonCookie']) { try { unlinkSync(join(userDataDir, f)) } catch { /* ignore */ } }
+}
+
+async function launchOnce(opts, port, executable, userDataDir) {
   const args = [
     `--remote-debugging-port=${port}`,
     '--remote-debugging-address=127.0.0.1',

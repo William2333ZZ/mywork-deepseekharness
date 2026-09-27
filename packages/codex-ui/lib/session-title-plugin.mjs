@@ -79,6 +79,23 @@ const zh = {
 	"sidebar.schedule": "定时任务",
 	"sidebar.mcp": "MCP 连接器",
 	"sidebar.oracle": "市场先知",
+	"sidebar.cockpit": "驾驶舱",
+	"sidebar.newAnalysis": "新分析",
+	"sidebar.analysisTab": "分析记录",
+	"sidebar.analysisPanel": "分析",
+	"sidebar.more": "更多",
+	"home.edition.title": "问先知",
+	"home.edition.sub": "用市场交易数据回答，至少三个独立信号，只分析不下单。",
+	"home.oracle.geo": "地缘冲突",
+	"home.oracle.geo.prompt": "用市场交易数据评估地缘冲突升级的概率（预测市场、避险资产、原油、CFTC 持仓等至少 3 个独立信号），按模板给分层信号表、矛盾分析和概率场景。事件是：",
+	"home.oracle.macro": "衰退周期",
+	"home.oracle.macro.prompt": "用市场交易数据评估未来 12 个月的衰退概率与利率路径（国债曲线、Kalshi 联储合约、恐惧贪婪、铜金比等至少 3 个独立信号），按模板输出。补充问题：",
+	"home.oracle.bubble": "泡沫与风险偏好",
+	"home.oracle.bubble.prompt": "用市场交易数据判断下面这个板块或资产是否处于泡沫阶段（期权 IV、内部人交易、加密基差、拥挤度等至少 3 个独立信号），按模板输出。对象是：",
+	"home.oracle.assets": "资产择时",
+	"home.oracle.assets.prompt": "只用交易数据判断现在是否适合买入下面这个资产（价格趋势、期权 IV、机构持仓、内部人交易、资金流），结合 oracle_portfolio 里我的自选和持仓，给概率场景和风险。资产是：",
+	"home.oracle.ashare": "A 股",
+	"home.oracle.ashare.prompt": "用东方财富的拆单资金流、板块轮动和前复权 K 线，判断下面这只 A 股主力是在买还是卖，以及所在板块的资金方向，按模板输出。代码是：",
 	"oraclePanel.missing": "市场先知驾驶舱由 dsh-mywork-oracle 提供，尚未安装：到 设置 → MyWork → 成员 一键补装。",
 	"imPanel.missing": "IM助理由 @michengai/dsh-im-connect 提供，尚未安装：到 设置 → MyWork → 成员 一键补装。",
 	"mcpPanel.hint": "在这里添加、编辑、停用 MCP 服务器（stdio 本地进程或 streamable-http 远程），或直接导入 mcpServers JSON；保存后立即挂载为 dsh 官方 mcp-client 条目，所有会话都能用。页面下方是当前会话实际可用的连接器与工具。",
@@ -385,6 +402,23 @@ const en = {
 	"sidebar.schedule": "Scheduled tasks",
 	"sidebar.mcp": "MCP connectors",
 	"sidebar.oracle": "Market oracle",
+	"sidebar.cockpit": "Cockpit",
+	"sidebar.newAnalysis": "New analysis",
+	"sidebar.analysisTab": "Analyses",
+	"sidebar.analysisPanel": "Analysis",
+	"sidebar.more": "More",
+	"home.edition.title": "Ask the oracle",
+	"home.edition.sub": "Answers from market trading data, at least three independent signals, analysis only.",
+	"home.oracle.geo": "Geopolitics",
+	"home.oracle.geo.prompt": "Estimate the probability of the geopolitical escalation below from market data (prediction markets, safe havens, oil, CFTC positioning; at least 3 independent signals) and report with the layered template. The event: ",
+	"home.oracle.macro": "Recession",
+	"home.oracle.macro.prompt": "Estimate the 12-month recession probability and the rate path from market data (yield curve, Kalshi Fed contracts, Fear & Greed, copper/gold; at least 3 independent signals), templated. Extra question: ",
+	"home.oracle.bubble": "Bubble and risk appetite",
+	"home.oracle.bubble.prompt": "Judge from market data whether the sector or asset below is in a bubble (options IV, insider filings, crypto basis, crowding; at least 3 independent signals), templated. The subject: ",
+	"home.oracle.assets": "Asset timing",
+	"home.oracle.assets.prompt": "Using trading data only (price trend, options IV, positioning, insider filings, fund flow) and my watchlist and positions from oracle_portfolio, judge whether now is a good time to buy the asset below; give probability scenarios and risks. The asset: ",
+	"home.oracle.ashare": "A-shares",
+	"home.oracle.ashare.prompt": "Use Eastmoney order-size fund flow, sector rotation and forward-adjusted candles to tell whether institutions are buying or selling the A-share below and where its sector money is going, templated. The code: ",
 	"oraclePanel.missing": "The cockpit comes from dsh-mywork-oracle, which is not installed: Settings → MyWork → Members installs it in one click.",
 	"imPanel.missing": "The IM assistant comes from @michengai/dsh-im-connect, which is not installed: Settings → MyWork → Members installs it in one click.",
 	"mcpPanel.hint": "Add, edit or disable MCP servers here (stdio processes or streamable-http endpoints), or import an mcpServers JSON document; saved servers are mounted at once as official dsh mcp-client rows and every conversation can use them. Below: the connectors and tools this conversation can actually use.",
@@ -612,6 +646,16 @@ const en = {
 	"meta.locale": "en-US"
 };
 //#endregion
+//#region src/edition.ts
+/** Browser-side override for debugging: localStorage `dsh-mywork:edition` = 'kit' shows the plain kit shell. */
+function editionActive() {
+	try {
+		return globalThis.localStorage?.getItem("dsh-mywork:edition") !== "kit";
+	} catch {
+		return true;
+	}
+}
+//#endregion
 //#region src/session-title.ts
 const SESSION_TITLE_KINDS = [
 	"feature",
@@ -798,6 +842,10 @@ function assembleSessionTitle(type, theme, locale) {
 	if (parsed === void 0) return void 0;
 	const displayLocale = locale ?? inferLocaleFromTypeToken(type);
 	const label = typeLabel(parsed.type, displayLocale);
+	if (editionActive()) {
+		const plain = isRedundantTheme(parsed.type, parsed.theme) ? label : parsed.theme;
+		return Buffer.byteLength(plain, "utf8") > 80 ? void 0 : plain;
+	}
 	const title = isRedundantTheme(parsed.type, parsed.theme) ? `${SESSION_TITLE_EMOJI[parsed.type]} ${label}` : `${SESSION_TITLE_EMOJI[parsed.type]} ${label}｜${parsed.theme}`;
 	if (Buffer.byteLength(title, "utf8") > 80) return void 0;
 	return title;

@@ -1,6 +1,7 @@
 import { CHANNEL_SESSION_PREFIX } from './client/channel-api.ts'
 import { en, zh, type CodexUiKey } from './client/locales.ts'
 import { AUTOMATION_SESSION_PREFIX } from './client/schedule-sessions.ts'
+import { editionActive } from './edition.ts'
 
 export const SESSION_TITLE_KINDS = ['feature', 'design', 'fix', 'optimize', 'release', 'explore', 'docs', 'research'] as const
 export type SessionTitleKind = (typeof SESSION_TITLE_KINDS)[number]
@@ -196,6 +197,11 @@ export function assembleSessionTitle(type: string, theme: string, locale?: Sessi
   if (parsed === undefined) return undefined
   const displayLocale = locale ?? inferLocaleFromTypeToken(type)
   const label = typeLabel(parsed.type, displayLocale)
+  if (editionActive()) {
+    // Digital Oracle Work: the question is the title. No emoji, no category prefix (design/DESIGN.md §8).
+    const plain = isRedundantTheme(parsed.type, parsed.theme) ? label : parsed.theme
+    return Buffer.byteLength(plain, 'utf8') > SESSION_TITLE_MAX_BYTES ? undefined : plain
+  }
   const title = isRedundantTheme(parsed.type, parsed.theme)
     ? `${SESSION_TITLE_EMOJI[parsed.type]} ${label}`
     : `${SESSION_TITLE_EMOJI[parsed.type]} ${label}${SESSION_TITLE_SEPARATOR}${parsed.theme}`

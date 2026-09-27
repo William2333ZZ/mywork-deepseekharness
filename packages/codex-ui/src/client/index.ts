@@ -8,7 +8,7 @@ import {
   UnknownSessionError,
 } from './session-host.ts'
 import { createGlobalPanelSource } from './global-panels.tsx'
-import { registerSectionPanels } from './section-panels.tsx'
+import { ORACLE_PANEL_ID, registerSectionPanels } from './section-panels.tsx'
 import { createElement } from 'react'
 import { initializeComposerWidth, observeHeroWidthHandles } from './composer-width.ts'
 import { browserStorage } from './tree-expansion.ts'
@@ -31,6 +31,7 @@ import { AboutSection } from './AboutSection.tsx'
 import { CodexWorkspaceBrowser } from './CodexWorkspaceBrowser.tsx'
 import { ConnectorsSection } from './ConnectorsSection.tsx'
 import { en, NS, zh } from './locales.ts'
+import { editionActive } from '../edition.ts'
 import { createCompanionTabSource } from './companion-slots.ts'
 import { createFooterActionSource } from './footer-actions.ts'
 import { openPathInHost, type HostOpenPathConnection } from './host-open-path.ts'
@@ -135,6 +136,19 @@ export function apply(ctx: ClientContext): void {
   const widthStorage = browserStorage()
   if (widthStorage) initializeComposerWidth(widthStorage)
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'michengai-codex-ui: dictionaries')
+  // Digital Oracle Work edition: mark the body for edition CSS and land on the cockpit instead of a conversation.
+  ctx.effect(() => {
+    if (!editionActive()) return () => {}
+    document.body.dataset.myworkEdition = 'oracle'
+    // The layout service may not be ready at first paint; retry until the cockpit is mounted, but stop as soon as the
+    // user interacts so a deliberate navigation is never overridden.
+    let interacted = false
+    const onInteract = () => { interacted = true }
+    window.addEventListener('pointerdown', onInteract, { once: true, capture: true })
+    window.addEventListener('keydown', onInteract, { once: true, capture: true })
+    const timers = [600, 1500, 3000, 6000].map((ms) => setTimeout(() => { if (!interacted && !document.querySelector('.mwc')) selectGlobalPanel(ctx.layout, ORACLE_PANEL_ID) }, ms))
+    return () => { timers.forEach(clearTimeout); window.removeEventListener('pointerdown', onInteract, { capture: true }); window.removeEventListener('keydown', onInteract, { capture: true }); delete document.body.dataset.myworkEdition }
+  }, 'michengai-codex-ui: edition')
   const t = ctx.locale.bind(NS)
   ctx.effect(() => observeHeroWidthHandles(t('home.resizeInput')), 'michengai-codex-ui: hero width handles')
   registerInputHistory(ctx)

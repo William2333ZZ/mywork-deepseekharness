@@ -1,6 +1,7 @@
 import { useEffect, useState, useSyncExternalStore, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
-import { Globe, FileSpreadsheet, CalendarClock, MessageSquare, TrendingUp } from 'lucide-react'
+import { Globe, FileSpreadsheet, CalendarClock, MessageSquare, TrendingUp, Crosshair, Activity, Flame, LineChart, CandlestickChart } from 'lucide-react'
+import { editionActive } from '../edition.ts'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import { NS } from './locales.ts'
 import type { PrefillResult, DraftPresenceSource } from './new-conversation-draft.ts'
@@ -14,6 +15,14 @@ const categories = [
   { id: 'schedule', label: 'home.schedule', tasks: [{ label: 'home.schedule.task1', prompt: 'home.schedule.prompt1' }, { label: 'home.schedule.task2', prompt: 'home.schedule.prompt2' }], Icon: CalendarClock, color: '#f48235' },
   { id: 'im', label: 'home.im', tasks: [{ label: 'home.im.task1', prompt: 'home.im.prompt1' }, { label: 'home.im.task2', prompt: 'home.im.prompt2' }], Icon: MessageSquare, color: '#a478e8' },
   { id: 'oracle', label: 'home.oracle', tasks: [{ label: 'home.oracle.task1', prompt: 'home.oracle.prompt1' }, { label: 'home.oracle.task2', prompt: 'home.oracle.prompt2' }], Icon: TrendingUp, color: '#c9931a' },
+] as const
+// Digital Oracle Work edition: the five cockpit questions replace the kit's job cards; one card = one prompt, no sub-tasks.
+const editionCategories = [
+  { id: 'geo', label: 'home.oracle.geo', prompt: 'home.oracle.geo.prompt', Icon: Crosshair },
+  { id: 'macro', label: 'home.oracle.macro', prompt: 'home.oracle.macro.prompt', Icon: Activity },
+  { id: 'bubble', label: 'home.oracle.bubble', prompt: 'home.oracle.bubble.prompt', Icon: Flame },
+  { id: 'assets', label: 'home.oracle.assets', prompt: 'home.oracle.assets.prompt', Icon: LineChart },
+  { id: 'ashare', label: 'home.oracle.ashare', prompt: 'home.oracle.ashare.prompt', Icon: CandlestickChart },
 ] as const
 const hints = { workspace: 'home.workspace', draft: 'home.draft', busy: 'home.busy' } as const
 type Category = typeof categories[number]['id']
@@ -34,7 +43,11 @@ export function NewConversationSuggestions({ t, prefill, draftSource = emptyDraf
 }
 
 export function SuggestionCards({ t, prefill, hasDraft = false }: PropsLocale<typeof NS> & { prefill?: (text: string) => PrefillResult; hasDraft?: boolean }) {
-  const [selected, setSelected] = useState<Category>()
+  if (editionActive()) return <EditionCards t={t} prefill={prefill} hasDraft={hasDraft} />
+  return <KitCards t={t} prefill={prefill} hasDraft={hasDraft} />
+}
+
+function useFill(prefill?: (text: string) => PrefillResult) {
   const [hint, setHint] = useState<PrefillResult>('ready')
   function fill(text: string) {
     const result = prefill?.(text) ?? 'workspace'
@@ -42,6 +55,24 @@ export function SuggestionCards({ t, prefill, hasDraft = false }: PropsLocale<ty
     if (result === 'ready') document.querySelector<HTMLElement>('[data-phase=hero] [data-lexical-editor=true]')?.focus()
     if (result === 'workspace') document.querySelector<HTMLButtonElement>('[data-phase=hero] [class*="_heroWorkspaceRow"]>button')?.click()
   }
+  return { hint, setHint, fill }
+}
+
+/** Edition home: a title, one sentence, five question cards. Clicking a card prefills the composer at once. */
+function EditionCards({ t, prefill, hasDraft }: PropsLocale<typeof NS> & { prefill?: (text: string) => PrefillResult; hasDraft: boolean }) {
+  const { hint, fill } = useFill(prefill)
+  return <section className="dcu-home-suggestions dcu-home-edition" data-has-draft={hasDraft} aria-hidden={hasDraft} aria-label={t('home.suggestions')}>
+    <div className="dcu-home-edition-head"><h1 className="dcu-home-edition-title">{t('home.edition.title')}</h1><p className="dcu-home-edition-sub">{t('home.edition.sub')}</p></div>
+    <div className="dcu-home-cards dcu-home-cards-5">{editionCategories.map(({ id, label, prompt, Icon }) => <button type="button" key={id} disabled={hasDraft} className="dcu-home-card" onClick={() => fill(t(prompt))}>
+      <Icon aria-hidden="true" /><span>{t(label)}</span>
+    </button>)}</div>
+    <div className="dcu-home-status">{(Object.keys(hints) as Array<keyof typeof hints>).map(key => <p key={key} className="dcu-home-hint" data-active={hint === key} aria-hidden={hint !== key} role={hint === key ? 'status' : undefined}>{t(hints[key])}</p>)}</div>
+  </section>
+}
+
+function KitCards({ t, prefill, hasDraft }: PropsLocale<typeof NS> & { prefill?: (text: string) => PrefillResult; hasDraft: boolean }) {
+  const [selected, setSelected] = useState<Category>()
+  const { hint, setHint, fill } = useFill(prefill)
   return <section className="dcu-home-suggestions" data-has-draft={hasDraft} aria-hidden={hasDraft} aria-label={t('home.suggestions')}>
     <div className="dcu-home-cards">{categories.map(({ id, label, Icon, color }) => <button type="button" key={id} disabled={hasDraft} className="dcu-home-card" style={{ '--dcu-home-icon': color } as CSSProperties} aria-pressed={selected === id} onClick={() => { setSelected(selected === id ? undefined : id); setHint('ready') }}>
       <Icon aria-hidden="true" /><span>{t(label)}</span>

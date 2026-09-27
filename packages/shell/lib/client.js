@@ -342,16 +342,91 @@ const BRUTAL_DARK = {
  * it follows the host's light / dark / system preference (which dsh itself
  * persists) instead of fighting it. `official` means "no override".
  */
+/* 市场终端 (Digital Oracle Work edition, design/DESIGN.md): neutral surfaces, one blue action color, semantic gain/loss,
+   Geist for words and JetBrains Mono for numbers. Every text role passes WCAG AA 4.5:1 on base / layer-1 / layer-2 in both palettes. */
+const TERMINAL_LIGHT = {
+  '--dsw-alias-bg-base': '#F6F5F2',
+  '--dsw-alias-bg-layer-1': '#FFFFFF',
+  '--dsw-alias-bg-layer-2': '#EEECE7',
+  '--dsw-alias-bg-layer-3': '#E4E1DA',
+  '--dsw-alias-bg-overlay': '#FFFFFF',
+  '--dsw-alias-bg-mask-1': 'rgba(22, 26, 31, 0.35)',
+  '--dsw-alias-border-l1': 'rgba(22, 26, 31, 0.07)',
+  '--dsw-alias-border-l2': 'rgba(22, 26, 31, 0.13)',
+  '--dsw-alias-border-l3': 'rgba(22, 26, 31, 0.22)',
+  '--dsw-alias-brand-primary': '#1A5DC8',
+  '--dsw-alias-brand-text': '#1A5DC8',
+  '--dsw-alias-link': '#1A5DC8',
+  '--dsw-alias-label-primary-foreground': '#FFFFFF',
+  '--dsw-alias-label-primary': '#161A1F',
+  '--dsw-alias-label-secondary': '#5B6470',
+  '--dsw-alias-label-tertiary': '#5F6874',
+  '--dsw-alias-label-caption': '#5F6874',
+  '--dsw-alias-button-primary-fill': '#1A5DC8',
+  '--dsw-alias-button-primary-hover': '#154FAD',
+  '--dsw-alias-interactive-bg-hover': 'rgba(22, 26, 31, 0.05)',
+  '--dsw-alias-interactive-bg-active': 'rgba(22, 26, 31, 0.09)',
+  '--dsw-alias-markdown-code-block': '#EEECE7',
+  '--dsw-alias-markdown-code-block-banner': '#E4E1DA',
+  '--dsw-alias-markdown-inline-code': '#EEECE7',
+  '--dsw-specific-sidebar-fill': '#FFFFFF',
+  '--dsw-alias-state-success-primary': '#157A4B',
+  '--dsw-alias-state-warn-primary': '#8C5A12',
+  '--dsw-alias-state-error-primary': '#B83232',
+  '--dsw-specific-bubble': '#EEECE7',
+  '--dsw-specific-input-major': '#FFFFFF',
+  '--dsw-alias-state-business-primary': '#1A5DC8',
+  '--dsw-alias-button-info-fill': '#1A5DC8',
+  '--dsw-alias-button-info-hover': '#154FAD',
+}
+
+const TERMINAL_DARK = {
+  '--dsw-alias-bg-base': '#0E1116',
+  '--dsw-alias-bg-layer-1': '#141920',
+  '--dsw-alias-bg-layer-2': '#1B2129',
+  '--dsw-alias-bg-layer-3': '#232B36',
+  '--dsw-alias-bg-overlay': '#141920',
+  '--dsw-alias-bg-mask-1': 'rgba(0, 0, 0, 0.55)',
+  '--dsw-alias-border-l1': 'rgba(238, 242, 246, 0.08)',
+  '--dsw-alias-border-l2': 'rgba(238, 242, 246, 0.14)',
+  '--dsw-alias-border-l3': 'rgba(238, 242, 246, 0.24)',
+  '--dsw-alias-brand-primary': '#5AA0FF',
+  '--dsw-alias-brand-text': '#5AA0FF',
+  '--dsw-alias-link': '#5AA0FF',
+  '--dsw-alias-label-primary-foreground': '#0E1116',
+  '--dsw-alias-label-primary': '#EEF2F6',
+  '--dsw-alias-label-secondary': '#A7B1BE',
+  '--dsw-alias-label-tertiary': '#8C97A4',
+  '--dsw-alias-label-caption': '#8C97A4',
+  '--dsw-alias-button-primary-fill': '#5AA0FF',
+  '--dsw-alias-button-primary-hover': '#7DB4FF',
+  '--dsw-alias-interactive-bg-hover': 'rgba(238, 242, 246, 0.06)',
+  '--dsw-alias-interactive-bg-active': 'rgba(238, 242, 246, 0.1)',
+  '--dsw-alias-markdown-code-block': '#1B2129',
+  '--dsw-alias-markdown-code-block-banner': '#232B36',
+  '--dsw-alias-markdown-inline-code': '#1B2129',
+  '--dsw-specific-sidebar-fill': '#141920',
+  '--dsw-alias-state-success-primary': '#3CCB7F',
+  '--dsw-alias-state-warn-primary': '#F2B84B',
+  '--dsw-alias-state-error-primary': '#FF6B6B',
+  '--dsw-specific-bubble': '#1B2129',
+  '--dsw-specific-input-major': '#141920',
+  '--dsw-alias-state-business-primary': '#5AA0FF',
+  '--dsw-alias-button-info-fill': '#5AA0FF',
+  '--dsw-alias-button-info-hover': '#7DB4FF',
+}
+
 const FAMILIES = [
   { id: 'official', light: null, dark: null, label: { zh: '官方默认', en: 'Official' } },
   { id: 'claude', light: CLAUDE_LIGHT, dark: CLAUDE_DARK, label: { zh: 'Claude Code 风格', en: 'Claude Code style' } },
   { id: 'soft', light: SOFT_LIGHT, dark: SOFT_DARK, label: { zh: '柔和高级', en: 'Soft premium' }, fonts: '/mywork-shell/fonts.css', cjkFonts: 'https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&display=swap' },
   { id: 'minimal', light: MINIMAL_LIGHT, dark: MINIMAL_DARK, label: { zh: '极简编辑', en: 'Editorial minimal' }, fonts: '/mywork-shell/fonts.css', cjkFonts: 'https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600&family=Noto+Serif+SC:wght@500;600&display=swap' },
   { id: 'brutal', light: BRUTAL_LIGHT, dark: BRUTAL_DARK, label: { zh: '工业粗野', en: 'Industrial brutalist' }, fonts: '/mywork-shell/fonts.css' },
+  { id: 'terminal', light: TERMINAL_LIGHT, dark: TERMINAL_DARK, label: { zh: '市场终端', en: 'Market terminal' }, fonts: '/mywork-shell/fonts.css', cjkFonts: 'https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600&display=swap' },
 ]
 
 /** Family used until the user picks one (the kit's own look). */
-const DEFAULT_FAMILY = 'claude'
+const DEFAULT_FAMILY = 'terminal' // Digital Oracle Work edition; the kit's main branch keeps 'claude'
 
 const SCHEMES = [
   { id: 'system', label: { zh: '跟随系统', en: 'System' } },
@@ -450,6 +525,7 @@ body[data-mywork-theme="official"] { --mwc-radius: 6px; }
 body[data-mywork-theme="soft"] { --mwc-radius: 12px; }
 body[data-mywork-theme="minimal"] { --mwc-radius: 4px; }
 body[data-mywork-theme="brutal"] { --mwc-radius: 0px; }
+body[data-mywork-theme="terminal"] { --mwc-radius: 4px; }
 body[data-mywork-theme="soft"] [data-composer-card] { border-radius: 24px !important; box-shadow: var(--mywork-shadow) !important; }
 body[data-mywork-theme="soft"] .dcu-home-card { border-radius: 24px; background: var(--dsw-alias-bg-layer-1); box-shadow: var(--mywork-shadow); border-color: transparent; }
 body[data-mywork-theme="soft"] .dcu-home-card:hover, body[data-mywork-theme="soft"] .dcu-home-card[aria-pressed=true] { transform: translateY(-2px); border-color: transparent; }
@@ -530,6 +606,21 @@ body[data-ds-dark-theme][data-mywork-theme="brutal"]::after { content: ""; posit
    hosted plugins on the system font. */
 :root:has(body[data-mywork-theme="soft"]) { --dsw-font-family: "Plus Jakarta Sans", "Yuanti SC", "Noto Sans SC", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", sans-serif; --dsw-font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace; --dsw-font-family-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
 :root:has(body[data-mywork-theme="minimal"]) { --dsw-font-family: "Geist", "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; --dsw-font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace; --dsw-font-family-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+/* 市场终端: words in Geist, numbers in JetBrains Mono, 1px hairlines, flat surfaces, 4px radii. */
+body[data-mywork-theme="terminal"] { --mywork-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace; }
+body[data-mywork-theme="terminal"] button, body[data-mywork-theme="terminal"] input, body[data-mywork-theme="terminal"] select, body[data-mywork-theme="terminal"] textarea { font-family: inherit; }
+body[data-mywork-theme="terminal"][data-mywork-theme] .dcu-root, body[data-mywork-theme="terminal"][data-mywork-theme] .dcu-settings-page { --dcu-font: "Geist", "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; }
+body[data-mywork-theme="terminal"] [data-composer-card] { border-radius: 6px !important; box-shadow: none !important; border: 1px solid var(--dsw-alias-border-l2) !important; }
+body[data-mywork-theme="terminal"] .dcu-home-card, body[data-mywork-theme="terminal"] .mwtc-card, body[data-mywork-theme="terminal"] .mwi, body[data-mywork-theme="terminal"] .dsh-st-card, body[data-mywork-theme="terminal"] .ima-platform { border: 1px solid var(--dsw-alias-border-l2); border-radius: 4px; box-shadow: none; }
+body[data-mywork-theme="terminal"] .dcu-home-task, body[data-mywork-theme="terminal"] .mwtc-zbtn, body[data-mywork-theme="terminal"] .mwb-mini.framed, body[data-mywork-theme="terminal"] .mwr-in, body[data-mywork-theme="terminal"] .dsh-st-btn, body[data-mywork-theme="terminal"] .mwm-primary, body[data-mywork-theme="terminal"] .mwi .btn { border-radius: 4px; }
+body[data-mywork-theme="terminal"] [data-composer-card] [class*="_primary"], body[data-mywork-theme="terminal"] .dsh-st-btn--primary { border-radius: 4px !important; }
+body[data-mywork-theme="terminal"] .dcu-wb-session, body[data-mywork-theme="terminal"] .dcu-menu button, body[data-mywork-theme="terminal"] .dcu-settings-link { border-radius: 4px; }
+body[data-mywork-theme="terminal"] .dcu-wb-session-time, body[data-mywork-theme="terminal"] .dcu-wb-collection-count, body[data-mywork-theme="terminal"] kbd, body[data-mywork-theme="terminal"] code { font-family: var(--mywork-mono); font-variant-numeric: tabular-nums; }
+body[data-mywork-theme="terminal"] pre { border: 1px solid var(--dsw-alias-border-l2); border-radius: 4px; }
+body[data-mywork-theme="terminal"] button, body[data-mywork-theme="terminal"] [role="button"] { transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease, transform 90ms ease; }
+body[data-mywork-theme="terminal"] button:active { transform: translateY(1px); }
+@media (prefers-reduced-motion: reduce) { body[data-mywork-theme="terminal"] button, body[data-mywork-theme="terminal"] [role="button"] { transition: none; } body[data-mywork-theme="terminal"] button:active { transform: none; } }
+:root:has(body[data-mywork-theme="terminal"]) { --dsw-font-family: "Geist", "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; --dsw-font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace; }
 :root:has(body[data-mywork-theme="brutal"]) { --dsw-font-family: "Archivo", -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif; --dsw-font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace; --dsw-font-family-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
 /* Every family: the sidebar is its own tinted surface (warm sand / neutral grey / cool slate) with a hairline edge,
    solid on every platform (dsh blends it to 60 % on macOS, which washes the tint out). */

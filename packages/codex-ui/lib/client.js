@@ -413,6 +413,24 @@ window.__ModuleLoader__.load({
 			return Component;
 		}
 		//#endregion
+		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/activity.mjs
+		/**
+		* @license lucide-react v1.47.0 - ISC
+		*
+		* This source code is licensed under the ISC license.
+		* See the LICENSE file in the root directory of this source tree.
+		*/
+		const __iconData$31 = {
+			name: "activity",
+			size: 24,
+			node: [["path", {
+				d: "M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2",
+				key: "169zse"
+			}]]
+		};
+		__iconData$31.node;
+		const Activity = createLucideIcon(__iconData$31);
+		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/archive.mjs
 		/**
 		* @license lucide-react v1.47.0 - ISC
@@ -420,7 +438,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$26 = {
+		const __iconData$30 = {
 			name: "archive",
 			size: 24,
 			node: [
@@ -442,8 +460,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$26.node;
-		const Archive = createLucideIcon(__iconData$26);
+		__iconData$30.node;
+		const Archive = createLucideIcon(__iconData$30);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/arrow-left.mjs
 		/**
@@ -452,7 +470,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$25 = {
+		const __iconData$29 = {
 			name: "arrow-left",
 			size: 24,
 			node: [["path", {
@@ -463,8 +481,8 @@ window.__ModuleLoader__.load({
 				key: "x3x0zl"
 			}]]
 		};
-		__iconData$25.node;
-		const ArrowLeft = createLucideIcon(__iconData$25);
+		__iconData$29.node;
+		const ArrowLeft = createLucideIcon(__iconData$29);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/box.mjs
 		/**
@@ -473,7 +491,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$24 = {
+		const __iconData$28 = {
 			name: "box",
 			size: 24,
 			node: [
@@ -491,8 +509,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$24.node;
-		const Box = createLucideIcon(__iconData$24);
+		__iconData$28.node;
+		const Box = createLucideIcon(__iconData$28);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/calendar-clock.mjs
 		/**
@@ -501,7 +519,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$23 = {
+		const __iconData$27 = {
 			name: "calendar-clock",
 			size: 24,
 			node: [
@@ -533,8 +551,61 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$23.node;
-		const CalendarClock = createLucideIcon(__iconData$23);
+		__iconData$27.node;
+		const CalendarClock = createLucideIcon(__iconData$27);
+		//#endregion
+		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/chart-candlestick.mjs
+		/**
+		* @license lucide-react v1.47.0 - ISC
+		*
+		* This source code is licensed under the ISC license.
+		* See the LICENSE file in the root directory of this source tree.
+		*/
+		const __iconData$26 = {
+			name: "chart-candlestick",
+			size: 24,
+			node: [
+				["path", {
+					d: "M9 5v4",
+					key: "14uxtq"
+				}],
+				["rect", {
+					width: "4",
+					height: "6",
+					x: "7",
+					y: "9",
+					rx: "1",
+					key: "f4fvz0"
+				}],
+				["path", {
+					d: "M9 15v2",
+					key: "r5rk32"
+				}],
+				["path", {
+					d: "M17 3v2",
+					key: "1l2re6"
+				}],
+				["rect", {
+					width: "4",
+					height: "8",
+					x: "15",
+					y: "5",
+					rx: "1",
+					key: "z38je5"
+				}],
+				["path", {
+					d: "M17 13v3",
+					key: "5l0wba"
+				}],
+				["path", {
+					d: "M3 3v16a2 2 0 0 0 2 2h16",
+					key: "c24i48"
+				}]
+			],
+			aliases: ["candlestick-chart"]
+		};
+		__iconData$26.node;
+		const ChartCandlestick = createLucideIcon(__iconData$26);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/chart-column.mjs
 		/**
@@ -543,7 +614,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$22 = {
+		const __iconData$25 = {
 			name: "chart-column",
 			size: 24,
 			node: [
@@ -566,8 +637,30 @@ window.__ModuleLoader__.load({
 			],
 			aliases: ["bar-chart-3"]
 		};
-		__iconData$22.node;
-		const ChartColumn = createLucideIcon(__iconData$22);
+		__iconData$25.node;
+		const ChartColumn = createLucideIcon(__iconData$25);
+		//#endregion
+		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/chart-line.mjs
+		/**
+		* @license lucide-react v1.47.0 - ISC
+		*
+		* This source code is licensed under the ISC license.
+		* See the LICENSE file in the root directory of this source tree.
+		*/
+		const __iconData$24 = {
+			name: "chart-line",
+			size: 24,
+			node: [["path", {
+				d: "M3 3v16a2 2 0 0 0 2 2h16",
+				key: "c24i48"
+			}], ["path", {
+				d: "m19 9-5 5-4-4-3 3",
+				key: "2osh9i"
+			}]],
+			aliases: ["line-chart"]
+		};
+		__iconData$24.node;
+		const ChartLine = createLucideIcon(__iconData$24);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/circle-question-mark.mjs
 		/**
@@ -576,7 +669,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$21 = {
+		const __iconData$23 = {
 			name: "circle-question-mark",
 			size: 24,
 			node: [
@@ -597,8 +690,8 @@ window.__ModuleLoader__.load({
 			],
 			aliases: ["help-circle", "circle-help"]
 		};
-		__iconData$21.node;
-		const CircleQuestionMark = createLucideIcon(__iconData$21);
+		__iconData$23.node;
+		const CircleQuestionMark = createLucideIcon(__iconData$23);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/clock.mjs
 		/**
@@ -607,7 +700,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$20 = {
+		const __iconData$22 = {
 			name: "clock",
 			size: 24,
 			node: [["circle", {
@@ -620,8 +713,8 @@ window.__ModuleLoader__.load({
 				key: "mmk7yg"
 			}]]
 		};
-		__iconData$20.node;
-		const Clock = createLucideIcon(__iconData$20);
+		__iconData$22.node;
+		const Clock = createLucideIcon(__iconData$22);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/cpu.mjs
 		/**
@@ -630,7 +723,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$19 = {
+		const __iconData$21 = {
 			name: "cpu",
 			size: 24,
 			node: [
@@ -700,8 +793,58 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$19.node;
-		const Cpu = createLucideIcon(__iconData$19);
+		__iconData$21.node;
+		const Cpu = createLucideIcon(__iconData$21);
+		//#endregion
+		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/crosshair.mjs
+		/**
+		* @license lucide-react v1.47.0 - ISC
+		*
+		* This source code is licensed under the ISC license.
+		* See the LICENSE file in the root directory of this source tree.
+		*/
+		const __iconData$20 = {
+			name: "crosshair",
+			size: 24,
+			node: [
+				["circle", {
+					cx: "12",
+					cy: "12",
+					r: "10",
+					key: "1mglay"
+				}],
+				["line", {
+					x1: "22",
+					x2: "18",
+					y1: "12",
+					y2: "12",
+					key: "l9bcsi"
+				}],
+				["line", {
+					x1: "6",
+					x2: "2",
+					y1: "12",
+					y2: "12",
+					key: "13hhkx"
+				}],
+				["line", {
+					x1: "12",
+					x2: "12",
+					y1: "6",
+					y2: "2",
+					key: "10w3f3"
+				}],
+				["line", {
+					x1: "12",
+					x2: "12",
+					y1: "22",
+					y2: "18",
+					key: "15g9kq"
+				}]
+			]
+		};
+		__iconData$20.node;
+		const Crosshair = createLucideIcon(__iconData$20);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/eye-off.mjs
 		/**
@@ -710,7 +853,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$18 = {
+		const __iconData$19 = {
 			name: "eye-off",
 			size: 24,
 			node: [
@@ -732,8 +875,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$18.node;
-		const EyeOff = createLucideIcon(__iconData$18);
+		__iconData$19.node;
+		const EyeOff = createLucideIcon(__iconData$19);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/eye.mjs
 		/**
@@ -742,7 +885,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$17 = {
+		const __iconData$18 = {
 			name: "eye",
 			size: 24,
 			node: [["path", {
@@ -755,8 +898,8 @@ window.__ModuleLoader__.load({
 				key: "1v7zrd"
 			}]]
 		};
-		__iconData$17.node;
-		const Eye = createLucideIcon(__iconData$17);
+		__iconData$18.node;
+		const Eye = createLucideIcon(__iconData$18);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/file-spreadsheet.mjs
 		/**
@@ -765,7 +908,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$16 = {
+		const __iconData$17 = {
 			name: "file-spreadsheet",
 			size: 24,
 			node: [
@@ -795,8 +938,26 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
+		__iconData$17.node;
+		const FileSpreadsheet = createLucideIcon(__iconData$17);
+		//#endregion
+		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/flame.mjs
+		/**
+		* @license lucide-react v1.47.0 - ISC
+		*
+		* This source code is licensed under the ISC license.
+		* See the LICENSE file in the root directory of this source tree.
+		*/
+		const __iconData$16 = {
+			name: "flame",
+			size: 24,
+			node: [["path", {
+				d: "M12 3q1 4 4 6.5t3 5.5a1 1 0 0 1-14 0 5 5 0 0 1 1-3 1 1 0 0 0 5 0c0-2-1.5-3-1.5-5q0-2 2.5-4",
+				key: "1slcih"
+			}]]
+		};
 		__iconData$16.node;
-		const FileSpreadsheet = createLucideIcon(__iconData$16);
+		const Flame = createLucideIcon(__iconData$16);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/globe.mjs
 		/**
@@ -1391,6 +1552,23 @@ window.__ModuleLoader__.load({
 			"sidebar.schedule": "定时任务",
 			"sidebar.mcp": "MCP 连接器",
 			"sidebar.oracle": "市场先知",
+			"sidebar.cockpit": "驾驶舱",
+			"sidebar.newAnalysis": "新分析",
+			"sidebar.analysisTab": "分析记录",
+			"sidebar.analysisPanel": "分析",
+			"sidebar.more": "更多",
+			"home.edition.title": "问先知",
+			"home.edition.sub": "用市场交易数据回答，至少三个独立信号，只分析不下单。",
+			"home.oracle.geo": "地缘冲突",
+			"home.oracle.geo.prompt": "用市场交易数据评估地缘冲突升级的概率（预测市场、避险资产、原油、CFTC 持仓等至少 3 个独立信号），按模板给分层信号表、矛盾分析和概率场景。事件是：",
+			"home.oracle.macro": "衰退周期",
+			"home.oracle.macro.prompt": "用市场交易数据评估未来 12 个月的衰退概率与利率路径（国债曲线、Kalshi 联储合约、恐惧贪婪、铜金比等至少 3 个独立信号），按模板输出。补充问题：",
+			"home.oracle.bubble": "泡沫与风险偏好",
+			"home.oracle.bubble.prompt": "用市场交易数据判断下面这个板块或资产是否处于泡沫阶段（期权 IV、内部人交易、加密基差、拥挤度等至少 3 个独立信号），按模板输出。对象是：",
+			"home.oracle.assets": "资产择时",
+			"home.oracle.assets.prompt": "只用交易数据判断现在是否适合买入下面这个资产（价格趋势、期权 IV、机构持仓、内部人交易、资金流），结合 oracle_portfolio 里我的自选和持仓，给概率场景和风险。资产是：",
+			"home.oracle.ashare": "A 股",
+			"home.oracle.ashare.prompt": "用东方财富的拆单资金流、板块轮动和前复权 K 线，判断下面这只 A 股主力是在买还是卖，以及所在板块的资金方向，按模板输出。代码是：",
 			"oraclePanel.missing": "市场先知驾驶舱由 dsh-mywork-oracle 提供，尚未安装：到 设置 → MyWork → 成员 一键补装。",
 			"imPanel.missing": "IM助理由 @michengai/dsh-im-connect 提供，尚未安装：到 设置 → MyWork → 成员 一键补装。",
 			"mcpPanel.hint": "在这里添加、编辑、停用 MCP 服务器（stdio 本地进程或 streamable-http 远程），或直接导入 mcpServers JSON；保存后立即挂载为 dsh 官方 mcp-client 条目，所有会话都能用。页面下方是当前会话实际可用的连接器与工具。",
@@ -1697,6 +1875,23 @@ window.__ModuleLoader__.load({
 			"sidebar.schedule": "Scheduled tasks",
 			"sidebar.mcp": "MCP connectors",
 			"sidebar.oracle": "Market oracle",
+			"sidebar.cockpit": "Cockpit",
+			"sidebar.newAnalysis": "New analysis",
+			"sidebar.analysisTab": "Analyses",
+			"sidebar.analysisPanel": "Analysis",
+			"sidebar.more": "More",
+			"home.edition.title": "Ask the oracle",
+			"home.edition.sub": "Answers from market trading data, at least three independent signals, analysis only.",
+			"home.oracle.geo": "Geopolitics",
+			"home.oracle.geo.prompt": "Estimate the probability of the geopolitical escalation below from market data (prediction markets, safe havens, oil, CFTC positioning; at least 3 independent signals) and report with the layered template. The event: ",
+			"home.oracle.macro": "Recession",
+			"home.oracle.macro.prompt": "Estimate the 12-month recession probability and the rate path from market data (yield curve, Kalshi Fed contracts, Fear & Greed, copper/gold; at least 3 independent signals), templated. Extra question: ",
+			"home.oracle.bubble": "Bubble and risk appetite",
+			"home.oracle.bubble.prompt": "Judge from market data whether the sector or asset below is in a bubble (options IV, insider filings, crypto basis, crowding; at least 3 independent signals), templated. The subject: ",
+			"home.oracle.assets": "Asset timing",
+			"home.oracle.assets.prompt": "Using trading data only (price trend, options IV, positioning, insider filings, fund flow) and my watchlist and positions from oracle_portfolio, judge whether now is a good time to buy the asset below; give probability scenarios and risks. The asset: ",
+			"home.oracle.ashare": "A-shares",
+			"home.oracle.ashare.prompt": "Use Eastmoney order-size fund flow, sector rotation and forward-adjusted candles to tell whether institutions are buying or selling the A-share below and where its sector money is going, templated. The code: ",
 			"oraclePanel.missing": "The cockpit comes from dsh-mywork-oracle, which is not installed: Settings → MyWork → Members installs it in one click.",
 			"imPanel.missing": "The IM assistant comes from @michengai/dsh-im-connect, which is not installed: Settings → MyWork → Members installs it in one click.",
 			"mcpPanel.hint": "Add, edit or disable MCP servers here (stdio processes or streamable-http endpoints), or import an mcpServers JSON document; saved servers are mounted at once as official dsh mcp-client rows and every conversation can use them. Below: the connectors and tools this conversation can actually use.",
@@ -1923,6 +2118,16 @@ window.__ModuleLoader__.load({
 			"sessionTitle.type.research": "Research",
 			"meta.locale": "en-US"
 		};
+		//#endregion
+		//#region src/edition.ts
+		/** Browser-side override for debugging: localStorage `dsh-mywork:edition` = 'kit' shows the plain kit shell. */
+		function editionActive() {
+			try {
+				return globalThis.localStorage?.getItem("dsh-mywork:edition") !== "kit";
+			} catch {
+				return true;
+			}
+		}
 		//#endregion
 		//#region src/client/section-panels.tsx
 		/**
@@ -2188,7 +2393,7 @@ window.__ModuleLoader__.load({
 			};
 			function OraclePanel(props) {
 				const providers = (0, react.useSyncExternalStore)(subscribeOracle, oracleCount, oracleCount);
-				return page(t("sidebar.oracle"), /* @__PURE__ */ (0, react_jsx_runtime.jsx)(TrendingUp, {
+				return page(t(editionActive() ? "sidebar.cockpit" : "sidebar.oracle"), /* @__PURE__ */ (0, react_jsx_runtime.jsx)(TrendingUp, {
 					size: 18,
 					strokeWidth: 1.6
 				}), providers === 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
@@ -2211,7 +2416,7 @@ window.__ModuleLoader__.load({
 				id: ORACLE_PANEL_ID,
 				order: 5,
 				locale: NS,
-				label: () => t("sidebar.oracle"),
+				label: () => t(editionActive() ? "sidebar.cockpit" : "sidebar.oracle"),
 				inject: () => ({})
 			}, OracleRailIcon));
 		}
@@ -6293,7 +6498,7 @@ header [data-dcu-title-folder] svg,header [data-dcu-title-more] svg{display:bloc
 										onClick: () => {
 											toggleSection("projects");
 										},
-										children: [t("workspace.projects"), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+										children: [t(editionActive() ? "sidebar.analysisTab" : "workspace.projects"), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 											className: "dcu-wb-section-caret",
 											"aria-hidden": "true",
 											children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("svg", {
@@ -7870,6 +8075,17 @@ header [data-dcu-title-folder] svg,header [data-dcu-title-more] svg{display:bloc
   [data-phase=hero] [class*="_composerHero"]>:first-child{padding:32px 24px;min-height:420px}
 }
 @media(prefers-reduced-motion:reduce){.dcu-home-card{transition:none}}
+/* Digital Oracle Work edition: no slogan hero, no workspace / access-mode pickers in the hero, five question cards. */
+body[data-mywork-edition=oracle] [data-phase=hero] [class*="_composerHero"] [class$="_headline"],body[data-mywork-edition=oracle] [data-phase=hero] [class*="_titleGroup"]{display:none}
+body[data-mywork-edition=oracle] [data-phase=hero] [class*="_heroWorkspaceRow"]{display:none}
+body[data-mywork-edition=oracle] [data-composer-card] button[aria-label^="访问模式"],body[data-mywork-edition=oracle] [data-composer-card] button[aria-label^="Access mode"]{display:none}
+.dcu-home-edition{display:flex;flex-direction:column;gap:18px}
+.dcu-home-edition-head{display:flex;flex-direction:column;gap:6px;align-items:center;text-align:center}
+.dcu-home-edition-title{margin:0;font-size:22px;line-height:28px;font-weight:600;letter-spacing:-.01em;color:var(--dsw-alias-label-primary)}
+.dcu-home-edition-sub{margin:0;font-size:13px;line-height:20px;color:var(--dsw-alias-label-secondary);max-width:44ch}
+.dcu-home-cards-5{grid-template-columns:repeat(5,minmax(0,1fr))}
+.dcu-home-cards-5 .dcu-home-card{min-height:88px;gap:14px}
+@container dcu-new-conversation (width < 640px){.dcu-home-cards-5{grid-template-columns:repeat(2,minmax(0,1fr))}}
 `;
 		//#endregion
 		//#region src/client/composer-tool-menus.ts
@@ -8107,6 +8323,38 @@ body[data-ds-dark-theme] [data-conversation-scroll] [data-trigger-menu]{backgrou
 				color: "#c9931a"
 			}
 		];
+		const editionCategories = [
+			{
+				id: "geo",
+				label: "home.oracle.geo",
+				prompt: "home.oracle.geo.prompt",
+				Icon: Crosshair
+			},
+			{
+				id: "macro",
+				label: "home.oracle.macro",
+				prompt: "home.oracle.macro.prompt",
+				Icon: Activity
+			},
+			{
+				id: "bubble",
+				label: "home.oracle.bubble",
+				prompt: "home.oracle.bubble.prompt",
+				Icon: Flame
+			},
+			{
+				id: "assets",
+				label: "home.oracle.assets",
+				prompt: "home.oracle.assets.prompt",
+				Icon: ChartLine
+			},
+			{
+				id: "ashare",
+				label: "home.oracle.ashare",
+				prompt: "home.oracle.ashare.prompt",
+				Icon: ChartCandlestick
+			}
+		];
 		const hints = {
 			workspace: "home.workspace",
 			draft: "home.draft",
@@ -8139,7 +8387,18 @@ body[data-ds-dark-theme] [data-conversation-scroll] [data-trigger-menu]{backgrou
 			}), target);
 		}
 		function SuggestionCards({ t, prefill, hasDraft = false }) {
-			const [selected, setSelected] = (0, react.useState)();
+			if (editionActive()) return /* @__PURE__ */ (0, react_jsx_runtime.jsx)(EditionCards, {
+				t,
+				prefill,
+				hasDraft
+			});
+			return /* @__PURE__ */ (0, react_jsx_runtime.jsx)(KitCards, {
+				t,
+				prefill,
+				hasDraft
+			});
+		}
+		function useFill(prefill) {
 			const [hint, setHint] = (0, react.useState)("ready");
 			function fill(text) {
 				const result = prefill?.(text) ?? "workspace";
@@ -8147,6 +8406,57 @@ body[data-ds-dark-theme] [data-conversation-scroll] [data-trigger-menu]{backgrou
 				if (result === "ready") document.querySelector("[data-phase=hero] [data-lexical-editor=true]")?.focus();
 				if (result === "workspace") document.querySelector("[data-phase=hero] [class*=\"_heroWorkspaceRow\"]>button")?.click();
 			}
+			return {
+				hint,
+				setHint,
+				fill
+			};
+		}
+		/** Edition home: a title, one sentence, five question cards. Clicking a card prefills the composer at once. */
+		function EditionCards({ t, prefill, hasDraft }) {
+			const { hint, fill } = useFill(prefill);
+			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("section", {
+				className: "dcu-home-suggestions dcu-home-edition",
+				"data-has-draft": hasDraft,
+				"aria-hidden": hasDraft,
+				"aria-label": t("home.suggestions"),
+				children: [
+					/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+						className: "dcu-home-edition-head",
+						children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("h1", {
+							className: "dcu-home-edition-title",
+							children: t("home.edition.title")
+						}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
+							className: "dcu-home-edition-sub",
+							children: t("home.edition.sub")
+						})]
+					}),
+					/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+						className: "dcu-home-cards dcu-home-cards-5",
+						children: editionCategories.map(({ id, label, prompt, Icon }) => /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
+							type: "button",
+							disabled: hasDraft,
+							className: "dcu-home-card",
+							onClick: () => fill(t(prompt)),
+							children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(Icon, { "aria-hidden": "true" }), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: t(label) })]
+						}, id))
+					}),
+					/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+						className: "dcu-home-status",
+						children: Object.keys(hints).map((key) => /* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
+							className: "dcu-home-hint",
+							"data-active": hint === key,
+							"aria-hidden": hint !== key,
+							role: hint === key ? "status" : void 0,
+							children: t(hints[key])
+						}, key))
+					})
+				]
+			});
+		}
+		function KitCards({ t, prefill, hasDraft }) {
+			const [selected, setSelected] = (0, react.useState)();
+			const { hint, setHint, fill } = useFill(prefill);
 			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("section", {
 				className: "dcu-home-suggestions",
 				"data-has-draft": hasDraft,
@@ -8233,6 +8543,8 @@ body[data-we-sidebar-glass] .dcu-expanded-shell,body[data-we-sidebar-glass] .dcu
 .dcu-icon:hover,.dcu-menu button:hover:not(:disabled),.dcu-footer-link:hover{background:var(--dcu-sidebar-hover);color:var(--dcu-sidebar-primary)}
 .dcu-menu{padding:0 6px 8px;display:grid;gap:2px}.dcu-menu button,.dcu-footer-link{display:grid;grid-template-columns:20px minmax(0,1fr);column-gap:8px;align-items:center;width:100%;min-height:36px;padding:0 4px;border-radius:8px;color:var(--dcu-sidebar-navigation);font-size:14px;line-height:20px;text-align:left;font-weight:400}
 .dcu-menu-icon{display:grid;place-items:center start;width:20px;height:20px}.dcu-menu-icon svg,.dcu-footer-link svg{display:block;width:16px;height:16px;color:var(--dcu-sidebar-icon)}.dcu-menu button:disabled{color:var(--dcu-sidebar-secondary);cursor:default;opacity:1}.dcu-menu button:disabled svg{color:var(--dcu-sidebar-secondary)}
+.dcu-brand-edition{display:inline-flex;align-items:center;gap:8px;font:600 15px/20px var(--dcu-font,inherit);letter-spacing:-.01em;color:var(--dcu-sidebar-primary)}.dcu-brand-edition svg{color:var(--dsw-alias-brand-primary)}
+body[data-mywork-edition=oracle] .dcu-wb-section:has(> .dcu-wb-section-body > .dcu-wb-pinned-list){display:none}
 .dcu-extensions-group{display:grid}.dcu-extension-leading{position:relative;display:block;width:16px;height:16px}.dcu-extension-leading svg{position:absolute;inset:0;transition:opacity 140ms ease-out,transform 220ms cubic-bezier(.16,1,.3,1)}.dcu-extension-default-icon{opacity:1}.dcu-extension-state-arrow{opacity:0;transform:rotate(0)}.dcu-extensions-group:hover .dcu-extension-default-icon,.dcu-extensions-toggle:focus-visible .dcu-extension-default-icon{opacity:0}.dcu-extensions-group:hover .dcu-extension-state-arrow,.dcu-extensions-toggle:focus-visible .dcu-extension-state-arrow{opacity:1}.dcu-extensions-toggle[aria-expanded=true] .dcu-extension-state-arrow{transform:rotate(90deg)}.dcu-extension-panel{display:grid;grid-template-rows:1fr;opacity:1;transition:grid-template-rows 220ms cubic-bezier(.16,1,.3,1),opacity 160ms ease-out}.dcu-extension-panel[data-open=false]{grid-template-rows:0fr;opacity:0;pointer-events:none}.dcu-extension-panel-inner{position:relative;min-height:0;overflow:hidden}.dcu-extension-items{position:relative;display:grid;gap:1px;margin:1px 0 4px 28px}.dcu-extension-items::before{content:"";position:absolute;left:-16px;top:0;bottom:4px;width:1px;background:var(--dcu-sidebar-border)}.dcu-extension-items button{grid-template-columns:minmax(0,1fr);min-height:32px;color:var(--dcu-sidebar-secondary);font-size:13px;font-weight:400}.dcu-extension-items .dcu-menu-icon{display:none}
 .dcu-workspaces{display:flex;min-height:0;flex:1;flex-direction:column;margin-top:2px;padding-top:8px;border-top:1px solid var(--dcu-sidebar-border)}.dcu-workspaces.dcu-workspaces-tabs{padding-top:0;border-top:0}.dcu-im-tabs{display:flex;gap:16px;margin:0 8px 12px;padding:0;border-bottom:1px solid var(--dcu-sidebar-border)}.dcu-im-tab{appearance:none;border:0;background:transparent;color:var(--dcu-sidebar-secondary);padding:8px 0 7px;font:14px/22px var(--dcu-font);font-weight:500;cursor:pointer}.dcu-im-tab[data-on=true]{color:var(--dcu-sidebar-primary);font-weight:600;box-shadow:inset 0 -2px 0 currentColor}.dcu-native-workspaces{display:flex;min-height:0;flex:1}.dcu-native-workspaces>*{min-width:0;flex:1}.dcu-native-workspaces .ima-tabs,.dcu-native-workspaces [role=tablist]{display:none!important}.dcu-schedule-browser{display:flex;min-height:0;flex:1;flex-direction:column}.dcu-native-workspaces .dcu-schedule-views{display:flex!important;flex:none;min-height:30px;margin:0 8px 8px;padding:2px;border:1px solid var(--dcu-sidebar-border);border-radius:8px;background:rgba(255,255,255,.025)}.dcu-schedule-views button{appearance:none;flex:1;min-width:0;height:24px;border:0;border-radius:6px;background:transparent;color:var(--dcu-sidebar-secondary);font:600 12px/18px var(--dcu-font);cursor:pointer}.dcu-schedule-views button[aria-selected=true]{background:var(--dcu-sidebar-hover);color:var(--dcu-sidebar-primary);box-shadow:inset 0 0 0 1px var(--dcu-sidebar-border)}.dcu-schedule-pane{display:flex;min-height:0;flex:1}.dcu-schedule-pane>*{min-width:0;flex:1}.dcu-schedule-pane>[data-slot="sidebar.schedule"]{display:flex!important;width:100%;min-width:0;flex:1}.dcu-schedule-pane>[data-slot="sidebar.schedule"]>.dsh-st-rail{width:100%;min-width:0;padding-right:8px;scrollbar-gutter:auto}.dcu-schedule-pane .dsh-st-overview{padding-right:8px}.dcu-foot{display:grid;width:100%;gap:4px;padding:8px 6px 12px;border-top:1px solid var(--dcu-sidebar-border);transition:opacity 500ms cubic-bezier(.16,1,.3,1),transform 500ms cubic-bezier(.16,1,.3,1)}.dcu-root.dcu-collapsing>.dcu-foot{opacity:0;transform:translateX(-4px);pointer-events:none}.dcu-footer-actions:empty,.dcu-settings-seat:empty{display:none}.dcu-settings-seat>button{width:100%;min-height:36px;padding-left:4px!important;color:var(--dcu-sidebar-navigation);font:14px/20px var(--dcu-font);font-weight:400}.dcu-compact{width:100%;align-items:flex-start;overflow:hidden;padding:10px 0 8px}.dcu-compact-nav{display:flex;flex:1;min-height:0;flex-direction:column;align-items:center;gap:2px;overflow:auto;padding:6px 0}.dcu-compact .dcu-icon{width:36px;height:36px;flex:none}.dcu-compact .dcu-foot{width:36px;margin-top:auto;margin-left:10px;padding:8px 0;border-top:0}.dcu-compact .dcu-settings-seat{width:36px;overflow:hidden}.dcu-compact .dcu-settings-seat>button{display:grid;place-items:center;width:36px;min-height:36px;padding:0!important;font-size:0!important;line-height:0}.dcu-compact .dcu-settings-seat>button svg{width:16px;height:16px}.dcu-compact .dcu-footer-link{display:flex;justify-content:center;width:36px;padding:0;font-size:0}.dcu-compact .dcu-footer-link svg{width:16px;height:16px}
 .dcu-settings-seat [data-slot="settings.trigger"]{color:var(--dcu-sidebar-navigation)}
@@ -8592,7 +8904,7 @@ html[data-dcu-official-turn-navigator-supported=true] .dcu-turn-navigator,html:h
 				panels,
 				activeId: activePanelId,
 				wide,
-				conversationLabel: t("sidebar.tasksTab"),
+				conversationLabel: t(edition ? "sidebar.analysisPanel" : "sidebar.tasksTab"),
 				selectPanel,
 				renderIcon: (id, active) => renderSlot("sidebar.panellist", {
 					size: 16,
@@ -8615,7 +8927,9 @@ html[data-dcu-official-turn-navigator-supported=true] .dcu-turn-navigator,html:h
 			const showChannels = companionTabs.channels;
 			const showSchedule = companionTabs.schedule;
 			const showCompanionTabs = showChannels || showSchedule;
-			const available = optionalSectionAvailability((0, react.useSyncExternalStore)(settingsSections?.subscribe ?? subscribeEmptyCompanionTabs, settingsSections?.getSnapshot ?? getEmptySections, settingsSections?.getSnapshot ?? getEmptySections), {
+			const sections = (0, react.useSyncExternalStore)(settingsSections?.subscribe ?? subscribeEmptyCompanionTabs, settingsSections?.getSnapshot ?? getEmptySections, settingsSections?.getSnapshot ?? getEmptySections);
+			const edition = editionActive();
+			const available = optionalSectionAvailability(sections, {
 				experts: t("sidebar.experts"),
 				skills: t("sidebar.skills"),
 				schedule: t("sidebar.schedule"),
@@ -8809,11 +9123,18 @@ html[data-dcu-official-turn-navigator-supported=true] .dcu-turn-navigator,html:h
 								children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
 									type: "button",
 									className: "dcu-brand",
-									"aria-label": t("sidebar.newTask"),
+									"aria-label": t(edition ? "sidebar.newAnalysis" : "sidebar.newTask"),
 									onClick: () => {
 										startSession();
 									},
-									children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.BrandWordmark, { size: 24 })
+									children: edition ? /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
+										className: "dcu-brand-edition",
+										children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(TrendingUp, {
+											size: 18,
+											strokeWidth: 1.8,
+											"aria-hidden": "true"
+										}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: t("sidebar.oracle") })]
+									}) : /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.BrandWordmark, { size: 24 })
 								}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 									className: "dcu-head-actions",
 									children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
@@ -8843,7 +9164,7 @@ html[data-dcu-official-turn-navigator-supported=true] .dcu-turn-navigator,html:h
 										onClick: () => {
 											startSession();
 										},
-										children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(MenuIcon, { children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconNewChatOutline16, { size: 16 }) }), t("sidebar.newTask")]
+										children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(MenuIcon, { children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconNewChatOutline16, { size: 16 }) }), t(edition ? "sidebar.newAnalysis" : "sidebar.newTask")]
 									}),
 									/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 										className: "dcu-extensions-group",
@@ -8865,7 +9186,7 @@ html[data-dcu-official-turn-navigator-supported=true] .dcu-turn-navigator,html:h
 													className: "dcu-extension-default-icon",
 													size: 16
 												}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconChevronRightOutline14, { className: "dcu-extension-state-arrow" })]
-											}) }), t("sidebar.extensions")]
+											}) }), t(edition ? "sidebar.more" : "sidebar.extensions")]
 										}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
 											id: "dcu-extension-items",
 											className: "dcu-extension-panel",
@@ -8906,19 +9227,36 @@ html[data-dcu-official-turn-navigator-supported=true] .dcu-turn-navigator,html:h
 																selectExternalSection(t("sidebar.skills"));
 															},
 															children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(MenuIcon, { children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconSkillOutline16, { size: 16 }) }), t("sidebar.skills")]
+														}),
+														edition && available.assistant && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
+															type: "button",
+															tabIndex: extensionsOpen ? 0 : -1,
+															"aria-current": imActive ? "page" : void 0,
+															onClick: openImSettings,
+															children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(MenuIcon, { children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(ImAssistantIcon, {}) }), t("sidebar.assistant")]
+														}),
+														edition && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
+															type: "button",
+															tabIndex: extensionsOpen ? 0 : -1,
+															"aria-current": mcpActive ? "page" : void 0,
+															onClick: openMcp,
+															children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(MenuIcon, { children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(Plug, {
+																size: 16,
+																strokeWidth: 1.6
+															}) }), t("sidebar.mcp")]
 														})
 													]
 												})
 											})
 										})]
 									}),
-									available.assistant && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
+									!edition && available.assistant && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
 										type: "button",
 										"aria-current": imActive ? "page" : void 0,
 										onClick: openImSettings,
 										children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(MenuIcon, { children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(ImAssistantIcon, {}) }), t("sidebar.assistant")]
 									}),
-									/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
+									!edition && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
 										type: "button",
 										"aria-current": mcpActive ? "page" : void 0,
 										onClick: openMcp,
@@ -8941,7 +9279,7 @@ html[data-dcu-official-turn-navigator-supported=true] .dcu-turn-navigator,html:h
 											onClick: () => {
 												setImTab("tasks");
 											},
-											children: t("sidebar.tasksTab")
+											children: t(edition ? "sidebar.analysisTab" : "sidebar.tasksTab")
 										}),
 										showChannels && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
 											type: "button",
@@ -9032,7 +9370,7 @@ html[data-dcu-official-turn-navigator-supported=true] .dcu-turn-navigator,html:h
 								/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
 									type: "button",
 									className: "dcu-icon",
-									"aria-label": t("sidebar.newTask"),
+									"aria-label": t(edition ? "sidebar.newAnalysis" : "sidebar.newTask"),
 									onClick: () => {
 										startSession();
 									},
@@ -9082,7 +9420,7 @@ html[data-dcu-official-turn-navigator-supported=true] .dcu-turn-navigator,html:h
 									},
 									children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconSkillOutline16, { size: 16 })
 								}),
-								available.assistant && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+								!edition && available.assistant && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
 									type: "button",
 									className: "dcu-icon",
 									"aria-label": t("sidebar.assistant"),
@@ -9090,7 +9428,7 @@ html[data-dcu-official-turn-navigator-supported=true] .dcu-turn-navigator,html:h
 									onClick: openImSettings,
 									children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(ImAssistantIcon, {})
 								}),
-								/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+								!edition && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
 									type: "button",
 									className: "dcu-icon",
 									"aria-label": t("sidebar.mcp"),
@@ -11403,6 +11741,36 @@ html[data-dsh-native-backdrop=mica] .dcu-settings-page,html[data-dsh-native-back
 				zh,
 				en
 			}), "michengai-codex-ui: dictionaries");
+			ctx.effect(() => {
+				if (!editionActive()) return () => {};
+				document.body.dataset.myworkEdition = "oracle";
+				let interacted = false;
+				const onInteract = () => {
+					interacted = true;
+				};
+				window.addEventListener("pointerdown", onInteract, {
+					once: true,
+					capture: true
+				});
+				window.addEventListener("keydown", onInteract, {
+					once: true,
+					capture: true
+				});
+				const timers = [
+					600,
+					1500,
+					3e3,
+					6e3
+				].map((ms) => setTimeout(() => {
+					if (!interacted && !document.querySelector(".mwc")) selectGlobalPanel(ctx.layout, ORACLE_PANEL_ID);
+				}, ms));
+				return () => {
+					timers.forEach(clearTimeout);
+					window.removeEventListener("pointerdown", onInteract, { capture: true });
+					window.removeEventListener("keydown", onInteract, { capture: true });
+					delete document.body.dataset.myworkEdition;
+				};
+			}, "michengai-codex-ui: edition");
 			const t = ctx.locale.bind(NS);
 			ctx.effect(() => observeHeroWidthHandles(t("home.resizeInput")), "michengai-codex-ui: hero width handles");
 			registerInputHistory(ctx);

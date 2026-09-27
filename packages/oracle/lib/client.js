@@ -97,6 +97,9 @@ const PLUGIN = 'dsh-mywork-oracle'
 const NS = 'mywork.oracle'
 const API = '/mywork-oracle/api'
 const TAB_SLOT = 'mywork.settings.tab'
+const UPDOWN_KEY = 'dsh-mywork-oracle:updown' // 'cn' = red up / green down (default for the Chinese edition), 'intl' = green up
+const readUpDown = () => { try { return localStorage.getItem(UPDOWN_KEY) === 'intl' ? 'intl' : 'cn' } catch { return 'cn' } }
+const writeUpDown = (v) => { try { localStorage.setItem(UPDOWN_KEY, v) } catch { /* ignore */ } window.dispatchEvent(new Event('mywork-oracle:updown')) }
 const PAGE_SLOT = 'mywork.oracle.section'
 
 const zh = {
@@ -112,6 +115,7 @@ const zh = {
   watch: '自选', positions: '持仓', reports: '报告档案', add: '添加', remove: '删除', kind: '类型', symbol: '代码', label: '名称', qty: '数量', cost: '成本', pnl: '浮动盈亏', value: '市值', last: '最新', day: '日', d30: '30日',
   posHint: '从自选里选标的，填数量和成本。持仓只用来算盈亏、给模型当分析背景，这里没有任何下单功能。', noPos: '还没有持仓。', noWatch: '自选为空。', noReports: '还没有报告。',
   openSession: '打开对话', prob: '概率', horizon: '窗口', sources: '数据源', chooseWatch: '选择自选标的', errors: '取数失败',
+  updown: '涨跌配色', updownCn: '红涨绿跌', updownIntl: '绿涨红跌',
   noWatchHint: '在下方选类型、填代码就能加入，价格几秒内出现。', noReportsHint: '在任一问题上按「问先知」，模型写完报告会自动存到这里。', signalsNoneHint: '数据源尚未返回。等一分钟，或按「刷新」。', panelsHint: '按「问先知」会带着当前数字和你的自选、持仓开一个新对话',
 }
 const en = {
@@ -127,6 +131,7 @@ const en = {
   watch: 'Watchlist', positions: 'Positions', reports: 'Reports', add: 'Add', remove: 'Remove', kind: 'Kind', symbol: 'Symbol', label: 'Name', qty: 'Qty', cost: 'Cost', pnl: 'P&L', value: 'Value', last: 'Last', day: '1d', d30: '30d',
   posHint: 'Pick a watchlist item, enter quantity and cost. Positions only feed the P&L and the analysis context; nothing here places orders.', noPos: 'No positions yet.', noWatch: 'Watchlist is empty.', noReports: 'No reports yet.',
   openSession: 'Open conversation', prob: 'Probability', horizon: 'Horizon', sources: 'Sources', chooseWatch: 'choose a watchlist item', errors: 'Fetch errors',
+  updown: 'Gain / loss colors', updownCn: 'Red up, green down', updownIntl: 'Green up, red down',
   noWatchHint: 'Pick a kind and type a symbol below; the price shows up within seconds.', noReportsHint: 'Press "Ask the oracle" on any question; the model saves its report here.', signalsNoneHint: 'The data sources have not answered yet. Wait a minute or press refresh.', panelsHint: '"Ask the oracle" starts a conversation carrying the current numbers, your watchlist and positions',
 }
 
@@ -164,7 +169,13 @@ const CSS = `
 .mwc .btn:focus-visible,.mwc .mini:focus-visible,.mwc input:focus-visible,.mwc select:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}
 .mwc input,.mwc select{background:transparent;border:1px solid var(--mwc-line);border-radius:var(--mwc-r);color:inherit;font:inherit;font-size:12.5px;padding:5px 9px;min-width:0}
 .mwc input::placeholder{color:var(--dsw-alias-label-tertiary)}
-.mwc .up{color:var(--dsw-alias-state-success-primary)}.mwc .down{color:var(--dsw-alias-state-error-primary)}
+.mwc{--mwc-up:var(--dsw-alias-state-success-primary);--mwc-down:var(--dsw-alias-state-error-primary)}
+.mwc[data-updown=cn]{--mwc-up:var(--dsw-alias-state-error-primary);--mwc-down:var(--dsw-alias-state-success-primary)}
+.mwc .up{color:var(--mwc-up)}.mwc .down{color:var(--mwc-down)}
+.mwc .spark-up{stroke:var(--mwc-up)}.mwc .spark-down{stroke:var(--mwc-down)}
+.mwc .seg{display:inline-flex;border:1px solid var(--mwc-line);border-radius:var(--mwc-r);overflow:hidden}
+.mwc .seg button{border:0;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;padding:3px 9px;cursor:pointer;min-height:24px}
+.mwc .seg button[aria-pressed=true]{background:var(--dsw-alias-label-primary);color:var(--dsw-alias-bg-base)}
 /* market temperature: a hairline grid; the last row always stretches to the edge, so there is never an empty cell */
 .mwc .grid{display:flex;flex-wrap:wrap;gap:1px;background:var(--mwc-line);border:1px solid var(--mwc-line);border-radius:var(--mwc-r);overflow:hidden}
 .mwc .cell{flex:1 1 200px;background:var(--dsw-alias-bg-base);padding:12px 14px 11px;min-height:108px;display:flex;flex-direction:column;gap:5px;position:relative;box-sizing:border-box}
@@ -287,7 +298,7 @@ exports.apply = function apply(ctx) {
     const min = Math.min(...data); const max = Math.max(...data); const span = max - min || 1
     const pts = data.map((v, i) => `${(i / (data.length - 1) * w).toFixed(1)},${(hgt - (v - min) / span * (hgt - 2) - 1).toFixed(1)}`).join(' ')
     const upv = data[data.length - 1] >= data[0]
-    return h('svg', { className: 'spark', width: w, height: hgt, viewBox: `0 0 ${w} ${hgt}`, 'aria-hidden': true }, h('polyline', { points: pts, fill: 'none', stroke: upv ? 'var(--dsw-alias-state-success-primary)' : 'var(--dsw-alias-state-error-primary)', strokeWidth: 1.5, strokeLinejoin: 'round', strokeLinecap: 'round' }))
+    return h('svg', { className: 'spark', width: w, height: hgt, viewBox: `0 0 ${w} ${hgt}`, 'aria-hidden': true }, h('polyline', { points: pts, fill: 'none', className: upv ? 'spark-up' : 'spark-down', strokeWidth: 1.5, strokeLinejoin: 'round', strokeLinecap: 'round' }))
   }
   const deltaText = (tile) => {
     if (tile.delta === undefined || tile.delta === null) return null
@@ -303,6 +314,17 @@ exports.apply = function apply(ctx) {
       h('div', { className: 'v' + (numeric ? ' num' : ' txt') }, numeric ? fmtNum(tile.value) : String(tile.value), numeric && tile.unit ? h('small', null, tile.unit) : null),
       h('div', { className: 'm' }, tile.meaning),
       spark ? h(Spark, { data: spark, w: lead ? 120 : 72, hgt: lead ? 34 : 26 }) : null)
+  }
+  const useUpDown = () => {
+    const [v, setV] = React.useState(readUpDown)
+    React.useEffect(() => { const on = () => setV(readUpDown()); window.addEventListener('mywork-oracle:updown', on); return () => window.removeEventListener('mywork-oracle:updown', on) }, [])
+    return v
+  }
+  function UpDownToggle() {
+    const v = useUpDown()
+    return h('span', { className: 'seg', role: 'group', 'aria-label': t('updown') },
+      h('button', { type: 'button', 'aria-pressed': v === 'cn', onClick: () => writeUpDown('cn') }, t('updownCn')),
+      h('button', { type: 'button', 'aria-pressed': v === 'intl', onClick: () => writeUpDown('intl') }, t('updownIntl')))
   }
   function Skeleton() {
     return h('div', { className: 'grid', 'aria-busy': true }, Array.from({ length: 8 }, (_, i) => h('div', { key: i, className: 'cell' + (i < 2 ? ' lead' : '') }, h('div', { className: 'sk w' }), h('div', { className: 'sk v' }), h('div', { className: 'sk' }))))
@@ -388,13 +410,14 @@ exports.apply = function apply(ctx) {
     const load = React.useCallback(() => api('/dashboard').then((x) => { setD(x); setLoadErr('') }).catch((e) => setLoadErr(String(e.message || e))), [])
     React.useEffect(() => { load(); const id = setInterval(load, 60000); return () => clearInterval(id) }, [load])
     const refresh = async () => { setBusy(true); setNote(''); try { const r = await api('/dashboard/refresh', {}); setD(r); if (r.cooldown) setNote(t('cooldown')) } catch (e) { setNote(String(e.message || e)) } finally { setBusy(false) } }
-    if (!d) return h('div', { className: 'mwc' }, h('section', null, h('div', { className: 'head' }, h('h4', null, t('temp')), h('span', { className: 'meta' }, loadErr ? h('span', { className: 'down' }, loadErr) : t('refreshing'))), h(Skeleton)))
+    const updown = useUpDown()
+    if (!d) return h('div', { className: 'mwc', 'data-updown': updown }, h('section', null, h('div', { className: 'head' }, h('h4', null, t('temp')), h('span', { className: 'meta' }, loadErr ? h('span', { className: 'down' }, loadErr) : t('refreshing'))), h(Skeleton)))
     const tiles = (d.signals && d.signals.tiles) || []; const sparks = (d.signals && d.signals.sparks) || {}
     const errs = d.signals && d.signals.errors ? Object.entries(d.signals.errors) : []
     const leads = new Set(['fg', 'gold'])
-    return h('div', { className: 'mwc' },
+    return h('div', { className: 'mwc', 'data-updown': updown },
       h('section', null,
-        h('div', { className: 'head' }, h('h4', null, t('temp')), h('span', { className: 'meta' }, d.refreshing ? t('refreshing') : ago(d.lastRefresh), h('button', { className: 'mini', disabled: busy || d.refreshing, onClick: refresh }, icon('refresh-cw', { size: 12 }), t('refreshNow')))),
+        h('div', { className: 'head' }, h('h4', null, t('temp')), h('span', { className: 'meta' }, h(UpDownToggle), d.refreshing ? t('refreshing') : ago(d.lastRefresh), h('button', { className: 'mini', disabled: busy || d.refreshing, onClick: refresh }, icon('refresh-cw', { size: 12 }), t('refreshNow')))),
         tiles.length ? h('div', { className: 'grid' }, tiles.map((x) => h(Tile, { key: x.id, tile: x, spark: sparks[x.id], lead: leads.has(x.id) }))) : (d.refreshing ? h(Skeleton) : h('div', { className: 'empty' }, h('strong', null, t('signalsNone')), t('signalsNoneHint'))),
         note ? h('div', { className: 'hint', style: { marginTop: 8 } }, note) : null,
         errs.length ? h('div', { className: 'err' }, t('errors') + ': ' + errs.map(([k, v]) => `${k}: ${String(v).slice(0, 80)}`).join('; ')) : null),

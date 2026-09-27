@@ -30,4 +30,15 @@ export const NEW_CONVERSATION_STYLE = `
   [data-phase=hero] [class*="_composerHero"]>:first-child{padding:32px 24px;min-height:420px}
 }
 @media(prefers-reduced-motion:reduce){.dcu-home-card{transition:none}}
+/* Digital Oracle Work edition: no slogan hero, no workspace / access-mode pickers in the hero, five question cards. */
+body[data-mywork-edition=oracle] [data-phase=hero] [class*="_composerHero"] [class$="_headline"],body[data-mywork-edition=oracle] [data-phase=hero] [class*="_titleGroup"]{display:none}
+body[data-mywork-edition=oracle] [data-phase=hero] [class*="_heroWorkspaceRow"]{display:none}
+body[data-mywork-edition=oracle] [data-composer-card] button[aria-label^="访问模式"],body[data-mywork-edition=oracle] [data-composer-card] button[aria-label^="Access mode"]{display:none}
+.dcu-home-edition{display:flex;flex-direction:column;gap:18px}
+.dcu-home-edition-head{display:flex;flex-direction:column;gap:6px;align-items:center;text-align:center}
+.dcu-home-edition-title{margin:0;font-size:22px;line-height:28px;font-weight:600;letter-spacing:-.01em;color:var(--dsw-alias-label-primary)}
+.dcu-home-edition-sub{margin:0;font-size:13px;line-height:20px;color:var(--dsw-alias-label-secondary);max-width:44ch}
+.dcu-home-cards-5{grid-template-columns:repeat(5,minmax(0,1fr))}
+.dcu-home-cards-5 .dcu-home-card{min-height:88px;gap:14px}
+@container dcu-new-conversation (width < 640px){.dcu-home-cards-5{grid-template-columns:repeat(2,minmax(0,1fr))}}
 `

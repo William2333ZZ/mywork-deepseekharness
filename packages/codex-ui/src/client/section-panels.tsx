@@ -29,6 +29,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 }
 import { CalendarClock, MessageSquareMore, Plug, TrendingUp } from 'lucide-react'
 import { NS } from './locales.ts'
+import { editionActive } from '../edition.ts'
 
 export const SCHEDULE_PANEL_ID = 'mywork-schedule'
 export const IM_PANEL_ID = 'mywork-im'
@@ -172,11 +173,11 @@ export function registerSectionPanels(ctx: Context, t: TranslateNS<typeof NS>, s
   const subscribeOracle = (listener: () => void): (() => void) => { try { return oracleSlots.subscribe('mywork.oracle.section', listener) } catch { return () => {} } }
   function OraclePanel(props: PropsRenderSlots<'mywork.oracle.section'>): ReactElement {
     const providers = useSyncExternalStore(subscribeOracle, oracleCount, oracleCount)
-    return page(t('sidebar.oracle'), <TrendingUp size={18} strokeWidth={1.6} />, providers === 0 ? <p className="dcu-panel-empty">{t('oraclePanel.missing')}</p> : props.renderSlot('mywork.oracle.section', {}))
+    return page(t(editionActive() ? 'sidebar.cockpit' : 'sidebar.oracle'), <TrendingUp size={18} strokeWidth={1.6} />, providers === 0 ? <p className="dcu-panel-empty">{t('oraclePanel.missing')}</p> : props.renderSlot('mywork.oracle.section', {}))
   }
   ctx.slots.inject('main', () => ctx.slots.register({
     name: 'main', key: ORACLE_PANEL_ID, locale: NS, inject: () => ({}),
     children: { 'mywork.oracle.section': { kind: 'list', scope: 'root' } },
   }, OraclePanel))
-  ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({ name: 'sidebar.panellist', id: ORACLE_PANEL_ID, order: 5, locale: NS, label: () => t('sidebar.oracle'), inject: () => ({}) }, OracleRailIcon))
+  ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({ name: 'sidebar.panellist', id: ORACLE_PANEL_ID, order: 5, locale: NS, label: () => t(editionActive() ? 'sidebar.cockpit' : 'sidebar.oracle'), inject: () => ({}) }, OracleRailIcon))
 }

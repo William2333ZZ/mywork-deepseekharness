@@ -444,6 +444,12 @@ body[data-mywork-theme="soft"] {
 body[data-ds-dark-theme][data-mywork-theme="soft"] { --mywork-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 24px 48px -24px rgba(0, 0, 0, 0.8); }
 body[data-mywork-theme="soft"] button, body[data-mywork-theme="soft"] input, body[data-mywork-theme="soft"] select, body[data-mywork-theme="soft"] textarea { font-family: inherit; }
 body[data-mywork-theme="soft"][data-mywork-theme] .dcu-root, body[data-mywork-theme="soft"][data-mywork-theme] .dcu-settings-page { --dcu-font: "Plus Jakarta Sans", "Yuanti SC", "Noto Sans SC", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", sans-serif; }
+/* Shape lock for the MyWork cockpit (dsh-mywork-oracle): one radius per style family, read as --mwc-radius. */
+body[data-mywork-theme="claude"] { --mwc-radius: 6px; }
+body[data-mywork-theme="official"] { --mwc-radius: 6px; }
+body[data-mywork-theme="soft"] { --mwc-radius: 12px; }
+body[data-mywork-theme="minimal"] { --mwc-radius: 4px; }
+body[data-mywork-theme="brutal"] { --mwc-radius: 0px; }
 body[data-mywork-theme="soft"] [data-composer-card] { border-radius: 24px !important; box-shadow: var(--mywork-shadow) !important; }
 body[data-mywork-theme="soft"] .dcu-home-card { border-radius: 24px; background: var(--dsw-alias-bg-layer-1); box-shadow: var(--mywork-shadow); border-color: transparent; }
 body[data-mywork-theme="soft"] .dcu-home-card:hover, body[data-mywork-theme="soft"] .dcu-home-card[aria-pressed=true] { transform: translateY(-2px); border-color: transparent; }

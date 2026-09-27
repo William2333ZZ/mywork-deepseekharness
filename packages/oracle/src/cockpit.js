@@ -1,5 +1,5 @@
 /**
- * dsh-mywork-oracle — the cockpit (驾驶舱) data layer.
+ * dsh-mywork-oracle, the cockpit (驾驶舱) data layer.
  *
  * One JSON file holds what the user curates ($DSH_HOME/mywork/oracle.json): the watchlist, the
  * positions they typed in (quantity + cost, nothing is ever traded from here) and the reports the
@@ -142,10 +142,10 @@ export function buildSignals(results, errors = {}) {
   const tile = (t) => { tiles.push(t) }
   const at = new Date().toISOString()
   const fg = results.fg
-  if (fg && Number.isFinite(Number(fg.score))) tile({ id: 'fg', label: '恐惧贪婪指数', value: round(Number(fg.score), 0), unit: '', delta: round(Number(fg.score) - Number(fg.one_week_ago), 0), deltaLabel: '周', meaning: `${fg.rating || ''}｜<25 极度恐惧常是反向买点，>75 贪婪要提防`, source: 'CNN Fear & Greed', asOf: fg.timestamp })
+  if (fg && Number.isFinite(Number(fg.score))) tile({ id: 'fg', label: '恐惧贪婪指数', value: round(Number(fg.score), 0), unit: '', delta: round(Number(fg.score) - Number(fg.one_week_ago), 0), deltaLabel: '周', meaning: `${fg.rating || ''}；<25 极度恐惧常是反向买点，>75 贪婪要提防`, source: 'CNN Fear & Greed', asOf: fg.timestamp })
   const r10 = tenor(results.real, '10Y'); const n10 = tenor(results.nominal, '10Y'); const n2 = tenor(results.nominal, '2Y')
   if (r10 !== null) tile({ id: 'real10y', label: '10Y 实际利率', value: round(r10), unit: '%', meaning: '持有黄金 / 长久期资产的机会成本；>2% 是历史级逆风', source: 'US Treasury TIPS', asOf: results.real && results.real.date })
-  if (n10 !== null && n2 !== null) tile({ id: 'spread', label: '10Y–2Y 利差', value: round((n10 - n2) * 100, 0), unit: 'bp', meaning: '倒挂 = 衰退预警；转正且陡峭 = 降息周期或不着陆', source: 'US Treasury', asOf: results.nominal && results.nominal.date, extra: `10Y ${n10}% · 2Y ${n2}%` })
+  if (n10 !== null && n2 !== null) tile({ id: 'spread', label: '10Y-2Y 利差', value: round((n10 - n2) * 100, 0), unit: 'bp', meaning: '倒挂 = 衰退预警；转正且陡峭 = 降息周期或不着陆', source: 'US Treasury', asOf: results.nominal && results.nominal.date, extra: `10Y ${n10}%，2Y ${n2}%` })
   const g = closes(results.gold); const c = closes(results.copper); const o = closes(results.oil); const cny = closes(results.usdcny)
   if (g.length) { tile({ id: 'gold', label: '黄金', value: round(g.at(-1)), unit: 'USD', delta: round(pct(g.at(-1), g[0]), 1), deltaLabel: '30日%', meaning: '避险与通胀对冲；与实际利率反向', source: 'Yahoo GC=F', asOf: results.gold.latest && results.gold.latest.date }); sparks.gold = g }
   if (g.length && c.length) { const cg = c.map((x, i) => (g[i] ? x / g[i] * 1000 : null)).filter((x) => x !== null); if (cg.length) { tile({ id: 'copper_gold', label: '铜 / 金比', value: round(cg.at(-1), 3), unit: '', delta: round(pct(cg.at(-1), cg[0]), 1), deltaLabel: '30日%', meaning: '上升 = risk-on（工业需求强于避险）；下降 = risk-off', source: 'HG=F / GC=F', asOf: results.copper.latest && results.copper.latest.date }); sparks.copper_gold = cg } }
@@ -154,12 +154,12 @@ export function buildSignals(results, errors = {}) {
   const pts = results.btc && Array.isArray(results.btc.points) ? results.btc.points.filter((p) => !p.is_perpetual && Number.isFinite(Number(p.annualized_basis_vs_perpetual))) : []
   if (pts.length) { pts.sort((a, b) => (Number(b.open_interest) || 0) - (Number(a.open_interest) || 0)); const p = pts[0]; const perp = results.btc.points.find((x) => x.is_perpetual); tile({ id: 'btc_basis', label: 'BTC 期货年化基差', value: round(Number(p.annualized_basis_vs_perpetual), 1), unit: '%', meaning: '>10% 杠杆多头拥挤；接近 0 或为负 = 风险偏好熄火', source: `Deribit ${p.instrument_name}`, asOf: at, extra: perp ? `BTC ${round(Number(perp.mark_price), 0)} USD` : '' }) }
   const cot = Array.isArray(results.cftcGold) ? results.cftcGold : []
-  if (cot.length) { const a = cot[0]; const b = cot[1]; const oi = Number(a.open_interest) || 0; tile({ id: 'cftc_gold', label: '黄金基金净多头', value: round(Number(a.mm_net), 0), unit: '手', delta: b ? round(Number(a.mm_net) - Number(b.mm_net), 0) : null, deltaLabel: '周', meaning: `占持仓 ${oi ? round(Number(a.mm_net) / oi * 100, 1) : '?'}%｜净多高位减仓 = 投机盘撤退`, source: 'CFTC COT', asOf: a.report_date }) }
+  if (cot.length) { const a = cot[0]; const b = cot[1]; const oi = Number(a.open_interest) || 0; tile({ id: 'cftc_gold', label: '黄金基金净多头', value: round(Number(a.mm_net), 0), unit: '手', delta: b ? round(Number(a.mm_net) - Number(b.mm_net), 0) : null, deltaLabel: '周', meaning: `占持仓 ${oi ? round(Number(a.mm_net) / oi * 100, 1) : '?'}%；净多高位减仓 = 投机盘撤退`, source: 'CFTC COT', asOf: a.report_date }) }
   const sec = Array.isArray(results.sectors) ? results.sectors : []
-  if (sec.length) tile({ id: 'ashare_flow', label: 'A 股主力净流入板块', value: sec[0].name, unit: '', meaning: sec.slice(0, 3).map((s) => `${s.name} ${round(Number(s.main_net_cny) / 1e8, 1)}亿`).join('｜'), source: '东方财富（收盘后更新）', asOf: at, list: sec.slice(0, 5).map((s) => ({ name: s.name, netYi: round(Number(s.main_net_cny) / 1e8, 1), changePct: s.change_pct })) })
+  if (sec.length) tile({ id: 'ashare_flow', label: 'A 股主力净流入板块', value: sec[0].name, unit: '', meaning: sec.slice(0, 3).map((s) => `${s.name} ${round(Number(s.main_net_cny) / 1e8, 1)}亿`).join('，'), source: '东方财富（收盘后更新）', asOf: at, list: sec.slice(0, 5).map((s) => ({ name: s.name, netYi: round(Number(s.main_net_cny) / 1e8, 1), changePct: s.change_pct })) })
   const fed = pmTop(results.pmFed, /\bfed\b|fomc|rate (cut|hike)/i); const rec = pmTop(results.pmRecession, /recession/i, /\bus\b|u\.s\.|united states|american/i)
-  if (fed && fed.yes !== null) tile({ id: 'pm_fed', label: 'Polymarket · 美联储', value: round(fed.yes, 1), unit: '%', meaning: fed.question || fed.title, source: `Polymarket ${fed.slug}`, asOf: at })
-  if (rec && rec.yes !== null) tile({ id: 'pm_recession', label: 'Polymarket · 衰退', value: round(rec.yes, 1), unit: '%', meaning: rec.question || rec.title, source: `Polymarket ${rec.slug}`, asOf: at })
+  if (fed && fed.yes !== null) tile({ id: 'pm_fed', label: 'Polymarket 美联储', value: round(fed.yes, 1), unit: '%', meaning: fed.question || fed.title, source: `Polymarket ${fed.slug}`, asOf: at })
+  if (rec && rec.yes !== null) tile({ id: 'pm_recession', label: 'Polymarket 衰退', value: round(rec.yes, 1), unit: '%', meaning: rec.question || rec.title, source: `Polymarket ${rec.slug}`, asOf: at })
   return { at, tiles, sparks, errors }
 }
 
@@ -191,7 +191,7 @@ export function buildQuotes(watchlist, results, errors = {}) {
   return { at: new Date().toISOString(), byId }
 }
 
-/** Positions valued at the latest quote. Probability contracts are priced 0–100 like the quote. */
+/** Positions valued at the latest quote. Probability contracts are priced 0-100 like the quote. */
 export function valuePositions(positions, watchlist, quotes) {
   const out = []
   for (const p of positions) {
@@ -209,7 +209,7 @@ export function valuePositions(positions, watchlist, quotes) {
 // The five question panels: which tiles they read, and the prompt "问先知" starts a conversation with
 // ---------------------------------------------------------------------------------------------
 export const PANELS = [
-  { id: 'geo', label: '地缘冲突', tiles: ['gold', 'oil', 'copper_gold', 'fg', 'cftc_gold', 'usdcny'], question: '当前地缘冲突风险（战争升级、制裁、供给冲击）在市场里定价到了什么程度？未来 3–6 个月升级的概率有多大？', extra: 'Polymarket / Kalshi 上相关的冲突合约、防务 ETF（ITA）、小麦 / 天然气、瑞郎，以及 CFTC 原油持仓' },
+  { id: 'geo', label: '地缘冲突', tiles: ['gold', 'oil', 'copper_gold', 'fg', 'cftc_gold', 'usdcny'], question: '当前地缘冲突风险（战争升级、制裁、供给冲击）在市场里定价到了什么程度？未来 3-6 个月升级的概率有多大？', extra: 'Polymarket / Kalshi 上相关的冲突合约、防务 ETF（ITA）、小麦 / 天然气、瑞郎，以及 CFTC 原油持仓' },
   { id: 'macro', label: '衰退周期', tiles: ['spread', 'real10y', 'fg', 'copper_gold', 'btc_basis', 'pm_fed', 'pm_recession'], question: '未来 12 个月美国经济衰退的概率是多少？利率路径和风险资产分别在定价什么？', extra: 'Kalshi KXFED 系列、高收益债利差（网页搜索）、SPY / 铜 / 原油趋势、BIS 信贷缺口' },
   { id: 'bubble', label: '泡沫与风险偏好', tiles: ['fg', 'btc_basis', 'pm_fed', 'copper_gold', 'gold'], question: '当前风险资产（美股 AI 龙头、加密）是否处于泡沫阶段？拥挤度和杠杆水平如何？', extra: 'NVDA / SOXX / ASML 走势与期权 IV、EDGAR 内部人卖出、Deribit 期权 IV、CoinGecko BTC 占比、杠杆 ETF 与融资余额（网页搜索）' },
   { id: 'assets', label: '资产择时', tiles: ['gold', 'real10y', 'fg', 'btc_basis', 'cftc_gold'], question: '结合我的自选与持仓：现在哪些资产适合加仓、减仓或观望？分别给概率场景。', extra: '每个标的的价格趋势、期权 IV 与 put/call、机构持仓、内部人交易、相关资产的相对价格', portfolio: true },
@@ -219,7 +219,7 @@ export const PANELS = [
 function fmtTile(t) {
   const v = typeof t.value === 'number' ? `${t.value}${t.unit || ''}` : String(t.value)
   const d = t.delta !== undefined && t.delta !== null ? `（${t.deltaLabel || ''} ${t.delta > 0 ? '+' : ''}${t.delta}）` : ''
-  return `- ${t.label}：${v}${d}${t.extra ? ` · ${t.extra}` : ''} — ${t.meaning}（${t.source}${t.asOf ? '，' + String(t.asOf).slice(0, 10) : ''}）`
+  return `- ${t.label}：${v}${d}${t.extra ? `，${t.extra}` : ''}；${t.meaning}（${t.source}${t.asOf ? '，' + String(t.asOf).slice(0, 10) : ''}）`
 }
 
 /** The text a panel's 问先知 button puts into a new conversation. */

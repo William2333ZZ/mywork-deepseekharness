@@ -75,8 +75,9 @@ test('panel prompt carries the cached signals and the portfolio', () => {
   const portfolio = { watchlist: [{ id: 'a', kind: 'stooq', symbol: 'xauusd', label: '黄金' }], quotes: { a: { last: 4321, changePct: 0.5 } }, positions: [{ label: '黄金', kind: 'stooq', qty: 2, cost: 4000, pnlPct: 8.03 }] }
   const text = panelPrompt(PANELS.find((p) => p.id === 'assets'), snapshot, portfolio, '  黄金要不要加仓？ ')
   assert.match(text, /黄金要不要加仓？/)
-  assert.match(text, /- 黄金：4321USD（30日% \+8）/)
+  assert.match(text, /- 黄金：4321USD（30日% \+8）；m（src，2026-09-25）/)
   assert.match(text, /我的持仓.*黄金 2 @ 成本 4000，浮动 \+8.03%/)
+  assert.doesNotMatch(text, /[—–]/, 'no em/en dashes in the prompt')
   assert.match(text, /oracle_report_save.*topic = "assets"/)
   const geo = panelPrompt(PANELS[0], { signals: { tiles: [] } }, portfolio, '')
   assert.match(geo, /暂无缓存信号/)

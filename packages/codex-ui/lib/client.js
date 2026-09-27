@@ -1390,6 +1390,8 @@ window.__ModuleLoader__.load({
 			"sidebar.connectors": "连接器",
 			"sidebar.schedule": "定时任务",
 			"sidebar.mcp": "MCP 连接器",
+			"sidebar.oracle": "市场先知",
+			"oraclePanel.missing": "市场先知驾驶舱由 dsh-mywork-oracle 提供，尚未安装：到 设置 → MyWork → 成员 一键补装。",
 			"imPanel.missing": "IM助理由 @michengai/dsh-im-connect 提供，尚未安装：到 设置 → MyWork → 成员 一键补装。",
 			"mcpPanel.hint": "在这里添加、编辑、停用 MCP 服务器（stdio 本地进程或 streamable-http 远程），或直接导入 mcpServers JSON；保存后立即挂载为 dsh 官方 mcp-client 条目，所有会话都能用。页面下方是当前会话实际可用的连接器与工具。",
 			"mcpPanel.missing": "MCP 服务器管理由 dsh-mywork-kit 的成员 dsh-mywork-mcp 提供，尚未安装：到 设置 → MyWork → 成员 一键补装。",
@@ -1694,6 +1696,8 @@ window.__ModuleLoader__.load({
 			"sidebar.connectors": "Connectors",
 			"sidebar.schedule": "Scheduled tasks",
 			"sidebar.mcp": "MCP connectors",
+			"sidebar.oracle": "Market oracle",
+			"oraclePanel.missing": "The cockpit comes from dsh-mywork-oracle, which is not installed: Settings → MyWork → Members installs it in one click.",
 			"imPanel.missing": "The IM assistant comes from @michengai/dsh-im-connect, which is not installed: Settings → MyWork → Members installs it in one click.",
 			"mcpPanel.hint": "Add, edit or disable MCP servers here (stdio processes or streamable-http endpoints), or import an mcpServers JSON document; saved servers are mounted at once as official dsh mcp-client rows and every conversation can use them. Below: the connectors and tools this conversation can actually use.",
 			"mcpPanel.missing": "Server management comes from the kit member dsh-mywork-mcp, which is not installed: Settings → MyWork → Members installs it in one click.",
@@ -1937,6 +1941,8 @@ window.__ModuleLoader__.load({
 		const SCHEDULE_PANEL_ID = "mywork-schedule";
 		const IM_PANEL_ID = "mywork-im";
 		const MCP_PANEL_ID = "mywork-mcp";
+		/** Not in SECTION_PANEL_IDS on purpose: the cockpit shows up through the generic panel list at the top of the sidebar. */
+		const ORACLE_PANEL_ID = "mywork-oracle";
 		const SECTION_PANEL_IDS = [
 			SCHEDULE_PANEL_ID,
 			IM_PANEL_ID,
@@ -1975,6 +1981,12 @@ window.__ModuleLoader__.load({
 		}
 		function McpRailIcon() {
 			return /* @__PURE__ */ (0, react_jsx_runtime.jsx)(Plug, {
+				size: 16,
+				strokeWidth: 1.6
+			});
+		}
+		function OracleRailIcon() {
+			return /* @__PURE__ */ (0, react_jsx_runtime.jsx)(TrendingUp, {
 				size: 16,
 				strokeWidth: 1.6
 			});
@@ -2159,6 +2171,49 @@ window.__ModuleLoader__.load({
 				label: () => t("sidebar.mcp"),
 				inject: () => ({})
 			}, McpRailIcon));
+			const oracleSlots = ctx.slots;
+			const oracleCount = () => {
+				try {
+					return oracleSlots.entriesOfSlot("mywork.oracle.section").length;
+				} catch {
+					return 0;
+				}
+			};
+			const subscribeOracle = (listener) => {
+				try {
+					return oracleSlots.subscribe("mywork.oracle.section", listener);
+				} catch {
+					return () => {};
+				}
+			};
+			function OraclePanel(props) {
+				const providers = (0, react.useSyncExternalStore)(subscribeOracle, oracleCount, oracleCount);
+				return page(t("sidebar.oracle"), /* @__PURE__ */ (0, react_jsx_runtime.jsx)(TrendingUp, {
+					size: 18,
+					strokeWidth: 1.6
+				}), providers === 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
+					className: "dcu-panel-empty",
+					children: t("oraclePanel.missing")
+				}) : props.renderSlot("mywork.oracle.section", {}));
+			}
+			ctx.slots.inject("main", () => ctx.slots.register({
+				name: "main",
+				key: ORACLE_PANEL_ID,
+				locale: NS,
+				inject: () => ({}),
+				children: { "mywork.oracle.section": {
+					kind: "list",
+					scope: "root"
+				} }
+			}, OraclePanel));
+			ctx.slots.inject("sidebar.panellist", () => ctx.slots.register({
+				name: "sidebar.panellist",
+				id: ORACLE_PANEL_ID,
+				order: 5,
+				locale: NS,
+				label: () => t("sidebar.oracle"),
+				inject: () => ({})
+			}, OracleRailIcon));
 		}
 		//#endregion
 		//#region src/client/global-panels.tsx
@@ -11370,6 +11425,40 @@ html[data-dsh-native-backdrop=mica] .dcu-settings-page,html[data-dsh-native-back
 			});
 			const companionSlots = createCompanionTabSource(ctx.slots);
 			const globalPanels = createGlobalPanelSource(ctx.slots, ctx.locale);
+			const prefillCurrent = (text) => {
+				const id = currentSessionId(ctx.sessions.list.getSnapshot());
+				const binding = id === void 0 ? void 0 : ctx.sessions.binding(id);
+				return prefillNewConversation(binding === void 0 ? void 0 : ctx.conversation.input.for(binding.ctx), text);
+			};
+			ctx.effect(() => {
+				const onNew = (event) => {
+					const text = String(event.detail?.text ?? "");
+					if (!text) return;
+					selectGlobalPanel(ctx.layout, null);
+					startWorkspaceSession(ctx);
+					let tries = 0;
+					const tick = () => {
+						tries += 1;
+						const r = prefillCurrent(text);
+						if (r === "ready" || r === "workspace" || tries > 25) return;
+						setTimeout(tick, 200);
+					};
+					setTimeout(tick, 250);
+				};
+				const onOpen = (event) => {
+					const id = String(event.detail?.id ?? "");
+					if (id) {
+						selectGlobalPanel(ctx.layout, null);
+						openConversation(ctx, ctx.layout, id);
+					}
+				};
+				window.addEventListener("mywork:new-conversation", onNew);
+				window.addEventListener("mywork:open-session", onOpen);
+				return () => {
+					window.removeEventListener("mywork:new-conversation", onNew);
+					window.removeEventListener("mywork:open-session", onOpen);
+				};
+			}, "michengai-codex-ui: kit conversation bridge");
 			const footerActions = createFooterActionSource(ctx.slots);
 			const settingsSections = createSettingsSectionSource(ctx.slots, ctx.locale);
 			ctx.slots.inject("sidebar", () => ctx.slots.register({
@@ -11404,11 +11493,7 @@ html[data-dsh-native-backdrop=mica] .dcu-settings-page,html[data-dsh-native-back
 				},
 				inject: () => ({
 					newConversationDraft,
-					prefillNewConversation: (text) => {
-						const id = currentSessionId(ctx.sessions.list.getSnapshot());
-						const binding = id === void 0 ? void 0 : ctx.sessions.binding(id);
-						return prefillNewConversation(binding === void 0 ? void 0 : ctx.conversation.input.for(binding.ctx), text);
-					},
+					prefillNewConversation: prefillCurrent,
 					openSession: (sessionId) => {
 						openConversation(ctx, ctx.layout, sessionId);
 					},

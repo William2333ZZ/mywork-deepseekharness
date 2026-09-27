@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540">
+  <rect x="0" y="0" width="960" height="540" fill="#0E1621"/>
+  <rect x="64" y="44" width="44" height="5" fill="#E8B54D"/>
+
+  <text x="64" y="82" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="30" font-weight="700" fill="#F2F5F8">监测阈值：满足这些才是买点</text>
+  <text x="64" y="106" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="13" fill="#7A8A9A">MONITORING THRESHOLDS · 触发条件决定「现在」何时变成「当时」</text>
+
+  <rect x="64" y="128" width="832" height="38" rx="4" fill="#1C2A39"/>
+  <text x="84" y="153" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#E8B54D">信号</text>
+  <text x="316" y="153" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#E8B54D">当前值</text>
+  <text x="536" y="153" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#E8B54D">触发条件</text>
+  <text x="720" y="153" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#E8B54D">含义</text>
+
+  <rect x="64" y="166" width="832" height="58" fill="#16212E"/>
+  <text x="84" y="202" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="14" fill="#F2F5F8">10Y TIPS 实际利率</text>
+  <text x="316" y="202" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="14" fill="#E0574A">2.83%（+51bp/月）</text>
+  <text x="536" y="202" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="14" fill="#E8B54D">回落至 2.60% 以下</text>
+  <text x="720" y="202" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="14" fill="#AFC0D0">逆风解除，胜率升至 70%</text>
+
+  <rect x="64" y="224" width="832" height="58" fill="#131D29"/>
+  <text x="84" y="260" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="14" fill="#F2F5F8">GDX 金矿股</text>
+  <text x="316" y="260" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="14" fill="#E0574A">92.87（已破 95）</text>
+  <text x="536" y="260" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="14" fill="#E8B54D">收复 97.8</text>
+  <text x="720" y="260" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="14" fill="#AFC0D0">矿商领涨确认</text>
+
+  <rect x="64" y="282" width="832" height="58" fill="#16212E"/>
+  <text x="84" y="318" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="14" fill="#F2F5F8">CFTC 净多 / 持仓量</text>
+  <text x="316" y="318" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="14" fill="#E0574A">30.9%</text>
+  <text x="536" y="318" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="14" fill="#E8B54D">降至 25% 以下</text>
+  <text x="720" y="318" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="14" fill="#AFC0D0">投机盘出清，底部扎实</text>
+
+  <rect x="64" y="340" width="832" height="58" fill="#131D29"/>
+  <text x="84" y="376" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="14" fill="#F2F5F8">现货金价</text>
+  <text x="316" y="376" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="14" fill="#F2F5F8">4,321</text>
+  <text x="536" y="376" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="14" fill="#E8B54D">跌至 4,200–4,250</text>
+  <text x="720" y="376" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="14" fill="#AFC0D0">风险回报反转</text>
+
+  <rect x="64" y="398" width="832" height="58" fill="#16212E"/>
+  <text x="84" y="434" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="14" fill="#F2F5F8">GLD ATM IV</text>
+  <text x="316" y="434" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="14" fill="#F2F5F8">16.4%</text>
+  <text x="536" y="434" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="14" fill="#E8B54D">升至 22% 以上</text>
+  <text x="720" y="434" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="14" fill="#AFC0D0">恐慌定价，反而接近买点</text>
+
+  <rect x="64" y="472" width="832" height="1" fill="#2A3846"/>
+  <text x="64" y="496" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="12" fill="#7A8A9A">GLD 12/18 到期持仓量集中区：300P 6,719 手 ｜ 310P 9,237 手 ｜ 385P 1,296 手 —— 下行保护集中在 300–310 美元。</text>
+  <text x="64" y="518" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="12" fill="#7A8A9A">CFTC COT 每周二数据、周五发布；实际利率与 ETF 流量为日频。阈值来自期权隐含概率与持仓结构，非主观设定。</text>
+</svg>

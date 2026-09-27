@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540">
+  <rect x="0" y="0" width="960" height="540" fill="#0E1621"/>
+  <rect x="64" y="44" width="44" height="5" fill="#E8B54D"/>
+
+  <text x="64" y="82" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="30" font-weight="700" fill="#F2F5F8">五层信号：四个偏空，一个托底</text>
+  <text x="64" y="106" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="13" fill="#7A8A9A">INDEPENDENT MARKET SIGNALS · 五个维度独立取值</text>
+
+  <rect x="64" y="126" width="832" height="62" rx="6" fill="#16212E"/>
+  <text x="84" y="166" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="26" font-weight="700" fill="#E8B54D">01</text>
+  <text x="140" y="152" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#F2F5F8">实际利率</text>
+  <text x="236" y="152" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#E0574A">10Y TIPS 2.83%，1个月 +51bp</text>
+  <text x="140" y="175" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="13" fill="#AFC0D0">持有黄金的机会成本处于 2008 年前水平</text>
+  <text x="896" y="166" text-anchor="end" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="20" font-weight="700" fill="#E0574A">↓ 空</text>
+
+  <rect x="64" y="196" width="832" height="62" rx="6" fill="#131D29"/>
+  <text x="84" y="236" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="26" font-weight="700" fill="#E8B54D">02</text>
+  <text x="140" y="222" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#F2F5F8">价格抗性</text>
+  <text x="236" y="222" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#E8B54D">利率 +51bp，金价仅 −1.95%</text>
+  <text x="140" y="245" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="13" fill="#AFC0D0">央行实需在承接，但抗性有限</text>
+  <text x="896" y="236" text-anchor="end" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="20" font-weight="700" fill="#AFC0D0">→ 中</text>
+
+  <rect x="64" y="266" width="832" height="62" rx="6" fill="#16212E"/>
+  <text x="84" y="306" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="26" font-weight="700" fill="#E8B54D">03</text>
+  <text x="140" y="292" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#F2F5F8">矿商 / 金属</text>
+  <text x="236" y="292" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#E0574A">GDX −6.80% vs GLD −3.79%，已破 95</text>
+  <text x="140" y="315" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="13" fill="#AFC0D0">矿商是领先指标，它在报警</text>
+  <text x="896" y="306" text-anchor="end" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="20" font-weight="700" fill="#E0574A">↓ 空</text>
+
+  <rect x="64" y="336" width="832" height="62" rx="6" fill="#131D29"/>
+  <text x="84" y="376" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="26" font-weight="700" fill="#E8B54D">04</text>
+  <text x="140" y="362" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#F2F5F8">期权定价</text>
+  <text x="236" y="362" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#E8B54D">ATM IV 16.43% vs 30日已实现 24.4%</text>
+  <text x="140" y="385" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="13" fill="#AFC0D0">IV/RV = 0.67，市场低估波动而非方向</text>
+  <text x="896" y="376" text-anchor="end" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="20" font-weight="700" fill="#AFC0D0">→ 中</text>
+
+  <rect x="64" y="406" width="832" height="62" rx="6" fill="#16212E"/>
+  <text x="84" y="446" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="26" font-weight="700" fill="#E8B54D">05</text>
+  <text x="140" y="432" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#F2F5F8">预测市场</text>
+  <text x="236" y="432" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#E0574A">10月触 4,700 仅 12.5%；跌至 3,500 为 12%</text>
+  <text x="140" y="455" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="13" fill="#AFC0D0">短期突破无定价，下尾并不免费</text>
+  <text x="896" y="446" text-anchor="end" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="20" font-weight="700" fill="#E0574A">↓ 空</text>
+
+  <rect x="64" y="484" width="832" height="1" fill="#2A3846"/>
+  <text x="64" y="508" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="12" fill="#7A8A9A">数据源：US Treasury TIPS 实际利率 · Yahoo Finance GC=F / GLD / GDX · YFinance GLD 期权链 · Polymarket · CNN FearGreed</text>
+  <text x="64" y="528" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="12" fill="#7A8A9A">基准价：4,321.20 USD/oz（2026-09-25 收盘）</text>
+</svg>

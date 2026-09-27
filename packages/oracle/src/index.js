@@ -11,14 +11,17 @@
  *            oracle_fetch (parallel provider calls), oracle_status
  *   • system prompt section so the model reaches for market data on probability questions
  *   • HTTP: /mywork-oracle/api/status | describe | selfcheck | install-yfinance (loopback)
+ *   • cockpit (驾驶舱): cached market snapshot, watchlist, positions typed in by the user, saved reports;
+ *     tools oracle_portfolio / oracle_report_save; HTTP /dashboard | /watchlist | /positions | /reports | /panels
  *
  * Analysis only: nothing here places orders or touches an exchange account.
  */
 import { spawn } from 'node:child_process'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { configSchema, defineRawTool, rejectUntrusted } from './harness.js'
+import { KINDS, OracleStore, PANELS, SIGNAL_CALLS, buildQuotes, buildSignals, dataPath, panelPrompt, quoteCalls, snapshotPath, valuePositions } from './cockpit.js'
 
 export const name = 'dsh-mywork-oracle'
 export const inject = ['tools']
@@ -31,7 +34,7 @@ export const inject = ['tools']
  *   timeoutMs:  per oracle_fetch batch (default 120000)
  *   maxChars:   result budget handed back to the model per batch (default 80000)
  */
-export const Config = configSchema({ tools: true, promptHint: true, python: '', timeoutMs: 120000, maxChars: 80000 })
+export const Config = configSchema({ tools: true, promptHint: true, python: '', timeoutMs: 120000, maxChars: 80000, signalsTtlMin: 15, quotesTtlMin: 5 })
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const PKG = dirname(HERE)
@@ -124,11 +127,12 @@ export function apply(ctx, config = {}) {
     return out
   }
 
-  const fetchCalls = async (calls) => {
-    const list = (Array.isArray(calls) ? calls : []).slice(0, 12).map((c, i) => ({ id: String(c && c.id || `${c && c.provider}.${c && c.method}#${i}`), provider: String(c && c.provider || ''), method: String(c && c.method || ''), args: c && typeof c.args === 'object' && c.args ? c.args : {} }))
+  const fetchCalls = async (calls, { raw = false, limit = 12 } = {}) => {
+    const list = (Array.isArray(calls) ? calls : []).slice(0, limit).map((c, i) => ({ id: String(c && c.id || `${c && c.provider}.${c && c.method}#${i}`), provider: String(c && c.provider || ''), method: String(c && c.method || ''), args: c && typeof c.args === 'object' && c.args ? c.args : {} }))
     if (list.length === 0) throw new Error('calls is empty; each call needs provider + method (+ args)')
     const data = await runner('call', [], JSON.stringify({ calls: list }), timeoutMs)
     const results = data.results || {}
+    if (raw) return { results, errors: data.errors || {} }
     const budget = Math.max(5000, Math.floor(maxChars / Math.max(1, Object.keys(results).length)))
     const out = { results: {}, errors: data.errors || {}, truncated: [] }
     for (const [id, v] of Object.entries(results)) { const s = shrink(v, budget); out.results[id] = s.value; if (s.truncated) out.truncated.push(id) }
@@ -143,7 +147,69 @@ export function apply(ctx, config = {}) {
     return readFileSync(file, 'utf8')
   }
 
+  // ---- cockpit ------------------------------------------------------------------------------
+  const store = new OracleStore(dataPath())
+  let snapshot = { signals: null, quotes: null, refreshing: false, lastRefresh: 0 }
+  try { if (existsSync(snapshotPath())) snapshot = { ...snapshot, ...JSON.parse(readFileSync(snapshotPath(), 'utf8')), refreshing: false } } catch { /* start empty */ }
+  const persistSnapshot = () => { try { mkdirSync(dirname(snapshotPath()), { recursive: true }); writeFileSync(snapshotPath(), JSON.stringify({ signals: snapshot.signals, quotes: snapshot.quotes, lastRefresh: snapshot.lastRefresh })) } catch (e) { warn('snapshot not saved: ' + (e && e.message)) } }
+  const ageMin = (iso) => (iso ? (Date.now() - Date.parse(iso)) / 60000 : Infinity)
+  const signalsTtl = Number(config.signalsTtlMin) || 15
+  const quotesTtl = Number(config.quotesTtlMin) || 5
+  let refreshPromise = null
+  const refreshSnapshot = async ({ signals = true, quotes = true } = {}) => {
+    if (refreshPromise) return refreshPromise
+    snapshot.refreshing = true
+    refreshPromise = (async () => {
+      const { watchlist } = store.read()
+      const calls = [...(signals ? SIGNAL_CALLS : []), ...(quotes ? quoteCalls(watchlist) : [])]
+      if (calls.length === 0) return
+      const r = await fetchCalls(calls, { raw: true, limit: 200 })
+      if (signals) snapshot.signals = buildSignals(r.results, Object.fromEntries(Object.entries(r.errors).filter(([k]) => !k.includes(':'))))
+      if (quotes) snapshot.quotes = buildQuotes(watchlist, r.results, r.errors)
+      snapshot.lastRefresh = Date.now()
+      persistSnapshot()
+    })().catch((e) => { warn('snapshot refresh failed: ' + (e && e.message)); snapshot.lastError = String(e && e.message || e) }).finally(() => { snapshot.refreshing = false; refreshPromise = null })
+    return refreshPromise
+  }
+  const ensureFresh = async ({ wait = false } = {}) => {
+    const staleSignals = ageMin(snapshot.signals && snapshot.signals.at) > signalsTtl
+    const staleQuotes = ageMin(snapshot.quotes && snapshot.quotes.at) > quotesTtl
+    if (!staleSignals && !staleQuotes) return
+    const p = refreshSnapshot({ signals: staleSignals, quotes: staleQuotes })
+    if (wait || (!snapshot.signals && !snapshot.quotes)) await p
+  }
+  const portfolio = () => {
+    const { watchlist, positions } = store.read()
+    const quotes = snapshot.quotes && snapshot.quotes.byId ? snapshot.quotes.byId : {}
+    return { watchlist: watchlist.map((w) => ({ ...w, kindLabel: KINDS[w.kind].label })), quotes, positions: valuePositions(positions, watchlist, snapshot.quotes), quotesAt: snapshot.quotes && snapshot.quotes.at }
+  }
+  const dashboard = () => ({ signals: snapshot.signals, refreshing: snapshot.refreshing, lastRefresh: snapshot.lastRefresh, lastError: snapshot.lastError || null, ttl: { signalsMin: signalsTtl, quotesMin: quotesTtl }, kinds: KINDS, ...portfolio(), reports: store.read().reports.slice(0, 50), panels: PANELS.map((p) => ({ id: p.id, label: p.label, question: p.question, tiles: p.tiles, portfolio: !!p.portfolio })) })
+  // Refresh quietly a little after boot, then keep the cache warm while dsh runs.
+  const bootTimer = setTimeout(() => { ensureFresh().catch(() => {}) }, 4000)
+  const keepWarm = setInterval(() => { ensureFresh().catch(() => {}) }, 60000)
+  ctx.effect(() => () => { clearTimeout(bootTimer); clearInterval(keepWarm) }, 'dsh-mywork-oracle: cockpit timers')
+
   if (config.tools !== false) {
+    ctx.tools.register(defineRawTool({
+      name: 'oracle_portfolio',
+      description: '读取用户在「市场先知」驾驶舱里的自选与持仓（数量、成本、按最新报价算的浮动盈亏）以及驾驶舱缓存的市场温度信号。只读；分析时可以引用，绝不据此下单。',
+      parameters: {},
+      async execute() { await ensureFresh(); const p = portfolio(); return { ...p, signals: snapshot.signals ? snapshot.signals.tiles : [] } },
+    }))
+    ctx.tools.register(defineRawTool({
+      name: 'oracle_report_save',
+      description: '把一份做完的 Digital Oracle 报告结论存进驾驶舱的报告档案（用户在「市场先知」页面里能看到并对比历史）。在完整报告写完后调用一次。topic：geo | macro | bubble | assets | ashare | custom。',
+      parameters: {
+        title: { type: 'string', required: true, description: '一句话标题，例如「黄金 6–12 个月正收益概率 55%」' },
+        topic: { type: 'string', description: 'geo | macro | bubble | assets | ashare | custom' },
+        question: { type: 'string', description: '用户问的问题' },
+        probability: { type: 'number', description: '核心概率（0–100），没有就省略' },
+        horizon: { type: 'string', description: '时间窗口，例如「6–12 个月」' },
+        summary: { type: 'string', required: true, description: '结论与主要依据，3–8 句' },
+        signals: { type: 'array', description: '[{ name, value, meaning }] 关键信号，最多 24 条' },
+      },
+      async execute(a, exec) { return store.addReport({ ...a, sessionId: exec && exec.agent && exec.agent.id }) },
+    }))
     ctx.tools.register(defineRawTool({
       name: 'oracle_docs',
       description: 'Digital Oracle（市场数据先知）的文档：skill = 方法论与工作流（回答概率 / 宏观 / 是否值得买这类问题前先读一次，每个会话一次）；providers = 各数据源 Python API 速查；symbols = 可用交易代码目录；readme = 项目简介。',
@@ -188,6 +254,7 @@ export function apply(ctx, config = {}) {
           '1. 先 oracle_docs("skill") 读一次方法论（每个会话只需一次），必要时 oracle_docs("symbols") / oracle_docs("providers") 查代码与参数。',
           '2. 用 oracle_providers 确认参数，再用 oracle_fetch 一次并行取至少 3 个独立维度的信号（预测市场、期权 / 波动率、国债曲线、机构持仓、内部人交易、资金流、避险资产等）。',
           '3. 按 SKILL.md 第 5 步的模板输出：分层信号表 → 矛盾分析 → 概率场景 → 信号一致性评估，标注每个信号的时间窗口。',
+          '4. 用户在「市场先知」驾驶舱里维护自选与持仓：oracle_portfolio 读取（含最新报价、浮动盈亏和缓存信号）；完整报告写完后用 oracle_report_save 存档一次。',
           '这是分析工具：不下单、不接任何交易所或券商账户、不给个性化投资建议；结论要说明不确定性。',
         ].join('\n') })
       } catch (e) { warn('system prompt hint skipped: ' + (e && e.message)) }
@@ -196,6 +263,7 @@ export function apply(ctx, config = {}) {
 
   ctx.inject(['webServer'], (wctx) => {
     const json = (res, body, code = 200) => { res.writeHead(code, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }); res.end(JSON.stringify(body)) }
+    const readBody = (req) => new Promise((resolve, reject) => { let data = ''; req.on('data', (c) => { data += c; if (data.length > 256 * 1024) { reject(new Error('body too large')); req.destroy() } }); req.on('end', () => { try { resolve(data ? JSON.parse(data) : {}) } catch (e) { reject(e) } }); req.on('error', reject) })
     const loopback = (req) => { const a = req.socket && req.socket.remoteAddress; return a === '127.0.0.1' || a === '::1' || a === '::ffff:127.0.0.1' }
     const route = (path, handler) => wctx.webServer.register({ kind: 'exact', path: '/mywork-oracle/api' + path, handler: (req, res) => rejectUntrusted(ctx, req, res, json) || Promise.resolve(handler(req, res)).catch((e) => json(res, { error: e instanceof Error ? e.message : String(e) }, 500)) })
     route('/status', async (_req, res) => json(res, await status()))
@@ -213,6 +281,24 @@ export function apply(ctx, config = {}) {
       const tc = r.results.treasury; if (tc && typeof tc === 'object') summary.treasury_date = tc.date ?? tc.record_date ?? null
       const pm = r.results.polymarket; if (Array.isArray(pm)) summary.polymarket_events = pm.length
       json(res, { ok: !r.errors || Object.keys(r.errors).length < 3, ms: Date.now() - t0, summary, errors: r.errors || {} })
+    })
+    const post = (req, res) => { if (req.method !== 'POST') { json(res, { error: 'POST only' }, 405); return null } return readBody(req) }
+    route('/dashboard', async (_req, res) => { await ensureFresh(); json(res, dashboard()) })
+    route('/dashboard/refresh', async (req, res) => {
+      if (!(await post(req, res))) return
+      if (Date.now() - snapshot.lastRefresh < 45000 && !snapshot.refreshing) return json(res, { ...dashboard(), cooldown: true })
+      await refreshSnapshot()
+      json(res, dashboard())
+    })
+    route('/watchlist', async (req, res) => { const b = await post(req, res); if (!b) return; const item = store.addWatch(b); refreshSnapshot({ signals: false, quotes: true }).catch(() => {}); json(res, { item, ...portfolio() }) })
+    route('/watchlist/remove', async (req, res) => { const b = await post(req, res); if (!b) return; json(res, { ok: store.removeWatch(String(b.id)), ...portfolio() }) })
+    route('/positions', async (req, res) => { const b = await post(req, res); if (!b) return; json(res, { item: store.upsertPosition(b), ...portfolio() }) })
+    route('/positions/remove', async (req, res) => { const b = await post(req, res); if (!b) return; json(res, { ok: store.removePosition(String(b.id)), ...portfolio() }) })
+    route('/reports/remove', async (req, res) => { const b = await post(req, res); if (!b) return; json(res, { ok: store.removeReport(String(b.id)), reports: store.read().reports.slice(0, 50) }) })
+    route('/panels/prompt', async (req, res) => {
+      const b = await post(req, res); if (!b) return
+      const panel = PANELS.find((p) => p.id === String(b.id)); if (!panel) return json(res, { error: 'unknown panel' }, 400)
+      json(res, { text: panelPrompt(panel, snapshot, portfolio(), b.question) })
     })
     route('/install-yfinance', async (req, res) => {
       if (req.method !== 'POST') return json(res, { error: 'POST only' }, 405)

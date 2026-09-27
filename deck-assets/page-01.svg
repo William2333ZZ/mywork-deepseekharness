@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540">
+  <defs>
+    <linearGradient id="pg1bg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#0E1621"/>
+      <stop offset="0.62" stop-color="#101A26"/>
+      <stop offset="1" stop-color="#1A2634"/>
+    </linearGradient>
+    <linearGradient id="pg1gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#E8B54D"/>
+      <stop offset="1" stop-color="#C9942F"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="960" height="540" fill="url(#pg1bg)"/>
+  <rect x="628" y="0" width="332" height="540" fill="#E8B54D" opacity="0.045"/>
+  <rect x="0" y="0" width="960" height="6" fill="url(#pg1gold)"/>
+
+  <text x="64" y="104" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="13" fill="#7A8A9A">MARKET-IMPLIED VERDICT · 2026-09-27</text>
+
+  <text x="64" y="178" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="46" font-weight="700" fill="#F2F5F8">现在适合买黄金吗？</text>
+
+  <rect x="64" y="212" width="64" height="6" fill="#E8B54D"/>
+  <text x="64" y="266" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="34" font-weight="700" fill="#E8B54D">不建议现在一次性做多</text>
+  <text x="64" y="300" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="16" fill="#AFC0D0">可以小仓位分批建底仓 —— 但不是现在追</text>
+
+  <rect x="660" y="186" width="236" height="150" rx="8" fill="#16212E" stroke="#2A3846" stroke-width="1"/>
+  <text x="682" y="216" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="11" fill="#7A8A9A">OPTION PRICING</text>
+  <text x="682" y="272" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="56" font-weight="700" fill="#E8B54D">0.67</text>
+  <text x="682" y="298" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="13" fill="#AFC0D0">隐含 / 已实现波动率</text>
+  <text x="682" y="320" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="13" fill="#AFC0D0">期权定价折价 33%</text>
+
+  <rect x="64" y="336" width="832" height="4" fill="#E8B54D" opacity="0.85"/>
+
+  <text x="64" y="392" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="38" font-weight="700" fill="#F2F5F8">4,321</text>
+  <text x="64" y="416" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="12" fill="#7A8A9A">USD/oz · 现货基准（9/25 收）</text>
+
+  <text x="368" y="392" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="38" font-weight="700" fill="#E0574A">+51bp</text>
+  <text x="368" y="416" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="12" fill="#7A8A9A">10Y 实际利率 · 1个月变化</text>
+
+  <text x="672" y="392" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="38" font-weight="700" fill="#E0574A">93%</text>
+  <text x="672" y="416" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="12" fill="#7A8A9A">6个月内触及 4,278 的概率</text>
+
+  <text x="64" y="500" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="11" fill="#7A8A9A">数据源：US Treasury TIPS · CFTC COT · GLD 期权链 · Polymarket · CNN FearGreed（37 恐惧）</text>
+  <text x="64" y="522" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="11" fill="#7A8A9A">所有结论均来自真实成交数据的定价，不含分析师观点</text>
+</svg>

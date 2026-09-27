@@ -43,7 +43,7 @@ import { observeConversationHeader } from './conversation-header.ts'
 import { observeOfficialTurnNavigators } from './official-turn-navigator.ts'
 import { TurnNavigator } from './TurnNavigator.tsx'
 import { registerInputHistory } from './InputHistoryDock.tsx'
-import { prefillNewConversation, createDraftPresenceSource } from './new-conversation-draft.ts'
+import { prefillNewConversation, createDraftPresenceSource, type PrefillResult } from './new-conversation-draft.ts'
 import { observeComposerToolMenus } from './composer-tool-menus.ts'
 import { hasConnectWorkspace, hasOpenWorkspace, hasStartSession, recentWorkspaceId, workspaceBaselinesReady } from './workspace-compat.ts'
 import { HostActionError, type HostAction, UserFacingError } from './user-error.ts'
@@ -156,6 +156,28 @@ export function apply(ctx: ClientContext): void {
   })
   const companionSlots = createCompanionTabSource(ctx.slots)
   const globalPanels = createGlobalPanelSource(ctx.slots, ctx.locale)
+  const prefillCurrent = (text: string): PrefillResult => {
+    const id = currentSessionId(ctx.sessions.list.getSnapshot())
+    const binding = id === undefined ? undefined : ctx.sessions.binding(id as SessionId)
+    return prefillNewConversation(binding === undefined ? undefined : ctx.conversation.input.for(binding.ctx), text)
+  }
+  // Other kit pages (the 市场先知 cockpit) start a conversation with prepared text through a DOM event:
+  // leave the panel, start a session in the current workspace, then prefill once the hero composer is up.
+  ctx.effect(() => {
+    const onNew = (event: Event): void => {
+      const text = String((event as CustomEvent<{ text?: string }>).detail?.text ?? '')
+      if (!text) return
+      selectGlobalPanel(ctx.layout, null)
+      startWorkspaceSession(ctx)
+      let tries = 0
+      const tick = (): void => { tries += 1; const r = prefillCurrent(text); if (r === 'ready' || r === 'workspace' || tries > 25) return; setTimeout(tick, 200) }
+      setTimeout(tick, 250)
+    }
+    const onOpen = (event: Event): void => { const id = String((event as CustomEvent<{ id?: string }>).detail?.id ?? ''); if (id) { selectGlobalPanel(ctx.layout, null); openConversation(ctx, ctx.layout, id) } }
+    window.addEventListener('mywork:new-conversation', onNew)
+    window.addEventListener('mywork:open-session', onOpen)
+    return () => { window.removeEventListener('mywork:new-conversation', onNew); window.removeEventListener('mywork:open-session', onOpen) }
+  }, 'michengai-codex-ui: kit conversation bridge')
   const footerActions = createFooterActionSource(ctx.slots)
   const settingsSections = createSettingsSectionSource(ctx.slots, ctx.locale)
   ctx.slots.inject('sidebar', () => ctx.slots.register({
@@ -172,11 +194,7 @@ export function apply(ctx: ClientContext): void {
     },
     inject: () => ({
       newConversationDraft,
-      prefillNewConversation: (text: string) => {
-        const id = currentSessionId(ctx.sessions.list.getSnapshot())
-        const binding = id === undefined ? undefined : ctx.sessions.binding(id as SessionId)
-        return prefillNewConversation(binding === undefined ? undefined : ctx.conversation.input.for(binding.ctx), text)
-      },
+      prefillNewConversation: prefillCurrent,
       openSession: (sessionId: SessionId) => { openConversation(ctx, ctx.layout, sessionId) },
       startSession: (workspaceId?: WorkspaceId) => { startWorkspaceSession(ctx, workspaceId) },
       toggleSidebar: () => { ctx.layout.toggleSidebar() },

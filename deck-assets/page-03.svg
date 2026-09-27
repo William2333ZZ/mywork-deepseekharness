@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540">
+  <rect x="0" y="0" width="960" height="540" fill="#0E1621"/>
+  <rect x="64" y="44" width="44" height="5" fill="#E8B54D"/>
+
+  <text x="64" y="82" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="30" font-weight="700" fill="#F2F5F8">两组关键矛盾</text>
+  <text x="64" y="106" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="13" fill="#7A8A9A">CONTRADICTION ANALYSIS · 分歧本身就是高价值信号</text>
+
+  <rect x="64" y="126" width="372" height="216" rx="8" fill="#16212E" stroke="#4FB477" stroke-width="1.5"/>
+  <text x="88" y="160" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="18" font-weight="700" fill="#4FB477">实需托底</text>
+  <text x="88" y="182" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="12" fill="#7A8A9A">STRUCTURAL BID</text>
+  <text x="88" y="216" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="14" fill="#F2F5F8">央行 Q2 购金 289 吨（纪录水平）</text>
+  <text x="88" y="244" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="14" fill="#F2F5F8">9月全球黄金 ETF 净流入 ≈ 20亿 USD</text>
+  <text x="88" y="272" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="14" fill="#F2F5F8">4,278–4,289 区间两次被接住</text>
+  <rect x="88" y="296" width="324" height="1" fill="#2A3846"/>
+  <text x="88" y="322" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#4FB477">结论：底部是真实的</text>
+
+  <rect x="524" y="126" width="372" height="216" rx="8" fill="#16212E" stroke="#E0574A" stroke-width="1.5"/>
+  <text x="548" y="160" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="18" font-weight="700" fill="#E0574A">资金先撤</text>
+  <text x="548" y="182" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="12" fill="#7A8A9A">FLOW PRESSURE</text>
+  <text x="548" y="216" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="14" fill="#F2F5F8">10Y 实际利率 +20bp / 3天，加速上行</text>
+  <text x="548" y="244" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="14" fill="#F2F5F8">CFTC 净多 30.9% OI（较 8/25 −17,358 手）</text>
+  <text x="548" y="272" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="14" fill="#F2F5F8">GDX 跌破 95，下一档支撑 90.85</text>
+  <rect x="548" y="296" width="324" height="1" fill="#2A3846"/>
+  <text x="548" y="322" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#E0574A">结论：流量在压制估值</text>
+
+  <text x="480" y="248" text-anchor="middle" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="30" font-weight="700" fill="#E8B54D">VS</text>
+
+  <rect x="64" y="362" width="832" height="94" rx="8" fill="#1C2A39" stroke="#E8B54D" stroke-width="1"/>
+  <text x="88" y="392" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" fill="#E8B54D">破解</text>
+  <text x="88" y="420" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="15" fill="#F2F5F8">期权 IV/RV = 0.67 说明市场低估的是「波动」，不是「方向」。</text>
+  <text x="88" y="444" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="15" fill="#F2F5F8">赌方向会被实际利率锁住；赌波动的成本却是折价 33%。</text>
+
+  <rect x="64" y="484" width="832" height="1" fill="#2A3846"/>
+  <text x="64" y="508" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="12" fill="#7A8A9A">矿商与金属是同一资产的两个定价层 —— 这是权重最高的分歧信号，不是观点。</text>
+  <text x="64" y="528" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="12" fill="#7A8A9A">央行/ETF 数据来源：World Gold Council 口径公开报道，属持仓流量证据。</text>
+</svg>

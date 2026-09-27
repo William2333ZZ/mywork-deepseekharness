@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540">
+  <rect x="0" y="0" width="960" height="540" fill="#0E1621"/>
+  <rect x="64" y="44" width="44" height="5" fill="#E8B54D"/>
+
+  <text x="64" y="82" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="30" font-weight="700" fill="#F2F5F8">概率场景：未来 6 个月</text>
+  <text x="64" y="106" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="13" fill="#7A8A9A">PROBABILITY SCENARIOS · 自 4,321 起算</text>
+
+  <text x="64" y="152" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="14" fill="#F2F5F8">先跌后涨（下探 4,000–4,150 后修复）</text>
+  <rect x="330" y="138" width="420" height="18" rx="3" fill="#1C2A39"/>
+  <rect x="330" y="138" width="336" height="18" rx="3" fill="#E8B54D"/>
+  <text x="770" y="153" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="18" font-weight="700" fill="#E8B54D">40%</text>
+
+  <text x="64" y="196" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="14" fill="#F2F5F8">区间震荡 4,150–4,500</text>
+  <rect x="330" y="182" width="420" height="18" rx="3" fill="#1C2A39"/>
+  <rect x="330" y="182" width="252" height="18" rx="3" fill="#AFC0D0"/>
+  <text x="770" y="197" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="18" font-weight="700" fill="#AFC0D0">30%</text>
+
+  <text x="64" y="240" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="14" fill="#F2F5F8">直接上行走稳 4,500+</text>
+  <rect x="330" y="226" width="420" height="18" rx="3" fill="#1C2A39"/>
+  <rect x="330" y="226" width="252" height="18" rx="3" fill="#4FB477"/>
+  <text x="770" y="241" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="18" font-weight="700" fill="#4FB477">30%</text>
+
+  <text x="64" y="284" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="14" fill="#F2F5F8">深度回撤至 3,800 以下</text>
+  <rect x="330" y="270" width="420" height="18" rx="3" fill="#1C2A39"/>
+  <rect x="330" y="270" width="227" height="18" rx="3" fill="#E0574A"/>
+  <text x="770" y="285" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="18" font-weight="700" fill="#E0574A">27%</text>
+
+  <text x="64" y="340" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#E8B54D">6 个月价格分布（由 GLD 6个月 ATM IV 21.9% 推导）</text>
+
+  <rect x="64" y="372" width="832" height="26" rx="4" fill="#16212E"/>
+  <rect x="64" y="372" width="832" height="26" rx="4" fill="#E8B54D" opacity="0.08"/>
+  <rect x="310" y="372" width="421" height="26" fill="#E8B54D" opacity="0.16"/>
+  <text x="520" y="362" text-anchor="middle" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="11" fill="#E8B54D">1σ 区间 3,848 – 4,853</text>
+
+  <rect x="192" y="366" width="2" height="38" fill="#E0574A"/>
+  <text x="192" y="424" text-anchor="middle" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="12" fill="#E0574A">4,000</text>
+
+  <rect x="318" y="360" width="2" height="50" fill="#F2F5F8"/>
+  <text x="318" y="446" text-anchor="middle" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#F2F5F8">4,321 现价</text>
+
+  <rect x="609" y="366" width="2" height="38" fill="#4FB477"/>
+  <text x="609" y="424" text-anchor="middle" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="12" fill="#4FB477">4,500</text>
+
+  <rect x="747" y="366" width="2" height="38" fill="#E8B54D"/>
+  <text x="747" y="424" text-anchor="middle" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="12" fill="#E8B54D">4,700</text>
+
+  <text x="64" y="486" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="12" fill="#7A8A9A">1σ = 3,848 – 4,853 ｜ 6 个月 P(触及 4,000) = 51% ｜ P(触及 4,700) = 47%</text>
+  <text x="64" y="510" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="12" fill="#7A8A9A">Polymarket 12月到期对照：触 4,500 = 49.5% ｜ 触 3,500 = 12% ｜ 触 5,000 = 42%</text>
+  <text x="64" y="530" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="11" fill="#7A8A9A">深度回撤场景与 1σ 下沿不同轴（前者为路径事件，后者为期末分布），故概率不可直接相加。</text>
+</svg>

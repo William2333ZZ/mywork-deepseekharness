@@ -23,14 +23,18 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     'mywork.schedule.section': { kind: 'list'; scope: 'root'; owner: {} }
     /** Top of the IM page; dsh-mywork-im contributes the outbound send card here. */
     'mywork.im.section': { kind: 'list'; scope: 'root'; owner: {} }
+    /** The 市场先知 cockpit page; dsh-mywork-oracle renders the whole dashboard here. */
+    'mywork.oracle.section': { kind: 'list'; scope: 'root'; owner: {} }
   }
 }
-import { CalendarClock, MessageSquareMore, Plug } from 'lucide-react'
+import { CalendarClock, MessageSquareMore, Plug, TrendingUp } from 'lucide-react'
 import { NS } from './locales.ts'
 
 export const SCHEDULE_PANEL_ID = 'mywork-schedule'
 export const IM_PANEL_ID = 'mywork-im'
 export const MCP_PANEL_ID = 'mywork-mcp'
+/** Not in SECTION_PANEL_IDS on purpose: the cockpit shows up through the generic panel list at the top of the sidebar. */
+export const ORACLE_PANEL_ID = 'mywork-oracle'
 export const SECTION_PANEL_IDS: readonly string[] = [SCHEDULE_PANEL_ID, IM_PANEL_ID, MCP_PANEL_ID]
 
 /** settings.section ids registered by the companion plugins. */
@@ -64,6 +68,7 @@ const stylesheet = `
 export function ScheduleRailIcon(): ReactElement { return <CalendarClock size={16} strokeWidth={1.6} /> }
 export function ImRailIcon(): ReactElement { return <MessageSquareMore size={16} strokeWidth={1.6} /> }
 export function McpRailIcon(): ReactElement { return <Plug size={16} strokeWidth={1.6} /> }
+export function OracleRailIcon(): ReactElement { return <TrendingUp size={16} strokeWidth={1.6} /> }
 
 function sectionSource(slots: SectionSlots, sectionId: string) {
   const find = (): SectionEntry | undefined => slots.entriesOfSlot('settings.section').find(entry => entry.options.id === sectionId)
@@ -161,4 +166,17 @@ export function registerSectionPanels(ctx: Context, t: TranslateNS<typeof NS>, s
     children: { 'mywork.mcp.section': { kind: 'list', scope: 'root' } },
   }, McpPanel))
   ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({ name: 'sidebar.panellist', id: MCP_PANEL_ID, order: 22, locale: NS, label: () => t('sidebar.mcp'), inject: () => ({}) }, McpRailIcon))
+  // 市场先知 cockpit: the whole page comes from dsh-mywork-oracle through the child slot.
+  const oracleSlots = ctx.slots as unknown as { entriesOfSlot(name: 'mywork.oracle.section'): readonly unknown[]; subscribe(name: 'mywork.oracle.section', listener: () => void): () => void }
+  const oracleCount = (): number => { try { return oracleSlots.entriesOfSlot('mywork.oracle.section').length } catch { return 0 } }
+  const subscribeOracle = (listener: () => void): (() => void) => { try { return oracleSlots.subscribe('mywork.oracle.section', listener) } catch { return () => {} } }
+  function OraclePanel(props: PropsRenderSlots<'mywork.oracle.section'>): ReactElement {
+    const providers = useSyncExternalStore(subscribeOracle, oracleCount, oracleCount)
+    return page(t('sidebar.oracle'), <TrendingUp size={18} strokeWidth={1.6} />, providers === 0 ? <p className="dcu-panel-empty">{t('oraclePanel.missing')}</p> : props.renderSlot('mywork.oracle.section', {}))
+  }
+  ctx.slots.inject('main', () => ctx.slots.register({
+    name: 'main', key: ORACLE_PANEL_ID, locale: NS, inject: () => ({}),
+    children: { 'mywork.oracle.section': { kind: 'list', scope: 'root' } },
+  }, OraclePanel))
+  ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({ name: 'sidebar.panellist', id: ORACLE_PANEL_ID, order: 5, locale: NS, label: () => t('sidebar.oracle'), inject: () => ({}) }, OracleRailIcon))
 }

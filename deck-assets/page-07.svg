@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540">
+  <rect x="0" y="0" width="960" height="540" fill="#0E1621"/>
+  <rect x="64" y="44" width="44" height="5" fill="#E8B54D"/>
+
+  <text x="64" y="82" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="30" font-weight="700" fill="#F2F5F8">风险与数据来源</text>
+  <text x="64" y="106" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="13" fill="#7A8A9A">RISKS &amp; SOURCES · 两个方向都有代价</text>
+
+  <rect x="64" y="128" width="404" height="168" rx="8" fill="#16212E" stroke="#4FB477" stroke-width="1.5"/>
+  <text x="88" y="162" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="17" font-weight="700" fill="#4FB477">↑ 上行风险：踏空</text>
+  <text x="88" y="194" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="14" fill="#AFC0D0">实际利率 2.83% 本身是脆弱高位，</text>
+  <text x="88" y="218" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="14" fill="#AFC0D0">一旦就业数据转弱、降息重新定价，</text>
+  <text x="88" y="242" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="14" fill="#AFC0D0">金价会以脉冲方式反弹。</text>
+  <rect x="88" y="258" width="356" height="1" fill="#2A3846"/>
+  <text x="88" y="282" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#4FB477">完全空仓等待，也是有成本的。</text>
+
+  <rect x="492" y="128" width="404" height="168" rx="8" fill="#16212E" stroke="#E0574A" stroke-width="1.5"/>
+  <text x="516" y="162" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="17" font-weight="700" fill="#E0574A">↓ 下行风险：套牢</text>
+  <text x="516" y="194" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="14" fill="#AFC0D0">实际利率若向 3.0% 以上突破</text>
+  <text x="516" y="218" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="14" fill="#AFC0D0">（30Y 已 3.22%），叠加净多 31% 持仓量</text>
+  <text x="516" y="242" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="14" fill="#AFC0D0">的平仓，4,000 的测试会来得很快。</text>
+  <rect x="516" y="258" width="356" height="1" fill="#2A3846"/>
+  <text x="516" y="282" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#E0574A">追高的代价大于等待的代价。</text>
+
+  <rect x="64" y="316" width="832" height="96" rx="8" fill="#1C2A39"/>
+  <text x="88" y="344" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" fill="#E8B54D">数据来源</text>
+  <text x="88" y="370" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="13" fill="#AFC0D0">US Treasury TIPS 实际利率曲线（8/25–9/25）· CFTC COT 黄金/白银 · YFinance GLD 期权链（9/28、12/18 到期）</text>
+  <text x="88" y="394" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="13" fill="#AFC0D0">Yahoo Finance GC=F / GLD / GDX / ^TNX · Polymarket（12月到期 GC 合约）· CNN FearGreed 37（恐惧）</text>
+
+  <rect x="64" y="428" width="832" height="44" rx="6" fill="#E8B54D" opacity="0.12"/>
+  <text x="88" y="456" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="13" fill="#F2F5F8">结论：6–12 个月正收益概率约 55%，但入场位置应在 4,200–4,250，而非现在的 4,321。</text>
+
+  <text x="64" y="496" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="11" fill="#7A8A9A">以上为市场交易数据推导的风险回报评估，不构成个性化投资建议。仓位大小必须由自身风险承受能力决定。</text>
+  <text x="64" y="518" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="11" fill="#7A8A9A">分析日 2026-09-27 ｜ 价格基准 2026-09-25 收盘 ｜ Polymarket 流动性极薄（12月 4,500 合约仅 0.1 USD）故仅作对照</text>
+  <text x="64" y="536" font-family="Source Han Sans SC, PingFang SC, Helvetica, Arial, sans-serif" font-size="10" fill="#7A8A9A">方法论：Digital Oracle —— 仅使用真实成交数据，多信号交叉验证，每个信号标注时间窗口。</text>
+</svg>

@@ -265,6 +265,7 @@ scripts/       build-client.mjs（零依赖 C6 打包器）· install.sh / unins
 
 ### 未发布
 
+- 【digital-oracle-work 分支】「市场先知」驾驶舱：侧栏顶部的独立页面，一打开就是市场温度（恐惧贪婪、实际利率、利差、黄金、铜金比、原油、汇率、BTC 基差、CFTC 持仓、A 股板块流向、Polymarket 合约，带 30 日折线）、五个问题面板（地缘、衰退、泡沫、择时、A 股，「问先知」把当前数字和你的自选持仓带进新对话）、自选跟踪（美股 / 商品 / 外汇、A 股、加密、Polymarket、Kalshi）、手填持仓的浮动盈亏、模型自动存档的报告。数据 15 / 5 分钟缓存刷新，只分析不下单。
 - 【digital-oracle-work 分支】内置 [Digital Oracle](https://github.com/komako-workshop/digital-oracle)（komako-workshop，MIT）作为「市场先知」：新成员插件 `dsh-mywork-oracle` 把它的 13 个免费数据源（Polymarket、Kalshi、美国国债、CFTC 持仓、SEC 内部人交易、Deribit、CoinGecko、BIS、World Bank、Stooq、东方财富 A 股资金流、CNN 恐惧贪婪指数、网页搜索）做成 `oracle_docs` / `oracle_providers` / `oracle_fetch` / `oracle_status` 工具，模型按它的五步方法论用交易数据回答「概率多大」「值不值得买」；新建对话页多一个「市场先知」起点，设置 → MyWork → 市场先知 看环境、自检、一键装 yfinance。只做分析不下单。发行版说明见 [DISTRIBUTION.md](DISTRIBUTION.md)。
 - 桌面版内嵌真实浏览器（Claude 桌面版的做法）：桌面壳自己开 DevTools 端口，实时浏览器插件直接接上 Electron，不再另起后台 Chrome；每个标签页是嵌进窗口右侧「实时浏览器」面板位置的原生 Chromium 视图，原生渲染、原生滚动、原生选字，扫码 / 短信 / 滑块验证直接在面板里做，Playwright 驱动的是同一批标签页。网页版不受影响，仍是后台 Chrome + 实时流。桌面版本次不打包。
 - 网页版实时浏览器新增「文字层」：工具条上的文字按钮打开后，画面上叠一层透明的真实文字，能像网页一样拖选、复制、点链接；关掉即恢复纯画面。

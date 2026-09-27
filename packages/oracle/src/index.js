@@ -21,7 +21,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { configSchema, defineRawTool, rejectUntrusted } from './harness.js'
-import { KINDS, OracleStore, PANELS, SIGNAL_CALLS, buildQuotes, buildSignals, dataPath, panelPrompt, quoteCalls, snapshotPath, valuePositions } from './cockpit.js'
+import { KINDS, OracleStore, PANELS, SIGNAL_CALLS, buildQuotes, buildSignals, dataPath, panelPrompt, quoteCalls, snapshotPath, symbolPrompt, valuePositions } from './cockpit.js'
 
 export const name = 'dsh-mywork-oracle'
 export const inject = ['tools']
@@ -299,6 +299,11 @@ export function apply(ctx, config = {}) {
       const b = await post(req, res); if (!b) return
       const panel = PANELS.find((p) => p.id === String(b.id)); if (!panel) return json(res, { error: 'unknown panel' }, 400)
       json(res, { text: panelPrompt(panel, snapshot, portfolio(), b.question) })
+    })
+    route('/symbol/prompt', async (req, res) => {
+      const b = await post(req, res); if (!b) return
+      const watch = store.read().watchlist.find((w) => w.id === String(b.watchId)); if (!watch) return json(res, { error: 'unknown watch item' }, 400)
+      json(res, { text: symbolPrompt(watch, portfolio(), snapshot, b.question) })
     })
     route('/install-yfinance', async (req, res) => {
       if (req.method !== 'POST') return json(res, { error: 'POST only' }, 405)

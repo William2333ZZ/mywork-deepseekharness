@@ -33,8 +33,11 @@ export const NEW_CONVERSATION_STYLE = `
 /* Digital Oracle Work edition: no slogan hero, no workspace / access-mode pickers in the hero, five question cards. */
 body[data-mywork-edition=oracle] [data-phase=hero] [class*="_composerHero"] [class$="_headline"],body[data-mywork-edition=oracle] [data-phase=hero] [class*="_titleGroup"]{display:none}
 body[data-mywork-edition=oracle] [data-phase=hero] [class*="_heroWorkspaceRow"]{display:none}
+/* one conversation entry: the 提问 item; dsh's own "back to conversation" button is redundant in the edition */
+body[data-mywork-edition=oracle] .dcu-menu>.dcu-global-panel:first-child,body[data-mywork-edition=oracle] .dcu-compact-nav>.dcu-global-panel:first-child{display:none}
 body[data-mywork-edition=oracle] [data-composer-card] button[aria-label^="访问模式"],body[data-mywork-edition=oracle] [data-composer-card] button[aria-label^="Access mode"]{display:none}
-.dcu-home-edition{display:flex;flex-direction:column;gap:18px}
+.dcu-home-edition{display:flex;flex-direction:column;gap:16px}
+body[data-mywork-edition=oracle] [data-phase=hero] [class*="_composerHero"]>:first-child{max-width:880px}
 .dcu-home-strip{appearance:none;display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;width:100%;padding:8px 12px;border:1px solid var(--dsw-alias-border-l2);border-radius:var(--mwc-radius,6px);background:transparent;color:inherit;font:inherit;cursor:pointer;text-align:left}
 .dcu-home-strip:hover{background:var(--dsw-alias-interactive-bg-hover)}
 .dcu-home-strip-item{display:inline-flex;align-items:baseline;gap:6px;font-size:12px;color:var(--dsw-alias-label-secondary)}
@@ -42,6 +45,26 @@ body[data-mywork-edition=oracle] [data-composer-card] button[aria-label^="访问
 .dcu-home-strip-delta{font-size:11.5px}
 .dcu-home-strip-delta.up{color:var(--dsw-alias-state-error-primary)}.dcu-home-strip-delta.down{color:var(--dsw-alias-state-success-primary)}
 .dcu-home-strip-open{margin-left:auto;font-size:12px;color:var(--dsw-alias-brand-primary)}
+.dcu-home-digest{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:14px 24px;width:100%;text-align:left}
+.dcu-home-digest-head{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:var(--dsw-alias-label-secondary);padding-bottom:6px;border-bottom:1px solid var(--dsw-alias-border-l2);margin-bottom:4px}
+.dcu-home-link{appearance:none;border:0;background:transparent;padding:0;font:inherit;font-size:12px;color:var(--dsw-alias-brand-primary);cursor:pointer}
+.dcu-home-digest-empty{margin:8px 0;font-size:12.5px;color:var(--dsw-alias-label-tertiary)}
+.dcu-home-table{width:100%;border-collapse:collapse;font-size:12.5px}
+.dcu-home-table td{padding:5px 6px 5px 0;border-bottom:1px solid var(--dsw-alias-border-l1,var(--dsw-alias-border-l2));vertical-align:middle}
+.dcu-home-td-label{color:var(--dsw-alias-label-primary)}
+.dcu-home-td-sub{display:block;font-size:11px;color:var(--dsw-alias-label-tertiary)}
+.dcu-home-td-num{text-align:right;font-family:var(--dsw-font-mono,ui-monospace,monospace);font-variant-numeric:tabular-nums;white-space:nowrap}
+.dcu-home-td-num.up{color:var(--dsw-alias-state-error-primary)}.dcu-home-td-num.down{color:var(--dsw-alias-state-success-primary)}
+.dcu-home-td-act{text-align:right;width:1%}
+.dcu-home-chip{appearance:none;border:1px solid var(--dsw-alias-border-l2);border-radius:var(--mwc-radius,6px);padding:4px 10px;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;cursor:pointer;white-space:nowrap}
+.dcu-home-chip:hover{color:var(--dsw-alias-label-primary);background:var(--dsw-alias-interactive-bg-hover)}
+.dcu-home-chip-primary{border-color:transparent;background:var(--dsw-alias-button-primary-fill,var(--dsw-alias-brand-primary));color:var(--dsw-alias-label-primary-foreground,#fff);font-weight:600}
+.dcu-home-chip-primary:hover{color:var(--dsw-alias-label-primary-foreground,#fff);background:var(--dsw-alias-button-primary-hover,var(--dsw-alias-brand-primary))}
+.dcu-home-report{appearance:none;display:grid;grid-template-columns:52px 1fr;gap:10px;align-items:start;width:100%;padding:6px 0;border:0;border-bottom:1px solid var(--dsw-alias-border-l1,var(--dsw-alias-border-l2));background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.dcu-home-report-p{font-family:var(--dsw-font-mono,ui-monospace,monospace);font-size:16px;font-weight:500;line-height:1.2}
+.dcu-home-report-t{font-size:12.5px;line-height:1.35;color:var(--dsw-alias-label-primary);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.dcu-home-templates{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+@container dcu-new-conversation (width < 640px){.dcu-home-digest{grid-template-columns:1fr}}
 .dcu-home-edition-head{display:flex;flex-direction:column;gap:6px;align-items:center;text-align:center}
 .dcu-home-edition-title{margin:0;font-size:22px;line-height:28px;font-weight:600;letter-spacing:-.01em;color:var(--dsw-alias-label-primary)}
 .dcu-home-edition-sub{margin:0;font-size:13px;line-height:20px;color:var(--dsw-alias-label-secondary);max-width:44ch}

@@ -413,24 +413,6 @@ window.__ModuleLoader__.load({
 			return Component;
 		}
 		//#endregion
-		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/activity.mjs
-		/**
-		* @license lucide-react v1.47.0 - ISC
-		*
-		* This source code is licensed under the ISC license.
-		* See the LICENSE file in the root directory of this source tree.
-		*/
-		const __iconData$31 = {
-			name: "activity",
-			size: 24,
-			node: [["path", {
-				d: "M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2",
-				key: "169zse"
-			}]]
-		};
-		__iconData$31.node;
-		const Activity = createLucideIcon(__iconData$31);
-		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/archive.mjs
 		/**
 		* @license lucide-react v1.47.0 - ISC
@@ -438,7 +420,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$30 = {
+		const __iconData$26 = {
 			name: "archive",
 			size: 24,
 			node: [
@@ -460,8 +442,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$30.node;
-		const Archive = createLucideIcon(__iconData$30);
+		__iconData$26.node;
+		const Archive = createLucideIcon(__iconData$26);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/arrow-left.mjs
 		/**
@@ -470,7 +452,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$29 = {
+		const __iconData$25 = {
 			name: "arrow-left",
 			size: 24,
 			node: [["path", {
@@ -481,8 +463,8 @@ window.__ModuleLoader__.load({
 				key: "x3x0zl"
 			}]]
 		};
-		__iconData$29.node;
-		const ArrowLeft = createLucideIcon(__iconData$29);
+		__iconData$25.node;
+		const ArrowLeft = createLucideIcon(__iconData$25);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/box.mjs
 		/**
@@ -491,7 +473,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$28 = {
+		const __iconData$24 = {
 			name: "box",
 			size: 24,
 			node: [
@@ -509,8 +491,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$28.node;
-		const Box = createLucideIcon(__iconData$28);
+		__iconData$24.node;
+		const Box = createLucideIcon(__iconData$24);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/calendar-clock.mjs
 		/**
@@ -519,7 +501,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$27 = {
+		const __iconData$23 = {
 			name: "calendar-clock",
 			size: 24,
 			node: [
@@ -551,61 +533,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$27.node;
-		const CalendarClock = createLucideIcon(__iconData$27);
-		//#endregion
-		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/chart-candlestick.mjs
-		/**
-		* @license lucide-react v1.47.0 - ISC
-		*
-		* This source code is licensed under the ISC license.
-		* See the LICENSE file in the root directory of this source tree.
-		*/
-		const __iconData$26 = {
-			name: "chart-candlestick",
-			size: 24,
-			node: [
-				["path", {
-					d: "M9 5v4",
-					key: "14uxtq"
-				}],
-				["rect", {
-					width: "4",
-					height: "6",
-					x: "7",
-					y: "9",
-					rx: "1",
-					key: "f4fvz0"
-				}],
-				["path", {
-					d: "M9 15v2",
-					key: "r5rk32"
-				}],
-				["path", {
-					d: "M17 3v2",
-					key: "1l2re6"
-				}],
-				["rect", {
-					width: "4",
-					height: "8",
-					x: "15",
-					y: "5",
-					rx: "1",
-					key: "z38je5"
-				}],
-				["path", {
-					d: "M17 13v3",
-					key: "5l0wba"
-				}],
-				["path", {
-					d: "M3 3v16a2 2 0 0 0 2 2h16",
-					key: "c24i48"
-				}]
-			],
-			aliases: ["candlestick-chart"]
-		};
-		__iconData$26.node;
-		const ChartCandlestick = createLucideIcon(__iconData$26);
+		__iconData$23.node;
+		const CalendarClock = createLucideIcon(__iconData$23);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/chart-column.mjs
 		/**
@@ -614,7 +543,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$25 = {
+		const __iconData$22 = {
 			name: "chart-column",
 			size: 24,
 			node: [
@@ -637,30 +566,8 @@ window.__ModuleLoader__.load({
 			],
 			aliases: ["bar-chart-3"]
 		};
-		__iconData$25.node;
-		const ChartColumn = createLucideIcon(__iconData$25);
-		//#endregion
-		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/chart-line.mjs
-		/**
-		* @license lucide-react v1.47.0 - ISC
-		*
-		* This source code is licensed under the ISC license.
-		* See the LICENSE file in the root directory of this source tree.
-		*/
-		const __iconData$24 = {
-			name: "chart-line",
-			size: 24,
-			node: [["path", {
-				d: "M3 3v16a2 2 0 0 0 2 2h16",
-				key: "c24i48"
-			}], ["path", {
-				d: "m19 9-5 5-4-4-3 3",
-				key: "2osh9i"
-			}]],
-			aliases: ["line-chart"]
-		};
-		__iconData$24.node;
-		const ChartLine = createLucideIcon(__iconData$24);
+		__iconData$22.node;
+		const ChartColumn = createLucideIcon(__iconData$22);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/circle-question-mark.mjs
 		/**
@@ -669,7 +576,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$23 = {
+		const __iconData$21 = {
 			name: "circle-question-mark",
 			size: 24,
 			node: [
@@ -690,8 +597,8 @@ window.__ModuleLoader__.load({
 			],
 			aliases: ["help-circle", "circle-help"]
 		};
-		__iconData$23.node;
-		const CircleQuestionMark = createLucideIcon(__iconData$23);
+		__iconData$21.node;
+		const CircleQuestionMark = createLucideIcon(__iconData$21);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/clock.mjs
 		/**
@@ -700,7 +607,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$22 = {
+		const __iconData$20 = {
 			name: "clock",
 			size: 24,
 			node: [["circle", {
@@ -713,8 +620,8 @@ window.__ModuleLoader__.load({
 				key: "mmk7yg"
 			}]]
 		};
-		__iconData$22.node;
-		const Clock = createLucideIcon(__iconData$22);
+		__iconData$20.node;
+		const Clock = createLucideIcon(__iconData$20);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/cpu.mjs
 		/**
@@ -723,7 +630,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$21 = {
+		const __iconData$19 = {
 			name: "cpu",
 			size: 24,
 			node: [
@@ -793,58 +700,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$21.node;
-		const Cpu = createLucideIcon(__iconData$21);
-		//#endregion
-		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/crosshair.mjs
-		/**
-		* @license lucide-react v1.47.0 - ISC
-		*
-		* This source code is licensed under the ISC license.
-		* See the LICENSE file in the root directory of this source tree.
-		*/
-		const __iconData$20 = {
-			name: "crosshair",
-			size: 24,
-			node: [
-				["circle", {
-					cx: "12",
-					cy: "12",
-					r: "10",
-					key: "1mglay"
-				}],
-				["line", {
-					x1: "22",
-					x2: "18",
-					y1: "12",
-					y2: "12",
-					key: "l9bcsi"
-				}],
-				["line", {
-					x1: "6",
-					x2: "2",
-					y1: "12",
-					y2: "12",
-					key: "13hhkx"
-				}],
-				["line", {
-					x1: "12",
-					x2: "12",
-					y1: "6",
-					y2: "2",
-					key: "10w3f3"
-				}],
-				["line", {
-					x1: "12",
-					x2: "12",
-					y1: "22",
-					y2: "18",
-					key: "15g9kq"
-				}]
-			]
-		};
-		__iconData$20.node;
-		const Crosshair = createLucideIcon(__iconData$20);
+		__iconData$19.node;
+		const Cpu = createLucideIcon(__iconData$19);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/eye-off.mjs
 		/**
@@ -853,7 +710,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$19 = {
+		const __iconData$18 = {
 			name: "eye-off",
 			size: 24,
 			node: [
@@ -875,8 +732,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$19.node;
-		const EyeOff = createLucideIcon(__iconData$19);
+		__iconData$18.node;
+		const EyeOff = createLucideIcon(__iconData$18);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/eye.mjs
 		/**
@@ -885,7 +742,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$18 = {
+		const __iconData$17 = {
 			name: "eye",
 			size: 24,
 			node: [["path", {
@@ -898,8 +755,8 @@ window.__ModuleLoader__.load({
 				key: "1v7zrd"
 			}]]
 		};
-		__iconData$18.node;
-		const Eye = createLucideIcon(__iconData$18);
+		__iconData$17.node;
+		const Eye = createLucideIcon(__iconData$17);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/file-spreadsheet.mjs
 		/**
@@ -908,7 +765,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$17 = {
+		const __iconData$16 = {
 			name: "file-spreadsheet",
 			size: 24,
 			node: [
@@ -938,26 +795,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$17.node;
-		const FileSpreadsheet = createLucideIcon(__iconData$17);
-		//#endregion
-		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/flame.mjs
-		/**
-		* @license lucide-react v1.47.0 - ISC
-		*
-		* This source code is licensed under the ISC license.
-		* See the LICENSE file in the root directory of this source tree.
-		*/
-		const __iconData$16 = {
-			name: "flame",
-			size: 24,
-			node: [["path", {
-				d: "M12 3q1 4 4 6.5t3 5.5a1 1 0 0 1-14 0 5 5 0 0 1 1-3 1 1 0 0 0 5 0c0-2-1.5-3-1.5-5q0-2 2.5-4",
-				key: "1slcih"
-			}]]
-		};
 		__iconData$16.node;
-		const Flame = createLucideIcon(__iconData$16);
+		const FileSpreadsheet = createLucideIcon(__iconData$16);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/globe.mjs
 		/**
@@ -1553,7 +1392,18 @@ window.__ModuleLoader__.load({
 			"sidebar.mcp": "MCP 连接器",
 			"sidebar.oracle": "市场先知",
 			"sidebar.cockpit": "驾驶舱",
-			"sidebar.newAnalysis": "新分析",
+			"sidebar.newAnalysis": "提问",
+			"home.mine": "我的标的",
+			"home.analyze": "分析",
+			"home.templates": "常见问法",
+			"home.reports": "最近报告",
+			"home.allReports": "在驾驶舱管理",
+			"home.tpl.1": "现在适合买黄金吗？",
+			"home.tpl.2": "未来 12 个月衰退的概率有多大？",
+			"home.tpl.3": "比特币是不是见底了？",
+			"home.tpl.4": "A 股主力资金在往哪些板块走？",
+			"home.tpl.5": "NVDA 的期权溢价是不是太高？",
+			"home.tpl.6": "地缘冲突升级的概率市场定价到多少？",
 			"sidebar.analysisTab": "分析记录",
 			"sidebar.analysisPanel": "分析",
 			"edition.name": "交易工作台",
@@ -1883,7 +1733,18 @@ window.__ModuleLoader__.load({
 			"sidebar.mcp": "MCP connectors",
 			"sidebar.oracle": "Market oracle",
 			"sidebar.cockpit": "Cockpit",
-			"sidebar.newAnalysis": "New analysis",
+			"sidebar.newAnalysis": "Ask",
+			"home.mine": "My symbols",
+			"home.analyze": "Analyze",
+			"home.templates": "Common questions",
+			"home.reports": "Recent reports",
+			"home.allReports": "Manage in the cockpit",
+			"home.tpl.1": "Is gold a buy right now?",
+			"home.tpl.2": "How likely is a recession in the next 12 months?",
+			"home.tpl.3": "Has Bitcoin bottomed?",
+			"home.tpl.4": "Which A-share sectors is institutional money rotating into?",
+			"home.tpl.5": "Is NVDA options premium too high?",
+			"home.tpl.6": "How much geopolitical escalation is priced in?",
 			"sidebar.analysisTab": "Analyses",
 			"sidebar.analysisPanel": "Analysis",
 			"edition.name": "Trading Workbench",
@@ -8092,8 +7953,11 @@ header [data-dcu-title-folder] svg,header [data-dcu-title-more] svg{display:bloc
 /* Digital Oracle Work edition: no slogan hero, no workspace / access-mode pickers in the hero, five question cards. */
 body[data-mywork-edition=oracle] [data-phase=hero] [class*="_composerHero"] [class$="_headline"],body[data-mywork-edition=oracle] [data-phase=hero] [class*="_titleGroup"]{display:none}
 body[data-mywork-edition=oracle] [data-phase=hero] [class*="_heroWorkspaceRow"]{display:none}
+/* one conversation entry: the 提问 item; dsh's own "back to conversation" button is redundant in the edition */
+body[data-mywork-edition=oracle] .dcu-menu>.dcu-global-panel:first-child,body[data-mywork-edition=oracle] .dcu-compact-nav>.dcu-global-panel:first-child{display:none}
 body[data-mywork-edition=oracle] [data-composer-card] button[aria-label^="访问模式"],body[data-mywork-edition=oracle] [data-composer-card] button[aria-label^="Access mode"]{display:none}
-.dcu-home-edition{display:flex;flex-direction:column;gap:18px}
+.dcu-home-edition{display:flex;flex-direction:column;gap:16px}
+body[data-mywork-edition=oracle] [data-phase=hero] [class*="_composerHero"]>:first-child{max-width:880px}
 .dcu-home-strip{appearance:none;display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;width:100%;padding:8px 12px;border:1px solid var(--dsw-alias-border-l2);border-radius:var(--mwc-radius,6px);background:transparent;color:inherit;font:inherit;cursor:pointer;text-align:left}
 .dcu-home-strip:hover{background:var(--dsw-alias-interactive-bg-hover)}
 .dcu-home-strip-item{display:inline-flex;align-items:baseline;gap:6px;font-size:12px;color:var(--dsw-alias-label-secondary)}
@@ -8101,6 +7965,26 @@ body[data-mywork-edition=oracle] [data-composer-card] button[aria-label^="访问
 .dcu-home-strip-delta{font-size:11.5px}
 .dcu-home-strip-delta.up{color:var(--dsw-alias-state-error-primary)}.dcu-home-strip-delta.down{color:var(--dsw-alias-state-success-primary)}
 .dcu-home-strip-open{margin-left:auto;font-size:12px;color:var(--dsw-alias-brand-primary)}
+.dcu-home-digest{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:14px 24px;width:100%;text-align:left}
+.dcu-home-digest-head{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:var(--dsw-alias-label-secondary);padding-bottom:6px;border-bottom:1px solid var(--dsw-alias-border-l2);margin-bottom:4px}
+.dcu-home-link{appearance:none;border:0;background:transparent;padding:0;font:inherit;font-size:12px;color:var(--dsw-alias-brand-primary);cursor:pointer}
+.dcu-home-digest-empty{margin:8px 0;font-size:12.5px;color:var(--dsw-alias-label-tertiary)}
+.dcu-home-table{width:100%;border-collapse:collapse;font-size:12.5px}
+.dcu-home-table td{padding:5px 6px 5px 0;border-bottom:1px solid var(--dsw-alias-border-l1,var(--dsw-alias-border-l2));vertical-align:middle}
+.dcu-home-td-label{color:var(--dsw-alias-label-primary)}
+.dcu-home-td-sub{display:block;font-size:11px;color:var(--dsw-alias-label-tertiary)}
+.dcu-home-td-num{text-align:right;font-family:var(--dsw-font-mono,ui-monospace,monospace);font-variant-numeric:tabular-nums;white-space:nowrap}
+.dcu-home-td-num.up{color:var(--dsw-alias-state-error-primary)}.dcu-home-td-num.down{color:var(--dsw-alias-state-success-primary)}
+.dcu-home-td-act{text-align:right;width:1%}
+.dcu-home-chip{appearance:none;border:1px solid var(--dsw-alias-border-l2);border-radius:var(--mwc-radius,6px);padding:4px 10px;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;cursor:pointer;white-space:nowrap}
+.dcu-home-chip:hover{color:var(--dsw-alias-label-primary);background:var(--dsw-alias-interactive-bg-hover)}
+.dcu-home-chip-primary{border-color:transparent;background:var(--dsw-alias-button-primary-fill,var(--dsw-alias-brand-primary));color:var(--dsw-alias-label-primary-foreground,#fff);font-weight:600}
+.dcu-home-chip-primary:hover{color:var(--dsw-alias-label-primary-foreground,#fff);background:var(--dsw-alias-button-primary-hover,var(--dsw-alias-brand-primary))}
+.dcu-home-report{appearance:none;display:grid;grid-template-columns:52px 1fr;gap:10px;align-items:start;width:100%;padding:6px 0;border:0;border-bottom:1px solid var(--dsw-alias-border-l1,var(--dsw-alias-border-l2));background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.dcu-home-report-p{font-family:var(--dsw-font-mono,ui-monospace,monospace);font-size:16px;font-weight:500;line-height:1.2}
+.dcu-home-report-t{font-size:12.5px;line-height:1.35;color:var(--dsw-alias-label-primary);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.dcu-home-templates{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+@container dcu-new-conversation (width < 640px){.dcu-home-digest{grid-template-columns:1fr}}
 .dcu-home-edition-head{display:flex;flex-direction:column;gap:6px;align-items:center;text-align:center}
 .dcu-home-edition-title{margin:0;font-size:22px;line-height:28px;font-weight:600;letter-spacing:-.01em;color:var(--dsw-alias-label-primary)}
 .dcu-home-edition-sub{margin:0;font-size:13px;line-height:20px;color:var(--dsw-alias-label-secondary);max-width:44ch}
@@ -8344,38 +8228,6 @@ body[data-ds-dark-theme] [data-conversation-scroll] [data-trigger-menu]{backgrou
 				color: "#c9931a"
 			}
 		];
-		const editionCategories = [
-			{
-				id: "geo",
-				label: "home.oracle.geo",
-				prompt: "home.oracle.geo.prompt",
-				Icon: Crosshair
-			},
-			{
-				id: "macro",
-				label: "home.oracle.macro",
-				prompt: "home.oracle.macro.prompt",
-				Icon: Activity
-			},
-			{
-				id: "bubble",
-				label: "home.oracle.bubble",
-				prompt: "home.oracle.bubble.prompt",
-				Icon: Flame
-			},
-			{
-				id: "assets",
-				label: "home.oracle.assets",
-				prompt: "home.oracle.assets.prompt",
-				Icon: ChartLine
-			},
-			{
-				id: "ashare",
-				label: "home.oracle.ashare",
-				prompt: "home.oracle.ashare.prompt",
-				Icon: ChartCandlestick
-			}
-		];
 		const hints = {
 			workspace: "home.workspace",
 			draft: "home.draft",
@@ -8441,15 +8293,13 @@ body[data-ds-dark-theme] [data-conversation-scroll] [data-trigger-menu]{backgrou
 			"btc_basis",
 			"usdcny"
 		];
-		function useMarketStrip() {
-			const [tiles, setTiles] = (0, react.useState)([]);
+		function useDashboard() {
+			const [d, setD] = (0, react.useState)();
 			(0, react.useEffect)(() => {
 				let alive = true;
 				const load = () => {
-					fetch("/mywork-oracle/api/dashboard").then((r) => r.ok ? r.json() : null).then((d) => {
-						if (!alive || !d?.signals?.tiles) return;
-						const by = new Map(d.signals.tiles.map((x) => [x.id, x]));
-						setTiles(STRIP_IDS.map((id) => by.get(id)).filter((x) => x !== void 0));
+					fetch("/mywork-oracle/api/dashboard").then((r) => r.ok ? r.json() : null).then((x) => {
+						if (alive && x) setD(x);
 					}).catch(() => {});
 				};
 				load();
@@ -8459,14 +8309,40 @@ body[data-ds-dark-theme] [data-conversation-scroll] [data-trigger-menu]{backgrou
 					clearInterval(id);
 				};
 			}, []);
-			return tiles;
+			return d;
 		}
-		const fmt = (v) => typeof v === "number" ? v.toLocaleString(void 0, { maximumFractionDigits: Math.abs(v) >= 1e3 ? 0 : Math.abs(v) >= 10 ? 2 : 4 }) : String(v);
+		const fmt = (v, digits) => v === null || v === void 0 ? "-" : typeof v === "number" ? v.toLocaleString(void 0, { maximumFractionDigits: digits ?? (Math.abs(v) >= 1e3 ? 0 : Math.abs(v) >= 10 ? 2 : 4) }) : String(v);
+		const signed = (v, digits = 2) => v === null || v === void 0 ? "" : (v > 0 ? "+" : "") + v.toFixed(digits);
 		const upDownClass = (d) => d === null || d === void 0 || d === 0 ? "" : d > 0 ? " up" : " down";
-		/** Edition home: the market strip from the cockpit, a title, one sentence, five question cards. */
+		const openCockpit = () => {
+			window.dispatchEvent(new CustomEvent("mywork:open-cockpit"));
+		};
+		const askAndSend = (text) => {
+			window.dispatchEvent(new CustomEvent("mywork:new-conversation", { detail: {
+				text,
+				send: true
+			} }));
+		};
+		/** Edition home: the conversation entry, with the cockpit's essentials above it. */
 		function EditionCards({ t, prefill, hasDraft }) {
 			const { hint, fill } = useFill(prefill);
-			const strip = useMarketStrip();
+			const d = useDashboard();
+			const tiles = d?.signals?.tiles ?? [];
+			const by = new Map(tiles.map((x) => [x.id, x]));
+			const strip = STRIP_IDS.map((id) => by.get(id)).filter((x) => x !== void 0);
+			const watchlist = (d?.watchlist ?? []).slice(0, 6);
+			const quotes = d?.quotes ?? {};
+			const positions = d?.positions ?? [];
+			const reports = (d?.reports ?? []).slice(0, 3);
+			const analyze = (w) => {
+				fetch("/mywork-oracle/api/symbol/prompt", {
+					method: "POST",
+					headers: { "content-type": "application/json" },
+					body: JSON.stringify({ watchId: w.id })
+				}).then((r) => r.json()).then((r) => {
+					if (r.text) askAndSend(r.text);
+				}).catch(() => {});
+			};
 			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("section", {
 				className: "dcu-home-suggestions dcu-home-edition",
 				"data-has-draft": hasDraft,
@@ -8476,9 +8352,7 @@ body[data-ds-dark-theme] [data-conversation-scroll] [data-trigger-menu]{backgrou
 					strip.length > 0 && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
 						type: "button",
 						className: "dcu-home-strip",
-						onClick: () => {
-							window.dispatchEvent(new CustomEvent("mywork:open-cockpit"));
-						},
+						onClick: openCockpit,
 						"aria-label": t("home.ticker.open"),
 						children: [strip.map((x) => /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
 							className: "dcu-home-strip-item",
@@ -8493,7 +8367,7 @@ body[data-ds-dark-theme] [data-conversation-scroll] [data-trigger-menu]{backgrou
 								}),
 								x.delta !== null && x.delta !== void 0 && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
 									className: "dcu-home-strip-delta" + upDownClass(x.delta),
-									children: [(x.delta > 0 ? "+" : "") + x.delta, x.deltaLabel?.includes("%") ? "%" : ""]
+									children: [signed(x.delta, x.deltaLabel?.includes("%") ? 1 : 0), x.deltaLabel?.includes("%") ? "%" : ""]
 								})
 							]
 						}, x.id)), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
@@ -8502,24 +8376,104 @@ body[data-ds-dark-theme] [data-conversation-scroll] [data-trigger-menu]{backgrou
 						})]
 					}),
 					/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
-						className: "dcu-home-edition-head",
-						children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("h1", {
-							className: "dcu-home-edition-title",
-							children: t("home.edition.title")
-						}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
-							className: "dcu-home-edition-sub",
-							children: t("home.edition.sub")
+						className: "dcu-home-digest",
+						children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+							className: "dcu-home-digest-col",
+							children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+								className: "dcu-home-digest-head",
+								children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: t("home.mine") }), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+									type: "button",
+									className: "dcu-home-link",
+									onClick: openCockpit,
+									children: t("home.allReports")
+								})]
+							}), watchlist.length === 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
+								className: "dcu-home-digest-empty",
+								children: "-"
+							}) : /* @__PURE__ */ (0, react_jsx_runtime.jsx)("table", {
+								className: "dcu-home-table",
+								children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("tbody", { children: watchlist.map((w) => {
+									const q = quotes[w.id];
+									const ps = positions.filter((p) => p.watchId === w.id);
+									return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("tr", { children: [
+										/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("td", {
+											className: "dcu-home-td-label",
+											children: [w.label, /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+												className: "dcu-home-td-sub",
+												children: w.symbol
+											})]
+										}),
+										/* @__PURE__ */ (0, react_jsx_runtime.jsx)("td", {
+											className: "dcu-home-td-num",
+											children: q?.last === null || q?.last === void 0 ? "-" : fmt(q.last) + (q.currency === "概率" ? "%" : "")
+										}),
+										/* @__PURE__ */ (0, react_jsx_runtime.jsx)("td", {
+											className: "dcu-home-td-num" + upDownClass(q?.changePct),
+											children: q?.changePct === null || q?.changePct === void 0 ? "" : signed(q.changePct) + "%"
+										}),
+										/* @__PURE__ */ (0, react_jsx_runtime.jsx)("td", {
+											className: "dcu-home-td-num" + upDownClass(ps[0]?.pnl),
+											children: ps.length > 0 && ps[0].pnlPct !== null ? signed(ps[0].pnlPct) + "%" : ""
+										}),
+										/* @__PURE__ */ (0, react_jsx_runtime.jsx)("td", {
+											className: "dcu-home-td-act",
+											children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+												type: "button",
+												className: "dcu-home-chip dcu-home-chip-primary",
+												onClick: () => {
+													analyze(w);
+												},
+												children: t("home.analyze")
+											})
+										})
+									] }, w.id);
+								}) })
+							})]
+						}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+							className: "dcu-home-digest-col dcu-home-digest-side",
+							children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+								className: "dcu-home-digest-head",
+								children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: t("home.reports") })
+							}), reports.length === 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
+								className: "dcu-home-digest-empty",
+								children: "-"
+							}) : reports.map((r) => /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
+								type: "button",
+								className: "dcu-home-report",
+								onClick: () => {
+									if (r.sessionId) window.dispatchEvent(new CustomEvent("mywork:open-session", { detail: { id: r.sessionId } }));
+									else openCockpit();
+								},
+								children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+									className: "dcu-home-report-p",
+									children: r.probability === null || r.probability === void 0 ? "-" : `${r.probability}%`
+								}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
+									className: "dcu-home-report-t",
+									children: [r.title, /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
+										className: "dcu-home-td-sub",
+										children: [new Date(r.at).toLocaleDateString(), r.horizon ? " " + r.horizon : ""]
+									})]
+								})]
+							}, r.id))]
 						})]
 					}),
 					/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
-						className: "dcu-home-cards dcu-home-cards-5",
-						children: editionCategories.map(({ id, label, prompt, Icon }) => /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
+						className: "dcu-home-templates",
+						"aria-label": t("home.templates"),
+						children: [
+							"home.tpl.1",
+							"home.tpl.2",
+							"home.tpl.3",
+							"home.tpl.4",
+							"home.tpl.5",
+							"home.tpl.6"
+						].map((k) => /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
 							type: "button",
+							className: "dcu-home-chip",
 							disabled: hasDraft,
-							className: "dcu-home-card",
-							onClick: () => fill(t(prompt)),
-							children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(Icon, { "aria-hidden": "true" }), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: t(label) })]
-						}, id))
+							onClick: () => fill(t(k)),
+							children: t(k)
+						}, k))
 					}),
 					/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
 						className: "dcu-home-status",
@@ -11849,8 +11803,9 @@ html[data-dsh-native-backdrop=mica] .dcu-settings-page,html[data-dsh-native-back
 				const placeholder = t("composer.placeholder");
 				const retitle = (root) => {
 					for (const el of root.querySelectorAll("[data-composer-card] *, [data-phase=hero] *")) {
-						if (el.children.length !== 0 || el.dataset.myworkPlaceholder === "1") continue;
+						if (el.children.length !== 0) continue;
 						const text = el.textContent ?? "";
+						if (text === placeholder) continue;
 						if (/^(发消息|描述你想要构建|Send a message|Type a message|Describe what you want)/.test(text) && /(指令|command|@)/.test(text)) {
 							el.textContent = placeholder;
 							el.dataset.myworkPlaceholder = "1";
@@ -11859,12 +11814,26 @@ html[data-dsh-native-backdrop=mica] .dcu-settings-page,html[data-dsh-native-back
 				};
 				retitle(document);
 				const observer = new MutationObserver((records) => {
-					for (const r of records) for (const node of r.addedNodes) if (node instanceof Element) retitle(node);
+					for (const r of records) {
+						if (r.type === "characterData") {
+							const el = r.target.parentElement;
+							if (el) {
+								delete el.dataset.myworkPlaceholder;
+								retitle(el.parentElement ?? el);
+							}
+							continue;
+						}
+						for (const node of r.addedNodes) if (node instanceof Element) retitle(node);
+					}
 				});
 				observer.observe(document.body, {
 					childList: true,
-					subtree: true
+					subtree: true,
+					characterData: true
 				});
+				const sweep = setInterval(() => {
+					retitle(document);
+				}, 2e3);
 				const onOpenCockpit = () => {
 					selectGlobalPanel(ctx.layout, ORACLE_PANEL_ID);
 				};
@@ -11879,6 +11848,7 @@ html[data-dsh-native-backdrop=mica] .dcu-settings-page,html[data-dsh-native-back
 				}, ms));
 				return () => {
 					timers.forEach(clearTimeout);
+					clearInterval(sweep);
 					observer.disconnect();
 					window.removeEventListener("mywork:open-cockpit", onOpenCockpit);
 					window.removeEventListener("pointerdown", onInteract, { capture: true });
@@ -11914,15 +11884,31 @@ html[data-dsh-native-backdrop=mica] .dcu-settings-page,html[data-dsh-native-back
 			};
 			ctx.effect(() => {
 				const onNew = (event) => {
-					const text = String(event.detail?.text ?? "");
+					const detail = event.detail ?? {};
+					const text = String(detail.text ?? "");
 					if (!text) return;
 					selectGlobalPanel(ctx.layout, null);
 					startWorkspaceSession(ctx);
 					let tries = 0;
+					const submit = () => {
+						const b = document.querySelector("[data-composer-card] button[aria-label=\"发送消息\"], [data-composer-card] button[aria-label=\"Send message\"], [data-composer-card] button[aria-label=\"Send\"]");
+						if (b && !b.disabled) b.click();
+						else if (tries < 40) {
+							tries += 1;
+							setTimeout(submit, 150);
+						}
+					};
 					const tick = () => {
 						tries += 1;
 						const r = prefillCurrent(text);
-						if (r === "ready" || r === "workspace" || tries > 25) return;
+						if (r === "ready") {
+							if (detail.send) {
+								tries = 0;
+								setTimeout(submit, 200);
+							}
+							return;
+						}
+						if (r === "workspace" || tries > 25) return;
 						setTimeout(tick, 200);
 					};
 					setTimeout(tick, 250);

@@ -151,18 +151,25 @@ export function apply(ctx: ClientContext): void {
     const placeholder = t('composer.placeholder')
     const retitle = (root: ParentNode): void => {
       for (const el of root.querySelectorAll<HTMLElement>('[data-composer-card] *, [data-phase=hero] *')) {
-        if (el.children.length !== 0 || el.dataset.myworkPlaceholder === '1') continue
+        if (el.children.length !== 0) continue
         const text = el.textContent ?? ''
+        if (text === placeholder) continue
         if (/^(发消息|描述你想要构建|Send a message|Type a message|Describe what you want)/.test(text) && /(指令|command|@)/.test(text)) { el.textContent = placeholder; el.dataset.myworkPlaceholder = '1' }
       }
     }
     retitle(document)
-    const observer = new MutationObserver((records) => { for (const r of records) for (const node of r.addedNodes) if (node instanceof Element) retitle(node) })
-    observer.observe(document.body, { childList: true, subtree: true })
+    const observer = new MutationObserver((records) => {
+      for (const r of records) {
+        if (r.type === 'characterData') { const el = r.target.parentElement; if (el) { delete el.dataset.myworkPlaceholder; retitle(el.parentElement ?? el) } continue }
+        for (const node of r.addedNodes) if (node instanceof Element) retitle(node)
+      }
+    })
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true })
+    const sweep = setInterval(() => { retitle(document) }, 2000) // the active conversation's composer swaps its placeholder without adding nodes
     const onOpenCockpit = (): void => { selectGlobalPanel(ctx.layout, ORACLE_PANEL_ID) }
     window.addEventListener('mywork:open-cockpit', onOpenCockpit)
     const timers = [600, 1500, 3000, 6000].map((ms) => setTimeout(() => { if (!interacted && !document.querySelector('.mwc')) selectGlobalPanel(ctx.layout, ORACLE_PANEL_ID) }, ms))
-    return () => { timers.forEach(clearTimeout); observer.disconnect(); window.removeEventListener('mywork:open-cockpit', onOpenCockpit); window.removeEventListener('pointerdown', onInteract, { capture: true }); window.removeEventListener('keydown', onInteract, { capture: true }); delete document.body.dataset.myworkEdition }
+    return () => { timers.forEach(clearTimeout); clearInterval(sweep); observer.disconnect(); window.removeEventListener('mywork:open-cockpit', onOpenCockpit); window.removeEventListener('pointerdown', onInteract, { capture: true }); window.removeEventListener('keydown', onInteract, { capture: true }); delete document.body.dataset.myworkEdition }
   }, 'michengai-codex-ui: edition')
   ctx.effect(() => observeHeroWidthHandles(t('home.resizeInput')), 'michengai-codex-ui: hero width handles')
   registerInputHistory(ctx)
@@ -193,12 +200,14 @@ export function apply(ctx: ClientContext): void {
   // leave the panel, start a session in the current workspace, then prefill once the hero composer is up.
   ctx.effect(() => {
     const onNew = (event: Event): void => {
-      const text = String((event as CustomEvent<{ text?: string }>).detail?.text ?? '')
+      const detail = (event as CustomEvent<{ text?: string; send?: boolean }>).detail ?? {}
+      const text = String(detail.text ?? '')
       if (!text) return
       selectGlobalPanel(ctx.layout, null)
       startWorkspaceSession(ctx)
       let tries = 0
-      const tick = (): void => { tries += 1; const r = prefillCurrent(text); if (r === 'ready' || r === 'workspace' || tries > 25) return; setTimeout(tick, 200) }
+      const submit = (): void => { const b = document.querySelector<HTMLButtonElement>('[data-composer-card] button[aria-label="发送消息"], [data-composer-card] button[aria-label="Send message"], [data-composer-card] button[aria-label="Send"]'); if (b && !b.disabled) b.click(); else if (tries < 40) { tries += 1; setTimeout(submit, 150) } }
+      const tick = (): void => { tries += 1; const r = prefillCurrent(text); if (r === 'ready') { if (detail.send) { tries = 0; setTimeout(submit, 200) } return } if (r === 'workspace' || tries > 25) return; setTimeout(tick, 200) }
       setTimeout(tick, 250)
     }
     const onOpen = (event: Event): void => { const id = String((event as CustomEvent<{ id?: string }>).detail?.id ?? ''); if (id) { selectGlobalPanel(ctx.layout, null); openConversation(ctx, ctx.layout, id) } }

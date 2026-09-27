@@ -240,3 +240,31 @@ export function panelPrompt(panel, snapshot, portfolio, custom) {
   lines.push('', '按 SKILL.md 第 5 步模板输出：分层信号表 → 矛盾分析 → 概率场景（标注时间窗口）→ 信号一致性。写完后调用 oracle_report_save 把结论存进驾驶舱（topic = "' + panel.id + '"）。这是分析，不是交易指令。')
   return lines.join('\n')
 }
+
+/** Which extra sources a per-symbol analysis should pull, by watch kind. */
+const SYMBOL_SOURCES = {
+  stooq: 'StooqProvider.get_history（日线 90 根、周线 26 根）、YFinanceProvider.get_chain（ATM IV、put/call、max pain，美股才有）、EdgarProvider.get_insider_transactions（美股个股）、CftcCotProvider.list_reports（商品）、相关资产的相对价格',
+  ashare: 'EastmoneyProvider.get_fund_flow（拆单资金流，主力 vs 散户）、get_history（前复权日线 60 根）、list_sector_fund_flow（所在板块与轮动）、YahooPriceProvider 同名 .SS/.SZ 作交叉，美股同产业链对照',
+  crypto: 'CoinGeckoProvider.get_prices / get_global（市值、占比）、DeribitProvider.get_futures_term_structure（基差）与 get_option_chain（IV）、FearGreedProvider',
+  polymarket: 'PolymarketProvider.get_event（各结果的概率、成交量）与 get_order_book（买卖价差）、相关资产价格作交叉',
+  kalshi: 'KalshiProvider.get_market 与 get_order_book、同题的 Polymarket 合约作交叉',
+}
+
+/** The text 分析 on a watchlist row starts a conversation with: what this symbol is, what we already know, what to fetch. */
+export function symbolPrompt(watch, portfolio, snapshot, custom) {
+  const q = portfolio.quotes && portfolio.quotes[watch.id]
+  const pos = (portfolio.positions || []).filter((p) => p.watchId === watch.id)
+  const name = `${watch.label}（${KINDS[watch.kind].label}，代码 ${watch.symbol}${q && q.name && q.name !== watch.label ? '，' + q.name : ''}）`
+  const lines = [
+    `【交易工作台 · 标的分析】${custom && custom.trim() ? custom.trim() : `${watch.label} 现在怎么看？值不值得${pos.length ? '继续持有或加减仓' : '买入'}？`}`,
+    '',
+    `标的：${name}`,
+  ]
+  if (q && q.last !== null && q.last !== undefined) lines.push(`已知报价：最新 ${q.last}${q.currency === '概率' ? '%' : ' ' + q.currency}${q.changePct !== null && q.changePct !== undefined ? `，日 ${q.changePct > 0 ? '+' : ''}${q.changePct}%` : ''}${q.change30Pct !== null && q.change30Pct !== undefined ? `，30 日 ${q.change30Pct > 0 ? '+' : ''}${q.change30Pct}%` : ''}${q.extra ? '，' + q.extra : ''}`)
+  if (pos.length) lines.push('我的持仓（只用于分析，不要下任何交易指令）：' + pos.map((p) => `${p.qty} @ 成本 ${p.cost}${p.pnlPct !== null && p.pnlPct !== undefined ? `，浮动 ${p.pnlPct > 0 ? '+' : ''}${p.pnlPct}%` : ''}`).join('；'))
+  const tiles = (snapshot && snapshot.signals && snapshot.signals.tiles || []).filter((t) => ['fg', 'real10y', 'spread', 'gold', 'btc_basis', 'usdcny', 'ashare_flow'].includes(t.id))
+  if (tiles.length) lines.push('', '驾驶舱当前的市场温度（第一层信号）：', ...tiles.map(fmtTile))
+  lines.push('', '先 oracle_docs("skill") 读方法论（本会话未读过的话），再用 oracle_fetch 并行取这只标的自己的数据：' + SYMBOL_SOURCES[watch.kind] + '。至少 3 个独立维度，按 SKILL.md 第 5 步模板输出：分层信号表 → 矛盾分析 → 概率场景（标注时间窗口）→ 信号一致性。写完后调用 oracle_report_save（topic = "assets"，title 里带上标的名）。这是分析，不是交易指令。')
+  return lines.join('\n')
+}
+

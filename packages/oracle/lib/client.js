@@ -116,6 +116,7 @@ const zh = {
   posHint: '从自选里选标的，填数量和成本。持仓只用来算盈亏、给模型当分析背景，这里没有任何下单功能。', noPos: '还没有持仓。', noWatch: '自选为空。', noReports: '还没有报告。',
   openSession: '打开对话', prob: '概率', horizon: '窗口', sources: '数据源', chooseWatch: '选择自选标的', errors: '取数失败',
   updown: '涨跌配色', updownCn: '红涨绿跌', updownIntl: '绿涨红跌',
+  mine: '我的标的', analyze: '分析', fundflow: '资金流', hold: '持仓', addPos: '记一笔持仓', noneHeld: '无',
   noWatchHint: '在下方选类型、填代码就能加入，价格几秒内出现。', noReportsHint: '在任一问题上按「问先知」，模型写完报告会自动存到这里。', signalsNoneHint: '数据源尚未返回。等一分钟，或按「刷新」。', panelsHint: '按「问先知」会带着当前数字和你的自选、持仓开一个新对话',
 }
 const en = {
@@ -132,6 +133,7 @@ const en = {
   posHint: 'Pick a watchlist item, enter quantity and cost. Positions only feed the P&L and the analysis context; nothing here places orders.', noPos: 'No positions yet.', noWatch: 'Watchlist is empty.', noReports: 'No reports yet.',
   openSession: 'Open conversation', prob: 'Probability', horizon: 'Horizon', sources: 'Sources', chooseWatch: 'choose a watchlist item', errors: 'Fetch errors',
   updown: 'Gain / loss colors', updownCn: 'Red up, green down', updownIntl: 'Green up, red down',
+  mine: 'My symbols', analyze: 'Analyze', fundflow: 'Fund flow', hold: 'Position', addPos: 'Record a position', noneHeld: 'none',
   noWatchHint: 'Pick a kind and type a symbol below; the price shows up within seconds.', noReportsHint: 'Press "Ask the oracle" on any question; the model saves its report here.', signalsNoneHint: 'The data sources have not answered yet. Wait a minute or press refresh.', panelsHint: '"Ask the oracle" starts a conversation carrying the current numbers, your watchlist and positions',
 }
 
@@ -329,6 +331,10 @@ exports.apply = function apply(ctx) {
   function Skeleton() {
     return h('div', { className: 'grid', 'aria-busy': true }, Array.from({ length: 8 }, (_, i) => h('div', { key: i, className: 'cell' + (i < 2 ? ' lead' : '') }, h('div', { className: 'sk w' }), h('div', { className: 'sk v' }), h('div', { className: 'sk' }))))
   }
+  const analyzeSymbol = async (watchId, question) => {
+    const r = await api('/symbol/prompt', { watchId, question })
+    window.dispatchEvent(new CustomEvent('mywork:new-conversation', { detail: { text: r.text, send: true } }))
+  }
   const askOracle = async (id, question) => {
     const r = await api('/panels/prompt', { id, question })
     window.dispatchEvent(new CustomEvent('mywork:new-conversation', { detail: { text: r.text } }))
@@ -346,49 +352,46 @@ exports.apply = function apply(ctx) {
           h('button', { className: 'btn', disabled: busy, onClick: ask }, t('ask'))),
         err ? h('div', { className: 'err' }, err) : null))
   }
-  function Watchlist({ d, onChange }) {
+  function Symbols({ d, onChange }) {
     const kinds = d.kinds || {}
-    const [kind, setKind] = React.useState('stooq'); const [sym, setSym] = React.useState(''); const [lbl, setLbl] = React.useState(''); const [err, setErr] = React.useState(''); const [busy, setBusy] = React.useState(false)
-    const add = async () => { setBusy(true); setErr(''); try { const r = await api('/watchlist', { kind, symbol: sym, label: lbl }); setSym(''); setLbl(''); onChange(r) } catch (e) { setErr(String(e.message || e)) } finally { setBusy(false) } }
-    const del = async (id) => { setErr(''); try { onChange(await api('/watchlist/remove', { id })) } catch (e) { setErr(String(e.message || e)) } }
+    const [kind, setKind] = React.useState('stooq'); const [sym, setSym] = React.useState(''); const [lbl, setLbl] = React.useState('')
+    const [watchId, setWatchId] = React.useState(''); const [qty, setQty] = React.useState(''); const [cost, setCost] = React.useState('')
+    const [err, setErr] = React.useState(''); const [busy, setBusy] = React.useState('')
+    const run = async (kindOf, fn) => { setBusy(kindOf); setErr(''); try { await fn() } catch (e) { setErr(String(e.message || e)) } finally { setBusy('') } }
+    const addWatch = () => run('watch', async () => { const r = await api('/watchlist', { kind, symbol: sym, label: lbl }); setSym(''); setLbl(''); onChange(r) })
+    const addPos = () => run('pos', async () => { onChange(await api('/positions', { watchId, qty, cost })); setQty(''); setCost('') })
+    const delWatch = (id) => run('del', async () => onChange(await api('/watchlist/remove', { id })))
+    const delPos = (id) => run('del', async () => onChange(await api('/positions/remove', { id })))
+    const posOf = (w) => d.positions.filter((p) => p.watchId === w.id)
+    const total = d.positions.reduce((a, p) => { if (p.value !== null && p.pnl !== null) { a[p.currency] = a[p.currency] || { value: 0, pnl: 0 }; a[p.currency].value += p.value; a[p.currency].pnl += p.pnl } return a }, {})
     return h('div', null,
-      h('div', { className: 'head' }, h('h4', null, t('watch')), h('span', { className: 'meta' }, d.quotesAt ? ago(Date.parse(d.quotesAt)) : t('never'))),
+      h('div', { className: 'head' }, h('h4', null, t('mine')), h('span', { className: 'meta num' }, Object.entries(total).map(([c, v]) => h('span', { key: c, className: cls(v.pnl) }, `${c} ${fmtNum(v.value, 0)} (${sign(v.pnl, 0)})`)), h('span', null, d.quotesAt ? ago(Date.parse(d.quotesAt)) : t('never')))),
       d.watchlist.length === 0 ? h('div', { className: 'empty' }, h('strong', null, t('noWatch')), t('noWatchHint')) : h('table', null,
-        h('thead', null, h('tr', null, h('th', null, t('label')), h('th', { className: 'num' }, t('last')), h('th', { className: 'num' }, t('day')), h('th', { className: 'num' }, t('d30')), h('th', null, ''), h('th', null, ''))),
-        h('tbody', null, d.watchlist.map((w) => { const q = d.quotes[w.id] || {}; return h('tr', { key: w.id },
+        h('thead', null, h('tr', null, h('th', null, t('label')), h('th', { className: 'num' }, t('last')), h('th', { className: 'num' }, t('day')), h('th', { className: 'num' }, t('d30')), h('th', null, ''), h('th', { className: 'num' }, t('hold')), h('th', { className: 'num' }, t('pnl')), h('th', null, ''))),
+        h('tbody', null, d.watchlist.map((w) => { const q = d.quotes[w.id] || {}; const ps = posOf(w); return h('tr', { key: w.id },
           h('td', null, w.label, h('span', { className: 'sub' }, `${w.kindLabel || w.kind}  ${w.symbol}${q.name && q.name !== w.label && q.name !== w.symbol ? '  ' + q.name : ''}`)),
           h('td', { className: 'num' }, q.error ? h('span', { className: 'down', title: q.error }, '!') : fmtNum(q.last), q.currency === '概率' && q.last !== null && q.last !== undefined ? '%' : ''),
           h('td', { className: 'num ' + cls(q.changePct) }, q.changePct === null || q.changePct === undefined ? dash : sign(q.changePct) + '%'),
           h('td', { className: 'num ' + cls(q.change30Pct) }, q.change30Pct === null || q.change30Pct === undefined ? dash : sign(q.change30Pct) + '%'),
           h('td', null, h(Spark, { data: q.spark, w: 56, hgt: 18 })),
-          h('td', { className: 'num' }, h('button', { className: 'mini danger', 'aria-label': t('remove') + ' ' + w.label, onClick: () => del(w.id) }, icon('x', { size: 12 })))) }))),
+          h('td', { className: 'num' }, ps.length ? ps.map((p) => h('div', { key: p.id }, `${fmtNum(p.qty)} @ ${fmtNum(p.cost)}`)) : h('span', { className: 'hint' }, t('noneHeld'))),
+          h('td', { className: 'num' }, ps.length ? ps.map((p) => h('div', { key: p.id, className: cls(p.pnl) }, p.pnl === null ? dash : `${sign(p.pnl, 0)} (${sign(p.pnlPct)}%)`)) : dash),
+          h('td', { className: 'num', style: { whiteSpace: 'nowrap' } },
+            h('button', { className: 'btn', style: { padding: '3px 9px', fontSize: 12, marginRight: 6 }, disabled: !!busy, onClick: () => run('ask', () => analyzeSymbol(w.id)) }, t('analyze')),
+            w.kind === 'ashare' ? h('button', { className: 'mini', style: { marginRight: 6 }, disabled: !!busy, onClick: () => run('ask', () => analyzeSymbol(w.id, `${w.label} 最近主力资金是在买还是卖？所在板块的资金方向如何？`)) }, t('fundflow')) : null,
+            ps.map((p) => h('button', { key: p.id, className: 'mini danger', style: { marginRight: 6 }, 'aria-label': t('remove') + ' ' + t('hold') + ' ' + w.label, title: t('remove') + ' ' + t('hold'), onClick: () => delPos(p.id) }, icon('trash', { size: 12 }))),
+            h('button', { className: 'mini danger', 'aria-label': t('remove') + ' ' + w.label, onClick: () => delWatch(w.id) }, icon('x', { size: 12 })))) }))),
       h('div', { className: 'form' },
         h('select', { 'aria-label': t('kind'), value: kind, onChange: (e) => setKind(e.target.value) }, Object.entries(kinds).map(([k, v]) => h('option', { key: k, value: k }, v.label))),
-        h('input', { className: 'sym', value: sym, placeholder: (kinds[kind] || {}).hint || t('symbol'), 'aria-label': t('symbol'), onChange: (e) => setSym(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter') add() } }),
-        h('input', { className: 'lbl', value: lbl, placeholder: t('label'), 'aria-label': t('label'), onChange: (e) => setLbl(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter') add() } }),
-        h('button', { className: 'mini', disabled: busy || !sym.trim(), onClick: add }, icon('plus', { size: 12 }), t('add'))),
-      err ? h('div', { className: 'err' }, err) : null)
-  }
-  function Positions({ d, onChange }) {
-    const [watchId, setWatchId] = React.useState(''); const [qty, setQty] = React.useState(''); const [cost, setCost] = React.useState(''); const [err, setErr] = React.useState(''); const [busy, setBusy] = React.useState(false)
-    const add = async () => { setBusy(true); setErr(''); try { onChange(await api('/positions', { watchId, qty, cost })); setQty(''); setCost('') } catch (e) { setErr(String(e.message || e)) } finally { setBusy(false) } }
-    const del = async (id) => { setErr(''); try { onChange(await api('/positions/remove', { id })) } catch (e) { setErr(String(e.message || e)) } }
-    const total = d.positions.reduce((a, p) => { if (p.value !== null && p.pnl !== null) { a[p.currency] = a[p.currency] || { value: 0, pnl: 0 }; a[p.currency].value += p.value; a[p.currency].pnl += p.pnl } return a }, {})
-    return h('div', null,
-      h('div', { className: 'head' }, h('h4', null, t('positions')), h('span', { className: 'meta num' }, Object.entries(total).map(([c, v]) => h('span', { key: c, className: cls(v.pnl) }, `${c} ${fmtNum(v.value, 0)} (${sign(v.pnl, 0)})`)))),
-      d.positions.length === 0 ? h('div', { className: 'empty' }, h('strong', null, t('noPos')), t('posHint')) : h('table', null,
-        h('thead', null, h('tr', null, h('th', null, t('label')), h('th', { className: 'num' }, t('qty')), h('th', { className: 'num' }, t('cost')), h('th', { className: 'num' }, t('last')), h('th', { className: 'num' }, t('value')), h('th', { className: 'num' }, t('pnl')), h('th', null, ''))),
-        h('tbody', null, d.positions.map((p) => h('tr', { key: p.id },
-          h('td', null, p.label, h('span', { className: 'sub' }, `${p.symbol}  ${p.currency}`)),
-          h('td', { className: 'num' }, fmtNum(p.qty)), h('td', { className: 'num' }, fmtNum(p.cost)), h('td', { className: 'num' }, fmtNum(p.last)), h('td', { className: 'num' }, fmtNum(p.value, 0)),
-          h('td', { className: 'num ' + cls(p.pnl) }, p.pnl === null ? dash : `${sign(p.pnl, 0)} (${sign(p.pnlPct)}%)`),
-          h('td', { className: 'num' }, h('button', { className: 'mini danger', 'aria-label': t('remove') + ' ' + p.label, onClick: () => del(p.id) }, icon('x', { size: 12 }))))))),
-      h('div', { className: 'form' },
-        h('select', { 'aria-label': t('chooseWatch'), value: watchId, onChange: (e) => setWatchId(e.target.value) }, h('option', { value: '' }, t('chooseWatch')), d.watchlist.map((w) => h('option', { key: w.id, value: w.id }, `${w.label}  ${w.symbol}`))),
+        h('input', { className: 'sym', value: sym, placeholder: (kinds[kind] || {}).hint || t('symbol'), 'aria-label': t('symbol'), onChange: (e) => setSym(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter') addWatch() } }),
+        h('input', { className: 'lbl', value: lbl, placeholder: t('label'), 'aria-label': t('label'), onChange: (e) => setLbl(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter') addWatch() } }),
+        h('button', { className: 'mini', disabled: !!busy || !sym.trim(), onClick: addWatch }, icon('plus', { size: 12 }), t('add')),
+        h('span', { style: { width: 14 } }),
+        h('select', { 'aria-label': t('chooseWatch'), value: watchId, onChange: (e) => setWatchId(e.target.value) }, h('option', { value: '' }, t('addPos')), d.watchlist.map((w) => h('option', { key: w.id, value: w.id }, `${w.label}  ${w.symbol}`))),
         h('input', { className: 'n', type: 'number', min: 0, step: 'any', value: qty, placeholder: t('qty'), 'aria-label': t('qty'), onChange: (e) => setQty(e.target.value) }),
-        h('input', { className: 'n', type: 'number', min: 0, step: 'any', value: cost, placeholder: t('cost'), 'aria-label': t('cost'), onChange: (e) => setCost(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter') add() } }),
-        h('button', { className: 'mini', disabled: busy || !watchId || !qty || cost === '', onClick: add }, icon('plus', { size: 12 }), t('add'))),
-      d.positions.length ? h('div', { className: 'hint', style: { marginTop: 8 } }, t('posHint')) : null,
+        h('input', { className: 'n', type: 'number', min: 0, step: 'any', value: cost, placeholder: t('cost'), 'aria-label': t('cost'), onChange: (e) => setCost(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter') addPos() } }),
+        h('button', { className: 'mini', disabled: !!busy || !watchId || !qty || cost === '', onClick: addPos }, icon('plus', { size: 12 }), t('add'))),
+      h('div', { className: 'hint', style: { marginTop: 8 } }, t('posHint')),
       err ? h('div', { className: 'err' }, err) : null)
   }
   function Reports({ d, onChange }) {
@@ -421,8 +424,7 @@ exports.apply = function apply(ctx) {
         tiles.length ? h('div', { className: 'grid' }, tiles.map((x) => h(Tile, { key: x.id, tile: x, spark: sparks[x.id], lead: leads.has(x.id) }))) : (d.refreshing ? h(Skeleton) : h('div', { className: 'empty' }, h('strong', null, t('signalsNone')), t('signalsNoneHint'))),
         note ? h('div', { className: 'hint', style: { marginTop: 8 } }, note) : null,
         errs.length ? h('div', { className: 'err' }, t('errors') + ': ' + errs.map(([k, v]) => `${k}: ${String(v).slice(0, 80)}`).join('; ')) : null),
-      h('section', null, h('div', { className: 'head' }, h('h4', null, t('panels')), h('span', { className: 'meta' }, t('panelsHint'))), h('div', { className: 'rows' }, d.panels.map((p) => h(PanelRow, { key: p.id, panel: p, tiles })))),
-      h('section', { className: 'two' }, h(Watchlist, { d, onChange: merge }), h(Positions, { d, onChange: merge })),
+      h('section', null, h(Symbols, { d, onChange: merge })),
       h('section', null, h(Reports, { d, onChange: merge })),
       h('div', { className: 'foot' }, t('credit')))
   }

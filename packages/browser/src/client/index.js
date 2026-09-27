@@ -18,6 +18,9 @@ const API = '/mywork-browser/api'
 // builtin iframe tab, so the guide page, Markdown link clicks and openTab('browser')
 // from any plugin all land in the live browser (no iframe anywhere).
 const KIND = 'browser'
+/** Desktop shell bridge: when present, tabs are native Electron views embedded at the pane's position and nothing is streamed. */
+const desktop = () => (typeof window !== 'undefined' && window.myworkDesktop && window.myworkDesktop.browser) ? window.myworkDesktop.browser : null
+const handledOpens = new Set()
 /** One id per page load so the host can tell panes apart when several watch the same tab. */
 const VIEWER_ID = Math.random().toString(36).slice(2, 10)
 const TAB_SLOT = 'mywork.settings.tab'
@@ -27,7 +30,8 @@ const zh = {
   open: '打开实时浏览器', notRunning: '浏览器未运行', starting: '连接中…', restart: '重启浏览器',
   newTab: '新标签页', closeTab: '关闭标签页', back: '后退', forward: '前进', reload: '刷新', go: '前往',
   follow: '跟随模型', system: '用系统浏览器打开', noTabs: '没有打开的页面。输入网址，或让模型去浏览。', emptyTitle: '和模型一起上网', emptySub: '输入网址，或让模型打开一个网站。模型可以阅读、点击、输入，你随时可以接管。', untitled: '新标签页',
-  hint: '点击、滚动、输入都会转发到后台浏览器；按 Esc 退出输入焦点。',
+  hint: '点击、滚动、输入都会转发到后台浏览器；按 Esc 退出输入焦点。', hintNative: '桌面版：这是应用内嵌的真实浏览器，直接操作即可。',
+  textMode: '选字模式：可以框选、复制页面文字，Ctrl/Cmd+F 查找；再点一次回到操作模式', textModeOn: '选字模式已开：拖动选择文字，点链接跳转，滚轮照常滚动',
   modelBrowsing: '模型正在浏览', takeOverHint: '点击画面即可接管', takenOver: '你在操作这个页面', resumeFollow: '跟随模型',
   nav: '浏览器', bookmarks: '书签', addCurrent: '收藏当前页', noBookmarks: '还没有书签。', name: '名称', url: '网址（http/https）', add: '添加',
   up: '上移', down: '下移', del: '删除', edit: '重命名', save: '保存', openLive: '在实时浏览器打开', openSys: '用系统浏览器打开',
@@ -42,7 +46,8 @@ const en = {
   open: 'Open live browser', notRunning: 'browser not running', starting: 'connecting…', restart: 'Restart browser',
   newTab: 'New tab', closeTab: 'Close tab', back: 'Back', forward: 'Forward', reload: 'Reload', go: 'Go',
   follow: 'Follow model', system: 'Open in system browser', noTabs: 'No pages open. Type a URL, or ask the model to browse.', emptyTitle: 'Browse with the model', emptySub: 'Type a URL or ask the model to open a site. It can read, click and type; you can take over any time.', untitled: 'New tab',
-  hint: 'Clicks, scrolling and typing are forwarded to the background browser; press Esc to leave input focus.',
+  hint: 'Clicks, scrolling and typing are forwarded to the background browser; press Esc to leave input focus.', hintNative: 'Desktop: this is a real browser embedded in the app; use it directly.',
+  textMode: 'Text mode: select and copy page text, Ctrl/Cmd+F to find; click again to go back to driving the page', textModeOn: 'Text mode on: drag to select, click links to follow, scrolling still works',
   modelBrowsing: 'The model is browsing', takeOverHint: 'click the page to take over', takenOver: 'You are driving this page', resumeFollow: 'Follow the model',
   nav: 'Browser', bookmarks: 'Bookmarks', addCurrent: 'Bookmark this page', noBookmarks: 'No bookmarks yet.', name: 'Name', url: 'URL (http/https)', add: 'Add',
   up: 'Up', down: 'Down', del: 'Delete', edit: 'Rename', save: 'Save', openLive: 'Open in live browser', openSys: 'Open in system browser',
@@ -89,6 +94,14 @@ const CSS = `
 .mwb-b.on{color:var(--dsw-alias-brand-primary);background:color-mix(in srgb,var(--dsw-alias-brand-primary) 12%,transparent)}
 .mwb-view{flex:1;min-height:0;position:relative;display:flex;align-items:flex-start;justify-content:center;background:var(--dsw-alias-bg-layer-2);overflow:hidden;outline:none}
 .mwb-view:focus-visible{box-shadow:inset 0 0 0 2px var(--dsw-alias-brand-primary)}
+.mwb-view.native{background:var(--dsw-alias-bg-base)}
+.mwb-textlayer{position:absolute;left:0;top:0;right:0;bottom:0;overflow:hidden;pointer-events:none;cursor:text;z-index:2}
+.mwb-textlayer.on{pointer-events:auto}
+.mwb-textlayer span,.mwb-textlayer a{position:absolute;color:transparent;white-space:pre;transform-origin:0 0;user-select:text;-webkit-user-select:text;text-decoration:none;outline:none}
+.mwb-textlayer a{cursor:pointer}
+.mwb-textlayer a:hover{outline:1px solid var(--dsw-alias-brand-primary);outline-offset:1px;border-radius:2px}
+.mwb-textlayer ::selection{background:color-mix(in srgb,var(--dsw-alias-brand-primary) 38%,transparent);color:transparent}
+.mwb-textlayer span::selection{background:color-mix(in srgb,var(--dsw-alias-brand-primary) 38%,transparent)}
 .mwb-pill{position:absolute;top:10px;left:50%;transform:translateX(-50%);display:inline-flex;align-items:center;gap:8px;max-width:calc(100% - 24px);padding:0 12px 0 10px;height:28px;border-radius:999px;background:color-mix(in srgb,var(--dsw-alias-bg-overlay,var(--dsw-alias-bg-layer-1)) 92%,transparent);color:var(--dsw-alias-label-primary);border:0.5px solid var(--dsw-alias-border-l2);box-shadow:0 4px 16px rgba(0,0,0,.18);font-size:12px;line-height:16px;white-space:nowrap;pointer-events:none;backdrop-filter:blur(6px)}
 .mwb-pill.user{pointer-events:auto}
 .mwb-pill .dot{width:7px;height:7px;border-radius:50%;background:var(--dsw-alias-label-tertiary);flex:none}
@@ -279,7 +292,9 @@ exports.apply = function apply(ctx) {
       if (!text) return
       setOpen(false); setSel(-1)
       try {
-        const r = await api('/omni/go', { target: target || undefined, text })
+        let tid = target
+        if (!tid && props.ensureTarget) tid = await props.ensureTarget() // desktop shell: a native tab must exist before the host can navigate it
+        const r = await api('/omni/go', { target: tid || undefined, text })
         if (r && r.url) { setDraft(r.url); onNavigated && onNavigated(r.url) }
         const el = inputRef.current; if (el) el.blur()
       } catch (err) { console.warn('[' + PLUGIN + '] omnibox failed', err) }
@@ -328,12 +343,41 @@ exports.apply = function apply(ctx) {
     return null
   }
 
+  /** Transparent, selectable text laid over the frame (PDF-viewer style). Boxes come in page CSS px; the image is
+   *  displayed scaled, so every span is placed with the same ratio the mouse mapping uses and stretched to its box width. */
+  function TextLayer({ data, frame, imgRef, onWheel, onNavigate }) {
+    const ref = React.useRef(null)
+    const m = frame && frame.metadata
+    const img = imgRef.current
+    const rect = img ? img.getBoundingClientRect() : null
+    const sx = rect && m ? rect.width / m.deviceWidth : 1
+    const sy = rect && m ? rect.height / m.deviceHeight : 1
+    React.useLayoutEffect(() => {
+      const root = ref.current
+      if (!root) return
+      const spans = [...root.querySelectorAll('span[data-w]')]
+      const widths = spans.map((sp) => sp.getBoundingClientRect().width) // read all first, then write
+      spans.forEach((sp, i) => { const want = Number(sp.dataset.w); const have = widths[i]; sp.style.transform = have > 0 && want > 0 ? `scaleX(${(want / have).toFixed(4)})` : '' })
+    }, [data, sx, sy])
+    if (!data || !data.items) return null
+    return h('div', { ref, className: 'mwb-textlayer on', onWheel, onMouseDown: (e) => { e.stopPropagation() }, onContextMenu: (e) => { e.stopPropagation() } },
+      data.items.map((it, i) => {
+        const style = { left: it.x * sx + 'px', top: it.y * sy + 'px', fontSize: Math.max(4, it.f * sy) + 'px', lineHeight: it.h * sy + 'px', fontFamily: it.ff || 'inherit' }
+        const props = { key: i, style, 'data-w': it.w * sx }
+        return it.href
+          ? h('a', { ...props, href: it.href, title: it.href, onClick: (e) => { e.preventDefault(); onNavigate(it.href) } }, it.t)
+          : h('span', props, it.t)
+      }))
+  }
+
   function LiveBrowser(props) {
     const [status, setStatus] = React.useState(null)
     const [target, setTarget] = React.useState(null)
     const [follow, setFollow] = React.useState(true)
     const [frame, setFrame] = React.useState(null) // { data, format, metadata, still }
     const [modelAt, setModelAt] = React.useState(0) // last time the model navigated / opened a page
+    const [textMode, setTextMode] = React.useState(false)
+    const [textLayer, setTextLayer] = React.useState(null) // { vw, vh, items }
     const [draft, setDraft] = React.useState('')
     const [conn, setConn] = React.useState('idle')
     const omniRef = React.useRef(null)
@@ -362,6 +406,12 @@ exports.apply = function apply(ctx) {
       refresh()
       const id = setInterval(refresh, 5000)
       const off = onActivity((ev) => {
+        // Desktop shell: the host cannot create tabs on Electron's DevTools port, so it asks the page; one pane answers.
+        if (ev && ev.type === 'open-request' && desktop() && ev.id && !handledOpens.has(ev.id)) {
+          handledOpens.add(ev.id)
+          desktop().newTab(ev.url || 'about:blank').then(async (tid) => { setFollow(true); setTarget(tid); await api('/open-ack', { id: ev.id, target: tid }); refresh() }).catch(() => api('/open-ack', { id: ev.id, target: null }).catch(() => {}))
+          return
+        }
         const modelNav = ev && (ev.type === 'created' || ev.type === 'changed') && ev.targetId && ev.url && ev.url !== 'about:blank' && !ev.url.startsWith(location.origin)
         if (modelNav) setModelAt(Date.now())
         if (follow && modelNav) setTarget(ev.targetId)
@@ -374,6 +424,7 @@ exports.apply = function apply(ctx) {
     // target (debounced), also whenever the viewed target changes. Frames then fill the pane.
     const sizeRef = React.useRef(null)
     const sendSize = React.useCallback((id, w, h) => {
+      if (desktop()) return // bounds go to the shell from the view element's own observer
       if (!id || w < 50 || h < 50) return
       const scale = Math.min(2, Math.max(1, window.devicePixelRatio || 1))
       api('/resize', { target: id, width: Math.floor(w), height: Math.floor(h), scale, viewer: VIEWER_ID }).catch(() => {})
@@ -389,9 +440,24 @@ exports.apply = function apply(ctx) {
       return () => { ro.disconnect(); if (timer) clearTimeout(timer) }
     }, [target, sendSize, running, status])
 
+    // Desktop shell: the native view follows the placeholder box; hide it when the pane goes away.
+    React.useEffect(() => {
+      const d = desktop(); const el = viewRef.current
+      if (!d || !el || !target) { if (d) d.setBounds(null).catch(() => {}); return undefined }
+      let raf = 0
+      const report = () => { raf = 0; const r = el.getBoundingClientRect(); d.setBounds({ x: r.left + window.scrollX, y: r.top + window.scrollY, width: r.width, height: r.height }).catch(() => {}) }
+      const schedule = () => { if (!raf) raf = requestAnimationFrame(report) }
+      const ro = new ResizeObserver(schedule); ro.observe(el); ro.observe(document.documentElement)
+      window.addEventListener('scroll', schedule, true); window.addEventListener('resize', schedule)
+      const iv = setInterval(schedule, 500) // sidebar drags and zoom changes do not always fire observers on this element
+      d.select(target).catch(() => {}); report()
+      return () => { ro.disconnect(); window.removeEventListener('scroll', schedule, true); window.removeEventListener('resize', schedule); clearInterval(iv); if (raf) cancelAnimationFrame(raf); d.setBounds(null).catch(() => {}) }
+    }, [target, running, status])
+
     // SSE frames for the active target.
     React.useEffect(() => {
       if (!target) { setFrame(null); return undefined }
+      if (desktop()) { setFrame(null); setConn('native'); return undefined }
       setConn('connecting')
       const es = new EventSource(`${API}/stream?target=${encodeURIComponent(target)}`)
       es.onmessage = (ev) => {
@@ -404,6 +470,15 @@ exports.apply = function apply(ctx) {
       es.onerror = () => { setConn((c) => (c === 'live' ? 'reconnecting' : c)) }
       return () => { es.close() }
     }, [target])
+
+    // Text layer (select / copy / find): refreshed shortly after the picture settles, only while text mode is on.
+    const textTimer = React.useRef(null)
+    React.useEffect(() => {
+      if (!textMode || !target) { setTextLayer(null); return undefined }
+      if (textTimer.current) clearTimeout(textTimer.current)
+      textTimer.current = setTimeout(() => { api(`/text?target=${encodeURIComponent(target)}`).then((d) => setTextLayer(d)).catch(() => {}) }, 450)
+      return () => { if (textTimer.current) clearTimeout(textTimer.current) }
+    }, [textMode, target, frame])
 
     // Mirror the page URL into the address bar only when it actually changes,
     // so a half-typed address survives status polls and button clicks.
@@ -452,7 +527,7 @@ exports.apply = function apply(ctx) {
     const onPaste = (e) => { const txt = e.clipboardData && e.clipboardData.getData('text'); if (txt) { e.preventDefault(); push({ kind: 'text', text: txt }, true) } }
 
     const act = (path, extra) => () => { if (!target) return; api(path, { target, ...(extra || {}) }).then(refresh).catch(() => {}) }
-    const newTab = async () => { setFollow(false); try { const tinfo = await api('/new-tab', {}); await refresh(); if (tinfo && tinfo.id) setTarget(tinfo.id) } catch { /* ignore */ } }
+    const newTab = async () => { setFollow(false); try { const d = desktop(); if (d) { const id = await d.newTab('about:blank'); await refresh(); if (id) setTarget(id); return } const tinfo = await api('/new-tab', {}); await refresh(); if (tinfo && tinfo.id) setTarget(tinfo.id) } catch { /* ignore */ } }
     const current = status && status.running ? status.targets.find((x) => x.id === target) : null
 
     // openTab(KIND, { params: { url } }) from other plugins (quick links, open_url, /open):
@@ -468,6 +543,7 @@ exports.apply = function apply(ctx) {
       ;(async () => {
         const id = targetRef.current
         if (id) { await api('/navigate', { target: id, url: wantedUrl }); setDraft(wantedUrl); return }
+        const d = desktop(); if (d) { const nid = await d.newTab(wantedUrl); await refresh(); if (nid) setTarget(nid); return }
         const t = await api('/new-tab', { url: wantedUrl }); await refresh(); if (t && t.id) setTarget(t.id)
       })().catch((e) => setConn('error:' + e.message))
     }, [wantedUrl, navRev, running])
@@ -481,24 +557,27 @@ exports.apply = function apply(ctx) {
         h('div', { className: 'mwb-tabs' }, status.targets.map((x) => h('div', { key: x.id, className: 'mwb-tab' + (x.id === target ? ' on' : ''), role: 'tab', 'aria-selected': x.id === target, tabIndex: 0, title: x.title || x.url,
           onClick: () => { setFollow(false); setTarget(x.id) }, onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setFollow(false); setTarget(x.id) } } },
           h('span', { className: 'tt' }, (x.title || hostOf(x.url) || t('untitled')).slice(0, 40)),
-          h('button', { type: 'button', className: 'x', title: t('closeTab'), 'aria-label': t('closeTab') + ' ' + (x.title || hostOf(x.url) || ''), onClick: (e) => { e.stopPropagation(); api('/close-tab', { target: x.id }).then(refresh).catch(() => {}) } }, icon('x', { size: 12 }))))),
+          h('button', { type: 'button', className: 'x', title: t('closeTab'), 'aria-label': t('closeTab') + ' ' + (x.title || hostOf(x.url) || ''), onClick: (e) => { e.stopPropagation(); (desktop() ? desktop().closeTab(x.id) : api('/close-tab', { target: x.id })).then(refresh).catch(() => {}) } }, icon('x', { size: 12 }))))),
         h('button', { className: 'mwb-b', title: t('newTab'), 'aria-label': t('newTab'), onClick: newTab }, icon('plus', { size: 15 })),
       ),
       h('div', { className: 'mwb-bar2' },
         h('button', { className: 'mwb-b', title: t('back'), disabled: !target, onClick: act('/back') }, icon('arrow-left', { size: 14 })),
         h('button', { className: 'mwb-b', title: t('forward'), disabled: !target, onClick: act('/forward') }, icon('arrow-right', { size: 14 })),
         h('button', { className: 'mwb-b', title: t('reload'), disabled: !target, onClick: act('/reload') }, icon('refresh-cw', { size: 13 })),
-        h(Omnibox, { target, currentUrl: draft, focusRef: omniRef, onNavigated: (url) => { setDraft(url); refresh() } }),
+        h(Omnibox, { target, currentUrl: draft, focusRef: omniRef, ensureTarget: desktop() ? async () => { const id = await desktop().newTab('about:blank'); setTarget(id); await refresh(); return id } : undefined, onNavigated: (url) => { setDraft(url); refresh() } }),
         h('button', { className: 'mwb-b' + (follow ? ' on' : ''), title: t('follow'), 'aria-pressed': follow, onClick: () => setFollow(!follow) }, icon('crosshair', { size: 14 })),
+        desktop() ? null : h('button', { className: 'mwb-b' + (textMode ? ' on' : ''), title: t('textMode'), 'aria-pressed': textMode, onClick: () => setTextMode(!textMode) }, icon('type', { size: 14 })),
         h(BookmarkMenu, { current, target }),
         h('button', { className: 'mwb-b sys', title: t('system'), disabled: !current || !/^https?:/.test(current.url), onClick: () => { if (current) openSystem(current.url) } }, icon('external-link', { size: 14 })),
       ),
       status.targets.length === 0 || !target
         ? h('div', { className: 'mwb-msg mwb-empty-state' }, h('div', { className: 'ic' }, icon('globe', { size: 36 })), h('div', { className: 'tt' }, t('emptyTitle')), h('div', { className: 'sub' }, t('emptySub')))
+        : desktop() ? h('div', { ref: viewRef, className: 'mwb-view native', 'aria-label': t('liveView') })
         : h('div', { ref: viewRef, className: 'mwb-view', tabIndex: 0, 'aria-label': t('liveView'), onKeyDown, onPaste, onContextMenu: (e) => e.preventDefault() },
           frame ? h('img', { ref: imgRef, className: 'mwb-img', src: 'data:image/' + (frame.format || 'jpeg') + ';base64,' + frame.data, draggable: false, onMouseDown, onMouseUp, onMouseMove, onWheel, alt: '' }) : h('div', { className: 'mwb-msg' }, conn === 'connecting' ? t('starting') : conn),
+          textMode && frame ? h(TextLayer, { data: textLayer, frame, imgRef, target, onWheel, onNavigate: (url) => api('/navigate', { target, url }).then(refresh).catch(() => {}) }) : null,
           h(FollowPill, { follow, modelAt, onResume: () => { setFollow(true); refresh() } })),
-      h('div', { className: 'mwb-foot' }, (current ? (current.title ? current.title + ' · ' : '') + current.url : '') + (conn.startsWith('error') ? ' · ' + conn : '') + ' · ' + t('hint')),
+      h('div', { className: 'mwb-foot' }, (current ? (current.title ? current.title + ' · ' : '') + current.url : '') + (conn.startsWith('error') ? ' · ' + conn : '') + ' · ' + (desktop() ? t('hintNative') : t('hint'))),
     )
   }
 
@@ -605,9 +684,9 @@ exports.apply = function apply(ctx) {
         ' ',
         h('button', { className: 'mwb-mini framed', onClick: () => { try { ctx.sidebarRight.openTab(KIND) } catch { /* ignore */ } } }, icon('globe', { size: 12 }), t('open')),
       ),
-      h('div', { className: 'mwb-title' }, t('headed')),
-      h('div', { className: 'mwb-hint' }, t('headedHint')),
-      prefs ? h('div', { className: 'mwb-form' },
+      desktop() ? null : h('div', { className: 'mwb-title' }, t('headed')),
+      desktop() ? null : h('div', { className: 'mwb-hint' }, t('headedHint')),
+      prefs && !desktop() ? h('div', { className: 'mwb-form' },
         h('button', { className: 'mwb-mini framed' + (prefs.headed ? ' on' : ''), disabled: switching, 'aria-pressed': !!prefs.headed, onClick: () => setHeaded(!prefs.headed) }, icon('monitor-play', { size: 12 }), t('headed') + '：' + (prefs.headed ? t('headedOn') : t('headedOff'))),
         switching ? h('span', { className: 'mwb-hint' }, t('switching')) : null,
       ) : null,

@@ -25,7 +25,8 @@
     "src",
     "lib",
     "cordis.patch.yml",
-    "README.md"
+    "README.md",
+    "fonts"
   ],
   "scripts": {
     "build": "node ../../scripts/build-client.mjs .",

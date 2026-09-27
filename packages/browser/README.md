@@ -52,6 +52,14 @@ profile 的 `cordis.patch.yml`（patch 会整体替换 config，所以要把需�
 - `open_url` / 书签只接受 http(s) 链接，且不含内嵌凭证。
 - 远程 / 共享部署时请注意：能打开 dsh 页面的人就能操作这个浏览器。
 
+## 网页版：文字层
+
+工具条上的「文字」按钮打开后，画面上叠一层透明的真实文字（`GET /text` 走 CDP 遍历页面文本节点，按面板比例定位），可以像普通网页一样拖选、复制、点链接；画面变化后 450 ms 刷新一次，关掉即回到纯画面。
+
+## 桌面版：原生内嵌标签页
+
+`MYWORK_DESKTOP=1`（桌面壳会设）时插件不再启动后台 Chrome，只接到 `MYWORK_BROWSER_PORT` 上已经在跑的 Electron DevTools 端口（`autoLaunch` 为 false，`/status` 里 `desktop: true`），标签页由桌面壳的原生视图承载，面板只显示标签条 / 地址栏 / 空状态；实时流、文字层、有头模式开关在桌面版都不出现。模型要开新页时，插件通过 `/events` 广播 `open-request`，面板建好原生标签后 `POST /open-ack` 回执（8 s 没人回执则报错「先打开实时浏览器面板」）。细节见 [apps/desktop/README.md](../../apps/desktop/README.md)。
+
 ## 实现
 
 零依赖：`src/chrome.js`（找浏览器、拉起、等端口）、`src/cdp.js`（用 Node 自带 `WebSocket` 的最小 CDP 客户端 + 截屏流广播 + 目标监听）、`src/links.js`（书签存储）、`src/index.js`（宿主 API、open_url / quick_links / /open、系统提示词提示）、`src/client/index.js`（右侧栏标签）。

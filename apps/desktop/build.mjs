@@ -6,7 +6,7 @@
  *   node apps/desktop/build.mjs mac-arm64   → apps/desktop/dist/Mywork-DSH_desktop.app (+ dmg via package-mac.sh)
  *
  * Layout inside the app's resources/:
- *   app/                 main.js + package.json (this Electron shell)
+ *   app/                 main.js + preload.js + package.json (this Electron shell)
  *   runtime/node/        official Node 24 for the target platform
  *   runtime/dsh/         npm-installed @deepseek-ai/dsh with the target's native optional deps
  *   runtime/chrome/      Chrome for Testing (real-browser plugin + Univer screenshots)
@@ -151,6 +151,7 @@ if (T.os === 'win32') {
 rm(join(resources, 'default_app.asar'))
 mkdirSync(join(resources, 'app'), { recursive: true })
 cpSync(join(here, 'main.js'), join(resources, 'app', 'main.js'))
+cpSync(join(here, 'preload.js'), join(resources, 'app', 'preload.js'))
 cpSync(join(here, 'package.json'), join(resources, 'app', 'package.json'))
 const RT = join(resources, 'runtime'); mkdirSync(RT)
 // node

@@ -11,3 +11,8 @@ dsh plugin --profile web add dsh-mywork-shell
 ```
 
 卸载即恢复：叠加层、CSS 与标签页随插件一起移除。
+
+## 字体
+
+三种风格的西文字体随插件自带：`fonts/` 里是 Plus Jakarta Sans、Geist、Geist Mono、Newsreader、Archivo、JetBrains Mono 的 latin + latin-ext 可变字体子集（共约 488 KB，许可证见 `fonts/LICENSES.md`），由插件的宿主端在 `/mywork-shell/fonts.css` 与 `/mywork-shell/fonts/*.woff2` 提供（只对已登录连接开放，字体文件长缓存）。重新拉取：`node scripts/fetch-fonts.mjs`。中文优先系统字体（PingFang / Microsoft YaHei / Noto Sans CJK），`Noto Sans SC` 只是能访问 Google Fonts 时的可选加载，加载不到不影响显示。
+

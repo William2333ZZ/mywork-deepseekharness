@@ -1,0 +1,4 @@
+# dsh-mywork-oracle bundle patch: mounts Digital Oracle (market-data analysis) as oracle_* tools.
+- insert:
+    - id: mywork-oracle
+      name: dsh-mywork-oracle

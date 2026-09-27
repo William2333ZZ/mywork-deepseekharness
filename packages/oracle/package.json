@@ -1,0 +1,28 @@
+{
+  "name": "dsh-mywork-oracle",
+  "version": "0.1.0",
+  "description": "Digital Oracle for DeepSeek Harness：用市场交易数据（预测市场、期权、国债曲线、机构持仓、内部人交易、加密衍生品、A 股资金流）回答概率与择时问题。oracle_docs / oracle_providers / oracle_fetch / oracle_status 模型工具、系统提示、设置页「市场先知」。内置 komako-workshop/digital-oracle（MIT），只做分析不下单。",
+  "license": "MIT",
+  "type": "module",
+  "keywords": ["dsh", "deepseek-harness", "dsh-plugin", "digital-oracle", "markets", "prediction-markets", "trading-data"],
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./client": "./lib/client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": ["src", "lib", "digital-oracle/digital_oracle", "digital-oracle/references", "digital-oracle/SKILL.md", "digital-oracle/README.md", "digital-oracle/LICENSE", "cordis.patch.yml", "README.md"],
+  "scripts": {
+    "build": "node ../../scripts/build-client.mjs .",
+    "check": "node --check src/index.js && node --check src/client/index.js && python3 -m py_compile src/runner.py",
+    "test": "node --test test/*.test.mjs"
+  },
+  "engines": { "node": ">=22.19", "dsh": ">=0.1.6-alpha.2" },
+  "dsh": {
+    "bundle": { "patch": "./cordis.patch.yml" },
+    "client": { "platform": "web", "inject": ["@deepseek-ai/dsh-client-ui-settings", "@deepseek-ai/dsh-client-locale"] }
+  },
+  "peerDependencies": { "@deepseek-ai/cordis": "*" },
+  "mywork": { "clientPrelude": ["../../scripts/client-icons.cjs"] }
+}

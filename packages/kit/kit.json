@@ -120,6 +120,16 @@
       "group": "connect",
       "required": true,
       "local": "../mcp"
+    },
+    {
+      "name": "dsh-mywork-oracle",
+      "range": "^0.1.0",
+      "icon": "trending-up",
+      "label": "市场先知",
+      "desc": "Digital Oracle：用市场交易数据（预测市场、期权、国债曲线、机构持仓、内部人交易、加密衍生品、A 股资金流）回答概率与择时问题；oracle_* 工具、新建对话「市场先知」起点、设置 → MyWork → 市场先知。只做分析不下单（内置 komako-workshop/digital-oracle，MIT）",
+      "group": "trade",
+      "required": true,
+      "local": "../oracle"
     }
   ],
   "groups": {
@@ -128,7 +138,8 @@
     "browser": "网页 · 真实浏览器",
     "connect": "接入 · IM 与 MCP",
     "markdown": "Markdown · 渲染与办公文档",
-    "manage": "插件管理"
+    "manage": "插件管理",
+    "trade": "交易 · 市场数据分析"
   },
   "profileOverrides": {
     "@deepseek-ai/dsh-scope": "-",

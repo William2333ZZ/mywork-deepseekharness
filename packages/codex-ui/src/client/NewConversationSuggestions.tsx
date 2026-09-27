@@ -1,6 +1,6 @@
 import { useEffect, useState, useSyncExternalStore, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
-import { Globe, FileSpreadsheet, CalendarClock, MessageSquare } from 'lucide-react'
+import { Globe, FileSpreadsheet, CalendarClock, MessageSquare, TrendingUp } from 'lucide-react'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import { NS } from './locales.ts'
 import type { PrefillResult, DraftPresenceSource } from './new-conversation-draft.ts'
@@ -13,6 +13,7 @@ const categories = [
   { id: 'office', label: 'home.office', tasks: [{ label: 'home.office.task1', prompt: 'home.office.prompt1' }, { label: 'home.office.task2', prompt: 'home.office.prompt2' }], Icon: FileSpreadsheet, color: '#22c55e' },
   { id: 'schedule', label: 'home.schedule', tasks: [{ label: 'home.schedule.task1', prompt: 'home.schedule.prompt1' }, { label: 'home.schedule.task2', prompt: 'home.schedule.prompt2' }], Icon: CalendarClock, color: '#f48235' },
   { id: 'im', label: 'home.im', tasks: [{ label: 'home.im.task1', prompt: 'home.im.prompt1' }, { label: 'home.im.task2', prompt: 'home.im.prompt2' }], Icon: MessageSquare, color: '#a478e8' },
+  { id: 'oracle', label: 'home.oracle', tasks: [{ label: 'home.oracle.task1', prompt: 'home.oracle.prompt1' }, { label: 'home.oracle.task2', prompt: 'home.oracle.prompt2' }], Icon: TrendingUp, color: '#c9931a' },
 ] as const
 const hints = { workspace: 'home.workspace', draft: 'home.draft', busy: 'home.busy' } as const
 type Category = typeof categories[number]['id']

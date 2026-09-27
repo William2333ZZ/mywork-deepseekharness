@@ -1,6 +1,6 @@
-# Digital Oracle Work — 发行版说明
+# 交易工作台 — 发行版说明
 
-本分支（`digital-oracle-work`）是 MyWork Kit 的**交易分析发行版**：在完整的 MyWork Kit（Claude 风格界面、日程、真实浏览器、IM、MCP）之上，内置 [Digital Oracle](https://github.com/komako-workshop/digital-oracle)（komako-workshop，MIT）作为「市场先知」——用市场交易数据回答概率、宏观、择时与 A 股资金流问题。它将来作为独立发行版打包发布；`main` 仍是通用的 MyWork Kit。
+本分支（`digital-oracle-work`）是 MyWork Kit 的**交易分析发行版「交易工作台」**：在完整的 MyWork Kit（Claude 风格界面、日程、真实浏览器、IM、MCP）之上，内置 [Digital Oracle](https://github.com/komako-workshop/digital-oracle)（komako-workshop，MIT）作为「市场先知」——用市场交易数据回答概率、宏观、择时与 A 股资金流问题。它将来作为独立发行版打包发布；`main` 仍是通用的 MyWork Kit。
 
 ## 设计合约
 
@@ -8,7 +8,7 @@
 
 ## 发行版模式
 
-`packages/codex-ui/src/edition.ts` 里 `EDITION = 'oracle'`（main 是 `'kit'`），产品名在 `EDITION_NAME` 一处。生效后：启动落在驾驶舱；侧栏是「驾驶舱 / 新分析 / 更多（定时任务、插件市场、IM 助理、MCP）」，会话列表叫「分析记录」，置顶分区隐藏；新对话页没有口号，只有「问先知」和五个问题卡；隐藏工作区选择行和「访问模式」；会话标题就是问题本身，没有 emoji 和类型前缀。调试时在浏览器 localStorage 写 `dsh-mywork:edition = kit` 可临时看回套件原貌。
+`packages/codex-ui/src/edition.ts` 里 `EDITION = 'oracle'`（main 是 `'kit'`），产品名「交易工作台」在 `EDITION_NAME` 一处。生效后：启动落在驾驶舱；侧栏是「驾驶舱 / 新分析 / 更多（定时巡检、消息通知）」，插件市场与 MCP 不出现在侧栏，会话列表叫「分析记录」，不显示工作区名和置顶分区，两个标签叫「通知 / 巡检」；新分析页顶部是驾驶舱的行情条（点击回到驾驶舱），下面是「问先知」和五个问题卡；输入框占位文字是市场问题；隐藏工作区选择行和「访问模式」；会话标题就是问题本身，没有 emoji 和类型前缀；设置页去掉内置插件、插件配置、Agent 预设、Codex UI 四项，IM 助理和定时任务在这里也叫「消息通知 / 定时巡检」。调试时在浏览器 localStorage 写 `dsh-mywork:edition = kit` 可临时看回套件原貌。
 
 默认风格是 shell 新增的「市场终端」家族：中性底色、一个蓝色动作色、语义涨跌色，Geist 配 JetBrains Mono，1px 细线、4px 圆角，浅色深色全部过 WCAG AA。驾驶舱右上角可切换涨跌配色（默认红涨绿跌）。
 
@@ -39,6 +39,6 @@ cd packages/oracle/digital-oracle && python3 -m pytest -q
 
 ## 待办（打包前）
 
-- 发行版命名与桌面壳品牌（`apps/desktop` 的 APP_NAME / productName 改成发行版名称），启动默认落在驾驶舱。
+- 桌面壳已改名 TradingWorkbench（窗口标题「交易工作台」）；打包前再核对图标与安装说明。
 - 定时巡检：一键创建每日任务，把变化最大的信号推到飞书（直接推送已就绪）。
 - README 截图与「市场先知」的示例报告。

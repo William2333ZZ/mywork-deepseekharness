@@ -4,6 +4,14 @@ import { ArrowLeft, Archive, BarChart3, Box, CircleHelp, Clock, Cpu, Link, Messa
 import type { PropsLocale, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { ConnectionIndicator } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { ConnectionState } from '@deepseek-ai/dsh-client-connection/client'
+import { editionActive } from '../edition.ts'
+const EDITION_HIDDEN_SETTINGS = new Set(['plugins', 'plugin-config', 'agent-presets', 'about'])
+/** Plugin sections keep their own labels; the edition renames the two that also appear in the sidebar. */
+const EDITION_SETTINGS_LABELS: Record<string, 'sidebar.notify' | 'sidebar.patrol' | undefined> = { 'im-assistant': 'sidebar.notify', 'scheduled-tasks': 'sidebar.patrol' }
+function editionSectionLabel(id: string, fallback: string, t: (key: 'sidebar.notify' | 'sidebar.patrol') => string): string {
+  const key = editionActive() ? EDITION_SETTINGS_LABELS[id] : undefined
+  return key === undefined ? fallback : t(key)
+}
 import { NS } from './locales.ts'
 import { filterSettingsRows, generalItemGroup, settingsGroup, type SettingsRow } from './settings-page-model.ts'
 import { settingsPageStyles } from './settings-page-styles.ts'
@@ -173,7 +181,9 @@ export function CodexSettingsPage({ wide, sections, onboarding, connectionState,
   }, [open, close, step?.id])
   useEffect(() => { if (main.current !== null) main.current.scrollTop = 0 }, [active?.id])
 
-  const visible = filterSettingsRows(rows, query)
+  // 交易工作台 edition: developer sections (built-in plugins, plugin config, agent presets, the fork's about page) stay out
+  // of the settings navigation; plugin market and connectors remain reachable here since they left the sidebar.
+  const visible = filterSettingsRows(rows, query).filter(row => !editionActive() || !EDITION_HIDDEN_SETTINGS.has(row.id))
   const ownTitle = active?.id === 'general' ? t('settings.general') : active?.id === 'plugin-config' ? t('settings.pluginConfig') : undefined
   const connectionIndicator = connection === 'disconnected' ? 'disconnected' : connection === 'connecting' ? 'connecting' : recovered ? 'recovered' : undefined
   return <>
@@ -193,7 +203,7 @@ export function CodexSettingsPage({ wide, sections, onboarding, connectionState,
             const entries = visible.filter(row => settingsGroup(row.id) === group)
             return entries.length > 0 && <section className="dcu-settings-group" key={group}>
               <h2 className="dcu-settings-group-label">{t(groupLabels[group])}</h2>
-              {entries.map(row => { const Icon = sectionIcon(row.id); return <button key={row.id} type="button" className="dcu-settings-link" aria-current={row.id === active?.id ? 'page' : undefined} onClick={() => { setActiveId(row.id) }}><Icon size={16} strokeWidth={1.6} aria-hidden="true"/><span>{row.id === 'general' ? t('settings.general') : row.label}</span></button> })}
+              {entries.map(row => { const Icon = sectionIcon(row.id); return <button key={row.id} type="button" className="dcu-settings-link" aria-current={row.id === active?.id ? 'page' : undefined} onClick={() => { setActiveId(row.id) }}><Icon size={16} strokeWidth={1.6} aria-hidden="true"/><span>{row.id === 'general' ? t('settings.general') : editionSectionLabel(row.id, row.label, t)}</span></button> })}
             </section>
           })}
         </div>

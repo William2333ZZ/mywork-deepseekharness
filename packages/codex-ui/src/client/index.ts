@@ -136,7 +136,8 @@ export function apply(ctx: ClientContext): void {
   const widthStorage = browserStorage()
   if (widthStorage) initializeComposerWidth(widthStorage)
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'michengai-codex-ui: dictionaries')
-  // Digital Oracle Work edition: mark the body for edition CSS and land on the cockpit instead of a conversation.
+  const t = ctx.locale.bind(NS)
+  // 交易工作台 edition: mark the body for edition CSS and land on the cockpit instead of a conversation.
   ctx.effect(() => {
     if (!editionActive()) return () => {}
     document.body.dataset.myworkEdition = 'oracle'
@@ -146,10 +147,23 @@ export function apply(ctx: ClientContext): void {
     const onInteract = () => { interacted = true }
     window.addEventListener('pointerdown', onInteract, { once: true, capture: true })
     window.addEventListener('keydown', onInteract, { once: true, capture: true })
+    // Composer placeholder: dsh's coding wording ("发消息或创建任务, / 调用指令, @ 文件或对话") becomes a market question.
+    const placeholder = t('composer.placeholder')
+    const retitle = (root: ParentNode): void => {
+      for (const el of root.querySelectorAll<HTMLElement>('[data-composer-card] *, [data-phase=hero] *')) {
+        if (el.children.length !== 0 || el.dataset.myworkPlaceholder === '1') continue
+        const text = el.textContent ?? ''
+        if (/^(发消息|描述你想要构建|Send a message|Type a message|Describe what you want)/.test(text) && /(指令|command|@)/.test(text)) { el.textContent = placeholder; el.dataset.myworkPlaceholder = '1' }
+      }
+    }
+    retitle(document)
+    const observer = new MutationObserver((records) => { for (const r of records) for (const node of r.addedNodes) if (node instanceof Element) retitle(node) })
+    observer.observe(document.body, { childList: true, subtree: true })
+    const onOpenCockpit = (): void => { selectGlobalPanel(ctx.layout, ORACLE_PANEL_ID) }
+    window.addEventListener('mywork:open-cockpit', onOpenCockpit)
     const timers = [600, 1500, 3000, 6000].map((ms) => setTimeout(() => { if (!interacted && !document.querySelector('.mwc')) selectGlobalPanel(ctx.layout, ORACLE_PANEL_ID) }, ms))
-    return () => { timers.forEach(clearTimeout); window.removeEventListener('pointerdown', onInteract, { capture: true }); window.removeEventListener('keydown', onInteract, { capture: true }); delete document.body.dataset.myworkEdition }
+    return () => { timers.forEach(clearTimeout); observer.disconnect(); window.removeEventListener('mywork:open-cockpit', onOpenCockpit); window.removeEventListener('pointerdown', onInteract, { capture: true }); window.removeEventListener('keydown', onInteract, { capture: true }); delete document.body.dataset.myworkEdition }
   }, 'michengai-codex-ui: edition')
-  const t = ctx.locale.bind(NS)
   ctx.effect(() => observeHeroWidthHandles(t('home.resizeInput')), 'michengai-codex-ui: hero width handles')
   registerInputHistory(ctx)
   registerSettingsPage(ctx)

@@ -58,10 +58,30 @@ function useFill(prefill?: (text: string) => PrefillResult) {
   return { hint, setHint, fill }
 }
 
-/** Edition home: a title, one sentence, five question cards. Clicking a card prefills the composer at once. */
+type Tile = { id: string; label: string; value: number | string; unit?: string; delta?: number | null; deltaLabel?: string }
+const STRIP_IDS = ['gold', 'spread', 'real10y', 'fg', 'btc_basis', 'usdcny']
+function useMarketStrip(): Tile[] {
+  const [tiles, setTiles] = useState<Tile[]>([])
+  useEffect(() => {
+    let alive = true
+    const load = (): void => { fetch('/mywork-oracle/api/dashboard').then(r => r.ok ? r.json() : null).then((d: { signals?: { tiles?: Tile[] } } | null) => { if (!alive || !d?.signals?.tiles) return; const by = new Map(d.signals.tiles.map(x => [x.id, x])); setTiles(STRIP_IDS.map(id => by.get(id)).filter((x): x is Tile => x !== undefined)) }).catch(() => {}) }
+    load(); const id = setInterval(load, 60000)
+    return () => { alive = false; clearInterval(id) }
+  }, [])
+  return tiles
+}
+const fmt = (v: number | string): string => typeof v === 'number' ? v.toLocaleString(undefined, { maximumFractionDigits: Math.abs(v) >= 1000 ? 0 : Math.abs(v) >= 10 ? 2 : 4 }) : String(v)
+const upDownClass = (d: number | null | undefined): string => (d === null || d === undefined || d === 0 ? '' : d > 0 ? ' up' : ' down')
+
+/** Edition home: the market strip from the cockpit, a title, one sentence, five question cards. */
 function EditionCards({ t, prefill, hasDraft }: PropsLocale<typeof NS> & { prefill?: (text: string) => PrefillResult; hasDraft: boolean }) {
   const { hint, fill } = useFill(prefill)
+  const strip = useMarketStrip()
   return <section className="dcu-home-suggestions dcu-home-edition" data-has-draft={hasDraft} aria-hidden={hasDraft} aria-label={t('home.suggestions')}>
+    {strip.length > 0 && <button type="button" className="dcu-home-strip" onClick={() => { window.dispatchEvent(new CustomEvent('mywork:open-cockpit')) }} aria-label={t('home.ticker.open')}>
+      {strip.map(x => <span key={x.id} className="dcu-home-strip-item"><span className="dcu-home-strip-label">{x.label}</span><span className="dcu-home-strip-value">{fmt(x.value)}{x.unit ?? ''}</span>{x.delta !== null && x.delta !== undefined && <span className={'dcu-home-strip-delta' + upDownClass(x.delta)}>{(x.delta > 0 ? '+' : '') + x.delta}{x.deltaLabel?.includes('%') ? '%' : ''}</span>}</span>)}
+      <span className="dcu-home-strip-open">{t('home.ticker.open')}</span>
+    </button>}
     <div className="dcu-home-edition-head"><h1 className="dcu-home-edition-title">{t('home.edition.title')}</h1><p className="dcu-home-edition-sub">{t('home.edition.sub')}</p></div>
     <div className="dcu-home-cards dcu-home-cards-5">{editionCategories.map(({ id, label, prompt, Icon }) => <button type="button" key={id} disabled={hasDraft} className="dcu-home-card" onClick={() => fill(t(prompt))}>
       <Icon aria-hidden="true" /><span>{t(label)}</span>

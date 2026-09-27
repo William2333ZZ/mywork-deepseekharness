@@ -1,9 +1,9 @@
-# Digital Oracle Work Design System
+# 交易工作台 (Trading Workbench) Design System
 
 > Category: Themed & Unique (Finance / Trading analysis)
 > A market-analysis workstation: dense, numeric, calm. The cockpit is the product; conversations are analyses; reports are the output. Light and dark, never dark-only.
 
-Working product name: **Digital Oracle Work**（中文界面用「市场先知」）. The wordmark is one constant (`EDITION_NAME`) so the final name is a one-line change.
+Product name: **交易工作台** (Trading Workbench). The analysis engine inside it keeps its own name, 市场先知 (Digital Oracle): 交易工作台 is the product, 驾驶舱 is its home, 市场先知 answers the questions. The wordmark is one constant (`EDITION_NAME`).
 
 ## 1. Visual Theme & Atmosphere
 

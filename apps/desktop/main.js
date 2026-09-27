@@ -22,7 +22,8 @@ const { existsSync, mkdirSync, cpSync, appendFileSync } = require('node:fs')
 const { join, dirname } = require('node:path')
 const net = require('node:net')
 
-const APP_NAME = 'Mywork-DSH_desktop'
+const APP_NAME = 'TradingWorkbench' // data-dir and process name; the window title is the Chinese product name
+const APP_TITLE = '交易工作台'
 const DEV_URL = process.env.MYWORK_DESKTOP_DEV_URL || ''
 const RUNTIME = join(process.resourcesPath, 'runtime')
 const IS_WIN = process.platform === 'win32'
@@ -163,7 +164,7 @@ ipcMain.handle('mywork:browser:list', () => [...tabs.values()].map(({ view, targ
 
 function createWindow() {
   win = new BrowserWindow({
-    width: 1440, height: 920, minWidth: 900, minHeight: 600, title: APP_NAME, show: false,
+    width: 1440, height: 920, minWidth: 900, minHeight: 600, title: APP_TITLE, show: false,
     backgroundColor: '#111111', autoHideMenuBar: true,
     webPreferences: { contextIsolation: true, sandbox: true, nodeIntegration: false, preload: join(__dirname, 'preload.js') },
   })
@@ -175,7 +176,7 @@ function createWindow() {
   win.webContents.on('will-navigate', (e, url) => { if (appOrigin && !url.startsWith(appOrigin)) { e.preventDefault(); log('blocked navigation of the app window to ' + url) } })
   win.on('resize', layout)
   win.on('closed', () => { win = null })
-  win.loadURL('data:text/html,<meta charset=utf-8><body style="background:%23111;color:%23bbb;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div>正在启动 DeepSeek Harness…</div></body>')
+  win.loadURL('data:text/html,<meta charset=utf-8><body style="background:%23111;color:%23bbb;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div>正在启动交易工作台…</div></body>')
 }
 
 app.setName(APP_NAME)

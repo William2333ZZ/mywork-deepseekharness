@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * Assemble a self-contained Mywork-DSH_desktop desktop build.
+ * Assemble a self-contained TradingWorkbench desktop build.
  *
- *   node apps/desktop/build.mjs win-x64     → apps/desktop/dist/Mywork-DSH_desktop-win-x64.zip (portable)
- *   node apps/desktop/build.mjs mac-arm64   → apps/desktop/dist/Mywork-DSH_desktop.app (+ dmg via package-mac.sh)
+ *   node apps/desktop/build.mjs win-x64     → apps/desktop/dist/TradingWorkbench-win-x64.zip (portable)
+ *   node apps/desktop/build.mjs mac-arm64   → apps/desktop/dist/TradingWorkbench.app (+ dmg via package-mac.sh)
  *
  * Layout inside the app's resources/:
  *   app/                 main.js + preload.js + package.json (this Electron shell)
@@ -35,7 +35,7 @@ const TARGETS = {
     electron: `https://github.com/electron/electron/releases/download/v${ELECTRON}/electron-v${ELECTRON}-win32-x64.zip`,
     node: `https://nodejs.org/dist/v${NODE}/node-v${NODE}-win-x64.zip`,
     chrome: `https://storage.googleapis.com/chrome-for-testing-public/${CHROME}/win64/chrome-win64.zip`,
-    exe: 'electron.exe', appName: 'Mywork-DSH_desktop.exe',
+    exe: 'electron.exe', appName: 'TradingWorkbench.exe',
   },
   'mac-arm64': {
     os: 'darwin', cpu: 'arm64', arch: 'arm64',
@@ -72,7 +72,7 @@ const writeJson = (p, v) => writeFileSync(p, JSON.stringify(v, null, 2) + '\n')
 const env = { ...process.env, CI: '1' }
 
 // ---------------------------------------------------------------------------
-console.log(`\n== Mywork-DSH_desktop desktop build: ${target}\n`)
+console.log(`\n== TradingWorkbench desktop build: ${target}\n`)
 rm(STAGING); mkdirSync(STAGING, { recursive: true })
 
 // 1. downloads
@@ -136,7 +136,7 @@ for (const name of ['dsh-mywork-kit', 'dsh-mywork-codex-ui', 'dsh-univer-office'
 // 5. assemble the app folder
 console.log('\n== assembling')
 mkdirSync(DIST, { recursive: true })
-const APP = join(DIST, target, 'Mywork-DSH_desktop'); rm(join(DIST, target)); mkdirSync(APP, { recursive: true })
+const APP = join(DIST, target, 'TradingWorkbench'); rm(join(DIST, target)); mkdirSync(APP, { recursive: true })
 let resources
 if (T.os === 'win32') {
   unzip(electronZip, APP)
@@ -144,9 +144,9 @@ if (T.os === 'win32') {
   resources = join(APP, 'resources')
 } else {
   unzip(electronZip, join(DIST, target))
-  renameSync(join(DIST, target, 'Electron.app'), join(DIST, target, 'Mywork-DSH_desktop.app'))
+  renameSync(join(DIST, target, 'Electron.app'), join(DIST, target, 'TradingWorkbench.app'))
   rm(APP)
-  resources = join(DIST, target, 'Mywork-DSH_desktop.app', 'Contents', 'Resources')
+  resources = join(DIST, target, 'TradingWorkbench.app', 'Contents', 'Resources')
 }
 rm(join(resources, 'default_app.asar'))
 mkdirSync(join(resources, 'app'), { recursive: true })
@@ -165,11 +165,11 @@ unzip(chromeZip, join(RT, 'chrome'))
 cpSync(DSH_DIR, join(RT, 'dsh'), { recursive: true })
 cpSync(PROFILE, join(RT, 'profile-template'), { recursive: true })
 writeFileSync(join(T.os === 'win32' ? APP : join(DIST, target), T.os === 'win32' ? 'README-FIRST.txt' : 'README.txt'), [
-  'Mywork-DSH_desktop — DeepSeek Harness + MyWork Kit（免安装）',
+  'TradingWorkbench — 交易工作台（免安装）',
   '',
   T.os === 'win32'
-    ? '1. 把整个文件夹解压到任意位置（路径最好不含中文和空格以外的特殊字符），双击 "Mywork-DSH_desktop.exe"。\n2. 首次运行 Windows SmartScreen 可能拦截：点“更多信息”→“仍要运行”（应用未签名）。\n3. 首次启动会把插件环境复制到 %APPDATA%\\Mywork-DSH_desktop\\ ，之后的会话、设置、书签都在那里。'
-    : '1. 把 "Mywork-DSH_desktop.app" 拖到“应用程序”。\n2. 首次打开右键 → 打开（应用未签名）。\n3. 数据在 ~/Library/Application Support/Mywork-DSH_desktop/。',
+    ? '1. 把整个文件夹解压到任意位置（路径最好不含中文和空格以外的特殊字符），双击 "TradingWorkbench.exe"。\n2. 首次运行 Windows SmartScreen 可能拦截：点“更多信息”→“仍要运行”（应用未签名）。\n3. 首次启动会把插件环境复制到 %APPDATA%\\TradingWorkbench\\ ，之后的会话、设置、书签都在那里。'
+    : '1. 把 "TradingWorkbench.app" 拖到“应用程序”。\n2. 首次打开右键 → 打开（应用未签名）。\n3. 数据在 ~/Library/Application Support/TradingWorkbench/。',
   '4. 打开后到 设置 → 模型 填 DeepSeek API key。',
   '5. 自带 Chrome for Testing：实时浏览器和 Univer 截图不依赖系统 Chrome。',
   '6. 日志：数据目录下的 dsh.log。',
@@ -179,9 +179,9 @@ writeFileSync(join(T.os === 'win32' ? APP : join(DIST, target), T.os === 'win32'
 // 6. archive
 console.log('\n== archiving')
 if (T.os === 'win32') {
-  const zip = join(DIST, `Mywork-DSH_desktop-${target}.zip`); rm(zip)
-  sh('zip', ['-q', '-r', '-X', zip, 'Mywork-DSH_desktop'], { cwd: join(DIST, target) })
+  const zip = join(DIST, `TradingWorkbench-${target}.zip`); rm(zip)
+  sh('zip', ['-q', '-r', '-X', zip, 'TradingWorkbench'], { cwd: join(DIST, target) })
   console.log('\nOK → ' + zip + ` (${(statSync(zip).size / 1048576).toFixed(0)} MB)`)
 } else {
-  console.log('\nOK → ' + join(DIST, target, 'Mywork-DSH_desktop.app') + '  (run apps/desktop/package-mac.sh for a dmg)')
+  console.log('\nOK → ' + join(DIST, target, 'TradingWorkbench.app') + '  (run apps/desktop/package-mac.sh for a dmg)')
 }

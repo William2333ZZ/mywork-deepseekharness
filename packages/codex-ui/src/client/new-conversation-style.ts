@@ -35,6 +35,13 @@ body[data-mywork-edition=oracle] [data-phase=hero] [class*="_composerHero"] [cla
 body[data-mywork-edition=oracle] [data-phase=hero] [class*="_heroWorkspaceRow"]{display:none}
 body[data-mywork-edition=oracle] [data-composer-card] button[aria-label^="访问模式"],body[data-mywork-edition=oracle] [data-composer-card] button[aria-label^="Access mode"]{display:none}
 .dcu-home-edition{display:flex;flex-direction:column;gap:18px}
+.dcu-home-strip{appearance:none;display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;width:100%;padding:8px 12px;border:1px solid var(--dsw-alias-border-l2);border-radius:var(--mwc-radius,6px);background:transparent;color:inherit;font:inherit;cursor:pointer;text-align:left}
+.dcu-home-strip:hover{background:var(--dsw-alias-interactive-bg-hover)}
+.dcu-home-strip-item{display:inline-flex;align-items:baseline;gap:6px;font-size:12px;color:var(--dsw-alias-label-secondary)}
+.dcu-home-strip-value,.dcu-home-strip-delta{font-family:var(--dsw-font-mono,ui-monospace,monospace);font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-primary)}
+.dcu-home-strip-delta{font-size:11.5px}
+.dcu-home-strip-delta.up{color:var(--dsw-alias-state-error-primary)}.dcu-home-strip-delta.down{color:var(--dsw-alias-state-success-primary)}
+.dcu-home-strip-open{margin-left:auto;font-size:12px;color:var(--dsw-alias-brand-primary)}
 .dcu-home-edition-head{display:flex;flex-direction:column;gap:6px;align-items:center;text-align:center}
 .dcu-home-edition-title{margin:0;font-size:22px;line-height:28px;font-weight:600;letter-spacing:-.01em;color:var(--dsw-alias-label-primary)}
 .dcu-home-edition-sub{margin:0;font-size:13px;line-height:20px;color:var(--dsw-alias-label-secondary);max-width:44ch}

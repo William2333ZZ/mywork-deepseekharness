@@ -1556,6 +1556,13 @@ window.__ModuleLoader__.load({
 			"sidebar.newAnalysis": "新分析",
 			"sidebar.analysisTab": "分析记录",
 			"sidebar.analysisPanel": "分析",
+			"edition.name": "交易工作台",
+			"sidebar.patrol": "定时巡检",
+			"sidebar.notify": "消息通知",
+			"sidebar.notifyTab": "通知",
+			"sidebar.patrolTab": "巡检",
+			"home.ticker.open": "打开驾驶舱",
+			"composer.placeholder": "问一个市场问题，例如：黄金现在适合买吗？…",
 			"sidebar.more": "更多",
 			"home.edition.title": "问先知",
 			"home.edition.sub": "用市场交易数据回答，至少三个独立信号，只分析不下单。",
@@ -1879,6 +1886,13 @@ window.__ModuleLoader__.load({
 			"sidebar.newAnalysis": "New analysis",
 			"sidebar.analysisTab": "Analyses",
 			"sidebar.analysisPanel": "Analysis",
+			"edition.name": "Trading Workbench",
+			"sidebar.patrol": "Scheduled checks",
+			"sidebar.notify": "Notifications",
+			"sidebar.notifyTab": "Notify",
+			"sidebar.patrolTab": "Checks",
+			"home.ticker.open": "Open the cockpit",
+			"composer.placeholder": "Ask a market question, e.g. is gold a buy right now?…",
 			"sidebar.more": "More",
 			"home.edition.title": "Ask the oracle",
 			"home.edition.sub": "Answers from market trading data, at least three independent signals, analysis only.",
@@ -8080,6 +8094,13 @@ body[data-mywork-edition=oracle] [data-phase=hero] [class*="_composerHero"] [cla
 body[data-mywork-edition=oracle] [data-phase=hero] [class*="_heroWorkspaceRow"]{display:none}
 body[data-mywork-edition=oracle] [data-composer-card] button[aria-label^="访问模式"],body[data-mywork-edition=oracle] [data-composer-card] button[aria-label^="Access mode"]{display:none}
 .dcu-home-edition{display:flex;flex-direction:column;gap:18px}
+.dcu-home-strip{appearance:none;display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;width:100%;padding:8px 12px;border:1px solid var(--dsw-alias-border-l2);border-radius:var(--mwc-radius,6px);background:transparent;color:inherit;font:inherit;cursor:pointer;text-align:left}
+.dcu-home-strip:hover{background:var(--dsw-alias-interactive-bg-hover)}
+.dcu-home-strip-item{display:inline-flex;align-items:baseline;gap:6px;font-size:12px;color:var(--dsw-alias-label-secondary)}
+.dcu-home-strip-value,.dcu-home-strip-delta{font-family:var(--dsw-font-mono,ui-monospace,monospace);font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-primary)}
+.dcu-home-strip-delta{font-size:11.5px}
+.dcu-home-strip-delta.up{color:var(--dsw-alias-state-error-primary)}.dcu-home-strip-delta.down{color:var(--dsw-alias-state-success-primary)}
+.dcu-home-strip-open{margin-left:auto;font-size:12px;color:var(--dsw-alias-brand-primary)}
 .dcu-home-edition-head{display:flex;flex-direction:column;gap:6px;align-items:center;text-align:center}
 .dcu-home-edition-title{margin:0;font-size:22px;line-height:28px;font-weight:600;letter-spacing:-.01em;color:var(--dsw-alias-label-primary)}
 .dcu-home-edition-sub{margin:0;font-size:13px;line-height:20px;color:var(--dsw-alias-label-secondary);max-width:44ch}
@@ -8412,15 +8433,74 @@ body[data-ds-dark-theme] [data-conversation-scroll] [data-trigger-menu]{backgrou
 				fill
 			};
 		}
-		/** Edition home: a title, one sentence, five question cards. Clicking a card prefills the composer at once. */
+		const STRIP_IDS = [
+			"gold",
+			"spread",
+			"real10y",
+			"fg",
+			"btc_basis",
+			"usdcny"
+		];
+		function useMarketStrip() {
+			const [tiles, setTiles] = (0, react.useState)([]);
+			(0, react.useEffect)(() => {
+				let alive = true;
+				const load = () => {
+					fetch("/mywork-oracle/api/dashboard").then((r) => r.ok ? r.json() : null).then((d) => {
+						if (!alive || !d?.signals?.tiles) return;
+						const by = new Map(d.signals.tiles.map((x) => [x.id, x]));
+						setTiles(STRIP_IDS.map((id) => by.get(id)).filter((x) => x !== void 0));
+					}).catch(() => {});
+				};
+				load();
+				const id = setInterval(load, 6e4);
+				return () => {
+					alive = false;
+					clearInterval(id);
+				};
+			}, []);
+			return tiles;
+		}
+		const fmt = (v) => typeof v === "number" ? v.toLocaleString(void 0, { maximumFractionDigits: Math.abs(v) >= 1e3 ? 0 : Math.abs(v) >= 10 ? 2 : 4 }) : String(v);
+		const upDownClass = (d) => d === null || d === void 0 || d === 0 ? "" : d > 0 ? " up" : " down";
+		/** Edition home: the market strip from the cockpit, a title, one sentence, five question cards. */
 		function EditionCards({ t, prefill, hasDraft }) {
 			const { hint, fill } = useFill(prefill);
+			const strip = useMarketStrip();
 			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("section", {
 				className: "dcu-home-suggestions dcu-home-edition",
 				"data-has-draft": hasDraft,
 				"aria-hidden": hasDraft,
 				"aria-label": t("home.suggestions"),
 				children: [
+					strip.length > 0 && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
+						type: "button",
+						className: "dcu-home-strip",
+						onClick: () => {
+							window.dispatchEvent(new CustomEvent("mywork:open-cockpit"));
+						},
+						"aria-label": t("home.ticker.open"),
+						children: [strip.map((x) => /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
+							className: "dcu-home-strip-item",
+							children: [
+								/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+									className: "dcu-home-strip-label",
+									children: x.label
+								}),
+								/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
+									className: "dcu-home-strip-value",
+									children: [fmt(x.value), x.unit ?? ""]
+								}),
+								x.delta !== null && x.delta !== void 0 && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
+									className: "dcu-home-strip-delta" + upDownClass(x.delta),
+									children: [(x.delta > 0 ? "+" : "") + x.delta, x.deltaLabel?.includes("%") ? "%" : ""]
+								})
+							]
+						}, x.id)), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+							className: "dcu-home-strip-open",
+							children: t("home.ticker.open")
+						})]
+					}),
 					/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 						className: "dcu-home-edition-head",
 						children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("h1", {
@@ -8545,6 +8625,10 @@ body[data-we-sidebar-glass] .dcu-expanded-shell,body[data-we-sidebar-glass] .dcu
 .dcu-menu-icon{display:grid;place-items:center start;width:20px;height:20px}.dcu-menu-icon svg,.dcu-footer-link svg{display:block;width:16px;height:16px;color:var(--dcu-sidebar-icon)}.dcu-menu button:disabled{color:var(--dcu-sidebar-secondary);cursor:default;opacity:1}.dcu-menu button:disabled svg{color:var(--dcu-sidebar-secondary)}
 .dcu-brand-edition{display:inline-flex;align-items:center;gap:8px;font:600 15px/20px var(--dcu-font,inherit);letter-spacing:-.01em;color:var(--dcu-sidebar-primary)}.dcu-brand-edition svg{color:var(--dsw-alias-brand-primary)}
 body[data-mywork-edition=oracle] .dcu-wb-section:has(> .dcu-wb-section-body > .dcu-wb-pinned-list){display:none}
+body[data-mywork-edition=oracle] .dcu-wb-section:has(> .dcu-wb-section-body .dcu-wb-empty:only-child){display:none}
+body[data-mywork-edition=oracle] .dcu-wb-project-head{display:none}
+body[data-mywork-edition=oracle] .dcu-wb-project-body{padding-left:0}
+body[data-mywork-edition=oracle] .dcu-wb-project-body::before,body[data-mywork-edition=oracle] .dcu-wb-collection-body::before{display:none}
 .dcu-extensions-group{display:grid}.dcu-extension-leading{position:relative;display:block;width:16px;height:16px}.dcu-extension-leading svg{position:absolute;inset:0;transition:opacity 140ms ease-out,transform 220ms cubic-bezier(.16,1,.3,1)}.dcu-extension-default-icon{opacity:1}.dcu-extension-state-arrow{opacity:0;transform:rotate(0)}.dcu-extensions-group:hover .dcu-extension-default-icon,.dcu-extensions-toggle:focus-visible .dcu-extension-default-icon{opacity:0}.dcu-extensions-group:hover .dcu-extension-state-arrow,.dcu-extensions-toggle:focus-visible .dcu-extension-state-arrow{opacity:1}.dcu-extensions-toggle[aria-expanded=true] .dcu-extension-state-arrow{transform:rotate(90deg)}.dcu-extension-panel{display:grid;grid-template-rows:1fr;opacity:1;transition:grid-template-rows 220ms cubic-bezier(.16,1,.3,1),opacity 160ms ease-out}.dcu-extension-panel[data-open=false]{grid-template-rows:0fr;opacity:0;pointer-events:none}.dcu-extension-panel-inner{position:relative;min-height:0;overflow:hidden}.dcu-extension-items{position:relative;display:grid;gap:1px;margin:1px 0 4px 28px}.dcu-extension-items::before{content:"";position:absolute;left:-16px;top:0;bottom:4px;width:1px;background:var(--dcu-sidebar-border)}.dcu-extension-items button{grid-template-columns:minmax(0,1fr);min-height:32px;color:var(--dcu-sidebar-secondary);font-size:13px;font-weight:400}.dcu-extension-items .dcu-menu-icon{display:none}
 .dcu-workspaces{display:flex;min-height:0;flex:1;flex-direction:column;margin-top:2px;padding-top:8px;border-top:1px solid var(--dcu-sidebar-border)}.dcu-workspaces.dcu-workspaces-tabs{padding-top:0;border-top:0}.dcu-im-tabs{display:flex;gap:16px;margin:0 8px 12px;padding:0;border-bottom:1px solid var(--dcu-sidebar-border)}.dcu-im-tab{appearance:none;border:0;background:transparent;color:var(--dcu-sidebar-secondary);padding:8px 0 7px;font:14px/22px var(--dcu-font);font-weight:500;cursor:pointer}.dcu-im-tab[data-on=true]{color:var(--dcu-sidebar-primary);font-weight:600;box-shadow:inset 0 -2px 0 currentColor}.dcu-native-workspaces{display:flex;min-height:0;flex:1}.dcu-native-workspaces>*{min-width:0;flex:1}.dcu-native-workspaces .ima-tabs,.dcu-native-workspaces [role=tablist]{display:none!important}.dcu-schedule-browser{display:flex;min-height:0;flex:1;flex-direction:column}.dcu-native-workspaces .dcu-schedule-views{display:flex!important;flex:none;min-height:30px;margin:0 8px 8px;padding:2px;border:1px solid var(--dcu-sidebar-border);border-radius:8px;background:rgba(255,255,255,.025)}.dcu-schedule-views button{appearance:none;flex:1;min-width:0;height:24px;border:0;border-radius:6px;background:transparent;color:var(--dcu-sidebar-secondary);font:600 12px/18px var(--dcu-font);cursor:pointer}.dcu-schedule-views button[aria-selected=true]{background:var(--dcu-sidebar-hover);color:var(--dcu-sidebar-primary);box-shadow:inset 0 0 0 1px var(--dcu-sidebar-border)}.dcu-schedule-pane{display:flex;min-height:0;flex:1}.dcu-schedule-pane>*{min-width:0;flex:1}.dcu-schedule-pane>[data-slot="sidebar.schedule"]{display:flex!important;width:100%;min-width:0;flex:1}.dcu-schedule-pane>[data-slot="sidebar.schedule"]>.dsh-st-rail{width:100%;min-width:0;padding-right:8px;scrollbar-gutter:auto}.dcu-schedule-pane .dsh-st-overview{padding-right:8px}.dcu-foot{display:grid;width:100%;gap:4px;padding:8px 6px 12px;border-top:1px solid var(--dcu-sidebar-border);transition:opacity 500ms cubic-bezier(.16,1,.3,1),transform 500ms cubic-bezier(.16,1,.3,1)}.dcu-root.dcu-collapsing>.dcu-foot{opacity:0;transform:translateX(-4px);pointer-events:none}.dcu-footer-actions:empty,.dcu-settings-seat:empty{display:none}.dcu-settings-seat>button{width:100%;min-height:36px;padding-left:4px!important;color:var(--dcu-sidebar-navigation);font:14px/20px var(--dcu-font);font-weight:400}.dcu-compact{width:100%;align-items:flex-start;overflow:hidden;padding:10px 0 8px}.dcu-compact-nav{display:flex;flex:1;min-height:0;flex-direction:column;align-items:center;gap:2px;overflow:auto;padding:6px 0}.dcu-compact .dcu-icon{width:36px;height:36px;flex:none}.dcu-compact .dcu-foot{width:36px;margin-top:auto;margin-left:10px;padding:8px 0;border-top:0}.dcu-compact .dcu-settings-seat{width:36px;overflow:hidden}.dcu-compact .dcu-settings-seat>button{display:grid;place-items:center;width:36px;min-height:36px;padding:0!important;font-size:0!important;line-height:0}.dcu-compact .dcu-settings-seat>button svg{width:16px;height:16px}.dcu-compact .dcu-footer-link{display:flex;justify-content:center;width:36px;padding:0;font-size:0}.dcu-compact .dcu-footer-link svg{width:16px;height:16px}
 .dcu-settings-seat [data-slot="settings.trigger"]{color:var(--dcu-sidebar-navigation)}
@@ -9133,7 +9217,7 @@ html[data-dcu-official-turn-navigator-supported=true] .dcu-turn-navigator,html:h
 											size: 18,
 											strokeWidth: 1.8,
 											"aria-hidden": "true"
-										}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: t("sidebar.oracle") })]
+										}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: t("edition.name") })]
 									}) : /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.BrandWordmark, { size: 24 })
 								}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 									className: "dcu-head-actions",
@@ -9202,9 +9286,16 @@ html[data-dcu-official-turn-navigator-supported=true] .dcu-turn-navigator,html:h
 															tabIndex: extensionsOpen ? 0 : -1,
 															"aria-current": scheduleActive ? "page" : void 0,
 															onClick: openSchedule,
-															children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(MenuIcon, { children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(ScheduleIcon, {}) }), t("sidebar.schedule")]
+															children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(MenuIcon, { children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(ScheduleIcon, {}) }), t(edition ? "sidebar.patrol" : "sidebar.schedule")]
 														}),
-														/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
+														edition && available.assistant && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
+															type: "button",
+															tabIndex: extensionsOpen ? 0 : -1,
+															"aria-current": imActive ? "page" : void 0,
+															onClick: openImSettings,
+															children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(MenuIcon, { children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(ImAssistantIcon, {}) }), t("sidebar.notify")]
+														}),
+														!edition && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
 															type: "button",
 															tabIndex: extensionsOpen ? 0 : -1,
 															onClick: () => {
@@ -9212,7 +9303,7 @@ html[data-dcu-official-turn-navigator-supported=true] .dcu-turn-navigator,html:h
 															},
 															children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(MenuIcon, { children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconPersonalizationOutline16, { size: 16 }) }), t("sidebar.plugins")]
 														}),
-														available.experts && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
+														!edition && available.experts && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
 															type: "button",
 															tabIndex: extensionsOpen ? 0 : -1,
 															onClick: () => {
@@ -9220,30 +9311,13 @@ html[data-dcu-official-turn-navigator-supported=true] .dcu-turn-navigator,html:h
 															},
 															children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(MenuIcon, { children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconUserOutline16, { size: 16 }) }), t("sidebar.experts")]
 														}),
-														available.skills && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
+														!edition && available.skills && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
 															type: "button",
 															tabIndex: extensionsOpen ? 0 : -1,
 															onClick: () => {
 																selectExternalSection(t("sidebar.skills"));
 															},
 															children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(MenuIcon, { children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconSkillOutline16, { size: 16 }) }), t("sidebar.skills")]
-														}),
-														edition && available.assistant && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
-															type: "button",
-															tabIndex: extensionsOpen ? 0 : -1,
-															"aria-current": imActive ? "page" : void 0,
-															onClick: openImSettings,
-															children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(MenuIcon, { children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(ImAssistantIcon, {}) }), t("sidebar.assistant")]
-														}),
-														edition && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
-															type: "button",
-															tabIndex: extensionsOpen ? 0 : -1,
-															"aria-current": mcpActive ? "page" : void 0,
-															onClick: openMcp,
-															children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(MenuIcon, { children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(Plug, {
-																size: 16,
-																strokeWidth: 1.6
-															}) }), t("sidebar.mcp")]
 														})
 													]
 												})
@@ -9288,7 +9362,7 @@ html[data-dcu-official-turn-navigator-supported=true] .dcu-turn-navigator,html:h
 											onClick: () => {
 												setImTab("channels");
 											},
-											children: t("sidebar.channelsTab")
+											children: t(edition ? "sidebar.notifyTab" : "sidebar.channelsTab")
 										}),
 										showSchedule && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
 											type: "button",
@@ -9297,7 +9371,7 @@ html[data-dcu-official-turn-navigator-supported=true] .dcu-turn-navigator,html:h
 											onClick: () => {
 												setImTab("schedule");
 											},
-											children: t("sidebar.scheduleTab")
+											children: t(edition ? "sidebar.patrolTab" : "sidebar.scheduleTab")
 										})
 									]
 								}), imTab === "channels" && showChannels ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
@@ -9388,7 +9462,7 @@ html[data-dcu-official-turn-navigator-supported=true] .dcu-turn-navigator,html:h
 								available.schedule && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
 									type: "button",
 									className: "dcu-icon",
-									"aria-label": t("sidebar.schedule"),
+									"aria-label": t(edition ? "sidebar.patrol" : "sidebar.schedule"),
 									"aria-current": scheduleActive ? "page" : void 0,
 									onClick: openSchedule,
 									children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(ScheduleIcon, {})
@@ -10493,6 +10567,21 @@ html[data-dsh-native-backdrop=mica] .dcu-settings-page,html[data-dsh-native-back
 		}
 		//#endregion
 		//#region src/client/CodexSettingsPage.tsx
+		const EDITION_HIDDEN_SETTINGS = /* @__PURE__ */ new Set([
+			"plugins",
+			"plugin-config",
+			"agent-presets",
+			"about"
+		]);
+		/** Plugin sections keep their own labels; the edition renames the two that also appear in the sidebar. */
+		const EDITION_SETTINGS_LABELS = {
+			"im-assistant": "sidebar.notify",
+			"scheduled-tasks": "sidebar.patrol"
+		};
+		function editionSectionLabel(id, fallback, t) {
+			const key = editionActive() ? EDITION_SETTINGS_LABELS[id] : void 0;
+			return key === void 0 ? fallback : t(key);
+		}
 		const groupLabels = {
 			personal: "settings.personal",
 			integrations: "settings.integrations",
@@ -10677,7 +10766,7 @@ html[data-dsh-native-backdrop=mica] .dcu-settings-page,html[data-dsh-native-back
 			(0, react.useEffect)(() => {
 				if (main.current !== null) main.current.scrollTop = 0;
 			}, [active?.id]);
-			const visible = filterSettingsRows(rows, query);
+			const visible = filterSettingsRows(rows, query).filter((row) => !editionActive() || !EDITION_HIDDEN_SETTINGS.has(row.id));
 			const ownTitle = active?.id === "general" ? t("settings.general") : active?.id === "plugin-config" ? t("settings.pluginConfig") : void 0;
 			const connectionIndicator = connection === "disconnected" ? "disconnected" : connection === "connecting" ? "connecting" : recovered ? "recovered" : void 0;
 			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [
@@ -10763,7 +10852,7 @@ html[data-dsh-native-backdrop=mica] .dcu-settings-page,html[data-dsh-native-back
 													size: 16,
 													strokeWidth: 1.6,
 													"aria-hidden": "true"
-												}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: row.id === "general" ? t("settings.general") : row.label })]
+												}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: row.id === "general" ? t("settings.general") : editionSectionLabel(row.id, row.label, t) })]
 											}, row.id);
 										})]
 									}, group);
@@ -11741,6 +11830,7 @@ html[data-dsh-native-backdrop=mica] .dcu-settings-page,html[data-dsh-native-back
 				zh,
 				en
 			}), "michengai-codex-ui: dictionaries");
+			const t = ctx.locale.bind(NS);
 			ctx.effect(() => {
 				if (!editionActive()) return () => {};
 				document.body.dataset.myworkEdition = "oracle";
@@ -11756,6 +11846,29 @@ html[data-dsh-native-backdrop=mica] .dcu-settings-page,html[data-dsh-native-back
 					once: true,
 					capture: true
 				});
+				const placeholder = t("composer.placeholder");
+				const retitle = (root) => {
+					for (const el of root.querySelectorAll("[data-composer-card] *, [data-phase=hero] *")) {
+						if (el.children.length !== 0 || el.dataset.myworkPlaceholder === "1") continue;
+						const text = el.textContent ?? "";
+						if (/^(发消息|描述你想要构建|Send a message|Type a message|Describe what you want)/.test(text) && /(指令|command|@)/.test(text)) {
+							el.textContent = placeholder;
+							el.dataset.myworkPlaceholder = "1";
+						}
+					}
+				};
+				retitle(document);
+				const observer = new MutationObserver((records) => {
+					for (const r of records) for (const node of r.addedNodes) if (node instanceof Element) retitle(node);
+				});
+				observer.observe(document.body, {
+					childList: true,
+					subtree: true
+				});
+				const onOpenCockpit = () => {
+					selectGlobalPanel(ctx.layout, ORACLE_PANEL_ID);
+				};
+				window.addEventListener("mywork:open-cockpit", onOpenCockpit);
 				const timers = [
 					600,
 					1500,
@@ -11766,12 +11879,13 @@ html[data-dsh-native-backdrop=mica] .dcu-settings-page,html[data-dsh-native-back
 				}, ms));
 				return () => {
 					timers.forEach(clearTimeout);
+					observer.disconnect();
+					window.removeEventListener("mywork:open-cockpit", onOpenCockpit);
 					window.removeEventListener("pointerdown", onInteract, { capture: true });
 					window.removeEventListener("keydown", onInteract, { capture: true });
 					delete document.body.dataset.myworkEdition;
 				};
 			}, "michengai-codex-ui: edition");
-			const t = ctx.locale.bind(NS);
 			ctx.effect(() => observeHeroWidthHandles(t("home.resizeInput")), "michengai-codex-ui: hero width handles");
 			registerInputHistory(ctx);
 			registerSettingsPage(ctx);

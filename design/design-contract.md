@@ -1,4 +1,4 @@
-# Design contract: Digital Oracle Work
+# Design contract: 交易工作台 (Trading Workbench)
 
 ## Goal and target artifact
 
@@ -29,7 +29,7 @@ A calm terminal. Neutral surfaces, one blue action color, red/green that the use
 
 ## Risks and unknowns
 
-- Product name is not decided; `EDITION_NAME` is a single constant in shell and codex-ui.
+- Product name: 交易工作台 (Trading Workbench), set in `EDITION_NAME`.
 - dsh's hero DOM uses hashed class names; hiding its title relies on `[class*="_titleGroup"]` and may need a bump on dsh upgrades.
 - Hiding the access-mode picker removes a real control; it is hidden only in edition mode and is still available in dsh settings.
 - Price signals depend on yfinance; the settings tab installs it, but the cockpit must degrade (tiles missing, not broken).

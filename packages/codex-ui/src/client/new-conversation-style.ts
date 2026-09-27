@@ -63,6 +63,8 @@ body[data-mywork-edition=oracle] [data-phase=hero] [class*="_composerHero"]>:fir
 .dcu-home-report{appearance:none;display:grid;grid-template-columns:52px 1fr;gap:10px;align-items:start;width:100%;padding:6px 0;border:0;border-bottom:1px solid var(--dsw-alias-border-l1,var(--dsw-alias-border-l2));background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
 .dcu-home-report-p{font-family:var(--dsw-font-mono,ui-monospace,monospace);font-size:16px;font-weight:500;line-height:1.2}
 .dcu-home-report-t{font-size:12.5px;line-height:1.35;color:var(--dsw-alias-label-primary);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.dcu-home-changes{margin:0;padding:0;list-style:none;font-size:12.5px}
+.dcu-home-changes li{display:flex;justify-content:space-between;gap:10px;padding:4px 0;border-bottom:1px solid var(--dsw-alias-border-l1,var(--dsw-alias-border-l2))}
 .dcu-home-templates{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
 @container dcu-new-conversation (width < 640px){.dcu-home-digest{grid-template-columns:1fr}}
 .dcu-home-edition-head{display:flex;flex-direction:column;gap:6px;align-items:center;text-align:center}

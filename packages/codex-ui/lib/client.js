@@ -1481,6 +1481,8 @@ window.__ModuleLoader__.load({
 			"sidebar.reports": "报告",
 			"sidebar.patrolPage": "巡检",
 			"sidebar.newAnalysis": "提问",
+			"home.changes": "今日变化",
+			"home.changesNone": "明天开始显示",
 			"home.mine": "我的标的",
 			"home.analyze": "分析",
 			"home.templates": "常见问法",
@@ -1824,6 +1826,8 @@ window.__ModuleLoader__.load({
 			"sidebar.reports": "Reports",
 			"sidebar.patrolPage": "Checks",
 			"sidebar.newAnalysis": "Ask",
+			"home.changes": "Changes today",
+			"home.changesNone": "from tomorrow",
 			"home.mine": "My symbols",
 			"home.analyze": "Analyze",
 			"home.templates": "Common questions",
@@ -8139,6 +8143,8 @@ body[data-mywork-edition=oracle] [data-phase=hero] [class*="_composerHero"]>:fir
 .dcu-home-report{appearance:none;display:grid;grid-template-columns:52px 1fr;gap:10px;align-items:start;width:100%;padding:6px 0;border:0;border-bottom:1px solid var(--dsw-alias-border-l1,var(--dsw-alias-border-l2));background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
 .dcu-home-report-p{font-family:var(--dsw-font-mono,ui-monospace,monospace);font-size:16px;font-weight:500;line-height:1.2}
 .dcu-home-report-t{font-size:12.5px;line-height:1.35;color:var(--dsw-alias-label-primary);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.dcu-home-changes{margin:0;padding:0;list-style:none;font-size:12.5px}
+.dcu-home-changes li{display:flex;justify-content:space-between;gap:10px;padding:4px 0;border-bottom:1px solid var(--dsw-alias-border-l1,var(--dsw-alias-border-l2))}
 .dcu-home-templates{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
 @container dcu-new-conversation (width < 640px){.dcu-home-digest{grid-template-columns:1fr}}
 .dcu-home-edition-head{display:flex;flex-direction:column;gap:6px;align-items:center;text-align:center}
@@ -8587,30 +8593,58 @@ body[data-ds-dark-theme] [data-conversation-scroll] [data-trigger-menu]{backgrou
 							})]
 						}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 							className: "dcu-home-digest-col dcu-home-digest-side",
-							children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
-								className: "dcu-home-digest-head",
-								children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: t("home.reports") })
-							}), reports.length === 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
-								className: "dcu-home-digest-empty",
-								children: "-"
-							}) : reports.map((r) => /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
-								type: "button",
-								className: "dcu-home-report",
-								onClick: () => {
-									if (r.sessionId) window.dispatchEvent(new CustomEvent("mywork:open-session", { detail: { id: r.sessionId } }));
-									else openCockpit();
-								},
-								children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
-									className: "dcu-home-report-p",
-									children: r.probability === null || r.probability === void 0 ? "-" : `${r.probability}%`
-								}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
-									className: "dcu-home-report-t",
-									children: [r.title, /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
-										className: "dcu-home-td-sub",
-										children: [new Date(r.at).toLocaleDateString(), r.horizon ? " " + r.horizon : ""]
+							children: [
+								/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+									className: "dcu-home-digest-head",
+									children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: t("home.changes") }), d?.changes?.since && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: d.changes.since })]
+								}),
+								!d?.changes?.since ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
+									className: "dcu-home-digest-empty",
+									children: t("home.changesNone")
+								}) : d.changes.items.length === 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
+									className: "dcu-home-digest-empty",
+									children: "-"
+								}) : /* @__PURE__ */ (0, react_jsx_runtime.jsx)("ul", {
+									className: "dcu-home-changes",
+									children: d.changes.items.slice(0, 4).map((c) => /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("li", { children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: c.label }), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
+										className: "dcu-home-td-num" + upDownClass(c.diff),
+										children: [
+											fmt(c.from),
+											" → ",
+											fmt(c.to),
+											" ",
+											signed(c.diff, c.kind === "abs" ? 2 : 1),
+											c.kind === "abs" ? c.unit ?? "" : "%"
+										]
+									})] }, c.id))
+								}),
+								/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+									className: "dcu-home-digest-head",
+									style: { marginTop: 10 },
+									children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: t("home.reports") })
+								}),
+								reports.length === 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
+									className: "dcu-home-digest-empty",
+									children: "-"
+								}) : reports.map((r) => /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
+									type: "button",
+									className: "dcu-home-report",
+									onClick: () => {
+										if (r.sessionId) window.dispatchEvent(new CustomEvent("mywork:open-session", { detail: { id: r.sessionId } }));
+										else openCockpit();
+									},
+									children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+										className: "dcu-home-report-p",
+										children: r.probability === null || r.probability === void 0 ? "-" : `${r.probability}%`
+									}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
+										className: "dcu-home-report-t",
+										children: [r.title, /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
+											className: "dcu-home-td-sub",
+											children: [new Date(r.at).toLocaleDateString(), r.horizon ? " " + r.horizon : ""]
+										})]
 									})]
-								})]
-							}, r.id))]
+								}, r.id))
+							]
 						})]
 					}),
 					/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {

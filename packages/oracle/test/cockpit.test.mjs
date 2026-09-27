@@ -50,6 +50,8 @@ test('signals: tiles derive spreads, ratios and deltas', () => {
   assert.equal(by.ashare_flow.value, '汽车零部件')
   assert.equal(s.sparks.gold.length, 3)
   assert.equal(s.errors.pmRecession, 'timeout')
+  assert.equal(by.fg.regime, '恐惧'); assert.equal(by.real10y.regime, '高位'); assert.equal(by.spread.regime, '正常'); assert.equal(by.btc_basis.regime, '正常'); assert.equal(by.pm_fed.regime, '边缘')
+  assert.match(s.summary, /^风险偏好恐惧（恐惧贪婪 37），实际利率高位 2\.83%，曲线正常 36bp，黄金月内\+8%/)
 })
 
 test('quotes and positions: every kind is priced and valued', () => {

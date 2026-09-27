@@ -31,6 +31,7 @@ const zh = {
   openSession: '打开对话', prob: '概率', horizon: '窗口', sources: '数据源', chooseWatch: '选择自选标的', errors: '取数失败',
   updown: '涨跌配色', updownCn: '红涨绿跌', updownIntl: '绿涨红跌',
   mine: '我的标的', analyze: '分析', fundflow: '资金流', hold: '持仓', addPos: '记一笔持仓', noneHeld: '无',
+  sectors: '板块资金流', sectorNet: '主力净流入', sectorChg: '涨跌', value: '市值', lastReport: '最近报告', summaryLabel: '状态',
   changes: '今日变化', changesSince: '较 {0}', changesNone: '还没有前一天的快照，明天开始显示变化。', allReports: '全部报告',
   rTitle: '报告', rFilterSymbol: '全部标的', rFilterTopic: '全部主题', rSearch: '搜索标题或结论…', rHistory: '历史', rRight: '对', rWrong: '错', rVerdict: '事后验证', rNone: '还没有报告。', rNoneHint: '在首页或驾驶舱按「分析」，模型写完报告会自动存到这里。', rMacro: '宏观', rCustom: '其他',
   pTitle: '巡检', pEnabled: '每日巡检', pTime: '时间', pInclude: '内容', pIncTemp: '市场温度与变化', pIncSymbols: '我的标的与持仓', pIncReports: '该复核的报告', pTarget: '推送到', pNoTarget: '还没有可用的飞书账号', pConnect: '连接通知账号', pTest: '现在推送一次', pPreview: '预览内容', pRuns: '执行记录', pRunsNone: '还没有执行过。', pSaved: '已保存', pAdvanced: '高级：定时任务', pHint: '到点时把下面勾选的内容作为数据摘要推到你的飞书。这只是数据，不含建议。', pManual: '手动', pAuto: '自动', pOk: '已推送', pFail: '失败',
@@ -51,6 +52,7 @@ const en = {
   openSession: 'Open conversation', prob: 'Probability', horizon: 'Horizon', sources: 'Sources', chooseWatch: 'choose a watchlist item', errors: 'Fetch errors',
   updown: 'Gain / loss colors', updownCn: 'Red up, green down', updownIntl: 'Green up, red down',
   mine: 'My symbols', analyze: 'Analyze', fundflow: 'Fund flow', hold: 'Position', addPos: 'Record a position', noneHeld: 'none',
+  sectors: 'Sector fund flow', sectorNet: 'Net inflow', sectorChg: 'Change', value: 'Value', lastReport: 'Last report', summaryLabel: 'Read',
   changes: 'Changes today', changesSince: 'vs {0}', changesNone: 'No snapshot from a previous day yet; changes appear from tomorrow.', allReports: 'All reports',
   rTitle: 'Reports', rFilterSymbol: 'All symbols', rFilterTopic: 'All topics', rSearch: 'Search title or conclusion…', rHistory: 'History', rRight: 'Right', rWrong: 'Wrong', rVerdict: 'Verified', rNone: 'No reports yet.', rNoneHint: 'Press Analyze on the home page or the cockpit; the model saves its report here.', rMacro: 'Macro', rCustom: 'Other',
   pTitle: 'Checks', pEnabled: 'Daily check', pTime: 'Time', pInclude: 'Include', pIncTemp: 'Market temperature and changes', pIncSymbols: 'My symbols and positions', pIncReports: 'Reports due for review', pTarget: 'Push to', pNoTarget: 'No Feishu account available yet', pConnect: 'Connect a notification account', pTest: 'Push now', pPreview: 'Preview', pRuns: 'Runs', pRunsNone: 'Nothing has run yet.', pSaved: 'Saved', pAdvanced: 'Advanced: scheduled tasks', pHint: 'At the set time the checked content is pushed to your Feishu as a data digest. Data only, no advice.', pManual: 'manual', pAuto: 'auto', pOk: 'pushed', pFail: 'failed',
@@ -98,20 +100,22 @@ const CSS = `
 .mwc .seg{display:inline-flex;border:1px solid var(--mwc-line);border-radius:var(--mwc-r);overflow:hidden}
 .mwc .seg button{border:0;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;padding:3px 9px;cursor:pointer;min-height:24px}
 .mwc .seg button[aria-pressed=true]{background:var(--dsw-alias-label-primary);color:var(--dsw-alias-bg-base)}
-/* market temperature: a hairline grid; the last row always stretches to the edge, so there is never an empty cell */
-.mwc .grid{display:flex;flex-wrap:wrap;gap:1px;background:var(--mwc-line);border:1px solid var(--mwc-line);border-radius:var(--mwc-r);overflow:hidden}
-.mwc .cell{flex:1 1 200px;background:var(--dsw-alias-bg-base);padding:12px 14px 11px;min-height:108px;display:flex;flex-direction:column;gap:5px;position:relative;box-sizing:border-box}
-.mwc .cell.lead{flex:2 1 400px}
-.mwc .cell .lb{font-size:12px;color:var(--dsw-alias-label-secondary);display:flex;justify-content:space-between;gap:8px;align-items:baseline}
-.mwc .cell .v{font-size:22px;font-weight:500;line-height:1.1;display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
-.mwc .cell.lead .v{font-size:30px}
-.mwc .cell .v.txt{font-size:15px;font-family:inherit;font-weight:600}
-.mwc .cell .v small{font-size:12px;font-weight:500;color:var(--dsw-alias-label-secondary);font-family:inherit}
-.mwc .cell .d{font-size:12px}
-.mwc .cell .m{font-size:11.5px;line-height:1.45;color:var(--dsw-alias-label-tertiary);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:auto}
-.mwc .cell:hover .m{-webkit-line-clamp:unset}
-.mwc .cell svg.spark{position:absolute;right:14px;top:36px}
-.mwc .cell.lead svg.spark{right:16px;top:30px}
+/* market temperature: one horizontal strip of compact cells; the reading (regime) replaces the meaning text, which lives in the tooltip */
+.mwc .grid{display:flex;flex-wrap:nowrap;gap:1px;background:var(--mwc-line);border:1px solid var(--mwc-line);border-radius:var(--mwc-r);overflow-x:auto;overflow-y:hidden;scrollbar-width:thin}
+.mwc .cell{flex:0 0 172px;background:var(--dsw-alias-bg-base);padding:9px 12px 8px;min-height:0;display:flex;flex-direction:column;gap:3px;position:relative;box-sizing:border-box}
+.mwc .cell.lead{flex-basis:172px}
+.mwc .cell .lb{font-size:11.5px;color:var(--dsw-alias-label-secondary);display:flex;justify-content:space-between;gap:6px;align-items:baseline;white-space:nowrap;overflow:hidden}
+.mwc .cell .v{font-size:18px;font-weight:500;line-height:1.1;display:flex;align-items:baseline;gap:4px;white-space:nowrap}
+.mwc .cell.lead .v{font-size:18px}
+.mwc .cell .v.txt{font-size:13px;font-family:inherit;font-weight:600;white-space:normal}
+.mwc .cell .v small{font-size:11px;font-weight:500;color:var(--dsw-alias-label-secondary);font-family:inherit}
+.mwc .cell .d{font-size:11.5px}
+.mwc .cell .rg{font-size:11.5px;color:var(--dsw-alias-label-tertiary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mwc .cell .m{display:none}
+.mwc .cell svg.spark{position:absolute;right:10px;bottom:8px;opacity:.9}
+.mwc .cell.lead svg.spark{right:10px;bottom:8px}
+.mwc .summary{font-size:12.5px;line-height:1.6;color:var(--dsw-alias-label-secondary);margin-top:8px}
+.mwc .summary b{font-weight:600;color:var(--dsw-alias-label-primary);margin-right:6px}
 /* skeleton (loading) */
 .mwc .sk{background:var(--dsw-alias-bg-layer-2);border-radius:4px;height:12px}
 .mwc .sk.w{width:60%}.mwc .sk.v{height:24px;width:45%;margin:4px 0}
@@ -250,14 +254,14 @@ exports.apply = function apply(ctx) {
     const digits = pctLike ? 1 : 0
     return `${sign(tile.delta, digits)}${pctLike ? '%' : ''} ${tile.deltaLabel ? tile.deltaLabel.replace('%', '') : ''}`.trim()
   }
-  function Tile({ tile, spark, lead }) {
+  function Tile({ tile, spark }) {
     const numeric = typeof tile.value === 'number'
     const d = deltaText(tile)
-    return h('div', { className: 'cell' + (lead ? ' lead' : ''), title: `${tile.source}${tile.asOf ? ' ' + String(tile.asOf).slice(0, 10) : ''}` },
+    return h('div', { className: 'cell', title: `${tile.meaning}\n${tile.source}${tile.asOf ? ' ' + String(tile.asOf).slice(0, 10) : ''}` },
       h('div', { className: 'lb' }, h('span', null, tile.label), d ? h('span', { className: 'd num ' + cls(tile.delta) }, d) : null),
-      h('div', { className: 'v' + (numeric ? ' num' : ' txt') }, numeric ? fmtNum(tile.value) : String(tile.value), numeric && tile.unit ? h('small', null, tile.unit) : null),
-      h('div', { className: 'm' }, tile.meaning),
-      spark ? h(Spark, { data: spark, w: lead ? 120 : 72, hgt: lead ? 34 : 26 }) : null)
+      h('div', { className: 'v' + (numeric ? ' num' : ' txt') }, numeric ? fmtNum(tile.value) : String(tile.value).slice(0, 8), numeric && tile.unit ? h('small', null, tile.unit) : null),
+      h('div', { className: 'rg' }, tile.regime || ' '),
+      spark ? h(Spark, { data: spark, w: 56, hgt: 18 }) : null)
   }
   const useUpDown = () => {
     const [v, setV] = React.useState(readUpDown)
@@ -271,7 +275,7 @@ exports.apply = function apply(ctx) {
       h('button', { type: 'button', 'aria-pressed': v === 'intl', onClick: () => writeUpDown('intl') }, t('updownIntl')))
   }
   function Skeleton() {
-    return h('div', { className: 'grid', 'aria-busy': true }, Array.from({ length: 8 }, (_, i) => h('div', { key: i, className: 'cell' + (i < 2 ? ' lead' : '') }, h('div', { className: 'sk w' }), h('div', { className: 'sk v' }), h('div', { className: 'sk' }))))
+    return h('div', { className: 'grid', 'aria-busy': true }, Array.from({ length: 7 }, (_, i) => h('div', { key: i, className: 'cell' }, h('div', { className: 'sk w' }), h('div', { className: 'sk v' }))))
   }
   const analyzeSymbol = async (watchId, question) => {
     const r = await api('/symbol/prompt', { watchId, question })
@@ -309,7 +313,7 @@ exports.apply = function apply(ctx) {
     return h('div', null,
       h('div', { className: 'head' }, h('h4', null, t('mine')), h('span', { className: 'meta num' }, Object.entries(total).map(([c, v]) => h('span', { key: c, className: cls(v.pnl) }, `${c} ${fmtNum(v.value, 0)} (${sign(v.pnl, 0)})`)), h('span', null, d.quotesAt ? ago(Date.parse(d.quotesAt)) : t('never')))),
       d.watchlist.length === 0 ? h('div', { className: 'empty' }, h('strong', null, t('noWatch')), t('noWatchHint')) : h('table', null,
-        h('thead', null, h('tr', null, h('th', null, t('label')), h('th', { className: 'num' }, t('last')), h('th', { className: 'num' }, t('day')), h('th', { className: 'num' }, t('d30')), h('th', null, ''), h('th', { className: 'num' }, t('hold')), h('th', { className: 'num' }, t('pnl')), h('th', null, ''))),
+        h('thead', null, h('tr', null, h('th', null, t('label')), h('th', { className: 'num' }, t('last')), h('th', { className: 'num' }, t('day')), h('th', { className: 'num' }, t('d30')), h('th', null, ''), h('th', { className: 'num' }, t('hold')), h('th', { className: 'num' }, t('value')), h('th', { className: 'num' }, t('pnl')), h('th', null, t('lastReport')), h('th', null, ''))),
         h('tbody', null, d.watchlist.map((w) => { const q = d.quotes[w.id] || {}; const ps = posOf(w); return h('tr', { key: w.id },
           h('td', null, w.label, h('span', { className: 'sub' }, `${w.kindLabel || w.kind}  ${w.symbol}${q.name && q.name !== w.label && q.name !== w.symbol ? '  ' + q.name : ''}`)),
           h('td', { className: 'num' }, q.error ? h('span', { className: 'down', title: q.error }, '!') : fmtNum(q.last), q.currency === '概率' && q.last !== null && q.last !== undefined ? '%' : ''),
@@ -317,7 +321,9 @@ exports.apply = function apply(ctx) {
           h('td', { className: 'num ' + cls(q.change30Pct) }, q.change30Pct === null || q.change30Pct === undefined ? dash : sign(q.change30Pct) + '%'),
           h('td', null, h(Spark, { data: q.spark, w: 56, hgt: 18 })),
           h('td', { className: 'num' }, ps.length ? ps.map((p) => h('div', { key: p.id }, `${fmtNum(p.qty)} @ ${fmtNum(p.cost)}`)) : h('span', { className: 'hint' }, t('noneHeld'))),
+          h('td', { className: 'num' }, ps.length ? ps.map((p) => h('div', { key: p.id }, p.value === null ? dash : fmtNum(p.value, 0))) : dash),
           h('td', { className: 'num' }, ps.length ? ps.map((p) => h('div', { key: p.id, className: cls(p.pnl) }, p.pnl === null ? dash : `${sign(p.pnl, 0)} (${sign(p.pnlPct)}%)`)) : dash),
+          h('td', null, (() => { const r = (d.reports || []).find((x) => x.symbol && (x.symbol === w.label || x.symbol === w.symbol)); return r ? h('button', { className: 'mini', title: r.title, onClick: () => { if (r.sessionId) window.dispatchEvent(new CustomEvent('mywork:open-session', { detail: { id: r.sessionId } })); else openPanel('mywork-reports') } }, h('span', { className: 'num' }, r.probability !== null && r.probability !== undefined ? r.probability + '%' : dash), ' ', String(r.at).slice(5, 10)) : h('span', { className: 'hint' }, dash) })()),
           h('td', { className: 'num', style: { whiteSpace: 'nowrap' } },
             h('button', { className: 'btn', style: { padding: '3px 9px', fontSize: 12, marginRight: 6 }, disabled: !!busy, onClick: () => run('ask', () => analyzeSymbol(w.id)) }, t('analyze')),
             w.kind === 'ashare' ? h('button', { className: 'mini', style: { marginRight: 6 }, disabled: !!busy, onClick: () => run('ask', () => analyzeSymbol(w.id, `${w.label} 最近主力资金是在买还是卖？所在板块的资金方向如何？`)) }, t('fundflow')) : null,
@@ -337,6 +343,15 @@ exports.apply = function apply(ctx) {
       err ? h('div', { className: 'err' }, err) : null)
   }
   const openPanel = (id) => window.dispatchEvent(new CustomEvent('mywork:open-panel', { detail: { id } }))
+  function Sectors({ d }) {
+    const tile = ((d.signals && d.signals.tiles) || []).find((x) => x.id === 'ashare_flow')
+    const list = tile && Array.isArray(tile.list) ? tile.list : []
+    if (!list.length) return null
+    return h('div', null,
+      h('div', { className: 'head' }, h('h4', null, t('sectors')), h('span', { className: 'meta' }, tile.source)),
+      h('table', null, h('thead', null, h('tr', null, h('th', null, ''), h('th', { className: 'num' }, t('sectorNet') + '（亿）'), h('th', { className: 'num' }, t('sectorChg')))),
+        h('tbody', null, list.map((x) => h('tr', { key: x.name }, h('td', null, x.name), h('td', { className: 'num ' + cls(x.netYi) }, sign(x.netYi, 1)), h('td', { className: 'num ' + cls(x.changePct) }, x.changePct === null || x.changePct === undefined ? dash : sign(x.changePct) + '%'))))))
+  }
   function Changes({ d }) {
     const c = d.changes || { items: [] }
     return h('div', null,
@@ -430,14 +445,14 @@ exports.apply = function apply(ctx) {
     if (!d) return h('div', { className: 'mwc', 'data-updown': updown }, h('section', null, h('div', { className: 'head' }, h('h4', null, t('temp')), h('span', { className: 'meta' }, loadErr ? h('span', { className: 'down' }, loadErr) : t('refreshing'))), h(Skeleton)))
     const tiles = (d.signals && d.signals.tiles) || []; const sparks = (d.signals && d.signals.sparks) || {}
     const errs = d.signals && d.signals.errors ? Object.entries(d.signals.errors) : []
-    const leads = new Set(['fg', 'gold'])
     return h('div', { className: 'mwc', 'data-updown': updown },
       h('section', null,
         h('div', { className: 'head' }, h('h4', null, t('temp')), h('span', { className: 'meta' }, h(UpDownToggle), d.refreshing ? t('refreshing') : ago(d.lastRefresh), h('button', { className: 'mini', disabled: busy || d.refreshing, onClick: refresh }, icon('refresh-cw', { size: 12 }), t('refreshNow')))),
-        tiles.length ? h('div', { className: 'grid' }, tiles.map((x) => h(Tile, { key: x.id, tile: x, spark: sparks[x.id], lead: leads.has(x.id) }))) : (d.refreshing ? h(Skeleton) : h('div', { className: 'empty' }, h('strong', null, t('signalsNone')), t('signalsNoneHint'))),
+        tiles.length ? h('div', { className: 'grid' }, tiles.map((x) => h(Tile, { key: x.id, tile: x, spark: sparks[x.id] }))) : (d.refreshing ? h(Skeleton) : h('div', { className: 'empty' }, h('strong', null, t('signalsNone')), t('signalsNoneHint'))),
+        d.signals && d.signals.summary ? h('div', { className: 'summary' }, h('b', null, t('summaryLabel')), d.signals.summary) : null,
         note ? h('div', { className: 'hint', style: { marginTop: 8 } }, note) : null,
         errs.length ? h('div', { className: 'err' }, t('errors') + ': ' + errs.map(([k, v]) => `${k}: ${String(v).slice(0, 80)}`).join('; ')) : null),
-      h('section', null, h(Changes, { d })),
+      h('section', { className: 'two' }, h(Changes, { d }), h(Sectors, { d })),
       h('section', null, h(Symbols, { d, onChange: merge })),
       h('section', null, h(Reports, { d, onChange: merge })),
       h('div', { className: 'foot' }, t('credit')))

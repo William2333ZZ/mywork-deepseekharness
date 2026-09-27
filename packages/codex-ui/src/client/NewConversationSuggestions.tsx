@@ -55,7 +55,8 @@ type Quote = { last: number | null; changePct?: number | null; change30Pct?: num
 type Watch = { id: string; kind: string; symbol: string; label: string; kindLabel?: string }
 type Position = { id: string; watchId: string; qty: number; cost: number; pnl: number | null; pnlPct: number | null }
 type Report = { id: string; title: string; probability: number | null; horizon?: string; at: string; sessionId?: string | null }
-type Dashboard = { signals?: { tiles?: Tile[] }; watchlist?: Watch[]; quotes?: Record<string, Quote>; positions?: Position[]; reports?: Report[] }
+type Change = { id: string; label: string; from: number; to: number; diff: number; kind: 'abs' | 'pct'; unit?: string }
+type Dashboard = { signals?: { tiles?: Tile[] }; changes?: { since: string | null; items: Change[] }; watchlist?: Watch[]; quotes?: Record<string, Quote>; positions?: Position[]; reports?: Report[] }
 const STRIP_IDS = ['gold', 'spread', 'real10y', 'fg', 'btc_basis', 'usdcny']
 function useDashboard(): Dashboard | undefined {
   const [d, setD] = useState<Dashboard>()
@@ -102,7 +103,9 @@ function EditionCards({ t, prefill, hasDraft }: PropsLocale<typeof NS> & { prefi
         </tr> })}</tbody></table>}
       </div>
       <div className="dcu-home-digest-col dcu-home-digest-side">
-        <div className="dcu-home-digest-head"><span>{t('home.reports')}</span></div>
+        <div className="dcu-home-digest-head"><span>{t('home.changes')}</span>{d?.changes?.since && <span>{d.changes.since}</span>}</div>
+        {!d?.changes?.since ? <p className="dcu-home-digest-empty">{t('home.changesNone')}</p> : d.changes.items.length === 0 ? <p className="dcu-home-digest-empty">-</p> : <ul className="dcu-home-changes">{d.changes.items.slice(0, 4).map(c => <li key={c.id}><span>{c.label}</span><span className={'dcu-home-td-num' + upDownClass(c.diff)}>{fmt(c.from)} → {fmt(c.to)} {signed(c.diff, c.kind === 'abs' ? 2 : 1)}{c.kind === 'abs' ? (c.unit ?? '') : '%'}</span></li>)}</ul>}
+        <div className="dcu-home-digest-head" style={{ marginTop: 10 }}><span>{t('home.reports')}</span></div>
         {reports.length === 0 ? <p className="dcu-home-digest-empty">-</p> : reports.map(r => <button type="button" key={r.id} className="dcu-home-report" onClick={() => { if (r.sessionId) window.dispatchEvent(new CustomEvent('mywork:open-session', { detail: { id: r.sessionId } })); else openCockpit() }}>
           <span className="dcu-home-report-p">{r.probability === null || r.probability === undefined ? '-' : `${r.probability}%`}</span>
           <span className="dcu-home-report-t">{r.title}<span className="dcu-home-td-sub">{new Date(r.at).toLocaleDateString()}{r.horizon ? ' ' + r.horizon : ''}</span></span>

@@ -179,7 +179,35 @@ export function buildSignals(results, errors = {}) {
   const fed = pmTop(results.pmFed, /\bfed\b|fomc|rate (cut|hike)/i); const rec = pmTop(results.pmRecession, /recession/i, /\bus\b|u\.s\.|united states|american/i)
   if (fed && fed.yes !== null) tile({ id: 'pm_fed', label: 'Polymarket 美联储', value: round(fed.yes, 1), unit: '%', meaning: fed.question || fed.title, source: `Polymarket ${fed.slug}`, asOf: at })
   if (rec && rec.yes !== null) tile({ id: 'pm_recession', label: 'Polymarket 衰退', value: round(rec.yes, 1), unit: '%', meaning: rec.question || rec.title, source: `Polymarket ${rec.slug}`, asOf: at })
-  return { at, tiles, sparks, errors }
+  for (const t of tiles) t.regime = regimeOf(t)
+  return { at, tiles, sparks, errors, summary: marketSummary(tiles) }
+}
+
+/** A one-word reading per tile, so the strip can be scanned without the meaning text. */
+export function regimeOf(t) {
+  const v = typeof t.value === 'number' ? t.value : null
+  switch (t.id) {
+    case 'fg': return v === null ? '' : v < 25 ? '极度恐惧' : v < 45 ? '恐惧' : v < 55 ? '中性' : v < 75 ? '贪婪' : '极度贪婪'
+    case 'real10y': return v === null ? '' : v >= 2 ? '高位' : v >= 1 ? '偏高' : v > 0 ? '温和' : '为负'
+    case 'spread': return v === null ? '' : v < 0 ? '倒挂' : v < 25 ? '平坦' : v < 100 ? '正常' : '陡峭'
+    case 'btc_basis': return v === null ? '' : v >= 10 ? '拥挤' : v >= 3 ? '正常' : v >= 0 ? '冷淡' : '负基差'
+    case 'gold': case 'oil': case 'copper_gold': case 'usdcny': { const d = typeof t.delta === 'number' ? t.delta : null; if (d === null) return ''; const a = Math.abs(d); const dir = t.id === 'usdcny' ? (d > 0 ? '人民币走弱' : '人民币走强') : (d > 0 ? '上行' : '下行'); return a < 1 ? '横盘' : a < 5 ? dir : '大幅' + dir }
+    case 'cftc_gold': { const d = typeof t.delta === 'number' ? t.delta : null; return d === null ? '' : d > 0 ? '加仓' : d < 0 ? '减仓' : '持平' }
+    case 'pm_fed': case 'pm_recession': return v === null ? '' : v >= 80 ? '几乎确定' : v >= 55 ? '大概率' : v >= 30 ? '分歧' : v >= 10 ? '小概率' : '边缘'
+    default: return ''
+  }
+}
+
+/** One sentence for the top of the cockpit, built from the tiles that are present. */
+export function marketSummary(tiles) {
+  const by = new Map(tiles.map((t) => [t.id, t])); const parts = []
+  const fg = by.get('fg'); if (fg) parts.push(`风险偏好${fg.regime}（恐惧贪婪 ${fg.value}）`)
+  const r = by.get('real10y'); if (r) parts.push(`实际利率${r.regime} ${r.value}%`)
+  const sp = by.get('spread'); if (sp) parts.push(`曲线${sp.regime} ${sp.value}bp`)
+  const g = by.get('gold'); if (g && typeof g.delta === 'number') parts.push(`黄金月内${g.delta > 0 ? '+' : ''}${g.delta}%`)
+  const b = by.get('btc_basis'); if (b) parts.push(`加密杠杆${b.regime}`)
+  const f = by.get('pm_fed'); if (f) parts.push(`联储合约 ${f.value}%（${String(f.meaning).slice(0, 40)}）`)
+  return parts.join('，') + (parts.length ? '。' : '')
 }
 
 /** Provider calls for the watchlist (one or two per item). */

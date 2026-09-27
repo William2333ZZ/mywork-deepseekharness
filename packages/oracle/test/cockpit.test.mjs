@@ -83,3 +83,35 @@ test('panel prompt carries the cached signals and the portfolio', () => {
   assert.match(geo, /暂无缓存信号/)
   assert.doesNotMatch(geo, /我的持仓/)
 })
+
+import { dailyChanges, patrolDigest, recordHistory } from '../src/cockpit.js'
+
+test('history and daily changes: only moves above the noise floor, biggest first', () => {
+  let h = {}
+  h = recordHistory(h, { tiles: [{ id: 'fg', label: '恐惧贪婪指数', value: 30 }, { id: 'gold', label: '黄金', value: 4000, unit: 'USD' }, { id: 'spread', label: '10Y-2Y 利差', value: 36, unit: 'bp' }] }, { byId: { a: { last: 100, label: 'SPY' } } }, '2026-09-26')
+  h = recordHistory(h, { tiles: [{ id: 'fg', label: '恐惧贪婪指数', value: 37 }, { id: 'gold', label: '黄金', value: 4321, unit: 'USD' }, { id: 'spread', label: '10Y-2Y 利差', value: 37, unit: 'bp' }] }, { byId: { a: { last: 100.5, label: 'SPY' } } }, '2026-09-27')
+  const c = dailyChanges(h, '2026-09-27')
+  assert.equal(c.since, '2026-09-26')
+  assert.deepEqual(c.items.map((x) => x.id), ['gold', 'fg'], 'spread (1bp) and SPY (0.5%) are noise')
+  assert.match(c.items[0].text, /黄金 4000USD → 4321USD（\+8\.0%）/)
+  assert.deepEqual(dailyChanges(h, '2026-09-26'), { since: null, items: [] })
+  for (let i = 1; i <= 12; i++) h = recordHistory(h, { tiles: [] }, { byId: {} }, `2026-10-${String(i).padStart(2, '0')}`)
+  assert.equal(Object.keys(h).length, 10, 'ten days kept')
+})
+
+test('patrol digest: sections follow the include flags and stay short', () => {
+  const s = new OracleStore(join(mkdtempSync(join(tmpdir(), 'oracle-')), 'oracle.json'))
+  assert.throws(() => s.setPatrol({ time: '25:00' }), /HH:MM/)
+  const cfg = s.setPatrol({ enabled: true, time: '08:30', include: { temperature: true, symbols: false, reports: true }, target: 'acc1' })
+  assert.equal(cfg.include.symbols, false)
+  const old = s.addReport({ topic: 'assets', title: '旧报告', summary: 'x', probability: 40, symbol: '黄金' }); old.at = '2026-08-01T00:00:00.000Z'; s.write()
+  const text = patrolDigest({ patrol: cfg, signals: { tiles: [{ id: 'fg', label: '恐惧贪婪指数', value: 37, delta: 7, deltaLabel: '周' }] }, portfolio: { watchlist: [{ id: 'a', label: 'SPY' }], quotes: { a: { last: 771, changePct: 0.5 } }, positions: [] }, changes: { since: '2026-09-26', items: [{ text: '黄金 4000 → 4321（+8.0%）' }] }, reports: s.read().reports, now: new Date('2026-09-28T08:30:00') })
+  assert.match(text, /巡检 9月28日 08:30/)
+  assert.match(text, /恐惧贪婪指数 37（周 \+7）/)
+  assert.match(text, /较 2026-09-26 变化最大/)
+  assert.doesNotMatch(text, /我的标的/, 'symbols excluded')
+  assert.match(text, /该复核的报告[\s\S]*旧报告 40%/)
+  assert.ok(text.length <= 1800)
+  assert.equal(s.setVerdict(old.id, 'right').verdict, 'right')
+  assert.equal(s.addRun({ ok: true, manual: true, target: 'x', summary: 's' }).ok, true)
+})

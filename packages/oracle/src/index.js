@@ -21,7 +21,8 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { configSchema, defineRawTool, rejectUntrusted } from './harness.js'
-import { KINDS, OracleStore, PANELS, SIGNAL_CALLS, buildQuotes, buildSignals, dataPath, panelPrompt, quoteCalls, snapshotPath, symbolPrompt, valuePositions } from './cockpit.js'
+import { KINDS, OracleStore, PANELS, SIGNAL_CALLS, buildQuotes, buildSignals, dailyChanges, dataPath, panelPrompt, patrolDigest, quoteCalls, recordHistory, snapshotPath, symbolPrompt, today, valuePositions } from './cockpit.js'
+import { patrolTargets, pushToAccount } from './patrol.js'
 
 export const name = 'dsh-mywork-oracle'
 export const inject = ['tools']
@@ -149,9 +150,9 @@ export function apply(ctx, config = {}) {
 
   // ---- cockpit ------------------------------------------------------------------------------
   const store = new OracleStore(dataPath())
-  let snapshot = { signals: null, quotes: null, refreshing: false, lastRefresh: 0 }
+  let snapshot = { signals: null, quotes: null, history: {}, refreshing: false, lastRefresh: 0 }
   try { if (existsSync(snapshotPath())) snapshot = { ...snapshot, ...JSON.parse(readFileSync(snapshotPath(), 'utf8')), refreshing: false } } catch { /* start empty */ }
-  const persistSnapshot = () => { try { mkdirSync(dirname(snapshotPath()), { recursive: true }); writeFileSync(snapshotPath(), JSON.stringify({ signals: snapshot.signals, quotes: snapshot.quotes, lastRefresh: snapshot.lastRefresh })) } catch (e) { warn('snapshot not saved: ' + (e && e.message)) } }
+  const persistSnapshot = () => { try { mkdirSync(dirname(snapshotPath()), { recursive: true }); writeFileSync(snapshotPath(), JSON.stringify({ signals: snapshot.signals, quotes: snapshot.quotes, history: snapshot.history || {}, lastRefresh: snapshot.lastRefresh })) } catch (e) { warn('snapshot not saved: ' + (e && e.message)) } }
   const ageMin = (iso) => (iso ? (Date.now() - Date.parse(iso)) / 60000 : Infinity)
   const signalsTtl = Number(config.signalsTtlMin) || 15
   const quotesTtl = Number(config.quotesTtlMin) || 5
@@ -167,6 +168,7 @@ export function apply(ctx, config = {}) {
       if (signals) snapshot.signals = buildSignals(r.results, Object.fromEntries(Object.entries(r.errors).filter(([k]) => !k.includes(':'))))
       if (quotes) snapshot.quotes = buildQuotes(watchlist, r.results, r.errors)
       snapshot.lastRefresh = Date.now()
+      snapshot.history = recordHistory(snapshot.history, snapshot.signals, snapshot.quotes)
       persistSnapshot()
     })().catch((e) => { warn('snapshot refresh failed: ' + (e && e.message)); snapshot.lastError = String(e && e.message || e) }).finally(() => { snapshot.refreshing = false; refreshPromise = null })
     return refreshPromise
@@ -183,11 +185,39 @@ export function apply(ctx, config = {}) {
     const quotes = snapshot.quotes && snapshot.quotes.byId ? snapshot.quotes.byId : {}
     return { watchlist: watchlist.map((w) => ({ ...w, kindLabel: KINDS[w.kind].label })), quotes, positions: valuePositions(positions, watchlist, snapshot.quotes), quotesAt: snapshot.quotes && snapshot.quotes.at }
   }
-  const dashboard = () => ({ signals: snapshot.signals, refreshing: snapshot.refreshing, lastRefresh: snapshot.lastRefresh, lastError: snapshot.lastError || null, ttl: { signalsMin: signalsTtl, quotesMin: quotesTtl }, kinds: KINDS, ...portfolio(), reports: store.read().reports.slice(0, 50), panels: PANELS.map((p) => ({ id: p.id, label: p.label, question: p.question, tiles: p.tiles, portfolio: !!p.portfolio })) })
+  const dashboard = () => ({ signals: snapshot.signals, changes: dailyChanges(snapshot.history || {}), refreshing: snapshot.refreshing, lastRefresh: snapshot.lastRefresh, lastError: snapshot.lastError || null, ttl: { signalsMin: signalsTtl, quotesMin: quotesTtl }, kinds: KINDS, ...portfolio(), reports: store.read().reports.slice(0, 50), panels: PANELS.map((p) => ({ id: p.id, label: p.label, question: p.question, tiles: p.tiles, portfolio: !!p.portfolio })) })
   // Refresh quietly a little after boot, then keep the cache warm while dsh runs.
   const bootTimer = setTimeout(() => { ensureFresh().catch(() => {}) }, 4000)
   const keepWarm = setInterval(() => { ensureFresh().catch(() => {}) }, 60000)
-  ctx.effect(() => () => { clearTimeout(bootTimer); clearInterval(keepWarm) }, 'dsh-mywork-oracle: cockpit timers')
+  // ---- patrol: a data-only digest pushed to the user's Feishu at the configured time ----
+  let patrolBusy = false
+  const runPatrol = async (manual = false) => {
+    if (patrolBusy) throw new Error('巡检正在进行')
+    patrolBusy = true
+    try {
+      const { patrol, reports } = store.read()
+      if (!patrol.target) throw new Error('还没有选择推送账号')
+      await ensureFresh({ wait: true })
+      const p = portfolio()
+      const text = patrolDigest({ patrol, signals: snapshot.signals, portfolio: p, changes: dailyChanges(snapshot.history || {}), reports })
+      const sent = await pushToAccount(patrol.target, text)
+      const summary = text.split('\n').filter((l) => l.startsWith('· ')).slice(0, 3).map((l) => l.slice(2)).join('；')
+      return store.addRun({ ok: true, manual, target: sent.name, summary, text })
+    } catch (e) {
+      store.addRun({ ok: false, manual, error: String(e && e.message || e) })
+      throw e
+    } finally { patrolBusy = false }
+  }
+  let lastPatrolDay = ''
+  const patrolTick = setInterval(() => {
+    const { patrol } = store.read()
+    if (!patrol.enabled || !patrol.target) return
+    const now = new Date(); const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+    if (hhmm !== patrol.time || lastPatrolDay === today(now)) return
+    lastPatrolDay = today(now)
+    runPatrol(false).then((r) => log('patrol pushed to ' + r.target)).catch((e) => warn('patrol failed: ' + (e && e.message)))
+  }, 30000)
+  ctx.effect(() => () => { clearTimeout(bootTimer); clearInterval(keepWarm); clearInterval(patrolTick) }, 'dsh-mywork-oracle: cockpit timers')
 
   if (config.tools !== false) {
     ctx.tools.register(defineRawTool({
@@ -207,8 +237,10 @@ export function apply(ctx, config = {}) {
         horizon: { type: 'string', description: '时间窗口，例如「6–12 个月」' },
         summary: { type: 'string', required: true, description: '结论与主要依据，3–8 句' },
         signals: { type: 'array', description: '[{ name, value, meaning }] 关键信号，最多 24 条' },
+        symbol: { type: 'string', description: '报告针对的标的（名称或代码，例如「黄金」「600519」）；宏观问题留空。同一标的的报告会在报告页连成历史。' },
       },
       async execute(a, exec) { return store.addReport({ ...a, sessionId: exec && exec.agent && exec.agent.id }) },
+      render: (_a, v) => [{ type: 'text', text: v && v.id ? `已存档到报告页：${v.probability !== null && v.probability !== undefined ? v.probability + '% · ' : ''}${v.title}${v.horizon ? '（' + v.horizon + '）' : ''}` : JSON.stringify(v) }],
     }))
     ctx.tools.register(defineRawTool({
       name: 'oracle_docs',
@@ -254,7 +286,7 @@ export function apply(ctx, config = {}) {
           '1. 先 oracle_docs("skill") 读一次方法论（每个会话只需一次），必要时 oracle_docs("symbols") / oracle_docs("providers") 查代码与参数。',
           '2. 用 oracle_providers 确认参数，再用 oracle_fetch 一次并行取至少 3 个独立维度的信号（预测市场、期权 / 波动率、国债曲线、机构持仓、内部人交易、资金流、避险资产等）。',
           '3. 按 SKILL.md 第 5 步的模板输出：分层信号表 → 矛盾分析 → 概率场景 → 信号一致性评估，标注每个信号的时间窗口。',
-          '4. 用户在「市场先知」驾驶舱里维护自选与持仓：oracle_portfolio 读取（含最新报价、浮动盈亏和缓存信号）；完整报告写完后用 oracle_report_save 存档一次。',
+          '4. 用户在驾驶舱里维护自选与持仓：oracle_portfolio 读取（含最新报价、浮动盈亏和缓存信号）；完整报告写完后用 oracle_report_save 存档一次，针对单个标的的报告要填 symbol，同一标的的报告会连成历史供复盘。',
           '这是分析工具：不下单、不接任何交易所或券商账户、不给个性化投资建议；结论要说明不确定性。',
         ].join('\n') })
       } catch (e) { warn('system prompt hint skipped: ' + (e && e.message)) }
@@ -300,6 +332,14 @@ export function apply(ctx, config = {}) {
       const panel = PANELS.find((p) => p.id === String(b.id)); if (!panel) return json(res, { error: 'unknown panel' }, 400)
       json(res, { text: panelPrompt(panel, snapshot, portfolio(), b.question) })
     })
+    route('/reports/verdict', async (req, res) => { const b = await post(req, res); if (!b) return; json(res, { item: store.setVerdict(String(b.id), b.verdict), reports: store.read().reports.slice(0, 200) }) })
+    route('/reports', async (_req, res) => json(res, { reports: store.read().reports.slice(0, 200) }))
+    route('/patrol', async (req, res) => {
+      if (req.method === 'POST') { const b = await readBody(req); const patrol = store.setPatrol(b); return json(res, { patrol, runs: store.read().patrolRuns, targets: patrolTargets() }) }
+      const { patrol, patrolRuns } = store.read(); json(res, { patrol, runs: patrolRuns, targets: patrolTargets(), busy: patrolBusy })
+    })
+    route('/patrol/run', async (req, res) => { if (!(await post(req, res))) return; const run = await runPatrol(true); json(res, { run, runs: store.read().patrolRuns }) })
+    route('/patrol/preview', async (req, res) => { if (!(await post(req, res))) return; await ensureFresh(); const { patrol, reports } = store.read(); json(res, { text: patrolDigest({ patrol, signals: snapshot.signals, portfolio: portfolio(), changes: dailyChanges(snapshot.history || {}), reports }) }) })
     route('/symbol/prompt', async (req, res) => {
       const b = await post(req, res); if (!b) return
       const watch = store.read().watchlist.find((w) => w.id === String(b.watchId)); if (!watch) return json(res, { error: 'unknown watch item' }, 400)

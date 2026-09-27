@@ -265,6 +265,7 @@ scripts/       build-client.mjs（零依赖 C6 打包器）· install.sh / unins
 
 ### 未发布
 
+- 【digital-oracle-work 分支】报告页与巡检页：报告按标的 / 主题筛选、同题概率历史、事后对错；巡检每天定时把市场温度与今日变化、我的标的与持仓、该复核的报告推到飞书，可预览与立即推送；首页改为对话入口加驾驶舱要点（行情条、我的标的每行「分析」直接开对话并发送、最近报告、常见问法），驾驶舱去掉五个问题面板。
 - 【digital-oracle-work 分支】按 Open Design 的方法给发行版立了设计合约（design/），并实现「发行版模式」（产品名「交易工作台」）：启动落在驾驶舱，侧栏改为「驾驶舱 / 新分析 / 分析记录 / 更多（定时巡检、消息通知）」，工作区名、访问模式、插件市场、MCP、内置插件等编码入口全部收起，首页是行情条加「问先知」和五个问题卡，输入框问的是市场问题，会话标题就是问题本身，桌面壳改名 TradingWorkbench；新增「市场终端」风格家族（Geist + JetBrains Mono，浅色深色全过 AA）作为默认；驾驶舱可切换红涨绿跌 / 绿涨红跌。
 - 【digital-oracle-work 分支】「市场先知」驾驶舱：侧栏顶部的独立页面，一打开就是市场温度（恐惧贪婪、实际利率、利差、黄金、铜金比、原油、汇率、BTC 基差、CFTC 持仓、A 股板块流向、Polymarket 合约，带 30 日折线）、五个问题面板（地缘、衰退、泡沫、择时、A 股，「问先知」把当前数字和你的自选持仓带进新对话）、自选跟踪（美股 / 商品 / 外汇、A 股、加密、Polymarket、Kalshi）、手填持仓的浮动盈亏、模型自动存档的报告。数据 15 / 5 分钟缓存刷新，只分析不下单。
 - 【digital-oracle-work 分支】内置 [Digital Oracle](https://github.com/komako-workshop/digital-oracle)（komako-workshop，MIT）作为「市场先知」：新成员插件 `dsh-mywork-oracle` 把它的 13 个免费数据源（Polymarket、Kalshi、美国国债、CFTC 持仓、SEC 内部人交易、Deribit、CoinGecko、BIS、World Bank、Stooq、东方财富 A 股资金流、CNN 恐惧贪婪指数、网页搜索）做成 `oracle_docs` / `oracle_providers` / `oracle_fetch` / `oracle_status` 工具，模型按它的五步方法论用交易数据回答「概率多大」「值不值得买」；新建对话页多一个「市场先知」起点，设置 → MyWork → 市场先知 看环境、自检、一键装 yfinance。只做分析不下单。发行版说明见 [DISTRIBUTION.md](DISTRIBUTION.md)。

@@ -101,6 +101,8 @@ const UPDOWN_KEY = 'dsh-mywork-oracle:updown' // 'cn' = red up / green down (def
 const readUpDown = () => { try { return localStorage.getItem(UPDOWN_KEY) === 'intl' ? 'intl' : 'cn' } catch { return 'cn' } }
 const writeUpDown = (v) => { try { localStorage.setItem(UPDOWN_KEY, v) } catch { /* ignore */ } window.dispatchEvent(new Event('mywork-oracle:updown')) }
 const PAGE_SLOT = 'mywork.oracle.section'
+const REPORTS_SLOT = 'mywork.oracle.reports'
+const PATROL_SLOT = 'mywork.oracle.patrol'
 
 const zh = {
   nav: '市场先知', title: 'Digital Oracle · 市场数据先知',
@@ -117,6 +119,9 @@ const zh = {
   openSession: '打开对话', prob: '概率', horizon: '窗口', sources: '数据源', chooseWatch: '选择自选标的', errors: '取数失败',
   updown: '涨跌配色', updownCn: '红涨绿跌', updownIntl: '绿涨红跌',
   mine: '我的标的', analyze: '分析', fundflow: '资金流', hold: '持仓', addPos: '记一笔持仓', noneHeld: '无',
+  changes: '今日变化', changesSince: '较 {0}', changesNone: '还没有前一天的快照，明天开始显示变化。', allReports: '全部报告',
+  rTitle: '报告', rFilterSymbol: '全部标的', rFilterTopic: '全部主题', rSearch: '搜索标题或结论…', rHistory: '历史', rRight: '对', rWrong: '错', rVerdict: '事后验证', rNone: '还没有报告。', rNoneHint: '在首页或驾驶舱按「分析」，模型写完报告会自动存到这里。', rMacro: '宏观', rCustom: '其他',
+  pTitle: '巡检', pEnabled: '每日巡检', pTime: '时间', pInclude: '内容', pIncTemp: '市场温度与变化', pIncSymbols: '我的标的与持仓', pIncReports: '该复核的报告', pTarget: '推送到', pNoTarget: '还没有可用的飞书账号', pConnect: '连接通知账号', pTest: '现在推送一次', pPreview: '预览内容', pRuns: '执行记录', pRunsNone: '还没有执行过。', pSaved: '已保存', pAdvanced: '高级：定时任务', pHint: '到点时把下面勾选的内容作为数据摘要推到你的飞书。这只是数据，不含建议。', pManual: '手动', pAuto: '自动', pOk: '已推送', pFail: '失败',
   noWatchHint: '在下方选类型、填代码就能加入，价格几秒内出现。', noReportsHint: '在任一问题上按「问先知」，模型写完报告会自动存到这里。', signalsNoneHint: '数据源尚未返回。等一分钟，或按「刷新」。', panelsHint: '按「问先知」会带着当前数字和你的自选、持仓开一个新对话',
 }
 const en = {
@@ -134,6 +139,9 @@ const en = {
   openSession: 'Open conversation', prob: 'Probability', horizon: 'Horizon', sources: 'Sources', chooseWatch: 'choose a watchlist item', errors: 'Fetch errors',
   updown: 'Gain / loss colors', updownCn: 'Red up, green down', updownIntl: 'Green up, red down',
   mine: 'My symbols', analyze: 'Analyze', fundflow: 'Fund flow', hold: 'Position', addPos: 'Record a position', noneHeld: 'none',
+  changes: 'Changes today', changesSince: 'vs {0}', changesNone: 'No snapshot from a previous day yet; changes appear from tomorrow.', allReports: 'All reports',
+  rTitle: 'Reports', rFilterSymbol: 'All symbols', rFilterTopic: 'All topics', rSearch: 'Search title or conclusion…', rHistory: 'History', rRight: 'Right', rWrong: 'Wrong', rVerdict: 'Verified', rNone: 'No reports yet.', rNoneHint: 'Press Analyze on the home page or the cockpit; the model saves its report here.', rMacro: 'Macro', rCustom: 'Other',
+  pTitle: 'Checks', pEnabled: 'Daily check', pTime: 'Time', pInclude: 'Include', pIncTemp: 'Market temperature and changes', pIncSymbols: 'My symbols and positions', pIncReports: 'Reports due for review', pTarget: 'Push to', pNoTarget: 'No Feishu account available yet', pConnect: 'Connect a notification account', pTest: 'Push now', pPreview: 'Preview', pRuns: 'Runs', pRunsNone: 'Nothing has run yet.', pSaved: 'Saved', pAdvanced: 'Advanced: scheduled tasks', pHint: 'At the set time the checked content is pushed to your Feishu as a data digest. Data only, no advice.', pManual: 'manual', pAuto: 'auto', pOk: 'pushed', pFail: 'failed',
   noWatchHint: 'Pick a kind and type a symbol below; the price shows up within seconds.', noReportsHint: 'Press "Ask the oracle" on any question; the model saves its report here.', signalsNoneHint: 'The data sources have not answered yet. Wait a minute or press refresh.', panelsHint: '"Ask the oracle" starts a conversation carrying the current numbers, your watchlist and positions',
 }
 
@@ -237,6 +245,28 @@ const CSS = `
 .mwc .tag{border-radius:var(--mwc-r);padding:1px 7px;font-size:11px;border:1px solid var(--mwc-line);color:var(--dsw-alias-label-secondary)}
 @media (max-width:720px){.mwc .rrow{grid-template-columns:1fr}.mwc .rrow .side{align-items:flex-start}}
 .mwc .foot{font-size:12px;color:var(--dsw-alias-label-tertiary)}
+.mwc .chg{margin:0;padding:0;list-style:none;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:4px 24px;font-size:12.5px}
+.mwc .chg li{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--mwc-line-soft)}
+.mwc .chg li span:last-child{white-space:nowrap}
+.mwc .filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.mwc .filters input{min-width:220px}
+.mwc .rrow .hist{font-size:12px;color:var(--dsw-alias-label-secondary);margin-top:6px}
+.mwc .rrow .hist b{font-weight:500;color:var(--dsw-alias-label-primary)}
+.mwc .verd{display:inline-flex;border:1px solid var(--mwc-line);border-radius:var(--mwc-r);overflow:hidden}
+.mwc .verd button{border:0;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:11.5px;padding:2px 8px;cursor:pointer}
+.mwc .verd button[aria-pressed=true].ok{background:var(--mwc-up);color:var(--dsw-alias-bg-base)}
+.mwc .verd button[aria-pressed=true].bad{background:var(--mwc-down);color:var(--dsw-alias-bg-base)}
+.mwc .pform{display:grid;grid-template-columns:120px 1fr;gap:12px 16px;align-items:center;max-width:640px}
+.mwc .pform .lab{font-size:12.5px;color:var(--dsw-alias-label-secondary)}
+.mwc .pform label.chk{display:inline-flex;align-items:center;gap:6px;margin-right:16px;font-size:12.5px}
+.mwc .switch{appearance:none;width:34px;height:20px;border-radius:999px;border:1px solid var(--mwc-line);background:var(--dsw-alias-bg-layer-2);position:relative;cursor:pointer;vertical-align:middle}
+.mwc .switch::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--dsw-alias-label-secondary);transition:transform 120ms ease,background-color 120ms ease}
+.mwc .switch:checked{background:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary)}
+.mwc .switch:checked::after{transform:translateX(14px);background:var(--dsw-alias-label-primary-foreground,#fff)}
+.mwc .runs{margin:0;padding:0;list-style:none}
+.mwc .runs li{display:grid;grid-template-columns:150px 60px 1fr;gap:12px;padding:7px 0;border-bottom:1px solid var(--mwc-line-soft);font-size:12.5px}
+.mwc .runs li .sum{color:var(--dsw-alias-label-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mwc pre.prev{white-space:pre-wrap;font:12px/1.5 var(--mwc-mono);background:var(--dsw-alias-bg-layer-2);border-radius:var(--mwc-r);padding:10px 12px;max-height:320px;overflow:auto;margin:10px 0 0}
 `
 async function api(path, body) {
   const res = await fetch(API + path, body === undefined ? { method: 'GET' } : { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
@@ -394,18 +424,89 @@ exports.apply = function apply(ctx) {
       h('div', { className: 'hint', style: { marginTop: 8 } }, t('posHint')),
       err ? h('div', { className: 'err' }, err) : null)
   }
+  const openPanel = (id) => window.dispatchEvent(new CustomEvent('mywork:open-panel', { detail: { id } }))
+  function Changes({ d }) {
+    const c = d.changes || { items: [] }
+    return h('div', null,
+      h('div', { className: 'head' }, h('h4', null, t('changes')), c.since ? h('span', { className: 'meta' }, t('changesSince').replace('{0}', c.since)) : null),
+      !c.since ? h('div', { className: 'hint', style: { marginTop: 8 } }, t('changesNone')) : c.items.length === 0 ? h('div', { className: 'hint', style: { marginTop: 8 } }, '-') :
+        h('ul', { className: 'chg' }, c.items.map((x) => h('li', { key: x.id }, h('span', null, x.label), h('span', { className: 'num ' + cls(x.diff) }, `${fmtNum(x.from)} → ${fmtNum(x.to)}  ${sign(x.diff, x.kind === 'abs' ? 2 : 1)}${x.kind === 'abs' ? (x.unit || '') : '%'}`)))))
+  }
+  const topicLabel = (d, topic) => topic === 'custom' ? t('rCustom') : ((d.panels || PANEL_FALLBACK).find((p) => p.id === topic) || {}).label || topic
+  const PANEL_FALLBACK = [{ id: 'geo', label: '地缘冲突' }, { id: 'macro', label: '衰退周期' }, { id: 'bubble', label: '泡沫与风险偏好' }, { id: 'assets', label: '资产择时' }, { id: 'ashare', label: 'A 股' }]
+  const seriesKey = (r) => (r.symbol ? 's:' + r.symbol : 't:' + (r.topic || 'custom'))
+  function ReportRow({ r, d, all, open, setOpen, onChange, showHistory }) {
+    const del = async (e) => { e.stopPropagation(); try { const x = await api('/reports/remove', { id: r.id }); onChange({ reports: x.reports }) } catch { /* ignore */ } }
+    const verdict = async (e, v) => { e.stopPropagation(); try { const x = await api('/reports/verdict', { id: r.id, verdict: r.verdict === v ? null : v }); onChange({ reports: x.reports }) } catch { /* ignore */ } }
+    const hist = showHistory ? all.filter((x) => x.id !== r.id && seriesKey(x) === seriesKey(r) && x.probability !== null && x.probability !== undefined).sort((a, b) => Date.parse(a.at) - Date.parse(b.at)) : []
+    return h('div', { className: 'rrow', 'data-open': open === r.id, onClick: () => setOpen(open === r.id ? '' : r.id) },
+      h('div', { className: 'p num' }, r.probability !== null && r.probability !== undefined ? `${r.probability}%` : dash, h('small', null, r.horizon || t('prob'))),
+      h('div', null, h('div', { className: 't' }, r.title), h('div', { className: 's' }, r.summary),
+        hist.length ? h('div', { className: 'hist' }, t('rHistory') + '：', hist.map((x, i) => h('span', { key: x.id, className: 'num' }, `${String(x.at).slice(5, 10)} ${x.probability}%${i < hist.length - 1 ? ' → ' : ' → '}`)), h('b', { className: 'num' }, `${String(r.at).slice(5, 10)} ${r.probability}%`)) : null,
+        open === r.id && r.signals && r.signals.length ? h('ul', { className: 'sigs' }, r.signals.map((s, i) => h('li', { key: i }, `${s.name}：${s.value}，${s.meaning}`))) : null),
+      h('div', { className: 'side' },
+        h('span', null, r.symbol ? h('span', { className: 'tag', style: { marginRight: 6 } }, r.symbol) : null, h('span', { className: 'tag' }, topicLabel(d, r.topic)), ' ', new Date(r.at).toLocaleDateString()),
+        h('span', { style: { display: 'inline-flex', gap: 6, alignItems: 'center' } },
+          h('span', { className: 'verd', role: 'group', 'aria-label': t('rVerdict') }, h('button', { className: 'ok', 'aria-pressed': r.verdict === 'right', onClick: (e) => verdict(e, 'right') }, t('rRight')), h('button', { className: 'bad', 'aria-pressed': r.verdict === 'wrong', onClick: (e) => verdict(e, 'wrong') }, t('rWrong'))),
+          r.sessionId ? h('button', { className: 'mini', onClick: (e) => { e.stopPropagation(); window.dispatchEvent(new CustomEvent('mywork:open-session', { detail: { id: r.sessionId } })) } }, t('openSession')) : null,
+          h('button', { className: 'mini danger', 'aria-label': t('remove'), onClick: del }, icon('x', { size: 12 })))))
+  }
+  function ReportsPage() {
+    const [d, setD] = React.useState(null); const [open, setOpen] = React.useState(''); const [sym, setSym] = React.useState(''); const [topic, setTopic] = React.useState(''); const [q, setQ] = React.useState('')
+    const load = React.useCallback(() => api('/dashboard').then(setD).catch(() => setD({ reports: [], panels: PANEL_FALLBACK })), [])
+    React.useEffect(() => { load() }, [load])
+    const merge = (patch) => setD((cur) => ({ ...(cur || {}), ...patch }))
+    if (!d) return h('div', { className: 'mwc' }, h('div', { className: 'hint' }, '…'))
+    const all = d.reports || []
+    const symbols = [...new Set(all.map((r) => r.symbol).filter(Boolean))]
+    const topics = [...new Set(all.map((r) => r.topic || 'custom'))]
+    const rows = all.filter((r) => (!sym || r.symbol === sym) && (!topic || (r.topic || 'custom') === topic) && (!q.trim() || (r.title + ' ' + r.summary + ' ' + (r.question || '')).toLowerCase().includes(q.trim().toLowerCase())))
+    return h('div', { className: 'mwc' },
+      h('section', null,
+        h('div', { className: 'head' }, h('h4', null, t('rTitle'), h('span', { className: 'meta num' }, String(all.length))),
+          h('div', { className: 'filters' },
+            h('select', { 'aria-label': t('rFilterSymbol'), value: sym, onChange: (e) => setSym(e.target.value) }, h('option', { value: '' }, t('rFilterSymbol')), symbols.map((x) => h('option', { key: x, value: x }, x))),
+            h('select', { 'aria-label': t('rFilterTopic'), value: topic, onChange: (e) => setTopic(e.target.value) }, h('option', { value: '' }, t('rFilterTopic')), topics.map((x) => h('option', { key: x, value: x }, topicLabel(d, x)))),
+            h('input', { type: 'search', value: q, placeholder: t('rSearch'), 'aria-label': t('rSearch'), onChange: (e) => setQ(e.target.value) }))),
+        all.length === 0 ? h('div', { className: 'empty' }, h('strong', null, t('rNone')), t('rNoneHint')) : rows.length === 0 ? h('div', { className: 'empty' }, '-') :
+          rows.map((r) => h(ReportRow, { key: r.id, r, d, all, open, setOpen, onChange: merge, showHistory: true }))))
+  }
+  function PatrolPage() {
+    const [st, setSt] = React.useState(null); const [busy, setBusy] = React.useState(''); const [msg, setMsg] = React.useState(''); const [preview, setPreview] = React.useState('')
+    const load = React.useCallback(() => api('/patrol').then(setSt).catch((e) => setMsg(String(e.message || e))), [])
+    React.useEffect(() => { load() }, [load])
+    if (!st) return h('div', { className: 'mwc' }, h('div', { className: 'hint' }, msg || '…'))
+    const p = st.patrol
+    const save = async (patch) => { setBusy('save'); setMsg(''); try { const r = await api('/patrol', { ...p, ...patch, include: { ...p.include, ...(patch.include || {}) } }); setSt((cur) => ({ ...cur, ...r })); setMsg(t('pSaved')) } catch (e) { setMsg(String(e.message || e)) } finally { setBusy('') } }
+    const run = async () => { setBusy('run'); setMsg(''); try { const r = await api('/patrol/run', {}); setSt((cur) => ({ ...cur, runs: r.runs })); setMsg(`${t('pOk')} · ${r.run.target}`) } catch (e) { setMsg(String(e.message || e)); load() } finally { setBusy('') } }
+    const prev = async () => { setBusy('prev'); try { const r = await api('/patrol/preview', {}); setPreview(r.text) } catch (e) { setMsg(String(e.message || e)) } finally { setBusy('') } }
+    const chk = (key, label) => h('label', { className: 'chk' }, h('input', { type: 'checkbox', checked: !!p.include[key], onChange: (e) => save({ include: { [key]: e.target.checked } }) }), label)
+    return h('div', { className: 'mwc' },
+      h('section', null,
+        h('div', { className: 'head' }, h('h4', null, t('pTitle')), h('span', { className: 'meta' }, msg)),
+        h('div', { className: 'hint', style: { margin: '10px 0 14px' } }, t('pHint')),
+        h('div', { className: 'pform' },
+          h('span', { className: 'lab' }, t('pEnabled')), h('span', null, h('input', { className: 'switch', type: 'checkbox', role: 'switch', 'aria-label': t('pEnabled'), checked: !!p.enabled, disabled: !!busy || !p.target, onChange: (e) => save({ enabled: e.target.checked }) })),
+          h('span', { className: 'lab' }, t('pTime')), h('span', null, h('input', { type: 'time', value: p.time, 'aria-label': t('pTime'), onChange: (e) => save({ time: e.target.value }) })),
+          h('span', { className: 'lab' }, t('pInclude')), h('span', null, chk('temperature', t('pIncTemp')), chk('symbols', t('pIncSymbols')), chk('reports', t('pIncReports'))),
+          h('span', { className: 'lab' }, t('pTarget')), h('span', { style: { display: 'inline-flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' } },
+            st.targets.length === 0 ? h('span', { className: 'hint' }, t('pNoTarget')) : h('select', { 'aria-label': t('pTarget'), value: p.target, onChange: (e) => save({ target: e.target.value }) }, h('option', { value: '' }, '-'), st.targets.map((x) => h('option', { key: x.id, value: x.id }, `${x.platform} · ${x.name}`))),
+            h('button', { className: 'mini', onClick: () => openPanel('mywork-im') }, t('pConnect')))),
+        h('div', { className: 'row', style: { display: 'flex', gap: 8, marginTop: 16 } },
+          h('button', { className: 'btn', disabled: !!busy || !p.target, onClick: run }, icon('send', { size: 13 }), busy === 'run' ? '…' : t('pTest')),
+          h('button', { className: 'mini', disabled: !!busy, onClick: prev }, t('pPreview')),
+          h('button', { className: 'mini', onClick: () => openPanel('mywork-schedule') }, t('pAdvanced'))),
+        preview ? h('pre', { className: 'prev' }, preview) : null),
+      h('section', null,
+        h('div', { className: 'head' }, h('h4', null, t('pRuns'))),
+        st.runs.length === 0 ? h('div', { className: 'empty' }, h('strong', null, t('pRunsNone'))) : h('ul', { className: 'runs' }, st.runs.map((r) => h('li', { key: r.id }, h('span', { className: 'num' }, new Date(r.at).toLocaleString()), h('span', { className: r.ok ? 'up' : 'down' }, (r.ok ? t('pOk') : t('pFail')) + (r.manual ? ` · ${t('pManual')}` : '')), h('span', { className: 'sum', title: r.text || r.error }, r.ok ? `${r.target || ''}  ${r.summary || ''}` : r.error))))))
+  }
   function Reports({ d, onChange }) {
     const [open, setOpen] = React.useState('')
-    const labelOf = (topic) => (d.panels.find((p) => p.id === topic) || {}).label || topic
-    const del = async (id) => { try { const r = await api('/reports/remove', { id }); onChange({ reports: r.reports }) } catch { /* ignore */ } }
+    const all = d.reports || []
     return h('div', null,
-      h('div', { className: 'head' }, h('h4', null, t('reports')), d.reports.length ? h('span', { className: 'meta num' }, String(d.reports.length)) : null),
-      d.reports.length === 0 ? h('div', { className: 'empty' }, h('strong', null, t('noReports')), t('noReportsHint')) : d.reports.map((r) => h('div', { key: r.id, className: 'rrow', 'data-open': open === r.id, onClick: () => setOpen(open === r.id ? '' : r.id) },
-        h('div', { className: 'p num' }, r.probability !== null && r.probability !== undefined ? `${r.probability}%` : dash, h('small', null, r.horizon || t('prob'))),
-        h('div', null, h('div', { className: 't' }, r.title), h('div', { className: 's' }, r.summary), open === r.id && r.signals && r.signals.length ? h('ul', { className: 'sigs' }, r.signals.map((s, i) => h('li', { key: i }, `${s.name}：${s.value}，${s.meaning}`))) : null),
-        h('div', { className: 'side' }, h('span', null, h('span', { className: 'tag' }, labelOf(r.topic)), ' ', new Date(r.at).toLocaleDateString()),
-          h('span', { style: { display: 'inline-flex', gap: 6 } }, r.sessionId ? h('button', { className: 'mini', onClick: (e) => { e.stopPropagation(); window.dispatchEvent(new CustomEvent('mywork:open-session', { detail: { id: r.sessionId } })) } }, t('openSession')) : null,
-            h('button', { className: 'mini danger', 'aria-label': t('remove'), onClick: (e) => { e.stopPropagation(); del(r.id) } }, icon('x', { size: 12 })))))))
+      h('div', { className: 'head' }, h('h4', null, t('reports'), all.length ? h('span', { className: 'meta num' }, String(all.length)) : null), h('button', { className: 'mini', onClick: () => openPanel('mywork-reports') }, t('allReports'))),
+      all.length === 0 ? h('div', { className: 'empty' }, h('strong', null, t('noReports')), t('noReportsHint')) : all.slice(0, 3).map((r) => h(ReportRow, { key: r.id, r, d, all, open, setOpen, onChange, showHistory: true })))
   }
   function Cockpit() {
     const [d, setD] = React.useState(null); const [busy, setBusy] = React.useState(false); const [note, setNote] = React.useState(''); const [loadErr, setLoadErr] = React.useState('')
@@ -424,11 +525,14 @@ exports.apply = function apply(ctx) {
         tiles.length ? h('div', { className: 'grid' }, tiles.map((x) => h(Tile, { key: x.id, tile: x, spark: sparks[x.id], lead: leads.has(x.id) }))) : (d.refreshing ? h(Skeleton) : h('div', { className: 'empty' }, h('strong', null, t('signalsNone')), t('signalsNoneHint'))),
         note ? h('div', { className: 'hint', style: { marginTop: 8 } }, note) : null,
         errs.length ? h('div', { className: 'err' }, t('errors') + ': ' + errs.map(([k, v]) => `${k}: ${String(v).slice(0, 80)}`).join('; ')) : null),
+      h('section', null, h(Changes, { d })),
       h('section', null, h(Symbols, { d, onChange: merge })),
       h('section', null, h(Reports, { d, onChange: merge })),
       h('div', { className: 'foot' }, t('credit')))
   }
   ctx.slots.inject(PAGE_SLOT, () => ctx.slots.register({ name: PAGE_SLOT, id: PLUGIN, order: 10 }, function MyworkOracleCockpit() { return h(Cockpit) }))
+  ctx.slots.inject(REPORTS_SLOT, () => ctx.slots.register({ name: REPORTS_SLOT, id: PLUGIN, order: 10 }, function MyworkOracleReports() { return h(ReportsPage) }))
+  ctx.slots.inject(PATROL_SLOT, () => ctx.slots.register({ name: PATROL_SLOT, id: PLUGIN, order: 10 }, function MyworkOraclePatrol() { return h(PatrolPage) }))
 }
 
     return module.exports;

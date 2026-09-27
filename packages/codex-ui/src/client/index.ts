@@ -168,8 +168,10 @@ export function apply(ctx: ClientContext): void {
     const sweep = setInterval(() => { retitle(document) }, 2000) // the active conversation's composer swaps its placeholder without adding nodes
     const onOpenCockpit = (): void => { selectGlobalPanel(ctx.layout, ORACLE_PANEL_ID) }
     window.addEventListener('mywork:open-cockpit', onOpenCockpit)
+    const onOpenPanel = (event: Event): void => { const id = String((event as CustomEvent<{ id?: string }>).detail?.id ?? ''); if (id) selectGlobalPanel(ctx.layout, id) }
+    window.addEventListener('mywork:open-panel', onOpenPanel)
     const timers = [600, 1500, 3000, 6000].map((ms) => setTimeout(() => { if (!interacted && !document.querySelector('.mwc')) selectGlobalPanel(ctx.layout, ORACLE_PANEL_ID) }, ms))
-    return () => { timers.forEach(clearTimeout); clearInterval(sweep); observer.disconnect(); window.removeEventListener('mywork:open-cockpit', onOpenCockpit); window.removeEventListener('pointerdown', onInteract, { capture: true }); window.removeEventListener('keydown', onInteract, { capture: true }); delete document.body.dataset.myworkEdition }
+    return () => { timers.forEach(clearTimeout); clearInterval(sweep); observer.disconnect(); window.removeEventListener('mywork:open-cockpit', onOpenCockpit); window.removeEventListener('mywork:open-panel', onOpenPanel); window.removeEventListener('pointerdown', onInteract, { capture: true }); window.removeEventListener('keydown', onInteract, { capture: true }); delete document.body.dataset.myworkEdition }
   }, 'michengai-codex-ui: edition')
   ctx.effect(() => observeHeroWidthHandles(t('home.resizeInput')), 'michengai-codex-ui: hero width handles')
   registerInputHistory(ctx)

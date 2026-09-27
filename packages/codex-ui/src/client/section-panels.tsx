@@ -25,9 +25,13 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     'mywork.im.section': { kind: 'list'; scope: 'root'; owner: {} }
     /** The 市场先知 cockpit page; dsh-mywork-oracle renders the whole dashboard here. */
     'mywork.oracle.section': { kind: 'list'; scope: 'root'; owner: {} }
+    /** 报告 page (report archive with history and verdicts), also from dsh-mywork-oracle. */
+    'mywork.oracle.reports': { kind: 'list'; scope: 'root'; owner: {} }
+    /** 巡检 page (daily digest push), also from dsh-mywork-oracle. */
+    'mywork.oracle.patrol': { kind: 'list'; scope: 'root'; owner: {} }
   }
 }
-import { CalendarClock, MessageSquareMore, Plug, TrendingUp } from 'lucide-react'
+import { CalendarClock, FileText, MessageSquareMore, Plug, Radar, TrendingUp } from 'lucide-react'
 import { NS } from './locales.ts'
 import { editionActive } from '../edition.ts'
 
@@ -36,6 +40,8 @@ export const IM_PANEL_ID = 'mywork-im'
 export const MCP_PANEL_ID = 'mywork-mcp'
 /** Not in SECTION_PANEL_IDS on purpose: the cockpit shows up through the generic panel list at the top of the sidebar. */
 export const ORACLE_PANEL_ID = 'mywork-oracle'
+export const REPORTS_PANEL_ID = 'mywork-reports'
+export const PATROL_PANEL_ID = 'mywork-patrol'
 export const SECTION_PANEL_IDS: readonly string[] = [SCHEDULE_PANEL_ID, IM_PANEL_ID, MCP_PANEL_ID]
 
 /** settings.section ids registered by the companion plugins. */
@@ -70,6 +76,8 @@ export function ScheduleRailIcon(): ReactElement { return <CalendarClock size={1
 export function ImRailIcon(): ReactElement { return <MessageSquareMore size={16} strokeWidth={1.6} /> }
 export function McpRailIcon(): ReactElement { return <Plug size={16} strokeWidth={1.6} /> }
 export function OracleRailIcon(): ReactElement { return <TrendingUp size={16} strokeWidth={1.6} /> }
+export function ReportsRailIcon(): ReactElement { return <FileText size={16} strokeWidth={1.6} /> }
+export function PatrolRailIcon(): ReactElement { return <Radar size={16} strokeWidth={1.6} /> }
 
 function sectionSource(slots: SectionSlots, sectionId: string) {
   const find = (): SectionEntry | undefined => slots.entriesOfSlot('settings.section').find(entry => entry.options.id === sectionId)
@@ -180,4 +188,20 @@ export function registerSectionPanels(ctx: Context, t: TranslateNS<typeof NS>, s
     children: { 'mywork.oracle.section': { kind: 'list', scope: 'root' } },
   }, OraclePanel))
   ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({ name: 'sidebar.panellist', id: ORACLE_PANEL_ID, order: 5, locale: NS, label: () => t(editionActive() ? 'sidebar.cockpit' : 'sidebar.oracle'), inject: () => ({}) }, OracleRailIcon))
+  // 报告 and 巡检: edition pages, content from dsh-mywork-oracle through their child slots.
+  const oraclePage = (key: string, slot: 'mywork.oracle.reports' | 'mywork.oracle.patrol', order: number, label: () => string, icon: () => ReactElement, Rail: () => ReactElement): void => {
+    const s2 = ctx.slots as unknown as { entriesOfSlot(name: string): readonly unknown[]; subscribe(name: string, listener: () => void): () => void }
+    const count = (): number => { try { return s2.entriesOfSlot(slot).length } catch { return 0 } }
+    const sub = (listener: () => void): (() => void) => { try { return s2.subscribe(slot, listener) } catch { return () => {} } }
+    function Panel(props: { renderSlot: (name: string, p: Record<string, never>) => ReactNode }): ReactElement {
+      const providers = useSyncExternalStore(sub, count, count)
+      return page(label(), icon(), providers === 0 ? <p className="dcu-panel-empty">{t('oraclePanel.missing')}</p> : props.renderSlot(slot, {}))
+    }
+    ctx.slots.inject('main', () => ctx.slots.register({ name: 'main', key, locale: NS, inject: () => ({}), children: { [slot]: { kind: 'list', scope: 'root' } } } as never, Panel as never))
+    ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({ name: 'sidebar.panellist', id: key, order, locale: NS, label, inject: () => ({}) }, Rail))
+  }
+  if (editionActive()) {
+    oraclePage(REPORTS_PANEL_ID, 'mywork.oracle.reports', 6, () => t('sidebar.reports'), () => <FileText size={18} strokeWidth={1.6} />, ReportsRailIcon)
+    oraclePage(PATROL_PANEL_ID, 'mywork.oracle.patrol', 7, () => t('sidebar.patrolPage'), () => <Radar size={18} strokeWidth={1.6} />, PatrolRailIcon)
+  }
 }

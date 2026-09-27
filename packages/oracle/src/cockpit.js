@@ -38,6 +38,8 @@ const DEFAULT_DATA = () => ({
   ],
   positions: [],
   reports: [],
+  patrol: { enabled: false, time: '08:30', include: { temperature: true, symbols: true, reports: true }, target: '' },
+  patrolRuns: [],
 })
 
 export class OracleStore {
@@ -45,7 +47,9 @@ export class OracleStore {
   read() {
     if (this.data) return this.data
     try { this.data = existsSync(this.path) ? { ...DEFAULT_DATA(), ...JSON.parse(readFileSync(this.path, 'utf8')) } : DEFAULT_DATA() } catch { this.data = DEFAULT_DATA() }
-    for (const k of ['watchlist', 'positions', 'reports']) if (!Array.isArray(this.data[k])) this.data[k] = []
+    for (const k of ['watchlist', 'positions', 'reports', 'patrolRuns']) if (!Array.isArray(this.data[k])) this.data[k] = []
+    if (!this.data.patrol || typeof this.data.patrol !== 'object') this.data.patrol = DEFAULT_DATA().patrol
+    this.data.patrol.include = { ...DEFAULT_DATA().patrol.include, ...(this.data.patrol.include || {}) }
     return this.data
   }
   write() { mkdirSync(dirname(this.path), { recursive: true }); writeFileSync(this.path, JSON.stringify(this.data, null, 2) + '\n') }
@@ -94,10 +98,25 @@ export class OracleStore {
       summary: String(r.summary || '').trim().slice(0, 4000),
       signals: (Array.isArray(r.signals) ? r.signals : []).slice(0, 24).map((s) => ({ name: String(s && s.name || '').slice(0, 60), value: String(s && s.value || '').slice(0, 60), meaning: String(s && s.meaning || '').slice(0, 160) })),
       sessionId: r.sessionId ? String(r.sessionId) : null,
+      symbol: String(r.symbol || '').trim().slice(0, 40),
+      verdict: null,
     }
     if (Number.isNaN(item.probability)) item.probability = null
     d.reports.unshift(item); d.reports = d.reports.slice(0, 200); this.write(); return item
   }
+  setVerdict(id, verdict) {
+    const d = this.read(); const r = d.reports.find((x) => x.id === id); if (!r) throw new Error('unknown report')
+    r.verdict = verdict === 'right' || verdict === 'wrong' ? verdict : null; r.verdictAt = r.verdict ? new Date().toISOString() : null
+    this.write(); return r
+  }
+  setPatrol(cfg) {
+    const d = this.read(); const cur = d.patrol
+    const time = String(cfg.time || cur.time || '08:30').trim()
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) throw new Error('time must be HH:MM')
+    d.patrol = { enabled: !!cfg.enabled, time, include: { temperature: cfg.include ? !!cfg.include.temperature : cur.include.temperature, symbols: cfg.include ? !!cfg.include.symbols : cur.include.symbols, reports: cfg.include ? !!cfg.include.reports : cur.include.reports }, target: String(cfg.target || '').slice(0, 80) }
+    this.write(); return d.patrol
+  }
+  addRun(run) { const d = this.read(); d.patrolRuns.unshift({ id: uid('run'), at: new Date().toISOString(), ...run }); d.patrolRuns = d.patrolRuns.slice(0, 60); this.write(); return d.patrolRuns[0] }
   removeReport(id) { const d = this.read(); const n = d.reports.length; d.reports = d.reports.filter((r) => r.id !== id); if (n !== d.reports.length) this.write(); return n !== d.reports.length }
 }
 
@@ -264,7 +283,68 @@ export function symbolPrompt(watch, portfolio, snapshot, custom) {
   if (pos.length) lines.push('我的持仓（只用于分析，不要下任何交易指令）：' + pos.map((p) => `${p.qty} @ 成本 ${p.cost}${p.pnlPct !== null && p.pnlPct !== undefined ? `，浮动 ${p.pnlPct > 0 ? '+' : ''}${p.pnlPct}%` : ''}`).join('；'))
   const tiles = (snapshot && snapshot.signals && snapshot.signals.tiles || []).filter((t) => ['fg', 'real10y', 'spread', 'gold', 'btc_basis', 'usdcny', 'ashare_flow'].includes(t.id))
   if (tiles.length) lines.push('', '驾驶舱当前的市场温度（第一层信号）：', ...tiles.map(fmtTile))
-  lines.push('', '先 oracle_docs("skill") 读方法论（本会话未读过的话），再用 oracle_fetch 并行取这只标的自己的数据：' + SYMBOL_SOURCES[watch.kind] + '。至少 3 个独立维度，按 SKILL.md 第 5 步模板输出：分层信号表 → 矛盾分析 → 概率场景（标注时间窗口）→ 信号一致性。写完后调用 oracle_report_save（topic = "assets"，title 里带上标的名）。这是分析，不是交易指令。')
+  lines.push('', '先 oracle_docs("skill") 读方法论（本会话未读过的话），再用 oracle_fetch 并行取这只标的自己的数据：' + SYMBOL_SOURCES[watch.kind] + '。至少 3 个独立维度，按 SKILL.md 第 5 步模板输出：分层信号表 → 矛盾分析 → 概率场景（标注时间窗口）→ 信号一致性。写完后调用 oracle_report_save（topic = "assets"，symbol = "' + watch.label + '"，title 里带上标的名）。这是分析，不是交易指令。')
   return lines.join('\n')
+}
+
+// ---------------------------------------------------------------------------------------------
+// Daily history → 今日变化, and the patrol digest
+// ---------------------------------------------------------------------------------------------
+export const today = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
+/** Record the day's latest numbers; keep ten days. Mutates and returns `history`. */
+export function recordHistory(history, signals, quotes, day = today()) {
+  const h = history && typeof history === 'object' ? history : {}
+  const tiles = {}; for (const t of (signals && signals.tiles) || []) if (typeof t.value === 'number') tiles[t.id] = { v: t.value, label: t.label, unit: t.unit || '' }
+  const q = {}; for (const [id, x] of Object.entries((quotes && quotes.byId) || {})) if (x && typeof x.last === 'number') q[id] = { v: x.last, label: x.label, currency: x.currency }
+  h[day] = { tiles, quotes: q, at: new Date().toISOString() }
+  for (const k of Object.keys(h).sort().slice(0, -10)) delete h[k]
+  return h
+}
+
+const NOISE = { fg: 3, real10y: 0.05, spread: 5, gold: 0.8, copper_gold: 1.5, oil: 1.5, usdcny: 0.2, btc_basis: 0.5, cftc_gold: 3, pm_fed: 2, pm_recession: 2 }
+const ABSOLUTE = new Set(['fg', 'real10y', 'spread', 'btc_basis', 'pm_fed', 'pm_recession'])
+
+/** What moved since the previous recorded day, biggest first, five at most. */
+export function dailyChanges(history, day = today()) {
+  const days = Object.keys(history || {}).sort()
+  const cur = history && history[day]; if (!cur) return { since: null, items: [] }
+  const prevDay = days.filter((d) => d < day).pop(); if (!prevDay) return { since: null, items: [] }
+  const prev = history[prevDay]; const items = []
+  for (const [id, t] of Object.entries(cur.tiles || {})) {
+    const p = prev.tiles && prev.tiles[id]; if (!p || typeof p.v !== 'number') continue
+    const abs = ABSOLUTE.has(id); const diff = abs ? t.v - p.v : (p.v ? (t.v / p.v - 1) * 100 : 0)
+    const score = Math.abs(diff) / (NOISE[id] || 1); if (score < 1) continue
+    items.push({ id, label: t.label, from: p.v, to: t.v, diff: Number(diff.toFixed(2)), kind: abs ? 'abs' : 'pct', unit: t.unit, score, text: `${t.label} ${p.v}${t.unit} → ${t.v}${t.unit}（${diff > 0 ? '+' : ''}${diff.toFixed(abs ? 2 : 1)}${abs ? t.unit : '%'}）` })
+  }
+  for (const [id, q] of Object.entries(cur.quotes || {})) {
+    const p = prev.quotes && prev.quotes[id]; if (!p || typeof p.v !== 'number' || !p.v) continue
+    const diff = (q.v / p.v - 1) * 100; const score = Math.abs(diff) / 1.5; if (score < 1) continue
+    items.push({ id: 'q:' + id, label: q.label, from: p.v, to: q.v, diff: Number(diff.toFixed(2)), kind: 'pct', score, text: `${q.label} ${p.v} → ${q.v}（${diff > 0 ? '+' : ''}${diff.toFixed(1)}%）` })
+  }
+  items.sort((a, b) => b.score - a.score)
+  return { since: prevDay, items: items.slice(0, 5) }
+}
+
+/** The morning patrol message: data only, short enough for a chat bubble. */
+export function patrolDigest({ patrol, signals, portfolio, changes, reports, now = new Date() }) {
+  const inc = (patrol && patrol.include) || {}
+  const lines = [`交易工作台 · 巡检 ${now.getMonth() + 1}月${now.getDate()}日 ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`]
+  if (inc.temperature !== false) {
+    const by = new Map(((signals && signals.tiles) || []).map((t) => [t.id, t]))
+    const pick = ['fg', 'real10y', 'spread', 'gold', 'btc_basis', 'usdcny'].map((id) => by.get(id)).filter(Boolean)
+    if (pick.length) lines.push('', '市场温度', ...pick.map((t) => `· ${t.label} ${typeof t.value === 'number' ? t.value : t.value}${t.unit || ''}${t.delta !== undefined && t.delta !== null ? `（${t.deltaLabel || ''} ${t.delta > 0 ? '+' : ''}${t.delta}）` : ''}`))
+    if (changes && changes.items && changes.items.length) lines.push('', `较 ${changes.since} 变化最大`, ...changes.items.map((c) => '· ' + c.text))
+  }
+  if (inc.symbols !== false && portfolio) {
+    const rows = (portfolio.watchlist || []).map((w) => { const q = portfolio.quotes && portfolio.quotes[w.id]; const ps = (portfolio.positions || []).filter((p) => p.watchId === w.id); if (!q || q.last === null || q.last === undefined) return null; return `· ${w.label} ${q.last}${q.changePct !== null && q.changePct !== undefined ? `（日 ${q.changePct > 0 ? '+' : ''}${q.changePct}%）` : ''}${ps.length ? ps.map((p) => ` 持仓 ${p.qty}@${p.cost}${p.pnlPct !== null && p.pnlPct !== undefined ? ` 浮动 ${p.pnlPct > 0 ? '+' : ''}${p.pnlPct}%` : ''}`).join('；') : ''}` }).filter(Boolean)
+    if (rows.length) lines.push('', '我的标的', ...rows.slice(0, 10))
+  }
+  if (inc.reports !== false) {
+    const due = (reports || []).filter((r) => !r.verdict && Date.now() - Date.parse(r.at) > 14 * 86400000).slice(0, 3)
+    if (due.length) lines.push('', '该复核的报告（超过两周未标记对错）', ...due.map((r) => `· ${r.title}${r.probability !== null && r.probability !== undefined ? ` ${r.probability}%` : ''}（${String(r.at).slice(5, 10)}）`))
+  }
+  lines.push('', '数据摘要，不是交易建议。')
+  return lines.join('\n').slice(0, 1800)
 }
 

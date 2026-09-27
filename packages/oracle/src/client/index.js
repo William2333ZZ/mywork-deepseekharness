@@ -264,6 +264,17 @@ exports.apply = function apply(ctx) {
       h('div', { className: 'm' }, tile.meaning),
       spark ? h(Spark, { data: spark, w: lead ? 120 : 72, hgt: lead ? 34 : 26 }) : null)
   }
+  const useUpDown = () => {
+    const [v, setV] = React.useState(readUpDown)
+    React.useEffect(() => { const on = () => setV(readUpDown()); window.addEventListener('mywork-oracle:updown', on); return () => window.removeEventListener('mywork-oracle:updown', on) }, [])
+    return v
+  }
+  function UpDownToggle() {
+    const v = useUpDown()
+    return h('span', { className: 'seg', role: 'group', 'aria-label': t('updown') },
+      h('button', { type: 'button', 'aria-pressed': v === 'cn', onClick: () => writeUpDown('cn') }, t('updownCn')),
+      h('button', { type: 'button', 'aria-pressed': v === 'intl', onClick: () => writeUpDown('intl') }, t('updownIntl')))
+  }
   function Skeleton() {
     return h('div', { className: 'grid', 'aria-busy': true }, Array.from({ length: 8 }, (_, i) => h('div', { key: i, className: 'cell' + (i < 2 ? ' lead' : '') }, h('div', { className: 'sk w' }), h('div', { className: 'sk v' }), h('div', { className: 'sk' }))))
   }

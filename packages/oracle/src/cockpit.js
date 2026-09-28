@@ -350,8 +350,11 @@ export function dailyChanges(history, day = today()) {
     const diff = (q.v / p.v - 1) * 100; const score = Math.abs(diff) / 1.5; if (score < 1) continue
     items.push({ id: 'q:' + id, label: q.label, from: p.v, to: q.v, diff: Number(diff.toFixed(2)), kind: 'pct', score, text: `${q.label} ${p.v} → ${q.v}（${diff > 0 ? '+' : ''}${diff.toFixed(1)}%）` })
   }
-  items.sort((a, b) => b.score - a.score)
-  return { since: prevDay, items: items.slice(0, 5) }
+  // a watchlist item that mirrors a temperature tile (gold, oil…) would list twice; the tile wins
+  const tileLabels = new Set(items.filter((x) => !x.id.startsWith('q:')).map((x) => x.label))
+  const deduped = items.filter((x) => !x.id.startsWith('q:') || !tileLabels.has(x.label))
+  deduped.sort((a, b) => b.score - a.score)
+  return { since: prevDay, items: deduped.slice(0, 5) }
 }
 
 /** The morning patrol message: data only, short enough for a chat bubble. */

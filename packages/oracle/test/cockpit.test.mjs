@@ -90,11 +90,11 @@ import { dailyChanges, patrolDigest, recordHistory } from '../src/cockpit.js'
 
 test('history and daily changes: only moves above the noise floor, biggest first', () => {
   let h = {}
-  h = recordHistory(h, { tiles: [{ id: 'fg', label: '恐惧贪婪指数', value: 30 }, { id: 'gold', label: '黄金', value: 4000, unit: 'USD' }, { id: 'spread', label: '10Y-2Y 利差', value: 36, unit: 'bp' }] }, { byId: { a: { last: 100, label: 'SPY' } } }, '2026-09-26')
-  h = recordHistory(h, { tiles: [{ id: 'fg', label: '恐惧贪婪指数', value: 37 }, { id: 'gold', label: '黄金', value: 4321, unit: 'USD' }, { id: 'spread', label: '10Y-2Y 利差', value: 37, unit: 'bp' }] }, { byId: { a: { last: 100.5, label: 'SPY' } } }, '2026-09-27')
+  h = recordHistory(h, { tiles: [{ id: 'fg', label: '恐惧贪婪指数', value: 30 }, { id: 'gold', label: '黄金', value: 4000, unit: 'USD' }, { id: 'spread', label: '10Y-2Y 利差', value: 36, unit: 'bp' }] }, { byId: { a: { last: 100, label: 'SPY' }, g: { last: 4000, label: '黄金' } } }, '2026-09-26')
+  h = recordHistory(h, { tiles: [{ id: 'fg', label: '恐惧贪婪指数', value: 37 }, { id: 'gold', label: '黄金', value: 4321, unit: 'USD' }, { id: 'spread', label: '10Y-2Y 利差', value: 37, unit: 'bp' }] }, { byId: { a: { last: 100.5, label: 'SPY' }, g: { last: 4321, label: '黄金' } } }, '2026-09-27')
   const c = dailyChanges(h, '2026-09-27')
   assert.equal(c.since, '2026-09-26')
-  assert.deepEqual(c.items.map((x) => x.id), ['gold', 'fg'], 'spread (1bp) and SPY (0.5%) are noise')
+  assert.deepEqual(c.items.map((x) => x.id), ['gold', 'fg'], 'spread (1bp) and SPY (0.5%) are noise; the gold watch item is a duplicate of the tile')
   assert.match(c.items[0].text, /黄金 4000USD → 4321USD（\+8\.0%）/)
   assert.deepEqual(dailyChanges(h, '2026-09-26'), { since: null, items: [] })
   for (let i = 1; i <= 12; i++) h = recordHistory(h, { tiles: [] }, { byId: {} }, `2026-10-${String(i).padStart(2, '0')}`)

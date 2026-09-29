@@ -35,7 +35,7 @@ const zh = {
   today: '今日', tasks: '任务', deliverables: '交付物', scenarios: '领域', packs: '领域', builtin: '内置', scenarioClear: '不指定，让系统判断',
   packsLead: '领域包决定一类事怎么做：用什么数据、交付什么、怎么核验。你不用选，说出来就行；装了领域包，它认得的事自动归它。',
   packsEmpty: '还没有装领域包。交易工作台是第一个。',
-  hero: '你要什么结果？', ask: '说一个你要的结果，比如"把这个目录的 README 整理成一页产品介绍"', hint: '回车创建，Shift + 回车换行。任务在后台完成，做完通知你。',
+  hero: '你要什么结果？', ask: '说一个你要的结果，或者问一句', hint: '回车创建，Shift + 回车换行。任务在后台完成，做完通知你。',
   running: '进行中', recent: '最近', none: '还没有任务。', noneRunning: '现在没有在跑的任务。', noneDeliverables: '还没有交付物。',
   all: '全部', active: '进行中', finished: '已完成', back: '返回', rerun: '再来一次', cancel: '取消', process: '过程', verifyAgain: '重新核验',
   progress: '进度', deliverable: '交付物', waitingDeliverable: '做完后交付物出现在这里。', failedTitle: '失败',
@@ -44,6 +44,7 @@ const zh = {
   verified: '已核验', verifyIssues: '核验发现问题', verifyNone: '未能核验', verifying: '核验中', checked: '核对', issues: '问题',
   doneToast: '任务完成', failedToast: '任务失败', open: '打开', tryScenario: '用这个场景', kinds: '交付', examples: '示例',
   toolFailed: '失败', stepsTitle: '步骤',
+  attention: '等你看', attentionEmpty: '没有等你处理的事。', failedCard: '失败，可以再来一次', issuesCard: '核验发现问题', rateCard: '交付了，看一眼给个评价', running1: '个在跑', waiting1: '份等你看', quiet: '今天还很安静', greetMorning: '早上好', greetDay: '下午好', greetNight: '晚上好', todayDone: '今天完成', examplesTitle: '可以试试',
   say: '接着说，比如“再短一点”或“换个角度”', sayHint: '回车发送，同一个会话继续。', sayBusy: '核验中，稍等。', conversational: '这次是回答，没有生成文档；要保存时说“整理成一份…”。',
 }
 const en = {
@@ -59,6 +60,7 @@ const en = {
   verified: 'Verified', verifyIssues: 'Issues found', verifyNone: 'Not verified', verifying: 'Verifying', checked: 'checked', issues: 'issues',
   doneToast: 'Task finished', failedToast: 'Task failed', open: 'Open', tryScenario: 'Use this scenario', kinds: 'Delivers', examples: 'Examples',
   toolFailed: 'failed', stepsTitle: 'Steps',
+  attention: 'For you', attentionEmpty: 'Nothing waiting for you.', failedCard: 'Failed, can run again', issuesCard: 'Verification found issues', rateCard: 'Delivered, take a look and rate', running1: 'running', waiting1: 'waiting for you', quiet: 'A quiet day so far', greetMorning: 'Good morning', greetDay: 'Good afternoon', greetNight: 'Good evening', todayDone: 'Finished today', examplesTitle: 'Try',
   say: 'Keep going, e.g. “shorter” or “from another angle”', sayHint: 'Enter sends into the same session.', sayBusy: 'Verifying, one moment.', conversational: 'This was an answer, no document was produced; ask for one when you want it saved.',
 }
 
@@ -76,6 +78,57 @@ body[data-ds-dark-theme] .mwt{--mwt-canvas:#171716;--mwt-surface:#1f1f1e;--mwt-s
 .mwt-title span{color:var(--mwt-fg3);font-size:13px;font-variant-numeric:tabular-nums}
 .mwt-lead{margin:-8px 0 20px;max-width:60ch;color:var(--mwt-fg2);font-size:14px;line-height:23px}
 .mwt-hero{min-height:min(40vh,400px);display:flex;flex-direction:column;justify-content:flex-end;padding:24px 0 12px;text-align:center}
+.mwt-page-today{padding-bottom:150px}
+.mwt-greet{margin:6px 0 26px}
+.mwt-greet h1{margin:0 0 4px;font-size:26px;line-height:34px;font-weight:600;letter-spacing:-.02em}
+.mwt-greet p{margin:0;color:var(--mwt-fg2);font-size:14px}
+.mwt-section.first{margin-top:0}
+.mwt-atts{display:grid;gap:8px}
+.mwt-att{display:grid;grid-template-columns:22px minmax(0,1fr) auto;align-items:center;column-gap:12px;padding:14px 16px;border:1px solid var(--mwt-line);border-radius:16px;background:var(--mwt-surface);cursor:pointer;box-shadow:var(--mwt-shadow);transition:transform 160ms ease,border-color 160ms ease}
+.mwt-att:hover{border-color:var(--mwt-line2);transform:translateY(-1px)}
+.mwt-att-ic{display:flex;color:var(--mwt-fg2)}
+.mwt-att[data-kind=failed] .mwt-att-ic{color:var(--mwt-err)}
+.mwt-att[data-kind=issues] .mwt-att-ic{color:var(--mwt-warn)}
+.mwt-att[data-kind=rate] .mwt-att-ic{color:var(--mwt-ok)}
+.mwt-att-label{font-size:12px;color:var(--mwt-fg3);margin-bottom:1px}
+.mwt-att-title{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mwt-att-sub{color:var(--mwt-fg2);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
+.mwt-att-go{display:flex;color:var(--mwt-fg3)}
+.mwt-dock{position:sticky;bottom:0;margin:28px -8px 0;padding:14px 8px calc(14px + env(safe-area-inset-bottom));background:linear-gradient(to top,var(--mwt-canvas) 70%,transparent)}
+/* Docked composer: one line, send button inline; the hint and examples only while focused. */
+.mwt-ask-wrap.compact .mwt-ask{display:flex;flex-wrap:wrap;align-items:flex-end;gap:6px 8px;padding:8px 8px 8px 16px;border-radius:20px}
+.mwt-ask-wrap.compact textarea{flex:1 1 200px;min-width:0;min-height:36px;font-size:15px;line-height:24px;padding:6px 0}
+.mwt-ask-wrap.compact .mwt-ask-row{display:contents}
+.mwt-ask-wrap.compact .mwt-ask-row small{display:none}
+.mwt-ask-wrap.compact.open .mwt-ask-row small{display:block;flex-basis:100%;order:3;padding:0 8px 2px 0}
+.mwt-ask-wrap.compact .mwt-ask-row .mwt-chip{order:1}
+.mwt-ask-wrap.compact .mwt-ask-row .mwt-btn.round{order:2;margin-bottom:0}
+.mwt-ask-wrap.compact .mwt-chips{margin:10px 0 0;flex-basis:100%}
+@media (max-width:720px){
+  .mwt-page{padding:18px 16px 56px}
+  .mwt-page-today{padding-bottom:130px}
+  .mwt-greet h1{font-size:22px;line-height:30px}
+  .mwt-title h1{font-size:18px}
+  .mwt-hero{min-height:0;padding:12px 0 8px}
+  .mwt-hero h1{font-size:24px;line-height:32px;margin-bottom:16px}
+  .mwt-card{padding:11px 13px;border-radius:12px;grid-template-columns:18px minmax(0,1fr) auto}
+  .mwt-att{padding:12px 13px;border-radius:14px}
+  .mwt-att .mwt-btn{height:30px;padding:0 10px}
+  .mwt-toolbar{flex-wrap:wrap}
+  .mwt-detail-head h1{font-size:19px;line-height:26px}
+  .mwt-meta{margin-left:0}
+  .mwt-cols{gap:22px}
+  .mwt-col.sticky{position:static}
+  .mwt-stream{max-height:none}
+  .mwt-doc{border-radius:14px;margin-left:-4px;margin-right:-4px}
+  .mwt-doc-body{padding:16px 16px 6px}
+  .mwt-doc-actions{padding:10px 12px}
+  .mwt-md{font-size:15px}
+  .mwt-md table{display:block;overflow:auto;max-width:100%}
+  .mwt-scen{grid-template-columns:minmax(0,1fr)}
+  .mwt-toasts{left:12px;right:12px;bottom:12px;max-width:none}
+  .mwt-dock{margin:20px -4px 0;padding:10px 4px calc(10px + env(safe-area-inset-bottom))}
+}
 .mwt-hero h1{margin:0 0 26px;font-size:30px;line-height:38px;font-weight:600;letter-spacing:-.022em;text-wrap:balance}
 .mwt-ask{text-align:left;border:1px solid var(--mwt-line);border-radius:22px;background:var(--mwt-surface);padding:16px 16px 12px 20px;box-shadow:var(--mwt-shadow);transition:border-color 160ms ease,box-shadow 160ms ease}
 .mwt-ask:focus-within{border-color:var(--mwt-line2)}
@@ -192,7 +245,7 @@ body[data-ds-dark-theme] .mwt{--mwt-canvas:#171716;--mwt-surface:#1f1f1e;--mwt-s
 
 // ---- state ------------------------------------------------------------------
 // `state` is replaced, never mutated: useSyncExternalStore compares snapshots by identity.
-let state = { items: [], scenarios: [], loadedAt: 0, error: '' }
+let state = { items: [], deliverables: [], scenarios: [], loadedAt: 0, error: '' }
 const listeners = new Set()
 function setState(patch) { state = { ...state, ...patch }; for (const fn of listeners) fn() }
 function subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn) }
@@ -210,7 +263,7 @@ function refresh() {
   const before = new Map(state.items.map((t) => [t.id, t.status]))
   refreshing = api('/tasks').then((d) => {
     const items = d.items || []
-    setState({ items, scenarios: d.scenarios || [], error: '', loadedAt: Date.now() })
+    setState({ items, deliverables: d.deliverables || [], scenarios: d.scenarios || [], error: '', loadedAt: Date.now() })
     fire('mywork:tasks-updated', { items })
     if (before.size) for (const t of items) if (t.status === 'done' && before.has(t.id) && before.get(t.id) !== 'done') for (const fn of completionListeners) { try { fn(t) } catch {} }
   }).catch((e) => { setState({ error: e.message || String(e) }) }).finally(() => { refreshing = null })
@@ -251,6 +304,7 @@ function fmtDuration(ms) {
 function elapsedOf(t) { return fmtDuration(new Date(t.finishedAt || new Date().toISOString()) - new Date(t.startedAt || t.createdAt)) }
 function fmtTime(iso) { if (!iso) return ''; return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
 function fmtDate(iso) { if (!iso) return ''; const d = new Date(iso); return d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + fmtTime(iso) }
+function isToday(iso) { if (!iso) return false; const d = new Date(iso); const n = new Date(); return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth() && d.getDate() === n.getDate() }
 function visual(t) { return t.status !== 'done' ? t.status : t.error ? 'err' : 'ok' }
 function StatusDot({ task }) {
   const v = visual(task)
@@ -306,7 +360,8 @@ function makeComponents(ctx, t) {
       h('span', { className: 'mwt-card-meta' }, live ? elapsedOf(task) : fmtTime(task.finishedAt)))
   }
 
-  function Ask({ scenarios, initial, hero }) {
+  function Ask({ scenarios, initial, hero, compact }) {
+    const [focused, setFocused] = React.useState(false)
     const [text, setText] = React.useState(initial && initial.text ? initial.text : '')
     const [scenario, setScenario] = React.useState(initial && initial.scenario ? initial.scenario : '')
     const [busy, setBusy] = React.useState(false)
@@ -327,14 +382,42 @@ function makeComponents(ctx, t) {
     }
     const grow = () => { const el = ref.current; if (!el) return; el.style.height = 'auto'; el.style.height = Math.min(240, el.scrollHeight) + 'px' }
     React.useEffect(grow, [text])
-    return h('div', null,
+    return h('div', { className: compact ? 'mwt-ask-wrap compact' + (focused || text ? ' open' : '') : 'mwt-ask-wrap' },
       h('div', { className: 'mwt-ask' },
-        h('textarea', { ref, value: text, placeholder: t('ask'), rows: 2, onChange: (e) => setText(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); submit() } } }),
+        h('textarea', { ref, value: text, placeholder: t('ask'), rows: compact ? 1 : 2, onFocus: () => setFocused(true), onBlur: () => setTimeout(() => setFocused(false), 150), onChange: (e) => setText(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); submit() } } }),
         h('div', { className: 'mwt-ask-row' },
           scenario ? h('button', { type: 'button', className: 'mwt-chip', 'data-on': true, title: t('scenarioClear'), onClick: () => setScenario('') }, (scenarios.find((s) => s.id === scenario) || { label: scenario }).label, ' ×') : null,
           h('small', { className: 'grow' }, err || (hero ? '' : t('hint'))),
           h('button', { type: 'button', className: 'mwt-btn primary round', 'aria-label': t('create'), title: t('create'), disabled: busy || !text.trim(), onClick: submit }, icon(busy ? 'loader' : 'send', { size: 15 })))),
-      examples.length ? h('div', { className: 'mwt-chips' + (hero ? ' center' : '') }, examples.map((ex) => h('button', { key: ex, type: 'button', className: 'mwt-chip', title: ex, onClick: () => { setText(ex); if (ref.current) ref.current.focus() } }, ex))) : null)
+      examples.length && (!compact || focused) && !text ? h('div', { className: 'mwt-chips' + (hero ? ' center' : '') }, examples.map((ex) => h('button', { key: ex, type: 'button', className: 'mwt-chip', title: ex, onMouseDown: (e) => e.preventDefault(), onClick: () => { setText(ex); if (ref.current) ref.current.focus() } }, ex))) : null)
+  }
+
+  /** What needs the user: failures, verification issues, unrated deliveries (last 7 days). */
+  function attentionItems(items, deliverables) {
+    const week = Date.now() - 7 * 86400000
+    const out = []
+    for (const t of items) {
+      if (t.status !== 'done' || new Date(t.finishedAt || t.createdAt) < week) continue
+      if (t.error && !/已取消/.test(t.error)) out.push({ key: 'f' + t.id, kind: 'failed', at: t.finishedAt, title: t.title, sub: t.error, task: t })
+      else if (t.verification && t.verification.passed === false) out.push({ key: 'v' + t.id, kind: 'issues', at: t.finishedAt, title: t.title, sub: t.verification.notes || '', task: t })
+    }
+    for (const d of deliverables) {
+      if (d.rating !== null && d.rating !== undefined) continue
+      if (new Date(d.createdAt) < week) continue
+      if (out.some((x) => x.task && x.task.id === d.taskId)) continue
+      out.push({ key: 'd' + d.id, kind: 'rate', at: d.createdAt, title: d.title, sub: '', deliverable: d })
+    }
+    return out.sort((a, b) => new Date(b.at) - new Date(a.at)).slice(0, 6)
+  }
+
+  function AttentionCard({ item }) {
+    const label = item.kind === 'failed' ? t('failedCard') : item.kind === 'issues' ? t('issuesCard') : t('rateCard')
+    const open = () => { if (item.deliverable) openDeliverable(item.deliverable.id); else openTask(item.task.id) }
+    const rerun = (e) => { e.stopPropagation(); api('/rerun', { id: item.task.id }).then((d) => { refresh().then(schedulePoll); if (d.task) openTask(d.task.id) }).catch(() => {}) }
+    return h('div', { className: 'mwt-att', 'data-kind': item.kind, role: 'button', tabIndex: 0, onClick: open, onKeyDown: (e) => { if (e.key === 'Enter') open() } },
+      h('span', { className: 'mwt-att-ic' }, icon(item.kind === 'failed' ? 'circle-x' : item.kind === 'issues' ? 'circle-x' : 'file-text', { size: 16 })),
+      h('div', { className: 'mwt-att-body' }, h('div', { className: 'mwt-att-label' }, label), h('div', { className: 'mwt-att-title' }, item.title), item.sub ? h('div', { className: 'mwt-att-sub' }, item.sub) : null),
+      item.kind === 'failed' ? h('button', { type: 'button', className: 'mwt-btn', onClick: rerun }, icon('rotate-cw', { size: 13 }), t('rerun')) : h('span', { className: 'mwt-att-go' }, icon('arrow-left', { size: 14, style: { transform: 'rotate(180deg)' } })))
   }
 
   function TodayPage() {
@@ -342,13 +425,27 @@ function makeComponents(ctx, t) {
     const initial = nav.pendingInput; nav.pendingInput = null
     const active = s.items.filter((x) => x.status !== 'done')
     useTick(active.length > 0)
-    const recent = s.items.filter((x) => x.status === 'done').slice(0, 6)
-    return h('div', { className: 'mwt' }, h('style', null, STYLE), h('div', { className: 'mwt-page' },
-      h('div', { className: 'mwt-hero' }, h('h1', null, t('hero')), h(Ask, { scenarios: s.scenarios, initial, hero: true })),
-      active.length ? h('div', { className: 'mwt-section' }, h('h2', null, icon('loader', { size: 14 }), t('running'), h('span', null, String(active.length))),
+    const attention = attentionItems(s.items, s.deliverables)
+    const todayDocs = s.deliverables.filter((d) => isToday(d.createdAt)).slice(0, 8)
+    const recent = s.items.filter((x) => x.status === 'done').slice(0, 5)
+    const hour = new Date().getHours()
+    const greet = hour < 12 ? t('greetMorning') : hour < 18 ? t('greetDay') : t('greetNight')
+    const status = [active.length ? `${active.length} ${t('running1')}` : '', attention.length ? `${attention.length} ${t('waiting1')}` : ''].filter(Boolean).join(' · ') || t('quiet')
+    const docCard = (d) => h('button', { key: d.id, type: 'button', className: 'mwt-card', onClick: () => openDeliverable(d.id) },
+      h('span', { className: 'mwt-dot', 'data-s': d.verification && d.verification.passed === true ? 'ok' : undefined }, icon('file-text', { size: 16 })),
+      h('span', null, h('div', { className: 'mwt-card-title' }, d.title), h('div', { className: 'mwt-card-sub' }, [d.verification ? (d.verification.passed === true ? t('verified') : d.verification.passed === false ? t('verifyIssues') : t('verifyNone')) : '', d.rating === 1 ? t('ratingGood') : d.rating === -1 ? t('ratingBad') : ''].filter(Boolean).join(' · '))),
+      h('span', { className: 'mwt-card-meta' }, fmtTime(d.createdAt)))
+    return h('div', { className: 'mwt mwt-today' }, h('style', null, STYLE), h('div', { className: 'mwt-page mwt-page-today' },
+      h('header', { className: 'mwt-greet' }, h('h1', null, greet), h('p', null, new Date().toLocaleDateString([], { month: 'long', day: 'numeric', weekday: 'long' }) + ' · ' + status)),
+      h('section', { className: 'mwt-section first' }, h('h2', null, icon('bell', { size: 14 }), t('attention'), attention.length ? h('span', null, String(attention.length)) : null),
+        attention.length ? h('div', { className: 'mwt-atts' }, attention.map((item) => h(AttentionCard, { key: item.key, item }))) : h('div', { className: 'mwt-empty' }, t('attentionEmpty'))),
+      active.length ? h('section', { className: 'mwt-section' }, h('h2', null, icon('loader', { size: 14 }), t('running'), h('span', null, String(active.length))),
         h('div', { className: 'mwt-cards' }, active.map((x) => h(TaskCard, { key: x.id, task: x, onOpen: openTask })))) : null,
-      h('div', { className: 'mwt-section' }, h('h2', null, icon('history', { size: 14 }), t('recent')),
-        recent.length ? h('div', { className: 'mwt-cards' }, recent.map((x) => h(TaskCard, { key: x.id, task: x, onOpen: openTask }))) : h('div', { className: 'mwt-empty' }, s.error || t('none')))))
+      todayDocs.length ? h('section', { className: 'mwt-section' }, h('h2', null, icon('file-text', { size: 14 }), t('todayDone'), h('span', null, String(todayDocs.length))),
+        h('div', { className: 'mwt-cards' }, todayDocs.map(docCard))) : null,
+      h('section', { className: 'mwt-section' }, h('h2', null, icon('history', { size: 14 }), t('recent')),
+        recent.length ? h('div', { className: 'mwt-cards' }, recent.map((x) => h(TaskCard, { key: x.id, task: x, onOpen: openTask }))) : h('div', { className: 'mwt-empty' }, s.error || t('none'))),
+      h('div', { className: 'mwt-dock' }, h(Ask, { scenarios: s.scenarios, initial, hero: false, compact: true }))))
   }
 
   function Activity({ task, live }) {

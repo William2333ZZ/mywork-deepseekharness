@@ -141,3 +141,30 @@ OpenMuse 是「个人生活助理」模板，重邮件、日历、表单、目�
 本地克隆（浅）：paseo 100 MB，openmuse 22 MB，都在会话临时目录，未入库。
 
 来源：Paseo 仓库 README、`docs/product.md`、`docs/architecture.md`、`docs/agent-lifecycle.md`、`docs/permissions.md`、`docs/plugins.md`、`public-docs/browser-tools.md`、`public-docs/agent-profiles.md`、`public-docs/hub/*`、`SECURITY.md`、CHANGELOG；OpenMuse 仓库 README、`docs/FEATURES.md`、`docs/EXPERIENCE.md`、`docs/COMPUTER.md`、`docs/OPENBOT-INTEGRATION.md`、`SECURITY.md`、`ROADMAP.md`、`.env.example`；Muse Code 官方文档（overview、workflows、extending）与 [innfactory 的整理](https://innfactory.ai/en/ai-harness/muse/)、[SitePoint 上手文](https://www.sitepoint.com/meta-muse-code-getting-started/)、[explainx 公测报道](https://www.explainx.ai/blog/meta-muse-code-coding-agent-muse-spark-1-2-launch-august-2026)；OpenMuse 发布：[CopilotKit 公告](https://x.com/CopilotKit/status/2102402336572203075)；GitHub API 统计。
+
+## 6. 为什么 Manus 和 Muse Code 的产品形态更好
+
+这一节是反思，不是调研。对象是 Manus（通用任务 agent）和 Muse Code（Meta 的编程 agent），对照的是我们现在的交易工作台。
+
+### 它们的共同点
+
+1. **围绕结果和交付物，而不是围绕对话。** Manus 的单位是「任务 → 交付物」（一份报告、一个网站、一张表），Muse 的单位是「任务 → 经过验证的改动」。对话只是过程。我们的单位仍然是「一次对话」：报告写在聊天记录里，事后才存成一张卡。
+2. **一个产品，一种做法。** 两者都是垂直整合的：模型、harness、界面一起调。没有 provider 选择、没有插件成员、没有工作区概念。我们是在通用 harness 上叠插件，每一道缝都露出平台：模型选择器、标准模式 / Agent Team、对话 / 轨迹、设置里的成员管理、会话列表里的旧标题。用户感觉到的是拼装。
+3. **质量回路是产品的一部分。** Muse 默认开四个观察者，其中「验证」专门核对声称做过的事是否真做了；Manus 会重新规划并把计划摆在眼前。我们的模型写一次报告就结束，没有人核对数字，没有计划可看。
+4. **异步和回来。** Manus 在你离开时继续干活，做完给你一个可打开的东西；Muse 的子代理和工作流在后台跑。我们的分析是同步的聊天，你得盯着它跑完；巡检推的是数据摘要，不是交付物。
+5. **可见的工作是信任，不是噪音。** Manus 让你看 agent 的电脑在做什么，是一条能读懂的叙事；我们展示的是工具调用的原始行（oracle_fetch 一次又一次），是日志。
+6. **概念少。** Manus：任务、计划、交付物。Muse：会话、子代理、技能。我们：驾驶舱、提问、分析记录、报告、巡检、市场先知、Digital Oracle、MyWork、dsh、工作区……名字太多，每个都要解释。
+7. **一个入口，没有表单。** Manus 一个输入框，例子在框里。我们有输入框，还有五条模板、标的表里的按钮、驾驶舱里的按钮，入口散在三处。
+
+### 这对交易工作台意味着什么
+
+把「报告」变成交付物，把「提问」变成任务，把对话降级为过程。具体是四步：
+
+1. **任务模型。** 提问框创建的是一个分析任务，不是一次聊天。任务有状态（排队、取数、推理、核验、完成），有计划步骤，在后台跑，做完在应用内和飞书各通知一次。左栏的「分析记录」变成任务列表，每条显示状态和一句结果。
+2. **报告是页面，不是聊天。** 任务完成生成一份渲染好的报告页：结论与概率在最上面，分层信号表、矛盾分析、情景、数据来源与取数时间、核验结果；可导出图片 / PDF，可分享。对话过程折叠在报告下面，叫「过程」。
+3. **核验回路。** 报告生成后跑一个便宜的核验回合：数字与工具返回是否一致、概率有无时间窗口、是否至少三个独立信号；结果作为「已核验 n/n」显示在报告头部。这是我们在插件层能做的观察者。
+4. **去缝。** 发行版里隐藏模型选择器、标准模式、Agent Team、轨迹标签和设置里的成员管理；模型档位按任务类型自动选（快问用 Flash，报告用 High）；品牌名只留「交易工作台」，市场先知只作为报告页脚的署名。
+
+驾驶舱、巡检、报告页保留，但报告页从「档案」升级成「交付物列表」，驾驶舱上的「分析」按钮创建任务。这样产品从「一个带市场数据的聊天工具」变成「一个出报告的工作台」。
+
+代价：任务队列和核验各要一个后端回路，报告渲染要一套模板；估计两到三天。dsh 的会话仍是执行引擎，只是不再是用户看到的东西。

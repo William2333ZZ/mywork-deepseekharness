@@ -32,7 +32,7 @@ A warm paper workspace with list discipline. White pages, warm off-white chrome,
 ## Risks and unknowns
 
 - Chinese typography: Geist has no CJK glyphs; PingFang SC (macOS) and Noto Sans SC / Microsoft YaHei (Windows) render the Chinese. Line-heights are set for CJK, so Latin-only lines look slightly airy. Accepted.
-- Notion's `--meta` (#a39e98) fails 4.5:1 on white at small sizes; this contract darkens it to #8f8a84 (inferred, checked at 4.6:1).
+- Notion's `--meta` (#a39e98) fails 4.5:1 on white at small sizes; this contract darkens it to #75706a (4.8:1) and uses #8a867f on the dark page (4.9:1).
 - dsh's sidebar rail at 56px on phones is outside this contract; only its contents are styled here.
 - The settings page is dsh's shell with our palette; its internal cards keep dsh's component recipes.
 

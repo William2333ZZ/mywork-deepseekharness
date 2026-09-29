@@ -26,7 +26,7 @@ Schema tokens (Open Design names) bound for this product. Light is the default.
 | `--fg` | `rgba(0,0,0,.92)` | `rgba(255,255,255,.9)` | primary text |
 | `--fg-2` | `#31302e` | `#e6e4e0` | headings on surfaces |
 | `--muted` | `#615d59` | `#9b9893` | secondary text (4.5:1 on bg) |
-| `--meta` | `#8f8a84` | `#75716b` | timestamps, placeholders (still 4.5:1 at 12px+ on bg) |
+| `--meta` | `#75706a` | `#8a867f` | timestamps, placeholders (4.8:1 light, 4.9:1 dark) |
 | `--border` | `rgba(0,0,0,.1)` | `rgba(255,255,255,.1)` | whisper border, containment |
 | `--border-soft` | `rgba(0,0,0,.06)` | `rgba(255,255,255,.06)` | row dividers |
 | `--accent` | `#0075de` | `#529cca` | the one action: send, active nav, focus, links |
@@ -70,7 +70,7 @@ Weights: 400 read, 500 emphasize, 600 announce. 700 is not used. Six sizes total
 
 - **Sidebar** (`--surface`): wordmark, 新任务, 今日 / 任务 / 交付物 / 例行 / 领域, task list in two groups (进行中, 最近), 设置. Active item: `--bg` fill with a whisper border, no shadow.
 - **今日**: greeting and one status line; 等你看 first (reminders, failures, verification issues, unrated deliveries) as a bordered list; 进行中; 今天的例行; 今天完成; 最近. Composer docked at the bottom of the page as a raised card. Empty 等你看 is a sentence, not a card.
-- **Task page**: title, one meta line, ghost actions right. Two columns on desktop (5:6): progress stream left, document right and sticky; single column below 980px.
+- **Task page**: title, one meta line, ghost actions right. Two columns on desktop (5:6): progress stream left, document right and sticky; single column below 980px with the document first (result before process).
 - **Deliverable card**: whisper border, `--elev-raised`, radius 12, a `--surface` header strip with title and verdict pill, body at document typography, actions row at the bottom.
 - **Lists everywhere** share one recipe: container with whisper border and radius 12, rows divided by `--border-soft`, 20px status glyph, title, one-line secondary, right-aligned mono meta. Hover: `--surface` fill. No per-row borders or shadows.
 

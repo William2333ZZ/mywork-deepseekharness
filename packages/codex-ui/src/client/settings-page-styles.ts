@@ -105,13 +105,13 @@ html[data-dsh-native-backdrop=mica] .dcu-settings-page,html[data-dsh-native-back
 /* MyWork v2 shell: the settings page shares the warm neutral palette of the sidebar and pages. */
 body[data-mywork-v2] .dcu-settings-page{--sp-bg:#ffffff;--sp-nav:#f6f5f4;--sp-card:#f6f5f4;--sp-border:rgba(0,0,0,.1);--sp-text:rgba(0,0,0,.92);--sp-muted:#615d59;--sp-hover:#efedeb;--sp-active:#ffffff;font-family:Geist,-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei UI",sans-serif}
 body[data-mywork-v2] .dcu-settings-link[aria-current=page]{box-shadow:0 0 0 1px rgba(0,0,0,.1)}
-body[data-mywork-v2] .dcu-settings-nav{--sp-text:rgba(0,0,0,.92);--sp-muted:#8f8a84;--sp-hover:#efedeb;--sp-active:#ffffff;--sp-border:rgba(0,0,0,.06)}
-body[data-mywork-v2] .dcu-settings-link svg{color:#8f8a84}
+body[data-mywork-v2] .dcu-settings-nav{--sp-text:rgba(0,0,0,.92);--sp-muted:#75706a;--sp-hover:#efedeb;--sp-active:#ffffff;--sp-border:rgba(0,0,0,.06)}
+body[data-mywork-v2] .dcu-settings-link svg{color:#75706a}
 body[data-mywork-v2] .dcu-settings-link[aria-current=page] svg,body[data-mywork-v2] .dcu-settings-link:hover svg{color:#31302e}
 body[data-mywork-v2] .dcu-settings-page :focus-visible{outline-color:#0075de}
 body[data-mywork-v2] .dcu-settings-search:focus-within{border-color:#0075de}
 body[data-ds-dark-theme][data-mywork-v2] .dcu-settings-page{--sp-bg:#191919;--sp-nav:#202020;--sp-card:#202020;--sp-border:rgba(255,255,255,.1);--sp-text:rgba(255,255,255,.9);--sp-muted:#9b9893;--sp-hover:#2a2a2a;--sp-active:#191919}
-body[data-ds-dark-theme][data-mywork-v2] .dcu-settings-nav{--sp-text:rgba(255,255,255,.9);--sp-muted:#75716b;--sp-hover:#2a2a2a;--sp-active:#191919;--sp-border:rgba(255,255,255,.06)}
-body[data-ds-dark-theme][data-mywork-v2] .dcu-settings-link svg{color:#75716b}
+body[data-ds-dark-theme][data-mywork-v2] .dcu-settings-nav{--sp-text:rgba(255,255,255,.9);--sp-muted:#8a867f;--sp-hover:#2a2a2a;--sp-active:#191919;--sp-border:rgba(255,255,255,.06)}
+body[data-ds-dark-theme][data-mywork-v2] .dcu-settings-link svg{color:#8a867f}
 body[data-ds-dark-theme][data-mywork-v2] .dcu-settings-link[aria-current=page] svg,body[data-ds-dark-theme][data-mywork-v2] .dcu-settings-link:hover svg{color:#e6e4e0}
 `

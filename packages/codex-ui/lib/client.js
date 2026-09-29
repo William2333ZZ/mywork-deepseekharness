@@ -2581,8 +2581,8 @@ window.__ModuleLoader__.load({
 		const useLegacyPanelInfo$1 = (selector) => selector({ activePanelId: null });
 		const stylesheet$5 = `
 /* Tokens: design/v2/DESIGN.md §2. The sidebar is a --surface column beside a --bg page. */
-.mws{--bg:#ffffff;--surface:#f6f5f4;--surface-2:#efedeb;--fg:rgba(0,0,0,.92);--fg-2:#31302e;--muted:#615d59;--meta:#8f8a84;--border:rgba(0,0,0,.1);--border-soft:rgba(0,0,0,.06);--accent:#0075de;--accent-on:#ffffff;--success:#178a30;--danger:#c0392b;--radius-sm:6px;--radius-md:8px;--focus-ring:0 0 0 3px rgba(0,117,222,.25);--motion-fast:150ms;--ease-standard:cubic-bezier(.2,0,0,1);width:100%;height:100%;min-width:0;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;background:var(--surface);color:var(--fg);box-shadow:inset -1px 0 var(--border-soft);font:13.5px/1.5 Geist,-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei UI",sans-serif;-webkit-font-smoothing:antialiased}
-body[data-ds-dark-theme] .mws{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a;--fg:rgba(255,255,255,.9);--fg-2:#e6e4e0;--muted:#9b9893;--meta:#75716b;--border:rgba(255,255,255,.1);--border-soft:rgba(255,255,255,.06);--accent:#529cca;--accent-on:#111111;--success:#4dab7a;--danger:#e26e63;--focus-ring:0 0 0 3px rgba(82,156,202,.35)}
+.mws{--bg:#ffffff;--surface:#f6f5f4;--surface-2:#efedeb;--fg:rgba(0,0,0,.92);--fg-2:#31302e;--muted:#615d59;--meta:#75706a;--border:rgba(0,0,0,.1);--border-soft:rgba(0,0,0,.06);--accent:#0075de;--accent-on:#ffffff;--success:#178a30;--danger:#c0392b;--radius-sm:6px;--radius-md:8px;--focus-ring:0 0 0 3px rgba(0,117,222,.25);--motion-fast:150ms;--ease-standard:cubic-bezier(.2,0,0,1);width:100%;height:100%;min-width:0;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;background:var(--surface);color:var(--fg);box-shadow:inset -1px 0 var(--border-soft);font:13.5px/1.5 Geist,-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei UI",sans-serif;-webkit-font-smoothing:antialiased}
+body[data-ds-dark-theme] .mws{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a;--fg:rgba(255,255,255,.9);--fg-2:#e6e4e0;--muted:#9b9893;--meta:#8a867f;--border:rgba(255,255,255,.1);--border-soft:rgba(255,255,255,.06);--accent:#529cca;--accent-on:#111111;--success:#4dab7a;--danger:#e26e63;--focus-ring:0 0 0 3px rgba(82,156,202,.35)}
 .mws *{box-sizing:border-box}
 .mws button{font-family:inherit;transition:background-color var(--motion-fast) var(--ease-standard),color var(--motion-fast) var(--ease-standard),border-color var(--motion-fast) var(--ease-standard),transform var(--motion-fast) var(--ease-standard)}
 .mws button:active{transform:scale(.98)}
@@ -10698,14 +10698,14 @@ html[data-dsh-native-backdrop=mica] .dcu-settings-page,html[data-dsh-native-back
 /* MyWork v2 shell: the settings page shares the warm neutral palette of the sidebar and pages. */
 body[data-mywork-v2] .dcu-settings-page{--sp-bg:#ffffff;--sp-nav:#f6f5f4;--sp-card:#f6f5f4;--sp-border:rgba(0,0,0,.1);--sp-text:rgba(0,0,0,.92);--sp-muted:#615d59;--sp-hover:#efedeb;--sp-active:#ffffff;font-family:Geist,-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei UI",sans-serif}
 body[data-mywork-v2] .dcu-settings-link[aria-current=page]{box-shadow:0 0 0 1px rgba(0,0,0,.1)}
-body[data-mywork-v2] .dcu-settings-nav{--sp-text:rgba(0,0,0,.92);--sp-muted:#8f8a84;--sp-hover:#efedeb;--sp-active:#ffffff;--sp-border:rgba(0,0,0,.06)}
-body[data-mywork-v2] .dcu-settings-link svg{color:#8f8a84}
+body[data-mywork-v2] .dcu-settings-nav{--sp-text:rgba(0,0,0,.92);--sp-muted:#75706a;--sp-hover:#efedeb;--sp-active:#ffffff;--sp-border:rgba(0,0,0,.06)}
+body[data-mywork-v2] .dcu-settings-link svg{color:#75706a}
 body[data-mywork-v2] .dcu-settings-link[aria-current=page] svg,body[data-mywork-v2] .dcu-settings-link:hover svg{color:#31302e}
 body[data-mywork-v2] .dcu-settings-page :focus-visible{outline-color:#0075de}
 body[data-mywork-v2] .dcu-settings-search:focus-within{border-color:#0075de}
 body[data-ds-dark-theme][data-mywork-v2] .dcu-settings-page{--sp-bg:#191919;--sp-nav:#202020;--sp-card:#202020;--sp-border:rgba(255,255,255,.1);--sp-text:rgba(255,255,255,.9);--sp-muted:#9b9893;--sp-hover:#2a2a2a;--sp-active:#191919}
-body[data-ds-dark-theme][data-mywork-v2] .dcu-settings-nav{--sp-text:rgba(255,255,255,.9);--sp-muted:#75716b;--sp-hover:#2a2a2a;--sp-active:#191919;--sp-border:rgba(255,255,255,.06)}
-body[data-ds-dark-theme][data-mywork-v2] .dcu-settings-link svg{color:#75716b}
+body[data-ds-dark-theme][data-mywork-v2] .dcu-settings-nav{--sp-text:rgba(255,255,255,.9);--sp-muted:#8a867f;--sp-hover:#2a2a2a;--sp-active:#191919;--sp-border:rgba(255,255,255,.06)}
+body[data-ds-dark-theme][data-mywork-v2] .dcu-settings-link svg{color:#8a867f}
 body[data-ds-dark-theme][data-mywork-v2] .dcu-settings-link[aria-current=page] svg,body[data-ds-dark-theme][data-mywork-v2] .dcu-settings-link:hover svg{color:#e6e4e0}
 `;
 		//#endregion

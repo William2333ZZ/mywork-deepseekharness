@@ -210,7 +210,7 @@ const zh = {
   doneToast: '任务完成', failedToast: '任务失败', open: '打开', tryScenario: '用这个场景', kinds: '交付', examples: '示例',
   toolFailed: '失败', stepsTitle: '步骤',
   attention: '等你看', attentionEmpty: '没有等你处理的事。', failedCard: '失败，可以再来一次', issuesCard: '核验发现问题', rateCard: '交付了，看一眼给个评价', running1: '个在跑', waiting1: '份等你看', quiet: '今天还很安静', greetMorning: '早上好', greetDay: '下午好', greetNight: '晚上好', todayDone: '今天完成', examplesTitle: '可以试试',
-  notesMore: '点开看核验员的完整说明', paused: '已暂停', ended: '已结束', endedN: '已结束的 {n} 项', runs: '运行记录', todayAt: '今天', allTasks: '全部', delivered: '已交付', answered: '已回答', quietDay: '今天没有等你的事。说一句，交给它。', moreRows: '还有 {n} 项', more: '更多', rawProcess: '原始对话', loadFailed: '没连上服务，稍后再试。', retry: '重试', moreRate: '还有 {n} 份交付了没评价',
+  notesMore: '点开看核验员的完整说明', conversation: '对话', handedOff: '已交给后台', thinking: '在想', paused: '已暂停', ended: '已结束', endedN: '已结束的 {n} 项', runs: '运行记录', todayAt: '今天', allTasks: '全部', delivered: '已交付', answered: '已回答', quietDay: '今天没有等你的事。说一句，交给它。', moreRows: '还有 {n} 项', more: '更多', rawProcess: '原始对话', loadFailed: '没连上服务，稍后再试。', retry: '重试', moreRate: '还有 {n} 份交付了没评价',
   routines: '例行', routinesLead: '还没有例行的事。说一句带时间的话，比如「每天 9 点给我一份简报」。',
   routinesEmpty: '还没有例行的事。', remindCard: '提醒', gotIt: '知道了', runNow: '现在跑一次', pause: '暂停', resume: '恢复', remove: '删除', nextRun: '下次', lastRun: '上次', neverRan: '还没跑过', noChange: '没有变化', changed: '有变化', briefs: '今天的例行', scheduled: '已安排', scheduledHint: '到点会自动做，结果在「例行」和「等你看」里。', kindTask: '例行任务', kindRemind: '提醒', quietTag: '安静',
   say: '回复', sayHint: '', sayBusy: '', conversational: '这次是回答，没有生成文档；要保存时说“整理成一份…”。',
@@ -229,7 +229,7 @@ const en = {
   doneToast: 'Task finished', failedToast: 'Task failed', open: 'Open', tryScenario: 'Use this scenario', kinds: 'Delivers', examples: 'Examples',
   toolFailed: 'failed', stepsTitle: 'Steps',
   attention: 'For you', attentionEmpty: 'Nothing waiting for you.', failedCard: 'Failed, can run again', issuesCard: 'Verification found issues', rateCard: 'Delivered, take a look and rate', running1: 'running', waiting1: 'waiting for you', quiet: 'A quiet day so far', greetMorning: 'Good morning', greetDay: 'Good afternoon', greetNight: 'Good evening', todayDone: 'Finished today', examplesTitle: 'Try',
-  notesMore: 'Tap for the verifier’s full notes', paused: 'Paused', ended: 'Ended', endedN: '{n} ended', runs: 'Runs', todayAt: 'today', allTasks: 'All', delivered: 'Delivered', answered: 'Answered', quietDay: 'Nothing waiting for you today. Say something and hand it over.', moreRows: '{n} more', more: 'More', rawProcess: 'Raw conversation', loadFailed: 'Could not reach the service, try again shortly.', retry: 'Retry', moreRate: '{n} more deliveries waiting for a rating',
+  notesMore: 'Tap for the verifier’s full notes', conversation: 'Conversation', handedOff: 'Handed to the background', thinking: 'Thinking', paused: 'Paused', ended: 'Ended', endedN: '{n} ended', runs: 'Runs', todayAt: 'today', allTasks: 'All', delivered: 'Delivered', answered: 'Answered', quietDay: 'Nothing waiting for you today. Say something and hand it over.', moreRows: '{n} more', more: 'More', rawProcess: 'Raw conversation', loadFailed: 'Could not reach the service, try again shortly.', retry: 'Retry', moreRate: '{n} more deliveries waiting for a rating',
   routines: 'Routines', routinesLead: 'No routines yet. Say a sentence with a time: “every day at 9…”, “remind me at 6 on weekdays…”.',
   routinesEmpty: 'No routines yet.', remindCard: 'Reminder', gotIt: 'Got it', runNow: 'Run now', pause: 'Pause', resume: 'Resume', remove: 'Remove', nextRun: 'Next', lastRun: 'Last', neverRan: 'Never ran', noChange: 'No change', changed: 'Changed', briefs: 'Today’s routines', scheduled: 'Scheduled', scheduledHint: 'It runs on time; results land in Routines and For you.', kindTask: 'Routine', kindRemind: 'Reminder', quietTag: 'quiet',
   say: 'Reply', sayHint: '', sayBusy: '', conversational: 'This was an answer, no document was produced; ask for one when you want it saved.',
@@ -363,6 +363,13 @@ body[data-ds-dark-theme] .mwt{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 .mwt-row-state[data-tone=warn]{color:var(--warn)}
 .mwt-row-more .mwt-row-title{font-weight:400;color:var(--muted)}
 .mwt-spent{margin:16px 0 0}
+.mwt-thread{margin-top:32px}
+.mwt-thread .mwt-answer{margin:0 0 14px;max-width:65ch}
+.mwt-thread .mwt-ev.user{padding:4px 0 10px;grid-template-columns:0 minmax(0,1fr);column-gap:0}
+.mwt-thread .mwt-ev.user .body{background:var(--surface);color:var(--fg)}
+.mwt-handoff{appearance:none;display:inline-flex;align-items:center;gap:6px;margin:0 0 14px;padding:5px 10px 5px 8px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--bg);color:var(--fg-2);font:inherit;font-size:13px;cursor:pointer}
+.mwt-handoff:hover{background:var(--surface)}
+.mwt-handoff[disabled]{cursor:default}
 .mwt-row-static{cursor:default}
 .mwt-row-static:hover{background:transparent}
 .mwt-row[data-off=true] .mwt-row-title,.mwt-row[data-off=true] .mwt-dot{color:var(--meta)}
@@ -664,6 +671,7 @@ function makeComponents(ctx, t) {
     const dayStart = new Date(); dayStart.setHours(0, 0, 0, 0)
     for (const r of reminders || []) rows.push({ key: 'r' + r.routineId + r.at, rank: 0, at: r.at, glyph: 'bell', tone: 'fg', title: r.title, state: t('remindCard') + ' · ' + fmtTime(r.at), action: { label: t('gotIt'), run: () => api('/routines/ack', { id: r.routineId, at: r.at }).then(() => refresh()) } })
     for (const x of items) {
+      if (x.scenario === 'assistant') continue
       const done = x.status === 'done'
       const when = new Date(x.finishedAt || x.createdAt)
       if (done && x.error && !/已取消/.test(x.error) && when >= dayStart) rows.push({ key: 'f' + x.id, rank: 1, at: x.finishedAt, glyph: 'circle-x', tone: 'danger', title: x.title, state: t('failedTitle'), sub: x.error, action: { label: t('rerun'), run: () => api('/rerun', { id: x.id }).then((d) => { refresh(); if (d.task) openTask(d.task.id) }) }, open: () => openTask(x.id) })
@@ -694,7 +702,7 @@ function makeComponents(ctx, t) {
     const greet = hour < 12 ? t('greetMorning') : hour < 18 ? t('greetDay') : t('greetNight')
     const waiting = rows.filter((r) => r.rank <= 2).length
     const status = [active.length ? `${active.length} ${t('running1')}` : '', waiting ? `${waiting} ${t('waiting1')}` : ''].filter(Boolean).join(' · ') || t('quiet')
-    return h('div', { className: 'mwt mwt-today' }, h('style', null, STYLE), h('div', { className: 'mwt-page' },
+    return h('div', { className: 'mwt mwt-today' }, h('style', null, STYLE), h('div', { className: 'mwt-page mwt-page-today' },
       h('header', { className: 'mwt-greet' }, h('h1', null, greet)),
       !s.loadedAt && !s.error ? h(Skeleton, { rows: 3 })
         : s.error && !s.items.length ? h('div', { className: 'mwt-retry' }, h('span', null, t('loadFailed')), h('button', { type: 'button', className: 'mwt-btn', onClick: () => { refresh().then(schedulePoll) } }, t('retry')))
@@ -702,7 +710,54 @@ function makeComponents(ctx, t) {
           more || unrated ? h('button', { type: 'button', className: 'mwt-row mwt-row-more', onClick: () => selectPanel(PANELS.tasks) }, h('span', { className: 'mwt-dot' }, icon('list-checks', { size: 16 })), h('span', { className: 'mwt-row-main' }, h('span', { className: 'mwt-row-title' }, [more ? t('moreRows').replace('{n}', String(more)) : '', unrated ? t('moreRate').replace('{n}', String(unrated)) : ''].filter(Boolean).join(' · '))), h('span', { className: 'mwt-row-state' }, icon('arrow-left', { size: 14, style: { transform: 'rotate(180deg)' } }))) : null)
         : h('div', { className: 'mwt-quiet' }, h('p', null, t('quietDay')),
           h('div', { className: 'mwt-chips' }, s.scenarios.flatMap((sc) => sc.examples.slice(0, sc.builtin ? 3 : 1)).slice(0, 4).map((ex) => h('button', { key: ex, type: 'button', className: 'mwt-chip', onClick: () => newTask(ex) }, ex)))),
-      h(RoutinesSection, { routines: s.routines })))
+      h(RoutinesSection, { routines: s.routines }),
+      h(DayThread, { items: s.items }),
+      h('div', { className: 'mwt-dock' }, h(TodayAsk))))
+  }
+
+  /** Today's conversation: the last exchanges with the assistant; hand-offs it made are lines you can open. */
+  function DayThread({ items }) {
+    const [thread, setThread] = React.useState(null)
+    const live = items.find((x) => x.scenario === 'assistant' && x.status !== 'done')
+    const key = items.filter((x) => x.scenario === 'assistant').map((x) => x.id + x.status + (x.activity ? x.activity.length : 0)).join(',') + (live ? Math.floor(Date.now() / FAST_MS) : '')
+    React.useEffect(() => { let on = true; api('/today').then((d) => { if (on) setThread(d.thread) }).catch(() => {}); return () => { on = false } }, [key])
+    const entries = thread && Array.isArray(thread.activity) ? thread.activity : []
+    if (!entries.length && !live) return null
+    const shown = entries.slice(-12)
+    return h('section', { className: 'mwt-section mwt-thread' }, h('h2', null, t('conversation')),
+      shown.map((e, i) => {
+        if (e.kind === 'user') return h('div', { key: i, className: 'mwt-ev user' }, h('span', { className: 'ic' }), h('div', null, h('span', { className: 'body' }, e.text)))
+        if (e.kind === 'text') return h('div', { key: i, className: 'mwt-answer' }, h(Markdown, { text: e.text }))
+        if (e.kind === 'tool' && /^mywork_(task|routine)_create$/.test(e.name)) {
+          const m = /（(task-[a-z0-9]+|rt-[a-z0-9]+)）/.exec(e.result || '')
+          const title = (/「([^」]+)」/.exec(e.result || '') || [])[1] || ''
+          const id = m ? m[1] : ''
+          const isTask = e.name === 'mywork_task_create'
+          return h('button', { key: i, type: 'button', className: 'mwt-handoff', disabled: !id, onClick: () => { if (!id) return; if (isTask) openTask(id); else openRoutine(id) } }, icon(isTask ? 'list-checks' : 'history', { size: 13 }), (isTask ? t('handedOff') : t('scheduled')) + (title ? '：' + title : ''), id ? icon('arrow-left', { size: 12, style: { transform: 'rotate(180deg)' } }) : null)
+        }
+        return null
+      }),
+      live ? h('div', { className: 'mwt-ev' }, h('span', { className: 'ic' }, h('span', { className: 'mwt-dot', 'data-s': 'running' }, icon('loader', { size: 14 }))), h('div', { className: 'line' }, h('span', { className: 'obj' }, live.currentStep || t('thinking')))) : null)
+  }
+
+  /** The 今日 composer: talks to the assistant; it decides between answering, a task and a routine. */
+  function TodayAsk() {
+    const [text, setText] = React.useState('')
+    const [busy, setBusy] = React.useState(false)
+    const [err, setErr] = React.useState('')
+    const ref = React.useRef(null)
+    const submit = async () => {
+      const body = text.trim()
+      if (!body || busy) return
+      setBusy(true); setErr('')
+      try { await api('/today/say', { text: body }); setText(''); await refresh(); schedulePoll() } catch (e) { setErr(e.message || String(e)) } finally { setBusy(false) }
+    }
+    React.useEffect(() => { const el = ref.current; if (!el) return; el.style.height = 'auto'; el.style.height = Math.min(240, el.scrollHeight) + 'px' }, [text])
+    return h('div', { className: 'mwt-ask-wrap compact' },
+      h('div', { className: 'mwt-ask' },
+        h('textarea', { ref, value: text, placeholder: t('ask'), rows: 1, onChange: (e) => setText(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); submit() } } }),
+        h('button', { type: 'button', className: 'mwt-btn send round', 'aria-label': t('create'), disabled: busy || !text.trim(), onClick: submit }, icon(busy ? 'loader' : 'send', { size: 15 }))),
+      err ? h('small', { className: 'mwt-say-err' }, err) : null)
   }
 
   /** 新任务: one screen, one field. Sending lands on the task (or the routine) it created. */

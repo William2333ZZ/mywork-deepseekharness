@@ -43,7 +43,7 @@ export function apply(ctx, config = {}) {
   const hasTool = (name) => { try { return !!ctx.tools.get(name) } catch { return false } }
   const capabilities = () => ({ browser: hasTool('open_url') || hasTool('browser_navigate'), office: hasTool('univer_new'), im: hasTool('im_send') })
   const engine = createEngine({
-    ctx, store, deliverables, scenarios, log, emit, controller: () => controller, capabilities, routines,
+    ctx, store, deliverables, scenarios, log, emit, controller: () => controller, capabilities, routines, todaySummary: () => todaySummary(),
     config: { concurrency: Number(config.concurrency) || 2, timeoutMs: Math.max(1, Number(config.timeoutMinutes) || 20) * 60000, permission: String(config.permission || 'workspace-write'), agentPreset: config.agentPreset === '' ? undefined : (config.agentPreset || 'standard'), cwd: String(config.cwd || ''), verify: config.verify !== false },
   })
 
@@ -76,8 +76,34 @@ export function apply(ctx, config = {}) {
   // Scheduler: every 30 s run what is due. A run that fires while the server was down runs once on start.
   ctx.effect(() => { const tick = () => { try { for (const r of routines.due()) runRoutine(r.id) } catch (e) { log('scheduler: ' + (e && e.message)) } }; const id = setInterval(tick, 30000); const first = setTimeout(tick, 5000); return () => { clearInterval(id); clearTimeout(first) } }, 'dsh-mywork-tasks: scheduler')
 
+  /** 今日's conversation: one assistant task per day, created on the first message, continued with say(). */
+  const dayKey = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') }
+  const todayThread = () => store.items.find((t) => t.scenario === 'assistant' && t.dayKey === dayKey()) || null
+  const todaySummary = () => {
+    const today = new Date().toISOString().slice(0, 10)
+    const running = store.items.filter((t) => t.status !== 'done' && t.scenario !== 'assistant').map((t) => t.title)
+    const done = store.items.filter((t) => t.status === 'done' && t.scenario !== 'assistant' && String(t.finishedAt).slice(0, 10) === today).map((t) => t.title + (t.error ? '（失败）' : ''))
+    const upcoming = routines.items.filter((r) => r.enabled).map((r) => r.title + ' ' + describeSchedule(r.schedule))
+    return [running.length ? '在跑：' + running.join('；') : '', done.length ? '今天完成：' + done.join('；') : '', upcoming.length ? '例行：' + upcoming.join('；') : ''].filter(Boolean).join('\n')
+  }
+  const todaySay = async (text) => {
+    const body = String(text || '').trim()
+    if (!body) throw new Error('text is required')
+    let t = todayThread()
+    if (t && t.status !== 'done' && !engine.isLive(t.id)) t = null // a thread interrupted by a restart: start a fresh one
+    if (!t) {
+      t = store.create({ input: body, scenario: 'assistant', title: '今天的对话 ' + dayKey().slice(5).replace('-', '/'), source: 'today' })
+      store.update(t.id, { dayKey: dayKey() })
+      emit('queued', t)
+      engine.pump()
+      return taskView(store.get(t.id), deliverables)
+    }
+    return taskView(await engine.say(t.id, body), deliverables)
+  }
   const api = {
     register: (s) => scenarios.register(s),
+    today: () => { const t = todayThread(); return t ? taskView(t, deliverables) : null },
+    todaySay,
     routines: () => routines.list().map(routineView),
     routine: (id) => { const r = routines.get(id); return r ? routineView(r) : null },
     createRoutine,
@@ -164,6 +190,8 @@ export function apply(ctx, config = {}) {
     post('/routines/ack', async (b, res) => { const r = routines.ack(String(b.id || ''), b.at); if (!r) return json(res, { error: 'routine not found' }, 404); json(res, { routine: routineView(r), pending: routines.pending() }) })
     post('/cancel', async (b, res) => json(res, { task: api.cancel(String(b.id || '')) }))
     post('/verify', async (b, res) => json(res, { task: api.verify(String(b.id || '')) }))
+    route('/today', async (_req, res) => json(res, { thread: api.today() }))
+    post('/today/say', async (b, res) => { if (!String(b.text || '').trim()) return json(res, { error: 'text is required' }, 400); json(res, { thread: await todaySay(b.text) }) })
     post('/say', async (b, res) => { if (!String(b.text || '').trim()) return json(res, { error: 'text is required' }, 400); json(res, { task: await api.say(String(b.id || ''), b.text) }) })
     post('/rerun', async (b, res) => { const t = store.get(String(b.id || '')); if (!t) return json(res, { error: 'task not found' }, 404); json(res, { task: create({ input: t.input, scenario: t.scenario, title: t.title, source: 'rerun' }) }) })
     route('/scenarios', async (_req, res) => json(res, { items: scenarios.list(), capabilities: capabilities() }))

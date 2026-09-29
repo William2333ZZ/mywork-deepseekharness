@@ -102,7 +102,7 @@ export function reasonError(reason) {
  *   config        { concurrency, timeoutMs, permission, agentPreset, cwd, verify }
  *   log(msg), emit(kind, task, deliverable?), controller() → dsh sessionController (for follow-up turns on finished tasks)
  */
-export function createEngine({ ctx, store, deliverables, scenarios, config, log, emit, controller, capabilities, routines }) {
+export function createEngine({ ctx, store, deliverables, scenarios, config, log, emit, controller, capabilities, routines, todaySummary }) {
   const live = new Map()     // taskId → run state
   const verifying = new Map() // taskId → { text }
   let pumping = false
@@ -178,7 +178,7 @@ export function createEngine({ ctx, store, deliverables, scenarios, config, log,
         const previous = previousRun ? deliverables.get(previousRun.deliverableId) : null
         if (routine) request = routinePrompt(routine, previous)
       }
-      const prompt = scenario.compose(request, { date: new Date().toISOString().slice(0, 10), cwd: opened.workspace.path, task: { id: task.id, title: task.title }, capabilities: typeof capabilities === 'function' ? capabilities() : {} })
+      const prompt = scenario.compose(request, { date: new Date().toISOString().slice(0, 10), cwd: opened.workspace.path, task: { id: task.id, title: task.title }, capabilities: typeof capabilities === 'function' ? capabilities() : {}, today: { summary: typeof todaySummary === 'function' ? todaySummary() : '' } })
       agent.followup(userMessage(prompt, { kind: 'mywork-task', taskId: task.id, scenario: scenario.id }))
       const idle = agent.whenIdle()
       const deadline = new Promise((r) => { timer = setTimeout(() => { state.timedOut = true; agent.cancel({ kind: 'hook', reason: 'task timeout' }); r() }, config.timeoutMs) })

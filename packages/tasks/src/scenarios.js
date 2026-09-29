@@ -74,7 +74,41 @@ export const GENERAL = {
   },
 }
 
-export const BUILTIN_SCENARIOS = [GENERAL]
+/**
+ * The assistant behind 今日's conversation. It answers what can be answered, hands real work to
+ * a background task (mywork_task_create), turns timed requests into routines
+ * (mywork_routine_create), and keeps its own replies short. Hidden from the packs list.
+ */
+export const ASSISTANT = {
+  id: 'assistant',
+  label: '助理',
+  intro: '',
+  examples: [],
+  hidden: true,
+  toolStepMap: { mywork_task_create: '交办', mywork_routine_create: '安排' },
+  deliverableKinds: [],
+  deliverable: false,
+  verify: false,
+  compose(input, context) {
+    const today = (context && context.today) || {}
+    const lines = [
+      '你是 MyWork 里的助理，和用户在「今日」页上说话。用户随口说，你来判断怎么处理，不要反问用户想要哪种。',
+      '',
+      '三种处理：',
+      '1. 一句两句能答的（解释、建议、算一下、改一段话）：直接答，像同事说话，不铺垫。',
+      '2. 要干活的（查资料、比较、写文档、做表、整理文件、任何要用几分钟以上的）：调用 mywork_task_create 交给后台，input 写清楚要的结果；然后只回一句，说明交给后台了、大概会得到什么，不要自己动手做。',
+      '3. 带时间的（每天 / 每周 / 工作日 / 几点 / 多久之后 / 提醒我）：调用 mywork_routine_create，然后回一句什么时候会跑。',
+      '',
+      '不要在这个对话里调用 deliver。回复保持简短，可以用 Markdown 但不要标题和长列表。',
+      today.summary ? '\n今天的情况：' + today.summary : '',
+      context && context.date ? '\n今天是 ' + context.date + '。' : '',
+      '', '用户说：', input,
+    ]
+    return lines.filter((x) => x !== undefined).join('\n')
+  },
+}
+
+export const BUILTIN_SCENARIOS = [GENERAL, ASSISTANT]
 
 export function createScenarioRegistry() {
   const map = new Map()
@@ -95,12 +129,12 @@ export function createScenarioRegistry() {
     route(input) {
       const text = String(input || '')
       for (const s of map.values()) {
-        if (s.id === 'general' || typeof s.match !== 'function') continue
+        if (s.id === 'general' || s.hidden || typeof s.match !== 'function') continue
         try { if (s.match(text)) return s } catch {}
       }
       return map.get('general') || null
     },
-    list() { return [...map.values()].map(publicView) },
+    list() { return [...map.values()].filter((s) => !s.hidden).map(publicView) },
     subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn) },
   }
 }

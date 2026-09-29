@@ -11506,6 +11506,19 @@ html[data-dsh-native-backdrop=mica] .dcu-settings-page,html[data-dsh-native-back
 				openDeepLink();
 				return ctx.sessions.list.subscribe(openDeepLink);
 			}, "michengai-codex-ui: session deep link");
+			ctx.effect(() => {
+				if (typeof window === "undefined") return () => {};
+				const onOpen = (event) => {
+					const detail = event.detail;
+					const sessionId = detail && typeof detail.sessionId === "string" ? detail.sessionId : "";
+					if (sessionId === "" || ctx.sessions.list.getSnapshot().byId[sessionId] === void 0) return;
+					openConversation(ctx, ctx.layout, sessionId);
+				};
+				window.addEventListener("mywork:open-session", onOpen);
+				return () => {
+					window.removeEventListener("mywork:open-session", onOpen);
+				};
+			}, "michengai-codex-ui: mywork open-session bridge");
 			registerSectionPanels(ctx, t, (id) => {
 				selectGlobalPanel(ctx.layout, id);
 			}, { renderConnectors: () => (0, react.createElement)(ConnectorsSection, {

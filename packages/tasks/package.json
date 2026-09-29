@@ -1,0 +1,31 @@
+{
+  "name": "dsh-mywork-tasks",
+  "version": "0.0.1",
+  "description": "任务引擎 for MyWork Kit：一句话即任务，后台在独立会话里执行，交付一份交付物。今日 / 任务 两个页面，deliver 工具，场景插件通过 myworkTasks 服务注册。",
+  "license": "MIT",
+  "type": "module",
+  "keywords": ["dsh", "deepseek-harness", "dsh-plugin", "tasks", "deliverables", "agent"],
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./client": "./lib/client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": ["src", "lib", "cordis.patch.yml", "README.md"],
+  "scripts": {
+    "build": "node ../../scripts/build-client.mjs .",
+    "check": "node --check src/index.js && node --check src/store.js && node --check src/engine.js && node --check src/scenarios.js && node --check src/client/index.js",
+    "test": "node --test test/*.test.mjs"
+  },
+  "engines": { "node": ">=22.19", "dsh": ">=0.1.6-alpha.2" },
+  "dsh": {
+    "bundle": { "patch": "./cordis.patch.yml" },
+    "client": {
+      "platform": "web",
+      "inject": ["@deepseek-ai/dsh-client-ui-layout", "@deepseek-ai/dsh-client-locale"]
+    }
+  },
+  "peerDependencies": { "@deepseek-ai/cordis": "*" },
+  "mywork": { "clientPrelude": ["src/md.cjs", "../../scripts/client-icons.cjs"] }
+}

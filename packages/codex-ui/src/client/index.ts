@@ -307,6 +307,19 @@ export function apply(ctx: ClientContext): void {
     return ctx.sessions.list.subscribe(openDeepLink)
   }, 'michengai-codex-ui: session deep link')
 
+  // Kit pages (e.g. dsh-mywork-tasks 「过程」) open a conversation by id without importing this package.
+  ctx.effect(() => {
+    if (typeof window === 'undefined') return () => {}
+    const onOpen = (event: Event): void => {
+      const detail = (event as CustomEvent<{ sessionId?: string }>).detail
+      const sessionId = detail && typeof detail.sessionId === 'string' ? detail.sessionId : ''
+      if (sessionId === '' || ctx.sessions.list.getSnapshot().byId[sessionId as SessionId] === undefined) return
+      openConversation(ctx, ctx.layout, sessionId as SessionId)
+    }
+    window.addEventListener('mywork:open-session', onOpen)
+    return () => { window.removeEventListener('mywork:open-session', onOpen) }
+  }, 'michengai-codex-ui: mywork open-session bridge')
+
   registerSectionPanels(ctx, t, (id) => { selectGlobalPanel(ctx.layout, id) }, {
     renderConnectors: () => createElement(ConnectorsSection, { sessionStore: ctx.sessions.list, startPromptSession: startConnectorPromptSession, t }),
   })

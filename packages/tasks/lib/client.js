@@ -728,12 +728,9 @@ function makeComponents(ctx, t) {
       shown.map((e, i) => {
         if (e.kind === 'user') return h('div', { key: i, className: 'mwt-ev user' }, h('span', { className: 'ic' }), h('div', null, h('span', { className: 'body' }, e.text)))
         if (e.kind === 'text') return h('div', { key: i, className: 'mwt-answer' }, h(Markdown, { text: e.text }))
-        if (e.kind === 'tool' && /^mywork_(task|routine)_create$/.test(e.name)) {
-          const m = /（(task-[a-z0-9]+|rt-[a-z0-9]+)）/.exec(e.result || '')
-          const title = (/「([^」]+)」/.exec(e.result || '') || [])[1] || ''
-          const id = m ? m[1] : ''
-          const isTask = e.name === 'mywork_task_create'
-          return h('button', { key: i, type: 'button', className: 'mwt-handoff', disabled: !id, onClick: () => { if (!id) return; if (isTask) openTask(id); else openRoutine(id) } }, icon(isTask ? 'list-checks' : 'history', { size: 13 }), (isTask ? t('handedOff') : t('scheduled')) + (title ? '：' + title : ''), id ? icon('arrow-left', { size: 12, style: { transform: 'rotate(180deg)' } }) : null)
+        if (e.kind === 'handoff') {
+          const isTask = e.target === 'task'
+          return h('button', { key: i, type: 'button', className: 'mwt-handoff', onClick: () => { if (isTask) openTask(e.id); else openRoutine(e.id) } }, icon(isTask ? 'list-checks' : 'history', { size: 13 }), (isTask ? t('handedOff') : t('scheduled')) + '：' + e.title + (e.schedule ? ' · ' + e.schedule : ''), icon('arrow-left', { size: 12, style: { transform: 'rotate(180deg)' } }))
         }
         return null
       }),
@@ -790,7 +787,9 @@ function makeComponents(ctx, t) {
     const ref = React.useRef(null)
     React.useEffect(() => { if (live && ref.current) ref.current.scrollTop = ref.current.scrollHeight }, [list.length, live])
     if (!list.length) return h('div', { className: 'mwt-empty' }, live ? task.statusLabel + '…' : t('none2'))
-    return h('div', { className: 'mwt-stream', ref }, list.map((e, i) => e.kind === 'user'
+    return h('div', { className: 'mwt-stream', ref }, list.map((e, i) => e.kind === 'handoff'
+      ? h('div', { key: i, className: 'mwt-ev' }, h('span', { className: 'ic' }, icon(e.target === 'task' ? 'list-checks' : 'history', { size: 13 })), h('div', { className: 'line' }, h('button', { type: 'button', className: 'mwt-handoff', style: { margin: 0 }, onClick: () => { if (e.target === 'task') openTask(e.id); else openRoutine(e.id) } }, (e.target === 'task' ? t('handedOff') : t('scheduled')) + '：' + e.title)))
+      : e.kind === 'user'
       ? h('div', { key: i, className: 'mwt-ev user' }, h('span', { className: 'ic' }, icon('message', { size: 13 })), h('div', null, h('span', { className: 'body' }, e.text)))
       : e.kind === 'text'
       ? h('div', { key: i, className: 'mwt-ev text' }, h('span', { className: 'ic' }, icon('message', { size: 13 })), h('div', { className: 'body' }, e.text))

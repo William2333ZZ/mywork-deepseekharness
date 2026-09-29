@@ -94,6 +94,7 @@ export function apply(ctx, config = {}) {
     if (!t) {
       t = store.create({ input: body, scenario: 'assistant', title: '今天的对话 ' + dayKey().slice(5).replace('-', '/'), source: 'today' })
       store.update(t.id, { dayKey: dayKey() })
+      store.activity(t.id, { kind: 'user', text: body }) // the first line of the day shows like every later one
       emit('queued', t)
       engine.pump()
       return taskView(store.get(t.id), deliverables)
@@ -124,6 +125,8 @@ export function apply(ctx, config = {}) {
   ctx.effect(() => ctx.on('session/event', (...args) => { engine.onSessionEvent(args[0], args[1]) }, { global: true }), 'dsh-mywork-tasks: session watcher')
   ctx.effect(() => { const t = setTimeout(() => { try { engine.recover() } catch (e) { log('recover: ' + (e && e.message)) } }, 3000); return () => clearTimeout(t) }, 'dsh-mywork-tasks: recover')
 
+  /** When a tool call inside a task creates something, note it on that task's activity so the conversation can link to it. */
+  const handoff = (exec, entry) => { try { const sid = exec && exec.agent && exec.agent.session ? exec.agent.session.id : ''; const caller = sid ? store.bySession(String(sid)) : null; if (caller) { store.activity(caller.id, entry); emit('step', store.get(caller.id)) } } catch (e) { log('handoff note: ' + (e && e.message)) } }
   if (config.tools !== false) {
     ctx.tools.register(defineRawTool({
       name: 'deliver',
@@ -149,14 +152,14 @@ export function apply(ctx, config = {}) {
         scenario: { type: 'string', description: '场景 id，缺省 general' },
         title: { type: 'string', description: '可选标题' },
       },
-      async execute(args) { const t = create({ input: args.input, scenario: args.scenario, title: args.title, source: 'chat' }); return { id: t.id, title: t.title, status: t.status } },
+      async execute(args, exec) { const t = create({ input: args.input, scenario: args.scenario, title: args.title, source: 'chat' }); handoff(exec, { kind: 'handoff', target: 'task', id: t.id, title: t.title }); return { id: t.id, title: t.title, status: t.status } },
       render: (_a, v) => [{ type: 'text', text: `已创建后台任务「${v.title}」（${v.id}），完成后在「任务」页查看。` }],
     }))
     ctx.tools.register(defineRawTool({
       name: 'mywork_routine_create',
       description: '给用户安排一件例行的事或一个提醒：「每天 9 点…」「每周一 8:30…」「工作日 18 点…」「每 2 小时…」是例行任务（每次到点后台跑一遍，交付物里先说变化）；带"提醒"字样的是提醒（到点在首页和 IM 提示，不跑 agent）。schedule 用自然语言写在 input 里即可。用户说"每天/每周/到点提醒我"时用它，不要自己去写 cron。',
       parameters: { input: { type: 'string', required: true, description: '含时间的一句话，例如"每天 9 点给我一份 Node 生态简报"或"明天 8 点提醒我交周报"' }, title: { type: 'string', description: '可选标题' } },
-      async execute(args) { const r = createRoutine({ input: args.input, title: args.title }); return { id: r.id, kind: r.kind, title: r.title, schedule: r.scheduleLabel, nextRunAt: r.nextRunAt } },
+      async execute(args, exec) { const r = createRoutine({ input: args.input, title: args.title }); handoff(exec, { kind: 'handoff', target: 'routine', id: r.id, title: r.title, schedule: r.scheduleLabel }); return { id: r.id, kind: r.kind, title: r.title, schedule: r.scheduleLabel, nextRunAt: r.nextRunAt } },
       render: (_a, v) => [{ type: 'text', text: `已安排${v.kind === 'remind' ? '提醒' : '例行任务'}「${v.title}」：${v.schedule}，下次 ${v.nextRunAt ? new Date(v.nextRunAt).toLocaleString() : '—'}。` }],
     }))
     ctx.tools.register(defineRawTool({

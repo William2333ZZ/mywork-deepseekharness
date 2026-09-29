@@ -74,7 +74,8 @@ test('activity stream is capped and trimmed for old tasks', async () => {
 test('verification prompt and verdict parsing', async () => {
   const { defaultVerifyPrompt, parseVerdict, BUILTIN_SCENARIOS } = await import('../src/scenarios.js')
   const { argsPreview, resultPreview } = await import('../src/engine.js')
-  assert.deepEqual(BUILTIN_SCENARIOS.map((s) => s.id), ['general', 'research', 'office'])
+  assert.deepEqual(BUILTIN_SCENARIOS.map((s) => s.id), ['general', 'chat', 'research', 'office'])
+  assert.equal(BUILTIN_SCENARIOS[1].deliverable, false)
   const p = defaultVerifyPrompt({ input: '做一张表' }, [{ title: 'T', markdown: '| a |' }], [{ kind: 'tool', name: 'open_url', detail: 'url=x', ok: false }])
   assert.match(p, /做一张表/); assert.match(p, /open_url（失败）/); assert.match(p, /"passed"/)
   assert.deepEqual(parseVerdict('结论如下：\n{"passed": true, "checked": 3, "issues": 0, "notes": "ok"}'), { passed: true, checked: 3, issues: 0, notes: 'ok' })

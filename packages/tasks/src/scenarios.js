@@ -81,7 +81,7 @@ export function createScenarioRegistry() {
 }
 
 export function publicView(s) {
-  return { id: s.id, label: s.label, intro: s.intro || '', examples: Array.isArray(s.examples) ? s.examples.slice(0, 6) : [], deliverableKinds: s.deliverableKinds || ['markdown'], homeWidget: s.homeWidget || '' }
+  return { id: s.id, label: s.label, intro: s.intro || '', examples: Array.isArray(s.examples) ? s.examples.slice(0, 6) : [], deliverableKinds: s.deliverableKinds || ['markdown'], conversational: s.deliverable === false, homeWidget: s.homeWidget || '' }
 }
 
 /** 调研：真实浏览器读网页，交付一份带来源的摘要。 */
@@ -128,7 +128,27 @@ export const OFFICE = {
   },
 }
 
-export const BUILTIN_SCENARIOS = [GENERAL, RESEARCH, OFFICE]
+/** 对话：像聊天一样回答，不强制交付；要文档时再 deliver。 */
+export const CHAT = {
+  id: 'chat',
+  label: '对话',
+  intro: '就是聊天：问个问题、要个建议、让它解释一段话。不强制交付文档，需要时说“整理成一份”它会交付。',
+  examples: ['解释一下什么是 agent harness', '帮我想三个周报的标题', '这段话哪里写得别扭：……'],
+  toolStepMap: {},
+  deliverableKinds: ['markdown'],
+  deliverable: false,
+  verify: false,
+  compose(input, context) {
+    return [
+      '你是 MyWork 里的对话助手。直接、具体地回答，像和同事说话；不要长篇铺垫。需要查资料或读文件时可以用工具。',
+      '只有当用户明确要一份可以保存的东西（报告、清单、文档、表格）时，才调用 deliver 交付；平时不要调用。',
+      '', input,
+      context && context.date ? `\n今天是 ${context.date}。` : '',
+    ].filter(Boolean).join('\n')
+  },
+}
+
+export const BUILTIN_SCENARIOS = [GENERAL, CHAT, RESEARCH, OFFICE]
 
 /** Verification prompt: a second, read-only session checks the deliverable against the task and the run. */
 export function defaultVerifyPrompt(task, deliverables, activity) {

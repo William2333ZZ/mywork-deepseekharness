@@ -206,6 +206,7 @@ const zh = {
   verified: '已核验', verifyIssues: '核验发现问题', verifyNone: '未能核验', verifying: '核验中', checked: '核对', issues: '问题',
   doneToast: '任务完成', failedToast: '任务失败', open: '打开', tryScenario: '用这个场景', kinds: '交付', examples: '示例',
   toolFailed: '失败', stepsTitle: '步骤',
+  say: '接着说，比如“再短一点”或“换个角度”', sayHint: '回车发送，同一个会话继续。', sayBusy: '核验中，稍等。', conversational: '这是一次对话；要保存成文档时说“整理成一份…”。',
 }
 const en = {
   today: 'Today', tasks: 'Tasks', deliverables: 'Deliverables', scenarios: 'Scenarios',
@@ -218,6 +219,7 @@ const en = {
   verified: 'Verified', verifyIssues: 'Issues found', verifyNone: 'Not verified', verifying: 'Verifying', checked: 'checked', issues: 'issues',
   doneToast: 'Task finished', failedToast: 'Task failed', open: 'Open', tryScenario: 'Use this scenario', kinds: 'Delivers', examples: 'Examples',
   toolFailed: 'failed', stepsTitle: 'Steps',
+  say: 'Keep going, e.g. “shorter” or “from another angle”', sayHint: 'Enter sends into the same session.', sayBusy: 'Verifying, one moment.', conversational: 'This is a conversation; ask for a document when you want one saved.',
 }
 
 const STYLE = `
@@ -299,6 +301,15 @@ body[data-ds-dark-theme] .mwt{--mwt-canvas:#171716;--mwt-surface:#1f1f1e;--mwt-s
 .mwt-ev.text{padding:10px 0 12px}
 .mwt-ev.text .body{white-space:pre-wrap;word-break:break-word;color:var(--mwt-fg);font-size:14px;line-height:23px}
 .mwt-ev.text .ic{color:var(--mwt-fg2)}
+.mwt-ev.user{padding:6px 0 10px}
+.mwt-ev.user .body{display:inline-block;max-width:100%;padding:8px 14px;border-radius:14px 14px 4px 14px;background:var(--mwt-ink);color:var(--mwt-ink-fg);white-space:pre-wrap;word-break:break-word;font-size:14px;line-height:22px}
+.mwt-ev.user .ic{color:var(--mwt-fg3)}
+.mwt-say{margin:14px 0 0;border:1px solid var(--mwt-line);border-radius:16px;background:var(--mwt-surface);padding:10px 10px 8px 14px;transition:border-color 160ms ease}
+.mwt-say:focus-within{border-color:var(--mwt-line2)}
+.mwt-say textarea{display:block;width:100%;min-height:24px;max-height:160px;resize:none;border:0;outline:0;background:transparent;color:inherit;font:inherit;font-size:14px;line-height:22px;padding:2px 0}
+.mwt-say textarea::placeholder{color:var(--mwt-fg3)}
+.mwt-say-row{display:flex;align-items:center;gap:8px;margin-top:4px}
+.mwt-say-row small{flex:1;color:var(--mwt-fg3);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mwt-doc{border:1px solid var(--mwt-line);border-radius:18px;background:var(--mwt-surface);margin:0 0 14px;overflow:hidden;box-shadow:var(--mwt-shadow)}
 .mwt-doc-head{display:flex;align-items:center;gap:10px;padding:12px 18px;border-bottom:1px solid var(--mwt-line);background:var(--mwt-surface2);flex-wrap:wrap}
 .mwt-doc-head h3{flex:1;margin:0;font-size:14px;font-weight:600;min-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -504,10 +515,33 @@ function makeComponents(ctx, t) {
     const ref = React.useRef(null)
     React.useEffect(() => { if (live && ref.current) ref.current.scrollTop = ref.current.scrollHeight }, [list.length, live])
     if (!list.length) return h('div', { className: 'mwt-empty' }, live ? task.statusLabel + '…' : t('none2'))
-    return h('div', { className: 'mwt-stream', ref }, list.map((e, i) => e.kind === 'text'
+    return h('div', { className: 'mwt-stream', ref }, list.map((e, i) => e.kind === 'user'
+      ? h('div', { key: i, className: 'mwt-ev user' }, h('span', { className: 'ic' }, icon('message', { size: 13 })), h('div', null, h('span', { className: 'body' }, e.text)))
+      : e.kind === 'text'
       ? h('div', { key: i, className: 'mwt-ev text' }, h('span', { className: 'ic' }, icon('message', { size: 13 })), h('div', { className: 'body' }, e.text))
       : h('div', { key: i, className: 'mwt-ev', 'data-ok': e.ok === undefined ? undefined : e.ok }, h('span', { className: 'ic' }, icon(e.ok === false ? 'circle-x' : e.ok === true ? 'check' : 'loader', { size: 13 })),
         h('div', null, h('span', { className: 'name' }, e.name), e.detail ? h('span', { className: 'detail' }, ' ' + e.detail) : null, e.ok === false && e.result ? h('div', { className: 'result' }, t('toolFailed') + ' · ' + e.result) : null))))
+  }
+
+  function Say({ task }) {
+    const [text, setText] = React.useState('')
+    const [busy, setBusy] = React.useState(false)
+    const [err, setErr] = React.useState('')
+    const ref = React.useRef(null)
+    const blocked = task.status === 'verifying' || task.status === 'queued' || !task.sessionId
+    const submit = async () => {
+      const body = text.trim()
+      if (!body || busy || blocked) return
+      setBusy(true); setErr('')
+      try { await api('/say', { id: task.id, text: body }); setText(''); await refresh(); schedulePoll() } catch (e) { setErr(e.message || String(e)) } finally { setBusy(false) }
+    }
+    const grow = () => { const el = ref.current; if (!el) return; el.style.height = 'auto'; el.style.height = Math.min(160, el.scrollHeight) + 'px' }
+    React.useEffect(grow, [text])
+    if (!task.sessionId) return null
+    return h('div', { className: 'mwt-say' },
+      h('textarea', { ref, value: text, rows: 1, placeholder: t('say'), disabled: blocked, onChange: (e) => setText(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); submit() } } }),
+      h('div', { className: 'mwt-say-row' }, h('small', null, err || (task.status === 'verifying' ? t('sayBusy') : t('sayHint'))),
+        h('button', { type: 'button', className: 'mwt-btn primary round', style: { width: 30, height: 30 }, 'aria-label': t('create'), disabled: busy || blocked || !text.trim(), onClick: submit }, icon(busy ? 'loader' : 'send', { size: 13 }))))
   }
 
   function Doc({ d, status, onRate, onOpenTask }) {
@@ -559,9 +593,10 @@ function makeComponents(ctx, t) {
       h('div', { className: 'mwt-cols' },
         h('div', { className: 'mwt-col' }, h('h2', null, icon('loader', { size: 13 }), t('progress'), h('span', { className: 'grow' }), task.statusLabel),
           task.steps.length ? h('div', { className: 'mwt-steps' }, task.steps.map((st, i) => h('span', { key: i, className: 'mwt-step', 'data-live': !st.endedAt }, st.name + (st.count > 1 ? ' × ' + st.count : ''), h('em', { style: { fontStyle: 'normal', opacity: .7 } }, fmtDuration(new Date(st.endedAt || Date.now()) - new Date(st.startedAt)))))) : null,
-          h(Activity, { task: full, live })),
+          h(Activity, { task: full, live }),
+          h(Say, { task })),
         h('div', { className: 'mwt-col sticky' }, h('h2', null, icon('file-text', { size: 13 }), t('deliverable'), h('span', { className: 'grow' }), docs.length ? null : h(VerifyBadge, { v: task.verification, status: task.status })),
-          docs.length ? docs.map((d) => h(Doc, { key: d.id, d: { ...d, scenarioLabel }, status: task.status, onRate: rateIn(setDetail) })) : h('div', { className: 'mwt-empty' }, live ? t('waitingDeliverable') : t('none2')))))
+          docs.length ? docs.map((d) => h(Doc, { key: d.id, d: { ...d, scenarioLabel }, status: task.status, onRate: rateIn(setDetail) })) : h('div', { className: 'mwt-empty' }, (s.scenarios.find((x) => x.id === task.scenario) || {}).conversational ? t('conversational') : live ? t('waitingDeliverable') : t('none2')))))
   }
 
   function TasksPage() {

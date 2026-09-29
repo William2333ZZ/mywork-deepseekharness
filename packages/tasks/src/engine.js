@@ -99,9 +99,9 @@ export function reasonError(reason) {
  *   ctx           plugin context with agents / sessions / workspaceRegistry / agentDefaultModel / agentPresets / permissionPresets
  *   store         TaskStore, deliverables DeliverableStore, scenarios registry
  *   config        { concurrency, timeoutMs, permission, agentPreset, cwd, verify }
- *   log(msg), emit(kind, task, deliverable?)
+ *   log(msg), emit(kind, task, deliverable?), controller() → dsh sessionController (for follow-up turns on finished tasks)
  */
-export function createEngine({ ctx, store, deliverables, scenarios, config, log, emit }) {
+export function createEngine({ ctx, store, deliverables, scenarios, config, log, emit, controller }) {
   const live = new Map()     // taskId → run state
   const verifying = new Map() // taskId → { text }
   let pumping = false
@@ -196,17 +196,20 @@ export function createEngine({ ctx, store, deliverables, scenarios, config, log,
     store.endSteps(taskId)
     // A run that never reached its first turn left no session behind: drop the id so 「过程」 does not point at nothing.
     if (!state.started) store.update(taskId, { sessionId: '' })
+    const scenario = scenarios.resolve(t.scenario)
+    const conversational = !!(scenario && scenario.deliverable === false)
     const summary = state.text ? titleOf(state.text) : ''
     let error = thrown || (state.cancelled ? '已取消。' : state.timedOut ? '超过最长运行时间。' : reasonError(state.reason))
-    // A task that produced nothing but text still yields a deliverable: the text itself.
-    if (!error && t.deliverableIds.length === 0 && state.text) {
+    // A task that produced nothing but text still yields a deliverable: the text itself (not for conversational scenarios).
+    if (!error && !conversational && t.deliverableIds.length === 0 && state.text) {
       const d = deliverables.create({ taskId, title: t.title, kind: 'markdown', scenario: t.scenario, markdown: state.text })
       store.update(taskId, (x) => { x.deliverableIds.push(d.id) })
       emit('deliverable', store.get(taskId), d)
     }
-    if (!error && store.get(taskId).deliverableIds.length === 0) error = '没有产出交付物。'
-    const scenario = scenarios.resolve(t.scenario)
-    const wantVerify = !error && config.verify && !(scenario && scenario.verify === false)
+    if (!error && !conversational && store.get(taskId).deliverableIds.length === 0) error = '没有产出交付物。'
+    // Follow-up turns only re-verify when they produced a new deliverable.
+    const newDeliverables = state.followup ? store.get(taskId).deliverableIds.length > state.deliverablesBefore : store.get(taskId).deliverableIds.length > 0
+    const wantVerify = !error && config.verify && newDeliverables && !(scenario && scenario.verify === false)
     if (wantVerify) {
       store.setStatus(taskId, 'verifying', { summary: summary || '已完成' })
       emit('verifying', store.get(taskId))
@@ -304,7 +307,7 @@ export function createEngine({ ctx, store, deliverables, scenarios, config, log,
         if (text) { state.text = text; store.activity(taskId, { kind: 'text', text: text.length > 2000 ? text.slice(0, 1999) + '…' : text }) }
         return
       }
-      if (event.type === 'turn/end') { state.reason = event.data && event.data.reason; store.endSteps(taskId) }
+      if (event.type === 'turn/end') { state.reason = event.data && event.data.reason; store.endSteps(taskId); if (state.followup) finishFollowup(taskId) }
     } catch (e) { log('event error: ' + (e && e.message)) }
   }
 
@@ -334,10 +337,57 @@ export function createEngine({ ctx, store, deliverables, scenarios, config, log,
     if (!t) throw new Error('task not found')
     if (t.status === 'done') return t
     const state = live.get(taskId)
-    if (state) { state.cancel(); return t }
+    if (state) { state.cancel(); return store.get(taskId) }
     if (t.status === 'verifying') { const v = verifying.get(taskId); if (v && v.handle) v.handle.agent.cancel({ kind: 'hook', reason: 'cancelled by user' }); return t }
     store.endSteps(taskId)
     return store.setStatus(taskId, 'done', { finishedAt: new Date().toISOString(), error: '已取消。' })
+  }
+
+  /**
+   * Continue the conversation with a task: while it runs the text is queued into the live
+   * agent; a finished task gets a new turn in its persisted session through dsh's session
+   * controller (the same path the IM member uses), and the run engine treats that turn like
+   * a run: steps, activity, deliveries, then done again.
+   */
+  async function say(taskId, text) {
+    const body = String(text || '').trim()
+    if (!body) throw new Error('text is required')
+    const t = store.get(taskId)
+    if (!t) throw new Error('task not found')
+    if (t.status === 'verifying') throw new Error('核验中，稍等一下再说。')
+    store.activity(taskId, { kind: 'user', text: body })
+    const liveState = live.get(taskId)
+    if (liveState && liveState.handle) {
+      liveState.handle.agent.followup(userMessage(body, { kind: 'mywork-user', taskId }))
+      emit('step', store.get(taskId))
+      return store.get(taskId)
+    }
+    if (liveState) throw new Error('任务还在启动，稍等一下再说。')
+    if (!t.sessionId) throw new Error('这个任务没有会话可以继续（它没跑起来）。')
+    const control = typeof controller === 'function' ? controller() : null
+    if (!control) throw new Error('session controller not available')
+    const state = { handle: null, followup: true, started: true, deliverablesBefore: t.deliverableIds.length, text: '', reason: undefined, cancelled: false, timedOut: false, timer: null, cancel: () => { state.cancelled = true; finishFollowup(taskId) } }
+    live.set(taskId, state)
+    store.setStatus(taskId, 'running', { error: '', finishedAt: '' })
+    emit('started', store.get(taskId))
+    try {
+      await control.prompt({ requestId: 'mywork-task-' + randomUUID(), sessionId: t.sessionId, mode: 'queue', content: [{ type: 'text', text: body }] }, AbortSignal.timeout(30000))
+    } catch (e) {
+      live.delete(taskId)
+      store.setStatus(taskId, 'done', { finishedAt: new Date().toISOString(), error: '' })
+      throw new Error('没能把话送进会话：' + (e instanceof Error ? e.message : String(e)))
+    }
+    state.timer = setTimeout(() => { state.timedOut = true; finishFollowup(taskId) }, config.timeoutMs)
+    return store.get(taskId)
+  }
+
+  function finishFollowup(taskId) {
+    const state = live.get(taskId)
+    if (!state || !state.followup) return
+    clearTimeout(state.timer)
+    live.delete(taskId)
+    finish(taskId, state)
+    pump()
   }
 
   /** Re-run verification for a finished task (manual). */
@@ -352,5 +402,5 @@ export function createEngine({ ctx, store, deliverables, scenarios, config, log,
     return store.get(taskId)
   }
 
-  return { pump, recover, cancel, deliver, reverify, onSessionEvent, isLive: (id) => live.has(id) }
+  return { pump, recover, cancel, deliver, reverify, say, onSessionEvent, isLive: (id) => live.has(id) }
 }

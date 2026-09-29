@@ -7,7 +7,7 @@
  *     and can create / list tasks (ctx.provide, so `inject: ['myworkTasks']` works in cordis).
  *   • tools: deliver({ title, markdown, kind?, data? }) inside a task session;
  *            mywork_task_create({ input, scenario? }) and mywork_tasks() from any session.
- *   • HTTP: /mywork-tasks/api/{tasks, task, create, cancel, rerun, verify, scenarios, deliverables, deliverable, rate}
+ *   • HTTP: /mywork-tasks/api/{tasks, task, create, cancel, rerun, verify, say, scenarios, deliverables, deliverable, rate}
  *   • events: ctx.emit('mywork/task', { kind: started|step|deliverable|done, task, deliverable? })
  */
 import { join } from 'node:path'
@@ -35,8 +35,10 @@ export function apply(ctx, config = {}) {
     for (const fn of listeners) { try { fn(payload) } catch (e) { log('listener error: ' + (e && e.message)) } }
     try { ctx.emit('mywork/task', payload) } catch {}
   }
+  let controller = null
+  ctx.inject(['sessionController'], (sctx) => { controller = sctx.sessionController; sctx.effect(() => () => { controller = null }, 'dsh-mywork-tasks: controller') })
   const engine = createEngine({
-    ctx, store, deliverables, scenarios, log, emit,
+    ctx, store, deliverables, scenarios, log, emit, controller: () => controller,
     config: { concurrency: Number(config.concurrency) || 2, timeoutMs: Math.max(1, Number(config.timeoutMinutes) || 20) * 60000, permission: String(config.permission || 'workspace-write'), agentPreset: config.agentPreset === '' ? undefined : (config.agentPreset || 'standard'), cwd: String(config.cwd || ''), verify: config.verify !== false },
   })
 
@@ -56,6 +58,7 @@ export function apply(ctx, config = {}) {
     get: (id) => { const t = store.get(id); return t ? taskView(t, deliverables) : null },
     cancel: (id) => taskView(engine.cancel(id), deliverables),
     verify: (id) => taskView(engine.reverify(id), deliverables),
+    say: async (id, text) => taskView(await engine.say(id, text), deliverables),
     deliverables: () => deliverables.list(),
     deliverable: (id) => deliverables.get(id),
     on: (fn) => { listeners.add(fn); return () => listeners.delete(fn) },
@@ -112,6 +115,7 @@ export function apply(ctx, config = {}) {
     post('/create', async (b, res) => { if (!String(b.input || '').trim()) return json(res, { error: 'input is required' }, 400); json(res, { task: create({ input: b.input, scenario: b.scenario, title: b.title, source: 'ui' }) }) })
     post('/cancel', async (b, res) => json(res, { task: api.cancel(String(b.id || '')) }))
     post('/verify', async (b, res) => json(res, { task: api.verify(String(b.id || '')) }))
+    post('/say', async (b, res) => { if (!String(b.text || '').trim()) return json(res, { error: 'text is required' }, 400); json(res, { task: await api.say(String(b.id || ''), b.text) }) })
     post('/rerun', async (b, res) => { const t = store.get(String(b.id || '')); if (!t) return json(res, { error: 'task not found' }, 404); json(res, { task: create({ input: t.input, scenario: t.scenario, title: t.title, source: 'rerun' }) }) })
     route('/scenarios', async (_req, res) => json(res, { items: scenarios.list() }))
     route('/deliverables', async (_req, res) => json(res, { items: deliverables.list().map((d) => ({ id: d.id, taskId: d.taskId, title: d.title, kind: d.kind, scenario: d.scenario, createdAt: d.createdAt, rating: d.rating, verification: d.verification })) }))

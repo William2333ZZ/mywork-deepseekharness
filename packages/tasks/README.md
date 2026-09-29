@@ -6,7 +6,7 @@ MyWork Kit v2 的核心成员：**一句话即任务，后台做完，交付一�
 
 - **侧栏**（由 dsh-mywork-codex-ui 在 v2 模式下提供）：新任务、今日 / 任务 / 交付物 / 场景、进行中与最近的任务、设置。没有工作区、会话、扩展菜单。
 - **今日**：一个框（场景下拉、示例）、进行中、最近。
-- **任务页**：左边「进度」= 步骤条 + 消息与工具调用流；右边「交付物」= 正文、核验徽章、有用 / 没用、导出 Markdown / PDF。动作：取消、再来一次、重新核验、过程（打开背后的 dsh 会话）。
+- **任务页**：左边「进度」= 步骤条 + 消息与工具调用流，底部是对话框：跑的时候可以插话，跑完了可以接着说（同一个会话继续，像 Manus）；右边「交付物」= 正文、核验徽章、有用 / 没用、导出 Markdown / PDF。动作：取消、再来一次、重新核验、过程（打开背后的 dsh 会话）。
 - **交付物**：全部交付物，按场景筛，查看器同上。
 - **场景**：已装场景的说明和示例，示例一点即任务。
 - 完成时右下角弹通知（浏览器通知需授权）；配置了 IM 默认通知目标时同时推到飞书 / 微信。
@@ -23,7 +23,7 @@ MyWork Kit v2 的核心成员：**一句话即任务，后台做完，交付一�
 
 ## 场景
 
-内置三个：**通用**、**调研**（真实浏览器读网页，交付带来源的摘要）、**办公**（有 Univer 时生成表格 / 文档 / 幻灯片，否则 Markdown）。其他成员通过 cordis 服务 `myworkTasks` 注册自己的场景（交易工作台是第一个定制场景）：
+内置四个：**通用**、**对话**（就是聊天，不强制交付，`deliverable: false`、`verify: false`）、**调研**（真实浏览器读网页，交付带来源的摘要）、**办公**（有 Univer 时生成表格 / 文档 / 幻灯片，否则 Markdown）。其他成员通过 cordis 服务 `myworkTasks` 注册自己的场景（交易工作台是第一个定制场景）：
 
 ```js
 export const inject = ['myworkTasks']
@@ -44,7 +44,7 @@ export function apply(ctx) {
 ## 工具与 API
 
 - 工具：`deliver({ title, markdown, kind?, data? })`（任务会话内）、`mywork_task_create({ input, scenario? })`、`mywork_tasks()`。
-- HTTP（同源）：`GET /mywork-tasks/api/tasks`、`GET /task?id=`（含活动流）、`POST /create`、`POST /cancel`、`POST /rerun`、`POST /verify`、`GET /scenarios`、`GET /deliverables`、`GET /deliverable?id=`、`POST /rate`。
+- HTTP（同源）：`GET /mywork-tasks/api/tasks`、`GET /task?id=`（含活动流）、`POST /create`、`POST /cancel`、`POST /rerun`、`POST /verify`、`POST /say`（追问：运行中进活体 agent 的收件箱，已完成的走 dsh sessionController 在原会话续一轮，产出新交付物时再核验一次）、`GET /scenarios`、`GET /deliverables`、`GET /deliverable?id=`、`POST /rate`。
 - 事件：`mywork/task`，`{ kind: queued | started | step | deliverable | verifying | done, task, deliverable? }`。
 - 页面间的窗口事件：`mywork:new-task {text?, scenario?}`、`mywork:open-task {id}`、`mywork:open-deliverable {id}`、`mywork:open-session {sessionId}`。
 

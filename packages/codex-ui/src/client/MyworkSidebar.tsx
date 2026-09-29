@@ -24,54 +24,51 @@ type SidebarProps = Pick<CodexSidebarProps, 'selectPanel' | 'usePanelInfo' | 'co
 const useLegacyPanelInfo = <T,>(selector: (info: { activePanelId: string | null }) => T): T => selector({ activePanelId: null })
 
 const stylesheet = `
-.mws{--mws-bg:#f1f1ef;--mws-surface:#ffffff;--mws-fg:#141413;--mws-fg2:#6b6b68;--mws-fg3:#a1a19c;--mws-shell:rgba(17,17,16,.05);--mws-shell2:rgba(17,17,16,.085);--mws-hair:rgba(17,17,16,.06);--mws-ink:#141413;--mws-ink-fg:#fff;--mws-ok:#1f7a55;--mws-err:#c0392b;--mws-ease:cubic-bezier(.32,.72,0,1);width:100%;height:100%;min-width:0;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;background:var(--mws-bg);color:var(--mws-fg);font:13.5px/20px Geist,-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Segoe UI","Microsoft YaHei UI",sans-serif;-webkit-font-smoothing:antialiased}
-body[data-ds-dark-theme] .mws{--mws-bg:#0e0e0e;--mws-surface:#171717;--mws-fg:#ececea;--mws-fg2:#9b9b97;--mws-fg3:#63635f;--mws-shell:rgba(255,255,255,.055);--mws-shell2:rgba(255,255,255,.1);--mws-hair:rgba(255,255,255,.07);--mws-ink:#ececea;--mws-ink-fg:#111110;--mws-ok:#5cb890;--mws-err:#e2685d}
+/* Tokens: design/v2/DESIGN.md §2. The sidebar is a --surface column beside a --bg page. */
+.mws{--bg:#ffffff;--surface:#f6f5f4;--surface-2:#efedeb;--fg:rgba(0,0,0,.92);--fg-2:#31302e;--muted:#615d59;--meta:#8f8a84;--border:rgba(0,0,0,.1);--border-soft:rgba(0,0,0,.06);--accent:#0075de;--accent-on:#ffffff;--success:#178a30;--danger:#c0392b;--radius-sm:6px;--radius-md:8px;--focus-ring:0 0 0 3px rgba(0,117,222,.25);--motion-fast:150ms;--ease-standard:cubic-bezier(.2,0,0,1);width:100%;height:100%;min-width:0;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;background:var(--surface);color:var(--fg);box-shadow:inset -1px 0 var(--border-soft);font:13.5px/1.5 Geist,-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei UI",sans-serif;-webkit-font-smoothing:antialiased}
+body[data-ds-dark-theme] .mws{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a;--fg:rgba(255,255,255,.9);--fg-2:#e6e4e0;--muted:#9b9893;--meta:#75716b;--border:rgba(255,255,255,.1);--border-soft:rgba(255,255,255,.06);--accent:#529cca;--accent-on:#111111;--success:#4dab7a;--danger:#e26e63;--focus-ring:0 0 0 3px rgba(82,156,202,.35)}
 .mws *{box-sizing:border-box}
-.mws button{font-family:inherit;transition:background-color 420ms var(--mws-ease),color 420ms var(--mws-ease),transform 420ms var(--mws-ease),box-shadow 420ms var(--mws-ease)}
+.mws button{font-family:inherit;transition:background-color var(--motion-fast) var(--ease-standard),color var(--motion-fast) var(--ease-standard),border-color var(--motion-fast) var(--ease-standard),transform var(--motion-fast) var(--ease-standard)}
 .mws button:active{transform:scale(.98)}
-.mws :focus-visible{outline:2px solid var(--mws-fg2);outline-offset:-2px;border-radius:10px}
-.mws-head{display:flex;align-items:center;gap:8px;height:58px;padding:12px 8px 6px 18px}
-.mws-brand{flex:1;display:flex;align-items:center;gap:9px;font-weight:600;font-size:14.5px;letter-spacing:-.01em;min-width:0}
-.mws-brand i{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:7px;background:var(--mws-ink);color:var(--mws-ink-fg);font-style:normal;font-size:12px;font-weight:700}
-.mws-icon{appearance:none;display:inline-grid;place-items:center;width:30px;height:30px;border:0;border-radius:10px;background:transparent;color:var(--mws-fg3);cursor:pointer}
-.mws-icon:hover{background:var(--mws-shell);color:var(--mws-fg)}
-.mws-new{appearance:none;display:flex;align-items:center;gap:9px;margin:6px 12px 14px;height:38px;padding:0 6px 0 14px;border:0;border-radius:999px;background:var(--mws-surface);color:var(--mws-fg);font:inherit;font-weight:500;cursor:pointer;box-shadow:0 1px 1px rgba(17,17,16,.04),0 10px 24px -14px rgba(17,17,16,.25)}
-body[data-ds-dark-theme] .mws-new{box-shadow:0 1px 1px rgba(0,0,0,.3),0 10px 24px -14px rgba(0,0,0,.8)}
-.mws-new:hover{transform:translateY(-1px)}
-.mws-new span{flex:1;text-align:left}
-.mws-new svg{order:2;width:26px;height:26px;padding:6px;border-radius:50%;background:var(--mws-ink);color:var(--mws-ink-fg);transition:transform 420ms var(--mws-ease)}
-.mws-new:hover svg{transform:rotate(90deg)}
-.mws-nav{display:grid;gap:2px;padding:0 10px}
-.mws-nav button{appearance:none;display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border:0;border-radius:12px;background:transparent;color:var(--mws-fg2);font:inherit;text-align:left;cursor:pointer}
-.mws-nav button:hover{background:var(--mws-shell);color:var(--mws-fg)}
-.mws-nav button[aria-current=page]{background:var(--mws-surface);color:var(--mws-fg);font-weight:500;box-shadow:0 1px 1px rgba(17,17,16,.04),0 6px 16px -12px rgba(17,17,16,.25)}
-body[data-ds-dark-theme] .mws-nav button[aria-current=page]{box-shadow:0 1px 1px rgba(0,0,0,.3)}
-.mws-nav svg{flex:none;color:var(--mws-fg3)}
-.mws-nav button:hover svg,.mws-nav button[aria-current=page] svg{color:var(--mws-fg)}
-.mws-list{flex:1;min-height:0;overflow:auto;margin-top:14px;padding:6px 10px 8px;scrollbar-width:thin;scrollbar-color:var(--mws-shell2) transparent}
-.mws-group{padding:8px 10px 4px;color:var(--mws-fg3);font-size:11.5px;font-weight:600;letter-spacing:.04em;font-variant-numeric:tabular-nums}
-.mws-task{appearance:none;display:grid;grid-template-columns:16px minmax(0,1fr);column-gap:8px;align-items:center;width:100%;min-height:30px;padding:4px 10px;border:0;border-radius:11px;background:transparent;color:var(--mws-fg);font:inherit;text-align:left;cursor:pointer}
-.mws-task:hover{background:var(--mws-shell)}
+.mws :focus-visible{outline:none;box-shadow:var(--focus-ring);border-radius:var(--radius-sm)}
+@media (prefers-reduced-motion:reduce){.mws *{transition:none!important;animation:none!important}}
+.mws-head{display:flex;align-items:center;gap:8px;height:52px;padding:10px 8px 4px 16px}
+.mws-brand{flex:1;display:flex;align-items:center;gap:8px;font-weight:600;font-size:14px;min-width:0}
+.mws-brand i{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:var(--radius-sm);background:var(--fg-2);color:var(--bg);font-style:normal;font-size:12px;font-weight:600}
+.mws-icon{appearance:none;display:inline-grid;place-items:center;width:28px;height:28px;border:0;border-radius:var(--radius-sm);background:transparent;color:var(--meta);cursor:pointer}
+.mws-icon:hover{background:var(--surface-2);color:var(--fg)}
+.mws-new{appearance:none;display:flex;align-items:center;gap:8px;margin:6px 10px 12px;height:34px;padding:0 10px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--bg);color:var(--fg);font:inherit;font-weight:500;cursor:pointer}
+.mws-new:hover{background:var(--surface-2)}
+body[data-ds-dark-theme] .mws-new:hover{background:var(--surface-2)}
+.mws-new svg{color:var(--muted)}
+.mws-nav{display:grid;gap:1px;padding:0 8px}
+.mws-nav button{appearance:none;display:flex;align-items:center;gap:10px;height:32px;padding:0 10px;border:1px solid transparent;border-radius:var(--radius-md);background:transparent;color:var(--muted);font:inherit;font-weight:500;text-align:left;cursor:pointer}
+.mws-nav button:hover{background:var(--surface-2);color:var(--fg)}
+.mws-nav button[aria-current=page]{background:var(--bg);border-color:var(--border);color:var(--fg)}
+.mws-nav svg{flex:none;color:var(--meta)}
+.mws-nav button:hover svg,.mws-nav button[aria-current=page] svg{color:var(--fg-2)}
+.mws-list{flex:1;min-height:0;overflow:auto;margin-top:12px;padding:4px 8px 8px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.mws-group{padding:8px 10px 4px;color:var(--meta);font-size:12px;font-weight:500;letter-spacing:.02em;font-variant-numeric:tabular-nums}
+.mws-task{appearance:none;display:grid;grid-template-columns:16px minmax(0,1fr);column-gap:8px;align-items:center;width:100%;min-height:30px;padding:4px 10px;border:0;border-radius:var(--radius-md);background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
+.mws-task:hover{background:var(--surface-2)}
 .mws-task span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
-.mws-task small{display:block;color:var(--mws-fg3);font-size:11.5px;line-height:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mws-dot{display:inline-flex;color:var(--mws-fg3)}
-.mws-dot[data-s=running] svg,.mws-dot[data-s=delivering] svg,.mws-dot[data-s=verifying] svg{animation:mws-spin 1.6s linear infinite;color:var(--mws-fg)}
-.mws-dot[data-s=ok]{color:var(--mws-ok)}.mws-dot[data-s=err]{color:var(--mws-err)}
+.mws-task small{display:block;color:var(--meta);font-size:12px;line-height:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mws-dot{display:inline-flex;color:var(--meta)}
+.mws-dot[data-s=running] svg,.mws-dot[data-s=delivering] svg,.mws-dot[data-s=verifying] svg{animation:mws-spin 1.6s linear infinite;color:var(--fg-2)}
+.mws-dot[data-s=ok]{color:var(--success)}.mws-dot[data-s=err]{color:var(--danger)}
 @keyframes mws-spin{to{transform:rotate(360deg)}}
-@media (prefers-reduced-motion:reduce){.mws-dot svg{animation:none!important}}
-.mws-empty{padding:8px 10px;color:var(--mws-fg3);font-size:12.5px}
-.mws-foot{padding:8px 10px 12px}
-.mws-foot>div>button{width:100%;min-height:34px;padding-left:6px!important;border-radius:12px;color:var(--mws-fg2);font:13.5px/20px inherit;font-weight:400}
-.mws-foot>div>button:hover{background:var(--mws-shell);color:var(--mws-fg)}
+.mws-empty{padding:8px 10px;color:var(--meta);font-size:12.5px}
+.mws-foot{padding:8px 8px 12px;border-top:1px solid var(--border-soft)}
+.mws-foot>div>button{width:100%;min-height:32px;padding-left:6px!important;border-radius:var(--radius-md);color:var(--muted);font:13.5px/20px inherit;font-weight:500}
+.mws-foot>div>button:hover{background:var(--surface-2);color:var(--fg)}
 .mws.compact{align-items:center}
-.mws.compact .mws-head{padding:12px 0 4px;justify-content:center}
+.mws.compact .mws-head{padding:10px 0 4px;justify-content:center}
 .mws.compact .mws-brand,.mws.compact .mws-list,.mws.compact .mws-nav button span,.mws.compact .mws-new span{display:none}
-.mws.compact .mws-new{width:38px;height:38px;padding:0;justify-content:center;margin:4px 0 10px}
-.mws.compact .mws-new svg{order:0}
+.mws.compact .mws-new{width:34px;height:34px;padding:0;justify-content:center;margin:4px 0 10px}
 .mws.compact .mws-nav{padding:0}
-.mws.compact .mws-nav button{width:38px;height:38px;padding:0;justify-content:center}
-.mws.compact .mws-foot{width:38px;padding:8px 0;margin-top:auto;overflow:hidden}
-.mws.compact .mws-foot>div>button{display:grid;place-items:center;width:38px;min-height:38px;padding:0!important;font-size:0!important;line-height:0}
+.mws.compact .mws-nav button{width:36px;height:36px;padding:0;justify-content:center}
+.mws.compact .mws-foot{width:36px;padding:8px 0;border-top:0;margin-top:auto;overflow:hidden}
+.mws.compact .mws-foot>div>button{display:grid;place-items:center;width:36px;min-height:36px;padding:0!important;font-size:0!important;line-height:0}
 `
 
 function visual(task: SidebarTask): string { return task.status !== 'done' ? task.status : task.error ? 'err' : 'ok' }
@@ -127,7 +124,7 @@ export function MyworkSidebar({ selectPanel, usePanelInfo = useLegacyPanelInfo, 
   return <div className={'mws' + (compact ? ' compact' : '')} data-mywork-sidebar="v2">
     <style>{stylesheet}</style>
     <div className="mws-head"><div className="mws-brand"><i>M</i><span>MyWork</span></div><button type="button" className="mws-icon" aria-label={compact ? t('sidebar.expand') : t('sidebar.collapse')} onClick={toggleSidebar}><PanelLeft size={16} strokeWidth={1.5} /></button></div>
-    <button type="button" className="mws-new" title={t('v2.newTask')} onClick={() => { go(MYWORK_PANELS.today); fire('mywork:new-task', {}) }}><Plus size={14} strokeWidth={2} /><span>{t('v2.newTask')}</span></button>
+    <button type="button" className="mws-new" title={t('v2.newTask')} onClick={() => { go(MYWORK_PANELS.today); fire('mywork:new-task', {}) }}><Plus size={15} strokeWidth={1.6} /><span>{t('v2.newTask')}</span></button>
     <nav className="mws-nav" aria-label="MyWork">{nav.map(({ id, label, Icon }) => <button key={id} type="button" aria-current={activePanelId === id ? 'page' : undefined} title={label} onClick={() => { go(id) }}><Icon size={16} strokeWidth={1.5} /><span>{label}</span></button>)}</nav>
     <div className="mws-list">
       {active.length > 0 && <><div className="mws-group">{t('v2.running')} · {active.length}</div>{active.map(item)}</>}

@@ -103,15 +103,15 @@ html[data-dsh-native-backdrop=mica] .dcu-settings-page,html[data-dsh-native-back
 @media(max-width:600px){.dcu-settings-page{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr)}.dcu-settings-nav{padding:8px 12px;max-height:220px;border-right:0;border-bottom:1px solid var(--sp-border)}.dcu-settings-search{margin:6px 0}.dcu-settings-groups{display:flex;gap:8px;overflow-x:auto;flex:none}.dcu-settings-group{display:flex;gap:4px;margin:0;flex:none}.dcu-settings-group-label{display:none}.dcu-settings-link{width:auto;min-height:40px;flex:none}.dcu-settings-link+.dcu-settings-link{margin-top:0}.dcu-settings-inner{padding:32px 16px}.dcu-settings-heading{margin-bottom:28px}.dcu-settings-heading h1,.dcu-settings-inner:is([data-settings-section=models],[data-settings-section=plugins],[data-settings-section=agent-presets]) [class$="_section"]>h2:is([class$="_title"],[class$="_heading"]){font-size:22px}.dcu-settings-card{padding:0 12px}.dcu-settings-row>[data-slot]>*{flex-wrap:wrap;gap:12px!important}.dcu-settings-general-group{margin-bottom:32px}}
 
 /* MyWork v2 shell: the settings page shares the warm neutral palette of the sidebar and pages. */
-body[data-mywork-v2] .dcu-settings-page{--sp-bg:#ffffff;--sp-nav:#f1f1ef;--sp-card:#f6f6f5;--sp-border:rgba(17,17,16,.06);--sp-text:#141413;--sp-muted:#6b6b68;--sp-hover:rgba(17,17,16,.05);--sp-active:#ffffff;font-family:Geist,-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Segoe UI","Microsoft YaHei UI",sans-serif}
-body[data-mywork-v2] .dcu-settings-link[aria-current=page]{box-shadow:0 1px 1px rgba(17,17,16,.04),0 6px 16px -12px rgba(17,17,16,.25)}
-body[data-mywork-v2] .dcu-settings-nav{--sp-text:#1c1c1a;--sp-muted:#a3a29b;--sp-hover:rgba(28,28,26,.05);--sp-active:rgba(28,28,26,.08);--sp-border:rgba(28,28,26,.08)}
-body[data-mywork-v2] .dcu-settings-link svg{color:#a3a29b}
-body[data-mywork-v2] .dcu-settings-link[aria-current=page] svg,body[data-mywork-v2] .dcu-settings-link:hover svg{color:#1c1c1a}
-body[data-mywork-v2] .dcu-settings-page :focus-visible{outline-color:#6f6e68}
-body[data-mywork-v2] .dcu-settings-search:focus-within{border-color:rgba(28,28,26,.2)}
-body[data-ds-dark-theme][data-mywork-v2] .dcu-settings-page{--sp-bg:#171717;--sp-nav:#0e0e0e;--sp-card:#1e1e1e;--sp-border:rgba(255,255,255,.07);--sp-text:#ececea;--sp-muted:#9b9b97;--sp-hover:rgba(255,255,255,.05);--sp-active:#1e1e1e}
-body[data-ds-dark-theme][data-mywork-v2] .dcu-settings-nav{--sp-text:#ebeae6;--sp-muted:#6b6a65;--sp-hover:rgba(255,255,255,.05);--sp-active:rgba(255,255,255,.09);--sp-border:rgba(255,255,255,.08)}
-body[data-ds-dark-theme][data-mywork-v2] .dcu-settings-link svg{color:#6b6a65}
-body[data-ds-dark-theme][data-mywork-v2] .dcu-settings-link[aria-current=page] svg,body[data-ds-dark-theme][data-mywork-v2] .dcu-settings-link:hover svg{color:#ebeae6}
+body[data-mywork-v2] .dcu-settings-page{--sp-bg:#ffffff;--sp-nav:#f6f5f4;--sp-card:#f6f5f4;--sp-border:rgba(0,0,0,.1);--sp-text:rgba(0,0,0,.92);--sp-muted:#615d59;--sp-hover:#efedeb;--sp-active:#ffffff;font-family:Geist,-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei UI",sans-serif}
+body[data-mywork-v2] .dcu-settings-link[aria-current=page]{box-shadow:0 0 0 1px rgba(0,0,0,.1)}
+body[data-mywork-v2] .dcu-settings-nav{--sp-text:rgba(0,0,0,.92);--sp-muted:#8f8a84;--sp-hover:#efedeb;--sp-active:#ffffff;--sp-border:rgba(0,0,0,.06)}
+body[data-mywork-v2] .dcu-settings-link svg{color:#8f8a84}
+body[data-mywork-v2] .dcu-settings-link[aria-current=page] svg,body[data-mywork-v2] .dcu-settings-link:hover svg{color:#31302e}
+body[data-mywork-v2] .dcu-settings-page :focus-visible{outline-color:#0075de}
+body[data-mywork-v2] .dcu-settings-search:focus-within{border-color:#0075de}
+body[data-ds-dark-theme][data-mywork-v2] .dcu-settings-page{--sp-bg:#191919;--sp-nav:#202020;--sp-card:#202020;--sp-border:rgba(255,255,255,.1);--sp-text:rgba(255,255,255,.9);--sp-muted:#9b9893;--sp-hover:#2a2a2a;--sp-active:#191919}
+body[data-ds-dark-theme][data-mywork-v2] .dcu-settings-nav{--sp-text:rgba(255,255,255,.9);--sp-muted:#75716b;--sp-hover:#2a2a2a;--sp-active:#191919;--sp-border:rgba(255,255,255,.06)}
+body[data-ds-dark-theme][data-mywork-v2] .dcu-settings-link svg{color:#75716b}
+body[data-ds-dark-theme][data-mywork-v2] .dcu-settings-link[aria-current=page] svg,body[data-ds-dark-theme][data-mywork-v2] .dcu-settings-link:hover svg{color:#e6e4e0}
 `

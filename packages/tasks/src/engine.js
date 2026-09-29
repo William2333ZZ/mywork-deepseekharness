@@ -119,6 +119,7 @@ export function createEngine({ ctx, store, deliverables, scenarios, config, log,
       }))
       const { agent } = state.handle
       await agent.whenIdle()
+      if (state.cancelled) { finish(task.id, state); return }
       try { await workspace.attachSession(sessionId) } catch (e) { log(`attachSession: ${e && e.message}`) }
       try { const titles = ctx.get('sessionTitle'); if (titles && typeof titles.rename === 'function') titles.rename(agent.session, '任务 · ' + task.title) } catch {}
       state.started = true
@@ -204,8 +205,8 @@ export function createEngine({ ctx, store, deliverables, scenarios, config, log,
     const t = store.bySession(String(sessionId || ''))
     if (!t) throw new Error('deliver 只能在后台任务会话里调用（这个会话不属于任何任务）。')
     const d = deliverables.create({ taskId: t.id, title: args.title, kind: args.kind, scenario: t.scenario, markdown: args.markdown, data: args.data })
+    // The tool/call event already recorded the 交付 step; only the status and the link change here.
     store.update(t.id, (x) => { x.deliverableIds.push(d.id); if (x.status === 'running') x.status = 'delivering' })
-    store.step(t.id, '交付', 'deliver')
     emit('deliverable', store.get(t.id), d)
     return d
   }

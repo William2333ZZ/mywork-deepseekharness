@@ -108,7 +108,7 @@ export function apply(ctx, config = {}) {
     const post = (path, handler) => route(path, async (req, res) => { if (req.method !== 'POST') return json(res, { error: 'POST only' }, 405); return handler(await readBody(req), res, req) })
     route('/tasks', async (_req, res) => json(res, { items: api.list(), scenarios: scenarios.list() }))
     route('/task', async (req, res) => { const t = api.get(query(req).get('id') || ''); if (!t) return json(res, { error: 'task not found' }, 404); json(res, { task: t, deliverables: deliverables.forTask(t.id) }) })
-    post('/create', async (b, res) => json(res, { task: create({ input: b.input, scenario: b.scenario, title: b.title, source: 'ui' }) }))
+    post('/create', async (b, res) => { if (!String(b.input || '').trim()) return json(res, { error: 'input is required' }, 400); json(res, { task: create({ input: b.input, scenario: b.scenario, title: b.title, source: 'ui' }) }) })
     post('/cancel', async (b, res) => json(res, { task: api.cancel(String(b.id || '')) }))
     post('/rerun', async (b, res) => { const t = store.get(String(b.id || '')); if (!t) return json(res, { error: 'task not found' }, 404); json(res, { task: create({ input: t.input, scenario: t.scenario, title: t.title, source: 'rerun' }) }) })
     route('/scenarios', async (_req, res) => json(res, { items: scenarios.list() }))

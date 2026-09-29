@@ -211,7 +211,7 @@ const zh = {
   toolFailed: '失败', stepsTitle: '步骤',
   attention: '等你看', attentionEmpty: '没有等你处理的事。', failedCard: '失败，可以再来一次', issuesCard: '核验发现问题', rateCard: '交付了，看一眼给个评价', running1: '个在跑', waiting1: '份等你看', quiet: '今天还很安静', greetMorning: '早上好', greetDay: '下午好', greetNight: '晚上好', todayDone: '今天完成', examplesTitle: '可以试试',
   notesMore: '点开看核验员的完整说明', delivered: '已交付', answered: '已回答', quietDay: '今天没有等你的事。说一句，交给它。', moreRows: '还有 {n} 项', more: '更多', rawProcess: '原始对话', loadFailed: '没连上服务，稍后再试。', retry: '重试', moreRate: '还有 {n} 份交付了没评价',
-  routines: '例行', routinesLead: '还没有例行的事。说一句带时间的话：「每天 9 点…」「每周一 8:30…」「工作日 18 点提醒我…」。',
+  routines: '例行', routinesLead: '还没有例行的事。说一句带时间的话，比如「每天 9 点给我一份简报」。',
   routinesEmpty: '还没有例行的事。', remindCard: '提醒', gotIt: '知道了', runNow: '现在跑一次', pause: '暂停', resume: '恢复', remove: '删除', nextRun: '下次', lastRun: '上次', neverRan: '还没跑过', noChange: '没有变化', changed: '有变化', briefs: '今天的例行', scheduled: '已安排', scheduledHint: '到点会自动做，结果在「例行」和「等你看」里。', kindTask: '例行任务', kindRemind: '提醒', quietTag: '安静',
   say: '接着说，比如“再短一点”或“换个角度”', sayHint: '回车发送，同一个会话继续。', sayBusy: '核验中，稍等。', conversational: '这次是回答，没有生成文档；要保存时说“整理成一份…”。',
 }
@@ -237,7 +237,7 @@ const en = {
 
 const STYLE = `
 /* Tokens: design/v2/DESIGN.md §2 (Open Design schema names). Light default, dark twin. */
-.mwt{--bg:#ffffff;--surface:#f6f5f4;--surface-2:#efedeb;--fg:rgba(0,0,0,.92);--fg-2:#31302e;--muted:#615d59;--meta:#75706a;--border:rgba(0,0,0,.1);--border-soft:rgba(0,0,0,.06);--accent:#0075de;--accent-on:#ffffff;--accent-hover:#005bab;--accent-soft:#eef6fd;--success:#127e28;--warn:#b5480a;--danger:#c0392b;--font-body:Geist,-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei UI",sans-serif;--font-mono:"Geist Mono",ui-monospace,"SF Mono",Menlo,monospace;--radius-sm:6px;--radius-md:8px;--radius-lg:12px;--elev-raised:rgba(0,0,0,.04) 0 4px 18px,rgba(0,0,0,.027) 0 2px 7.85px,rgba(0,0,0,.02) 0 .8px 2.93px,rgba(0,0,0,.01) 0 .175px 1.04px;--focus-ring:0 0 0 3px rgba(0,117,222,.25);--motion-fast:150ms;--motion-base:200ms;--ease-standard:cubic-bezier(.2,0,0,1);height:100%;overflow:auto;background:var(--bg);color:var(--fg);font:14px/1.6 var(--font-body);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+.mwt{--bg:#ffffff;--surface:#f6f5f4;--surface-2:#efedeb;--fg:rgba(0,0,0,.92);--fg-2:#31302e;--muted:#615d59;--meta:#75706a;--border:rgba(0,0,0,.1);--border-soft:rgba(0,0,0,.06);--border-strong:rgba(0,0,0,.22);--accent:#0075de;--accent-on:#ffffff;--accent-hover:#005bab;--accent-soft:#eef6fd;--success:#127e28;--warn:#b5480a;--danger:#c0392b;--font-body:Geist,-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei UI",sans-serif;--font-mono:"Geist Mono",ui-monospace,"SF Mono",Menlo,monospace;--radius-sm:6px;--radius-md:8px;--radius-lg:12px;--elev-raised:rgba(0,0,0,.04) 0 4px 18px,rgba(0,0,0,.027) 0 2px 7.85px,rgba(0,0,0,.02) 0 .8px 2.93px,rgba(0,0,0,.01) 0 .175px 1.04px;--focus-ring:0 0 0 3px rgba(0,117,222,.25);--motion-fast:150ms;--motion-base:200ms;--ease-standard:cubic-bezier(.2,0,0,1);height:100%;overflow:auto;background:var(--bg);color:var(--fg);font:14px/1.6 var(--font-body);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 /* skeleton */
 .mwt-skeleton .mwt-card{cursor:default}
 .mwt-sk{display:block;border-radius:4px;background:var(--surface-2)}
@@ -246,7 +246,7 @@ const STYLE = `
 .mwt-sk-line.short{width:35%;height:10px;margin:0}
 .mwt-sk-meta{width:36px;height:10px}
 .mwt-retry{display:flex;align-items:center;gap:10px;color:var(--danger);font-size:14px;padding:8px 2px}
-body[data-ds-dark-theme] .mwt{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a;--fg:rgba(255,255,255,.9);--fg-2:#e6e4e0;--muted:#9b9893;--meta:#8a867f;--border:rgba(255,255,255,.1);--border-soft:rgba(255,255,255,.06);--accent:#529cca;--accent-on:#111111;--accent-hover:#6cb0dd;--accent-soft:rgba(82,156,202,.16);--success:#4dab7a;--warn:#e08a3c;--danger:#e26e63;--elev-raised:rgba(0,0,0,.35) 0 4px 18px,rgba(0,0,0,.25) 0 2px 8px;--focus-ring:0 0 0 3px rgba(82,156,202,.35)}
+body[data-ds-dark-theme] .mwt{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a;--fg:rgba(255,255,255,.9);--fg-2:#e6e4e0;--muted:#9b9893;--meta:#8a867f;--border:rgba(255,255,255,.1);--border-soft:rgba(255,255,255,.06);--border-strong:rgba(255,255,255,.24);--accent:#529cca;--accent-on:#111111;--accent-hover:#6cb0dd;--accent-soft:rgba(82,156,202,.16);--success:#4dab7a;--warn:#e08a3c;--danger:#e26e63;--elev-raised:rgba(0,0,0,.35) 0 4px 18px,rgba(0,0,0,.25) 0 2px 8px;--focus-ring:0 0 0 3px rgba(82,156,202,.35)}
 .mwt *{box-sizing:border-box}
 .mwt :focus-visible{outline:none;box-shadow:var(--focus-ring);border-radius:var(--radius-sm)}
 .mwt button{font-family:inherit;transition:background-color var(--motion-fast) var(--ease-standard),color var(--motion-fast) var(--ease-standard),border-color var(--motion-fast) var(--ease-standard),transform var(--motion-fast) var(--ease-standard),opacity var(--motion-fast) var(--ease-standard)}
@@ -308,7 +308,9 @@ body[data-ds-dark-theme] .mwt{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 .mwt-btn{appearance:none;display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border:0;border-radius:var(--radius-sm);background:var(--surface);color:var(--fg);font:inherit;font-size:13px;font-weight:500;letter-spacing:.01em;cursor:pointer;white-space:nowrap}
 .mwt-btn:hover{background:var(--surface-2)}
 .mwt-btn[disabled]{opacity:.4;cursor:default;transform:none}
-.mwt-btn.primary[disabled]{opacity:1;background:var(--surface);color:var(--meta)}
+.mwt-btn.send{background:var(--surface);color:var(--fg-2)}
+.mwt-btn.send:hover{background:var(--surface-2)}
+.mwt-btn.send[disabled]{opacity:.45}
 .mwt-btn.primary{background:var(--accent);color:var(--accent-on)}
 .mwt-btn.primary:hover{background:var(--accent-hover)}
 .mwt-btn.round{width:32px;height:32px;padding:0;border-radius:50%;justify-content:center}
@@ -325,8 +327,8 @@ body[data-ds-dark-theme] .mwt{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 .mwt-badge[data-v=verifying] svg{animation:mwt-spin 1.6s linear infinite}
 /* Composer: a raised card holding the field. */
 .mwt-ask-wrap{padding:0}
-.mwt-ask{text-align:left;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--bg);padding:14px 12px 10px 16px;box-shadow:var(--elev-raised);transition:border-color var(--motion-fast) var(--ease-standard),box-shadow var(--motion-fast) var(--ease-standard)}
-.mwt-ask:focus-within{border-color:var(--accent);box-shadow:var(--elev-raised),var(--focus-ring)}
+.mwt-ask{text-align:left;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--bg);padding:14px 12px 10px 16px;transition:border-color var(--motion-fast) var(--ease-standard)}
+.mwt-ask:focus-within{border-color:var(--border-strong)}
 .mwt-ask textarea{display:block;width:100%;min-height:52px;max-height:240px;resize:none;border:0;outline:0;background:transparent;color:inherit;font:inherit;font-size:15px;line-height:1.7;padding:0}
 .mwt-ask textarea::placeholder{color:var(--meta)}
 .mwt-ask-row{display:flex;align-items:center;gap:8px;margin-top:8px}
@@ -339,7 +341,8 @@ body[data-ds-dark-theme] .mwt{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 .mwt-ask-wrap.compact textarea{flex:1 1 0;min-width:0;min-height:34px;font-size:15px;line-height:24px;padding:5px 0}
 .mwt-ask-wrap.compact .mwt-btn.round{flex:none}
 .mwt-ask-wrap.compact .mwt-ask-row{display:contents}
-.mwt-ask-wrap.compact .mwt-ask-row small{display:none}
+.mwt-ask-wrap.compact .mwt-ask-row .grow{display:none}
+.mwt-ask-wrap.compact .mwt-ask-row small.grow{display:block;flex-basis:100%;order:3;color:var(--danger);font-size:12.5px;padding:0 0 4px 2px}
 .mwt-ask-wrap.compact .mwt-ask-row .mwt-chip{order:1}
 .mwt-ask-wrap.compact .mwt-ask-row .mwt-btn.round{order:2}
 .mwt-ask-wrap.compact .mwt-chips{display:none}
@@ -399,7 +402,7 @@ body[data-ds-dark-theme] .mwt{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 .mwt-ev.user .ic{color:var(--meta)}
 .mwt-say{margin:12px 0 0}
 .mwt-say-inner{border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--bg);padding:6px 6px 6px 12px;transition:border-color var(--motion-fast) var(--ease-standard),box-shadow var(--motion-fast) var(--ease-standard)}
-.mwt-say-inner:focus-within{border-color:var(--accent);box-shadow:var(--focus-ring)}
+.mwt-say-inner:focus-within{border-color:var(--border-strong)}
 .mwt-say textarea{display:block;width:100%;min-height:24px;max-height:160px;resize:none;border:0;outline:0;background:transparent;color:inherit;font:inherit;font-size:14px;line-height:22px;padding:4px 0}
 .mwt-say textarea::placeholder{color:var(--meta)}
 .mwt-say-row{display:flex;align-items:center;gap:8px;margin-top:2px}
@@ -638,8 +641,8 @@ function makeComponents(ctx, t) {
         h('textarea', { ref, value: text, placeholder: t('ask'), rows: compact ? 1 : 2, onFocus: () => setFocused(true), onBlur: () => setTimeout(() => setFocused(false), 150), onChange: (e) => setText(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); submit() } } }),
         h('div', { className: 'mwt-ask-row' },
           scenario ? h('button', { type: 'button', className: 'mwt-chip', 'data-on': true, title: t('scenarioClear'), onClick: () => setScenario('') }, (scenarios.find((s) => s.id === scenario) || { label: scenario }).label, ' ×') : null,
-          h('small', { className: 'grow' }, err || (hero ? '' : t('hint'))),
-          h('button', { type: 'button', className: 'mwt-btn primary round', 'aria-label': t('create'), title: t('create'), disabled: busy || !text.trim(), onClick: submit }, icon(busy ? 'loader' : 'send', { size: 15 })))),
+          err ? h('small', { className: 'grow' }, err) : h('span', { className: 'grow' }),
+          h('button', { type: 'button', className: 'mwt-btn send round', 'aria-label': t('create'), title: t('create'), disabled: busy || !text.trim(), onClick: submit }, icon(busy ? 'loader' : 'send', { size: 15 })))),
       examples.length && !compact && !text ? h('div', { className: 'mwt-chips' + (hero ? ' center' : '') }, examples.map((ex) => h('button', { key: ex, type: 'button', className: 'mwt-chip', title: ex, onMouseDown: (e) => e.preventDefault(), onClick: () => { setText(ex); if (ref.current) ref.current.focus() } }, ex))) : null)
   }
 
@@ -683,7 +686,7 @@ function makeComponents(ctx, t) {
     const waiting = rows.filter((r) => r.rank <= 2).length
     const status = [active.length ? `${active.length} ${t('running1')}` : '', waiting ? `${waiting} ${t('waiting1')}` : ''].filter(Boolean).join(' · ') || t('quiet')
     return h('div', { className: 'mwt mwt-today' }, h('style', null, STYLE), h('div', { className: 'mwt-page mwt-page-today' },
-      h('header', { className: 'mwt-greet' }, h('h1', null, greet), h('p', null, status)),
+      h('header', { className: 'mwt-greet' }, h('h1', null, greet)),
       !s.loadedAt && !s.error ? h(Skeleton, { rows: 3 })
         : s.error && !s.items.length ? h('div', { className: 'mwt-retry' }, h('span', null, t('loadFailed')), h('button', { type: 'button', className: 'mwt-btn', onClick: () => { refresh().then(schedulePoll) } }, t('retry')))
         : rows.length || unrated ? h('div', { className: 'mwt-list' }, rows.map((row) => h(Row, { key: row.key, row })),
@@ -723,8 +726,8 @@ function makeComponents(ctx, t) {
     if (!task.sessionId) return null
     return h('div', { className: 'mwt-say' }, h('div', { className: 'mwt-say-inner' },
       h('textarea', { ref, value: text, rows: 1, placeholder: t('say'), disabled: blocked, onChange: (e) => setText(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); submit() } } }),
-      h('div', { className: 'mwt-say-row' }, h('small', null, err || (task.status === 'verifying' ? t('sayBusy') : t('sayHint'))),
-        h('button', { type: 'button', className: 'mwt-btn round', 'aria-label': t('create'), disabled: busy || blocked || !text.trim(), onClick: submit }, icon(busy ? 'loader' : 'send', { size: 13 })))))
+      h('div', { className: 'mwt-say-row' }, err ? h('small', null, err) : h('span', { style: { flex: 1 } }),
+        h('button', { type: 'button', className: 'mwt-btn send round', 'aria-label': t('create'), disabled: busy || blocked || !text.trim(), onClick: submit }, icon(busy ? 'loader' : 'send', { size: 13 })))))
   }
 
   /** Verifier notes: two lines by default, the whole text on tap. */

@@ -38,7 +38,7 @@ Schema tokens (Open Design names) bound for this product. Light is the default.
 | `--danger` | `#c0392b` | `#e26e63` | failed |
 
 Rules:
-- `--accent` appears at most twice per screen: the primary send button and the active navigation item (focus rings do not count). Links inside documents use `--fg` with an underline.
+- `--accent` appears at most once per screen: the active navigation item. The composer and its send button are neutral and do not change color; keyboard focus rings are the only other accent. Links inside documents use `--fg` with an underline.
 - Semantic colors color the icon and the pill text only. Never a filled block, never a left border stripe.
 - Pure black and pure white text do not exist. Gradients do not exist.
 
@@ -79,9 +79,9 @@ Weights: 400 read, 500 emphasize, 600 announce. 700 is not used. Seven sizes tot
 - **Button primary**: `--accent` fill, `--accent-on` text, radius 6, height 32, padding 0 12; hover `--accent-hover`; disabled 40% opacity. One per screen.
 - **Button secondary**: `--surface` fill, `--fg` text, same geometry; hover `--surface-2`.
 - **Button ghost**: transparent, `--muted` text; hover `--surface` fill and `--fg` text. Toolbars use ghost.
-- **Round send button**: primary, 32px circle, arrow icon 14px.
+- **Round send button**: neutral `--surface` circle, 32px, `--fg-2` arrow; disabled at 45% opacity. It never turns blue.
 - **Pill badge**: 12px / 500, padding 2px 8px, `--surface` fill and `--muted` text by default; verified `--success` text on a 10% tint; issues `--warn`; failed `--danger`; accent pill `--accent-soft` + `--accent`.
-- **Input / composer**: `--bg` field inside a card with whisper border; radius 12; focus: border becomes `--accent` and the focus ring `0 0 0 3px rgba(0,117,222,.25)`. Placeholder `--meta`.
+- **Input / composer**: `--bg` field with a whisper border, radius 12, no shadow; focus darkens the border one step (`--border-strong`, 22% ink), never blue. No hint line under the field. Placeholder `--meta`.
 - **Chip** (examples, filters): `--surface` fill, radius 8, 13px, `--muted` text; selected `--fg-2` text with a whisper border.
 - **Status glyph**: 16px monoline, 1.5px stroke, colored by semantic token; running spins at 1.6s linear.
 - **Toast**: `--bg`, whisper border, `--elev-raised`, radius 12, bottom right (bottom full-width on phones).
@@ -109,6 +109,7 @@ Weights: 400 read, 500 emphasize, 600 announce. 700 is not used. Seven sizes tot
 - More than two accent uses per screen. Accent on deltas or status.
 - Latin negative tracking on Chinese headings; CJK headings under 1.35 line-height; body under 1.6.
 - Uppercase labels; weight 700; more than three type sizes above the fold.
+- Hint lines under fields (回车发送…), status captions under headings, tooltips that repeat visible text. The field and the button speak for themselves.
 - Entrance animations on page load; motion longer than 200ms; anything animating width, height or position.
 - Populated-only design: every list ships its empty, loading and error sentence.
 - More than one list on 今日; section labels on 今日; a two-column task page; a card around the document; toolbars with more than one visible action.

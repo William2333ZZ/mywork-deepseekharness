@@ -710,18 +710,13 @@ function makeComponents(ctx, t) {
     const list = (routines || []).filter((r) => r.enabled || !r.once).slice().sort((a, b) => (a.enabled === b.enabled ? 0 : a.enabled ? -1 : 1) || (new Date(a.nextRunAt || 0) - new Date(b.nextRunAt || 0)))
     if (!list.length) return null
     const shown = all ? list : list.slice(0, 3)
-    const act = (path, body) => api(path, body).then(() => refresh()).catch((e) => console.warn(`[${PLUGIN}]`, e))
-    const when = (r) => !r.enabled ? t('paused') : r.nextRunAt ? (isToday(r.nextRunAt) ? t('todayAt') + ' ' + fmtTime(r.nextRunAt) : fmtDate(r.nextRunAt)) : ''
+    const when = (r) => !r.enabled ? t('paused') : r.nextRunAt ? t('nextRun') + ' ' + (isToday(r.nextRunAt) ? t('todayAt') + ' ' + fmtTime(r.nextRunAt) : fmtDate(r.nextRunAt)) : ''
     return h('section', { className: 'mwt-section' },
       h('h2', null, t('routines')),
-      h('div', { className: 'mwt-list' }, shown.map((r) => h('div', { key: r.id, className: 'mwt-row mwt-row-static', 'data-off': !r.enabled },
+      h('div', { className: 'mwt-list' }, shown.map((r) => h('div', { key: r.id, className: 'mwt-row', 'data-off': !r.enabled, role: 'button', tabIndex: 0, onClick: () => selectPanel(PANELS.routines), onKeyDown: (e) => { if (e.key === 'Enter') selectPanel(PANELS.routines) } },
         h('span', { className: 'mwt-dot' }, icon(r.kind === 'remind' ? 'bell' : 'history', { size: 16 })),
-        h('span', { className: 'mwt-row-main' }, h('span', { className: 'mwt-row-title' }, r.title), h('span', { className: 'mwt-row-sub' }, [r.scheduleLabel, when(r)].filter(Boolean).join(' · '))),
-        h(Menu, { items: [
-          { icon: 'play', label: t('runNow'), run: () => act('/routines/run', { id: r.id }) },
-          { icon: r.enabled ? 'pause' : 'play', label: r.enabled ? t('pause') : t('resume'), run: () => act('/routines/enable', { id: r.id, enabled: !r.enabled }) },
-          { icon: 'trash', label: t('remove'), run: () => act('/routines/remove', { id: r.id }) },
-        ] }))),
+        h('span', { className: 'mwt-row-main' }, h('span', { className: 'mwt-row-title' }, r.title), h('span', { className: 'mwt-row-sub' }, r.scheduleLabel)),
+        h('span', { className: 'mwt-row-state' }, when(r)))),
         list.length > 3 && !all ? h('button', { type: 'button', className: 'mwt-row mwt-row-more', onClick: () => setAll(true) }, h('span', { className: 'mwt-dot' }), h('span', { className: 'mwt-row-main' }, h('span', { className: 'mwt-row-title' }, t('moreRows').replace('{n}', String(list.length - 3)))), h('span', { className: 'mwt-row-state' }, icon('arrow-left', { size: 14, style: { transform: 'rotate(-90deg)' } }))) : null))
   }
 
@@ -991,8 +986,8 @@ exports.apply = function apply(ctx) {
     ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({ name: 'sidebar.panellist', id: key, order, locale: NS, label: () => t(label), inject: () => ({}) }, function MyworkPageIcon() { return icon(iconName, { size: 16, strokeWidth: 1.6 }) }))
   }
   page(PANELS.today, 1, 'today', 'sun', c.TodayPage)
-  ctx.slots.inject('main', () => ctx.slots.register({ name: 'main', key: PANELS.tasks, locale: NS, inject: () => ({}) }, function MyworkTasks() { return h(c.TasksPage) }))
-  ctx.slots.inject('main', () => ctx.slots.register({ name: 'main', key: PANELS.routines, locale: NS, inject: () => ({}) }, function MyworkRoutines() { return h(c.RoutinesPage) }))
+  page(PANELS.tasks, 2, 'tasks', 'list-checks', c.TasksPage)
+  page(PANELS.routines, 3, 'routines', 'history', c.RoutinesPage)
   // Reachable, not navigated: deliverables open through their task; 领域 through 设置.
   ctx.slots.inject('main', () => ctx.slots.register({ name: 'main', key: PANELS.deliverables, locale: NS, inject: () => ({}) }, function MyworkDeliverables() { return h(c.DeliverablesPage) }))
   ctx.slots.inject('main', () => ctx.slots.register({ name: 'main', key: PANELS.scenarios, locale: NS, inject: () => ({}) }, function MyworkScenarios() { return h(c.ScenariosPage) }))

@@ -33,7 +33,7 @@ Schema tokens (Open Design names) bound for this product. Light is the default.
 | `--accent-on` | `#ffffff` | `#111111` | text on accent |
 | `--accent-hover` | `#005bab` | `#6cb0dd` | |
 | `--accent-soft` | `#eef6fd` | `rgba(82,156,202,.16)` | tinted pill for accent badges |
-| `--success` | `#178a30` | `#4dab7a` | verified, done |
+| `--success` | `#127e28` | `#4dab7a` | verified, done (4.5:1 on bg and on its 10% tint) |
 | `--warn` | `#b5480a` | `#e08a3c` | verification issues, stale |
 | `--danger` | `#c0392b` | `#e26e63` | failed |
 
@@ -54,9 +54,9 @@ Two families, three weights.
 | Body / document | same | 15 / 26 (CJK 1.7) | 400 | 0 |
 | Small / meta | same | 12.5 / 18 | 400 | 0.01em |
 | Badge | same | 12 / 16 | 500 | 0.02em |
-| Numbers, tool names, timestamps | Geist Mono | 12 / 12.5 | 400 | 0; `font-variant-numeric: tabular-nums` |
+| Numbers, timestamps, raw arguments | Geist Mono | 12 / 12.5 | 400 | 0; `font-variant-numeric: tabular-nums` |
 
-Weights: 400 read, 500 emphasize, 600 announce. 700 is not used. Six sizes total: 12, 12.5, 14, 15, 16, 24. Body copy is capped at 65ch. No uppercase labels.
+Weights: 400 read, 500 emphasize, 600 announce. 700 is not used. Seven sizes total: 12 meta and badges, 12.5 secondary, 13 buttons and chips, 14 UI, 15 documents, 16 document h3, 24 page titles. Body copy is capped at 65ch. No uppercase labels.
 
 ## 4. Spacing & Grid
 

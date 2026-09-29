@@ -35,6 +35,7 @@ A warm paper workspace with list discipline. White pages, warm off-white chrome,
 - Notion's `--meta` (#a39e98) fails 4.5:1 on white at small sizes; this contract darkens it to #75706a (4.8:1) and uses #8a867f on the dark page (4.9:1).
 - dsh's sidebar rail at 56px on phones is outside this contract; only its contents are styled here.
 - The settings page is dsh's shell with our palette; its internal cards keep dsh's component recipes.
+- Whisper borders (1.25:1) do not meet the 3:1 non-text bar on their own; the composer and follow-up field also carry a raised shadow and a placeholder, and gain the accent border on focus, so the field boundary is never the only cue. Accepted, per Notion.
 
 ## Quality gate
 

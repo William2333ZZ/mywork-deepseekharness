@@ -55,6 +55,22 @@ export function apply(ctx, config = {}) {
   let notifyConfig = readNotifyConfig()
   const watcher = createAutomationWatcher({ getConfig: () => notifyConfig, send, log })
   ctx.effect(() => ctx.on('session/event', (...args) => { watcher(args[0], args[1]) }, { global: true }), 'dsh-mywork-im: automation watcher')
+  // MyWork tasks (dsh-mywork-tasks) → IM: a finished task goes to the default notification target, if one is set.
+  ctx.effect(() => ctx.on('mywork/task', (payload) => {
+    try {
+      if (!payload || payload.kind !== 'done' || !payload.task) return
+      const rule = notifyConfig.automation.default
+      if (!rule) return
+      const task = payload.task
+      const failed = !!task.error
+      if (rule.when === 'failed' && !failed) return
+      const v = task.verification
+      const badge = v ? (v.passed === true ? '已核验' : v.passed === false ? `核验发现 ${v.issues || 0} 处问题` : '未能核验') : ''
+      const body = failed ? task.error : (task.summary || (task.deliverables && task.deliverables[0] ? task.deliverables[0].title : ''))
+      const text = `【任务】${task.title} · ${failed ? '失败' : '完成'}${badge ? ' · ' + badge : ''}` + (body ? '\n\n' + String(body).slice(0, notifyConfig.automation.maxChars) : '')
+      Promise.resolve(send(rule.target, text)).then(() => log(`task ${task.id} → IM notified`)).catch((e) => log(`task ${task.id} → IM notify failed: ${e && e.message}`))
+    } catch (e) { log('task notify error: ' + (e && e.message)) }
+  }, { global: true }), 'dsh-mywork-im: task notifier')
 
   if (config.tools !== false) {
     ctx.tools.register(defineRawTool({

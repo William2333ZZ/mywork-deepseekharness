@@ -96,4 +96,4 @@ codex-ui 的发行版模式扩成「v2 模式」：侧栏是四页加设置；�
 4. **场景注册**：把交易（oracle）、办公（univer）、调研（browser）接成场景；今日页的场景看板；例行任务生成任务。
 5. **去缝**：隐藏 dsh 的对话式控件；名字收敛；README 与演示重做。
 
-先做 1，形态先立起来。
+进度（2026-09-29）：五期都已落地第一版。任务引擎与四个页面在 `packages/tasks`；核验是第二个只读会话；调研 / 办公两个内置场景，交易工作台等其他成员走 `myworkTasks` 注册；v2 侧栏在 `packages/codex-ui/src/client/MyworkSidebar.tsx`（`localStorage['dsh-mywork:v2']='off'` 退回旧壳）；IM 成员订阅 `mywork/task` 推送完成通知。还没做的：导出图片、例行任务自动生成任务、场景在首页放看板。

@@ -9,6 +9,7 @@ import {
 } from './session-host.ts'
 import { createGlobalPanelSource } from './global-panels.tsx'
 import { registerSectionPanels } from './section-panels.tsx'
+import { MyworkSidebar, v2Active } from './MyworkSidebar.tsx'
 import { createElement } from 'react'
 import { initializeComposerWidth, observeHeroWidthHandles } from './composer-width.ts'
 import { browserStorage } from './tree-expansion.ts'
@@ -193,7 +194,7 @@ export function apply(ctx: ClientContext): void {
       footerActions,
       selectPanel: (id: string | null) => { selectGlobalPanel(ctx.layout, id) },
     }),
-  }, CodexSidebar))
+  }, v2Active() ? MyworkSidebar : CodexSidebar))
 
   ctx.slots.inject('conversation.session.header.utilities', () => ctx.slots.register({
     name: 'conversation.session.header.utilities', id: 'turn-navigator', order: 100, locale: NS,

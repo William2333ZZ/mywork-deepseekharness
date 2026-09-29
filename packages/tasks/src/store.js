@@ -20,6 +20,10 @@ export const STATUSES = ['queued', 'running', 'delivering', 'verifying', 'done']
 export const STATUS_LABELS = { queued: '排队', running: '执行', delivering: '交付', verifying: '核验', done: '完成' }
 const MAX_TASKS = 500
 const MAX_DELIVERABLES = 1000
+/** Tasks that keep their activity stream (the run's messages and tool calls); older ones keep only steps. */
+const ACTIVITY_KEEP = 60
+export const ACTIVITY_MAX = 120
+export const ACTIVITY_DETAIL_MAX = 240
 
 export function myworkDir() { return join(process.env.DSH_HOME || join(homedir(), '.dsh'), 'mywork') }
 export function newId(prefix) { return prefix + '-' + Date.now().toString(36) + randomBytes(3).toString('hex') }
@@ -33,6 +37,7 @@ export class JsonList {
   }
   save() {
     if (this.items.length > this.max) this.items = this.items.slice(this.items.length - this.max)
+    if (typeof this.beforeSave === 'function') this.beforeSave()
     if (!this.file) return
     mkdirSync(join(this.file, '..'), { recursive: true })
     const tmp = this.file + '.tmp'
@@ -59,7 +64,7 @@ export class TaskStore extends JsonList {
     if (!text) throw new Error('input is required')
     return this.add({
       id: newId('task'), title: String(title || '').trim() || titleOf(text), scenario: scenario || 'general', input: text,
-      status: 'queued', steps: [], sessionId: '', deliverableIds: [], source: source || 'ui',
+      status: 'queued', steps: [], activity: [], sessionId: '', deliverableIds: [], source: source || 'ui',
       createdAt: new Date().toISOString(), startedAt: '', finishedAt: '', error: '', summary: '',
     })
   }
@@ -76,6 +81,25 @@ export class TaskStore extends JsonList {
       if (last && !last.endedAt) last.endedAt = now
       t.steps.push({ name, tool: tool || '', count: 1, startedAt: now, endedAt: '' })
     })
+  }
+  /** Append one activity entry ({ kind: 'text' | 'tool', name?, detail?, text?, ok? }), capped. */
+  activity(id, entry) {
+    return this.update(id, (t) => {
+      if (!Array.isArray(t.activity)) t.activity = []
+      t.activity.push({ at: new Date().toISOString(), ...entry })
+      if (t.activity.length > ACTIVITY_MAX) t.activity.splice(0, t.activity.length - ACTIVITY_MAX)
+    })
+  }
+  /** Mark the latest open tool entry with its result. */
+  activityResult(id, ok, text) {
+    return this.update(id, (t) => {
+      const list = Array.isArray(t.activity) ? t.activity : []
+      for (let i = list.length - 1; i >= 0; i -= 1) { const e = list[i]; if (e.kind === 'tool' && e.ok === undefined) { e.ok = ok; if (text) e.result = String(text).slice(0, ACTIVITY_DETAIL_MAX); return } }
+    })
+  }
+  beforeSave() {
+    const cut = this.items.length - ACTIVITY_KEEP
+    for (let i = 0; i < cut; i += 1) if (this.items[i].status === 'done' && Array.isArray(this.items[i].activity) && this.items[i].activity.length) this.items[i].activity = []
   }
   endSteps(id) { return this.update(id, (t) => { const now = new Date().toISOString(); for (const s of t.steps) if (!s.endedAt) s.endedAt = now }) }
   bySession(sessionId) { return this.items.find((t) => t.sessionId === sessionId) || null }

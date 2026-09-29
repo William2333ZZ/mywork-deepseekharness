@@ -5,9 +5,11 @@
  * that runs sessions without a client): create an agent outside any initiator
  * scope, mount the agent preset, pin provider/model, set the permission preset
  * and approval policy to unattended, attach the session to a workspace, then
- * hand it the composed prompt and wait for idle. Steps are derived from the
- * global `session/event` stream (tool/call → step), the final assistant text is
- * the task summary, and `deliver` tool calls create deliverables.
+ * hand it the composed prompt and wait for idle. The global `session/event`
+ * stream feeds the task's steps (tool/call) and activity (messages, tool calls
+ * and results); the final assistant text is the summary; `deliver` tool calls
+ * create deliverables. A second, read-only session then verifies the
+ * deliverables against the task (phase 3) and stamps each with a verdict.
  *
  * No imports from @deepseek-ai/* here: this package is `link:`ed into the
  * profile, so those specifiers do not resolve from its real path. The two
@@ -17,10 +19,13 @@
 import { existsSync, mkdirSync } from 'node:fs'
 import { randomUUID } from 'node:crypto'
 import { join } from 'node:path'
-import { myworkDir, titleOf } from './store.js'
-import { stepNameFor } from './scenarios.js'
+import { ACTIVITY_DETAIL_MAX, myworkDir, titleOf } from './store.js'
+import { defaultVerifyPrompt, parseVerdict, stepNameFor } from './scenarios.js'
 
 const CANCEL_CONVERGENCE_MS = 15000
+const VERIFY_TIMEOUT_MS = 5 * 60000
+const TASK_PREFIX = 'mywork-task-'
+const VERIFY_PREFIX = 'mywork-verify-'
 
 /** @deepseek-ai/dsh-llm createUserMessage: identified, frozen user message. */
 export function userMessage(text, source) {
@@ -55,6 +60,32 @@ export function assistantText(event) {
   return blocks.filter((b) => b && b.type === 'text' && typeof b.text === 'string').map((b) => b.text).join('\n').trim()
 }
 
+/** Short, single-line preview of a tool call's arguments for the activity stream. */
+export function argsPreview(args) {
+  if (args === undefined || args === null) return ''
+  let text
+  if (typeof args === 'string') text = args
+  else if (typeof args === 'object') {
+    const parts = []
+    for (const [k, v] of Object.entries(args)) {
+      if (v === undefined || v === null || v === '') continue
+      const s = typeof v === 'string' ? v : JSON.stringify(v)
+      parts.push(`${k}=${s.length > 80 ? s.slice(0, 79) + '…' : s}`)
+    }
+    text = parts.join(' ')
+  } else text = String(args)
+  text = text.replace(/\s+/g, ' ').trim()
+  return text.length > ACTIVITY_DETAIL_MAX ? text.slice(0, ACTIVITY_DETAIL_MAX - 1) + '…' : text
+}
+
+/** Text of a tool/result event (first text block), for the activity stream. */
+export function resultPreview(event) {
+  const message = event && event.data && event.data.message
+  const blocks = message && Array.isArray(message.content) ? message.content : []
+  const text = blocks.filter((b) => b && b.type === 'text' && typeof b.text === 'string').map((b) => b.text).join(' ').replace(/\s+/g, ' ').trim()
+  return text.length > ACTIVITY_DETAIL_MAX ? text.slice(0, ACTIVITY_DETAIL_MAX - 1) + '…' : text
+}
+
 /** Human error for a turn/end reason. */
 export function reasonError(reason) {
   if (!reason) return '会话没有产生完整的一轮。'
@@ -67,14 +98,13 @@ export function reasonError(reason) {
  * @param {object} o
  *   ctx           plugin context with agents / sessions / workspaceRegistry / agentDefaultModel / agentPresets / permissionPresets
  *   store         TaskStore, deliverables DeliverableStore, scenarios registry
- *   config        { concurrency, timeoutMs, permission, agentPreset, cwd }
- *   log(msg), emit(kind, task)
+ *   config        { concurrency, timeoutMs, permission, agentPreset, cwd, verify }
+ *   log(msg), emit(kind, task, deliverable?)
  */
 export function createEngine({ ctx, store, deliverables, scenarios, config, log, emit }) {
-  const live = new Map() // taskId → { handle, text: '', reason, cancel: fn }
+  const live = new Map()     // taskId → run state
+  const verifying = new Map() // taskId → { text }
   let pumping = false
-
-  const sessionOf = (taskId) => 'mywork-task-' + taskId
 
   /** Pick the workspace tasks run in: config.cwd, else the first registered one, else $DSH_HOME/mywork/workbench. */
   async function resolveWorkspace() {
@@ -90,42 +120,58 @@ export function createEngine({ ctx, store, deliverables, scenarios, config, log,
     return (await registry.resolveByPath(dir)) || registry.create(dir, 'MyWork')
   }
 
+  /**
+   * Create one headless session and return { agent, handle, workspace }.
+   * The caller owns the handle and disposes it.
+   */
+  async function openSession({ sessionId, selection, agentPreset, permission }) {
+    const workspace = await resolveWorkspace()
+    const handle = await ctx.agents.withoutInitiator(() => ctx.agents.create({
+      sessionId,
+      meta: { cwd: workspace.path, ...(agentPreset ? { agentPreset } : {}) },
+      agentOptions: { provider: selection.provider, model: selection.model },
+      setup: async (agentCtx, created) => {
+        await ctx.agentPresets.mount(agentCtx, agentPreset)
+        pinModelSelection(agentCtx, selection)
+        const agent = created || agentCtx.agent
+        if (!agent) throw new Error('task setup has no scoped agent')
+        try { ctx.permissionPresets.set(agent.session, permission) } catch (e) { log(`permission preset ${permission} not applied: ${e && e.message}`) }
+        agent.session.append('approval/policy', { policy: 'never' })
+      },
+    }))
+    await handle.agent.whenIdle()
+    try { await workspace.attachSession(sessionId) } catch (e) { log(`attachSession: ${e && e.message}`) }
+    return { agent: handle.agent, handle, workspace }
+  }
+
+  function rename(agent, title) {
+    try { const titles = ctx.get('sessionTitle'); if (titles && typeof titles.rename === 'function') titles.rename(agent.session, title) } catch {}
+  }
+
+  function selectionFor(scenario) {
+    const selection = (scenario && scenario.model) || ctx.agentDefaultModel.currentSelection()
+    if (!selection || !selection.provider || !selection.model) throw new Error('没有可用的模型：先在设置里配置模型和 API key。')
+    return selection
+  }
+
   async function run(task) {
     const scenario = scenarios.resolve(task.scenario)
-    const sessionId = sessionOf(task.id)
+    const sessionId = TASK_PREFIX + task.id
     const state = { handle: null, started: false, text: '', reason: undefined, cancelled: false, timedOut: false, cancel: () => { state.cancelled = true; if (state.handle) state.handle.agent.cancel({ kind: 'hook', reason: 'cancelled by user' }) } }
     live.set(task.id, state)
     let timer
     try {
-      const workspace = await resolveWorkspace()
-      const cwd = workspace.path
-      const selection = (scenario && scenario.model) || ctx.agentDefaultModel.currentSelection()
-      if (!selection || !selection.provider || !selection.model) throw new Error('没有可用的模型：先在设置里配置模型和 API key。')
-      const agentPreset = (scenario && scenario.agentPreset) || config.agentPreset || undefined
-      const permission = (scenario && scenario.permission) || config.permission
+      const selection = selectionFor(scenario)
       store.update(task.id, { sessionId })
-      state.handle = await ctx.agents.withoutInitiator(() => ctx.agents.create({
-        sessionId,
-        meta: { cwd, ...(agentPreset ? { agentPreset } : {}) },
-        agentOptions: { provider: selection.provider, model: selection.model },
-        setup: async (agentCtx, created) => {
-          await ctx.agentPresets.mount(agentCtx, agentPreset)
-          pinModelSelection(agentCtx, selection)
-          const agent = created || agentCtx.agent
-          if (!agent) throw new Error('task setup has no scoped agent')
-          try { ctx.permissionPresets.set(agent.session, permission) } catch (e) { log(`permission preset ${permission} not applied: ${e && e.message}`) }
-          agent.session.append('approval/policy', { policy: 'never' })
-        },
-      }))
-      const { agent } = state.handle
-      await agent.whenIdle()
+      const opened = await openSession({ sessionId, selection, agentPreset: (scenario && scenario.agentPreset) || config.agentPreset || undefined, permission: (scenario && scenario.permission) || config.permission })
+      state.handle = opened.handle
+      const { agent } = opened
       if (state.cancelled) { finish(task.id, state); return }
-      try { await workspace.attachSession(sessionId) } catch (e) { log(`attachSession: ${e && e.message}`) }
-      try { const titles = ctx.get('sessionTitle'); if (titles && typeof titles.rename === 'function') titles.rename(agent.session, '任务 · ' + task.title) } catch {}
+      rename(agent, '任务 · ' + task.title)
       state.started = true
       store.setStatus(task.id, 'running', { startedAt: new Date().toISOString() })
       emit('started', store.get(task.id))
-      const prompt = scenario.compose(task.input, { date: new Date().toISOString().slice(0, 10), cwd, task: { id: task.id, title: task.title } })
+      const prompt = scenario.compose(task.input, { date: new Date().toISOString().slice(0, 10), cwd: opened.workspace.path, task: { id: task.id, title: task.title } })
       agent.followup(userMessage(prompt, { kind: 'mywork-task', taskId: task.id, scenario: scenario.id }))
       const idle = agent.whenIdle()
       const deadline = new Promise((r) => { timer = setTimeout(() => { state.timedOut = true; agent.cancel({ kind: 'hook', reason: 'task timeout' }); r() }, config.timeoutMs) })
@@ -159,8 +205,57 @@ export function createEngine({ ctx, store, deliverables, scenarios, config, log,
       emit('deliverable', store.get(taskId), d)
     }
     if (!error && store.get(taskId).deliverableIds.length === 0) error = '没有产出交付物。'
+    const scenario = scenarios.resolve(t.scenario)
+    const wantVerify = !error && config.verify && !(scenario && scenario.verify === false)
+    if (wantVerify) {
+      store.setStatus(taskId, 'verifying', { summary: summary || '已完成' })
+      emit('verifying', store.get(taskId))
+      verify(taskId).catch((e) => log(`verify ${taskId} crashed: ${e && e.message}`))
+      return
+    }
     store.setStatus(taskId, 'done', { finishedAt: new Date().toISOString(), error, summary: summary || (error ? '' : '已完成') })
     log(`task ${taskId} ${error ? 'failed: ' + error : 'done'}`)
+    emit('done', store.get(taskId))
+  }
+
+  /** Second session: read-only check of the deliverables against the task; stamps each deliverable. */
+  async function verify(taskId) {
+    const t = store.get(taskId)
+    if (!t) return
+    const docs = deliverables.forTask(taskId)
+    const scenario = scenarios.resolve(t.scenario)
+    const state = { text: '', handle: null }
+    verifying.set(taskId, state)
+    let timer
+    let verdict = null
+    let failure = ''
+    try {
+      const selection = (scenario && scenario.verifyModel) || selectionFor(scenario)
+      const prompt = typeof (scenario && scenario.verifyPrompt) === 'function' ? scenario.verifyPrompt(t, docs, t.activity || []) : defaultVerifyPrompt(t, docs, t.activity || [])
+      const sessionId = VERIFY_PREFIX + taskId + '-' + Date.now().toString(36)
+      const opened = await openSession({ sessionId, selection, agentPreset: (scenario && scenario.agentPreset) || config.agentPreset || undefined, permission: 'read-only' })
+      state.handle = opened.handle
+      rename(opened.agent, '核验 · ' + t.title)
+      opened.agent.followup(userMessage(prompt, { kind: 'mywork-verify', taskId }))
+      const idle = opened.agent.whenIdle()
+      const deadline = new Promise((r) => { timer = setTimeout(() => { opened.agent.cancel({ kind: 'hook', reason: 'verify timeout' }); r() }, VERIFY_TIMEOUT_MS) })
+      await Promise.race([idle, deadline])
+      clearTimeout(timer)
+      try { await ctx.sessions.flush(opened.agent.session) } catch {}
+      verdict = parseVerdict(state.text)
+      if (!verdict) failure = state.text ? '核验员没有给出可解析的结论。' : '核验会话没有回复。'
+      store.update(taskId, { verifySessionId: sessionId })
+    } catch (e) {
+      clearTimeout(timer)
+      failure = e instanceof Error ? e.message : String(e)
+    } finally {
+      verifying.delete(taskId)
+      try { if (state.handle) state.handle.dispose() } catch {}
+    }
+    const stamp = verdict ? { ...verdict, at: new Date().toISOString() } : { passed: null, checked: 0, issues: 0, notes: '核验失败：' + failure, at: new Date().toISOString() }
+    for (const d of docs) deliverables.update(d.id, { verification: stamp })
+    store.setStatus(taskId, 'done', { finishedAt: new Date().toISOString(), error: '', verification: stamp })
+    log(`task ${taskId} done, verified: ${verdict ? (verdict.passed ? 'passed' : 'issues') : 'unavailable'}`)
     emit('done', store.get(taskId))
   }
 
@@ -169,7 +264,7 @@ export function createEngine({ ctx, store, deliverables, scenarios, config, log,
     if (pumping) return
     pumping = true
     try {
-      const running = store.items.filter((t) => t.status === 'running' || t.status === 'delivering' || t.status === 'verifying' || (t.status === 'queued' && live.has(t.id)))
+      const running = store.items.filter((t) => t.status === 'running' || t.status === 'delivering' || (t.status === 'queued' && live.has(t.id)))
       let room = Math.max(1, Number(config.concurrency) || 2) - running.length
       for (const t of store.items) {
         if (room <= 0) break
@@ -180,22 +275,35 @@ export function createEngine({ ctx, store, deliverables, scenarios, config, log,
     } finally { pumping = false }
   }
 
-  /** Global session/event listener: advance steps and capture the final text. */
+  /** Global session/event listener: advance steps, record activity, capture the final text. */
   function onSessionEvent(session, event) {
     try {
       const id = session && session.id !== undefined ? String(session.id) : ''
-      if (!id.startsWith('mywork-task-') || !event || typeof event.type !== 'string') return
-      const taskId = id.slice('mywork-task-'.length)
+      if (!event || typeof event.type !== 'string') return
+      if (id.startsWith(VERIFY_PREFIX)) {
+        const taskId = id.slice(VERIFY_PREFIX.length).replace(/-[a-z0-9]+$/, '')
+        const v = verifying.get(taskId)
+        if (v && event.type === 'assistant/message') { const text = assistantText(event); if (text) v.text = text }
+        return
+      }
+      if (!id.startsWith(TASK_PREFIX)) return
+      const taskId = id.slice(TASK_PREFIX.length)
       const state = live.get(taskId)
       if (!state) return
       if (event.type === 'tool/call') {
         const tool = event.data && event.data.name ? String(event.data.name) : ''
         const scenario = scenarios.resolve((store.get(taskId) || {}).scenario)
         store.step(taskId, stepNameFor(tool, scenario && scenario.toolStepMap), tool)
+        store.activity(taskId, { kind: 'tool', name: tool, detail: argsPreview(event.data && event.data.arguments) })
         emit('step', store.get(taskId))
         return
       }
-      if (event.type === 'assistant/message') { const text = assistantText(event); if (text) state.text = text; return }
+      if (event.type === 'tool/result') { store.activityResult(taskId, !(event.data && event.data.error), resultPreview(event)); return }
+      if (event.type === 'assistant/message') {
+        const text = assistantText(event)
+        if (text) { state.text = text; store.activity(taskId, { kind: 'text', text: text.length > 2000 ? text.slice(0, 1999) + '…' : text }) }
+        return
+      }
       if (event.type === 'turn/end') { state.reason = event.data && event.data.reason; store.endSteps(taskId) }
     } catch (e) { log('event error: ' + (e && e.message)) }
   }
@@ -213,7 +321,11 @@ export function createEngine({ ctx, store, deliverables, scenarios, config, log,
 
   /** Recover from a restart: tasks left running are finished as failed; queued ones start. */
   function recover() {
-    for (const t of store.items) if (t.status !== 'done' && t.status !== 'queued') store.setStatus(t.id, 'done', { finishedAt: new Date().toISOString(), error: '服务重启，任务中断。' })
+    for (const t of store.items) {
+      if (t.status === 'done' || t.status === 'queued') continue
+      if (t.status === 'verifying') { store.setStatus(t.id, 'done', { finishedAt: new Date().toISOString(), error: '', verification: { passed: null, checked: 0, issues: 0, notes: '核验被服务重启打断。', at: new Date().toISOString() } }); continue }
+      store.setStatus(t.id, 'done', { finishedAt: new Date().toISOString(), error: '服务重启，任务中断。' })
+    }
     pump()
   }
 
@@ -223,9 +335,22 @@ export function createEngine({ ctx, store, deliverables, scenarios, config, log,
     if (t.status === 'done') return t
     const state = live.get(taskId)
     if (state) { state.cancel(); return t }
+    if (t.status === 'verifying') { const v = verifying.get(taskId); if (v && v.handle) v.handle.agent.cancel({ kind: 'hook', reason: 'cancelled by user' }); return t }
     store.endSteps(taskId)
     return store.setStatus(taskId, 'done', { finishedAt: new Date().toISOString(), error: '已取消。' })
   }
 
-  return { pump, recover, cancel, deliver, onSessionEvent, isLive: (id) => live.has(id) }
+  /** Re-run verification for a finished task (manual). */
+  function reverify(taskId) {
+    const t = store.get(taskId)
+    if (!t) throw new Error('task not found')
+    if (t.status !== 'done' || t.deliverableIds.length === 0) throw new Error('只有已完成且有交付物的任务能核验')
+    if (verifying.has(taskId)) return t
+    store.setStatus(taskId, 'verifying')
+    emit('verifying', store.get(taskId))
+    verify(taskId).catch((e) => log(`verify ${taskId} crashed: ${e && e.message}`))
+    return store.get(taskId)
+  }
+
+  return { pump, recover, cancel, deliver, reverify, onSessionEvent, isLive: (id) => live.has(id) }
 }

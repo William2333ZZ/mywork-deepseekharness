@@ -55,3 +55,31 @@ test('markdown renderer escapes and structures', () => {
   assert.match(html, /<h2>A<\/h2>/); assert.match(html, /&lt;b&gt;x&lt;\/b&gt; <strong>bold<\/strong>/); assert.match(html, /<ul><li>one<\/li><li>two<\/li><\/ul>/); assert.match(html, /<table>/)
   assert.doesNotMatch(html, /<b>/)
 })
+
+test('activity stream is capped and trimmed for old tasks', async () => {
+  const { ACTIVITY_MAX } = await import('../src/store.js')
+  const s = new TaskStore(null)
+  const t = s.create({ input: 'x' })
+  for (let i = 0; i < ACTIVITY_MAX + 10; i += 1) s.activity(t.id, { kind: 'tool', name: 'read_file', detail: 'p=' + i })
+  assert.equal(s.get(t.id).activity.length, ACTIVITY_MAX)
+  s.activityResult(t.id, false, 'boom')
+  const last = s.get(t.id).activity[ACTIVITY_MAX - 1]
+  assert.equal(last.ok, false); assert.equal(last.result, 'boom')
+  for (let i = 0; i < 65; i += 1) { const x = s.create({ input: 'y' + i }); s.activity(x.id, { kind: 'text', text: 'hi' }); s.setStatus(x.id, 'done') }
+  s.setStatus(t.id, 'done')
+  assert.equal(s.get(t.id).activity.length, 0)
+  assert.ok(s.items[s.items.length - 1].activity.length > 0)
+})
+
+test('verification prompt and verdict parsing', async () => {
+  const { defaultVerifyPrompt, parseVerdict, BUILTIN_SCENARIOS } = await import('../src/scenarios.js')
+  const { argsPreview, resultPreview } = await import('../src/engine.js')
+  assert.deepEqual(BUILTIN_SCENARIOS.map((s) => s.id), ['general', 'research', 'office'])
+  const p = defaultVerifyPrompt({ input: '做一张表' }, [{ title: 'T', markdown: '| a |' }], [{ kind: 'tool', name: 'open_url', detail: 'url=x', ok: false }])
+  assert.match(p, /做一张表/); assert.match(p, /open_url（失败）/); assert.match(p, /"passed"/)
+  assert.deepEqual(parseVerdict('结论如下：\n{"passed": true, "checked": 3, "issues": 0, "notes": "ok"}'), { passed: true, checked: 3, issues: 0, notes: 'ok' })
+  assert.equal(parseVerdict('no json here'), null)
+  assert.equal(parseVerdict('{"foo":1}'), null)
+  assert.equal(argsPreview({ path: '/a/b', content: 'x'.repeat(200), empty: '' }), 'path=/a/b content=' + 'x'.repeat(79) + '…')
+  assert.equal(resultPreview({ data: { message: { content: [{ type: 'text', text: ' a  b ' }] } } }), 'a b')
+})

@@ -166,13 +166,19 @@ module.exports = { icon, PATHS }
  * dsh-mywork-tasks — browser half (CommonJS; wrapped by scripts/build-client.mjs with
  * src/md.cjs and client-icons.cjs inlined as preludes).
  *
- * Pages (main slot + sidebar.panellist):
- *   mywork-today  今日：输入框（一句话即任务）、场景示例、进行中的任务、今天的交付物
- *   mywork-tasks  任务：全部任务；点开一条看步骤、交付物、失败原因；再来一次 / 取消 / 过程
+ * The MyWork v2 shell, shaped like Manus / Muse: one box, tasks in the sidebar, a task
+ * page with the run on the left and the deliverable on the right.
  *
- * State is one module-level store polled from /mywork-tasks/api (3 s while anything runs,
- * 20 s otherwise, and on focus). No dsh conversation concepts appear on these pages; the
- * session behind a task is reachable only through 「过程」.
+ * Pages (main slot):
+ *   mywork-today         今日：一个大输入框（场景选择、示例）、进行中、最近
+ *   mywork-tasks         任务：列表；任务页 = 进度流（消息与工具调用）| 交付物（核验徽章、评价、导出）
+ *   mywork-deliverables  交付物：全部交付物，按场景筛，查看器
+ *   mywork-scenarios     场景：已装场景，示例一点即任务
+ * Overlay (shell.overlay): completion toasts + browser notifications; keeps polling while any page is hidden.
+ *
+ * Window events (for the sidebar in dsh-mywork-codex-ui and other members):
+ *   mywork:new-task {text?, scenario?}  mywork:open-task {id}  mywork:open-deliverable {id}
+ * The dsh conversation behind a task is reachable only through 「过程」 (mywork:open-session).
  */
 'use strict'
 
@@ -184,49 +190,65 @@ const h = React.createElement
 const PLUGIN = 'dsh-mywork-tasks'
 const NS = 'mywork.tasks'
 const API = '/mywork-tasks/api'
-const TODAY_PANEL = 'mywork-today'
-const TASKS_PANEL = 'mywork-tasks'
+const PANELS = { today: 'mywork-today', tasks: 'mywork-tasks', deliverables: 'mywork-deliverables', scenarios: 'mywork-scenarios' }
 const FAST_MS = 3000
 const SLOW_MS = 20000
+const V2_KEY = 'dsh-mywork:v2'
 
 const zh = {
-  today: '今日', tasks: '任务', ask: '说一个你要的结果', hint: '回车创建任务，Shift + 回车换行。任务在后台完成，交付物会出现在这里。',
-  running: '进行中', doneToday: '今天完成', none: '还没有任务。', noneRunning: '现在没有在跑的任务。', noneDeliverables: '今天还没有完成的任务。',
-  all: '全部', active: '进行中', finished: '已完成', back: '返回', rerun: '再来一次', cancel: '取消', process: '过程', steps: '步骤', deliverables: '交付物',
-  failed: '失败', queued: '排队', input: '你说的', elapsed: '用时', noSteps: '还没有开始。', scenario: '场景', create: '创建任务', creating: '创建中…',
-  open: '打开', ratingGood: '有用', ratingBad: '没用', none2: '无',
+  today: '今日', tasks: '任务', deliverables: '交付物', scenarios: '场景',
+  hero: '你要什么结果？', ask: '说一个你要的结果，比如"把这个目录的 README 整理成一页产品介绍"', hint: '回车创建，Shift + 回车换行。任务在后台完成，做完通知你。',
+  running: '进行中', recent: '最近', none: '还没有任务。', noneRunning: '现在没有在跑的任务。', noneDeliverables: '还没有交付物。',
+  all: '全部', active: '进行中', finished: '已完成', back: '返回', rerun: '再来一次', cancel: '取消', process: '过程', verifyAgain: '重新核验',
+  progress: '进度', deliverable: '交付物', waitingDeliverable: '做完后交付物出现在这里。', failedTitle: '失败',
+  queued: '排队', input: '你说的', elapsed: '用时', scenario: '场景', create: '创建', creating: '创建中…', openTask: '打开任务',
+  ratingGood: '有用', ratingBad: '没用', exportMd: '导出 Markdown', exportPdf: '导出 PDF', none2: '无',
+  verified: '已核验', verifyIssues: '核验发现问题', verifyNone: '未能核验', verifying: '核验中', checked: '核对', issues: '问题',
+  doneToast: '任务完成', failedToast: '任务失败', open: '打开', tryScenario: '用这个场景', kinds: '交付', examples: '示例',
+  toolFailed: '失败', stepsTitle: '步骤',
 }
 const en = {
-  today: 'Today', tasks: 'Tasks', ask: 'Say what you want done', hint: 'Enter creates a task, Shift + Enter for a new line. Tasks run in the background and deliverables show up here.',
-  running: 'In progress', doneToday: 'Finished today', none: 'No tasks yet.', noneRunning: 'Nothing is running.', noneDeliverables: 'Nothing finished today.',
-  all: 'All', active: 'Active', finished: 'Finished', back: 'Back', rerun: 'Run again', cancel: 'Cancel', process: 'Process', steps: 'Steps', deliverables: 'Deliverables',
-  failed: 'Failed', queued: 'Queued', input: 'Your request', elapsed: 'Elapsed', noSteps: 'Not started yet.', scenario: 'Scenario', create: 'Create task', creating: 'Creating…',
-  open: 'Open', ratingGood: 'Useful', ratingBad: 'Not useful', none2: 'none',
+  today: 'Today', tasks: 'Tasks', deliverables: 'Deliverables', scenarios: 'Scenarios',
+  hero: 'What do you want done?', ask: 'Describe the result you want', hint: 'Enter creates the task, Shift + Enter for a new line. It runs in the background and notifies you when done.',
+  running: 'In progress', recent: 'Recent', none: 'No tasks yet.', noneRunning: 'Nothing is running.', noneDeliverables: 'No deliverables yet.',
+  all: 'All', active: 'Active', finished: 'Finished', back: 'Back', rerun: 'Run again', cancel: 'Cancel', process: 'Process', verifyAgain: 'Verify again',
+  progress: 'Progress', deliverable: 'Deliverable', waitingDeliverable: 'The deliverable appears here when the task finishes.', failedTitle: 'Failed',
+  queued: 'Queued', input: 'Your request', elapsed: 'Elapsed', scenario: 'Scenario', create: 'Create', creating: 'Creating…', openTask: 'Open task',
+  ratingGood: 'Useful', ratingBad: 'Not useful', exportMd: 'Export Markdown', exportPdf: 'Export PDF', none2: 'none',
+  verified: 'Verified', verifyIssues: 'Issues found', verifyNone: 'Not verified', verifying: 'Verifying', checked: 'checked', issues: 'issues',
+  doneToast: 'Task finished', failedToast: 'Task failed', open: 'Open', tryScenario: 'Use this scenario', kinds: 'Delivers', examples: 'Examples',
+  toolFailed: 'failed', stepsTitle: 'Steps',
 }
 
 const STYLE = `
-.mwt{--mwt-fg:var(--dsw-alias-label-primary);--mwt-fg2:var(--dsw-alias-label-secondary);--mwt-line:var(--dsw-alias-border-l2);--mwt-bg:var(--dsw-alias-bg-layer-1);--mwt-bg2:var(--dsw-alias-bg-layer-2);--mwt-accent:var(--dsw-alias-brand-primary);--mwt-err:var(--dsw-alias-state-error-primary);--mwt-hover:var(--dsw-alias-interactive-bg-hover);height:100%;overflow:auto;color:var(--mwt-fg);font-size:14px;line-height:22px}
+.mwt{--mwt-fg:var(--dsw-alias-label-primary);--mwt-fg2:var(--dsw-alias-label-secondary);--mwt-line:var(--dsw-alias-border-l2);--mwt-bg:var(--dsw-alias-bg-layer-1);--mwt-bg2:var(--dsw-alias-bg-layer-2);--mwt-accent:var(--dsw-alias-brand-primary);--mwt-err:var(--dsw-alias-state-error-primary);--mwt-warn:var(--dsw-alias-state-warn-primary);--mwt-hover:var(--dsw-alias-interactive-bg-hover);height:100%;overflow:auto;color:var(--mwt-fg);font-size:14px;line-height:22px}
 .mwt *{box-sizing:border-box}
-.mwt-page{max-width:820px;margin:0 auto;padding:36px 28px 64px}
-.mwt-title{display:flex;align-items:baseline;gap:12px;margin:0 0 20px}
+.mwt-page{max-width:880px;margin:0 auto;padding:32px 28px 64px}
+.mwt-page.wide{max-width:1240px}
+.mwt-title{display:flex;align-items:baseline;gap:12px;margin:0 0 18px}
 .mwt-title h1{margin:0;font-size:22px;line-height:30px;font-weight:600}
 .mwt-title span{color:var(--mwt-fg2);font-size:13px}
-.mwt-ask{border:1px solid var(--mwt-line);border-radius:14px;background:var(--mwt-bg);padding:12px 14px 10px;transition:border-color 120ms}
+.mwt-hero{padding:9vh 0 28px;text-align:center}
+.mwt-hero h1{margin:0 0 22px;font-size:30px;line-height:38px;font-weight:600;letter-spacing:-.01em}
+.mwt-ask{text-align:left;border:1px solid var(--mwt-line);border-radius:18px;background:var(--mwt-bg);padding:14px 16px 10px;box-shadow:0 8px 28px rgba(0,0,0,.06);transition:border-color 120ms}
 .mwt-ask:focus-within{border-color:var(--mwt-accent)}
-.mwt-ask textarea{display:block;width:100%;min-height:52px;max-height:200px;resize:none;border:0;outline:0;background:transparent;color:inherit;font:inherit;padding:0}
-.mwt-ask-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px}
+.mwt-ask textarea{display:block;width:100%;min-height:56px;max-height:240px;resize:none;border:0;outline:0;background:transparent;color:inherit;font:inherit;font-size:15px;line-height:24px;padding:0}
+.mwt-ask-row{display:flex;align-items:center;gap:8px;margin-top:8px}
+.mwt-ask-row .grow{flex:1}
 .mwt-ask-row small{color:var(--mwt-fg2);font-size:12px}
-.mwt-btn{appearance:none;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border:1px solid var(--mwt-line);border-radius:8px;background:var(--mwt-bg);color:var(--mwt-fg);font:inherit;font-size:13px;cursor:pointer}
+.mwt-btn{appearance:none;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border:1px solid var(--mwt-line);border-radius:8px;background:var(--mwt-bg);color:var(--mwt-fg);font:inherit;font-size:13px;cursor:pointer;white-space:nowrap}
 .mwt-btn:hover{background:var(--mwt-hover)}
 .mwt-btn[disabled]{opacity:.5;cursor:default}
 .mwt-btn.primary{background:var(--mwt-accent);border-color:var(--mwt-accent);color:#fff}
-.mwt-btn.primary:hover{filter:brightness(1.05)}
+.mwt-btn.round{width:34px;height:34px;padding:0;border-radius:50%;justify-content:center}
+.mwt-select{appearance:none;height:28px;padding:0 26px 0 10px;border:1px solid var(--mwt-line);border-radius:999px;background:transparent;color:var(--mwt-fg2);font:inherit;font-size:12.5px;cursor:pointer}
 .mwt-chips{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 0}
+.mwt-chips.center{justify-content:center}
 .mwt-chip{appearance:none;border:1px solid var(--mwt-line);border-radius:999px;background:transparent;color:var(--mwt-fg2);padding:4px 12px;font:inherit;font-size:13px;line-height:20px;cursor:pointer;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mwt-chip:hover{color:var(--mwt-fg);background:var(--mwt-hover)}
 .mwt-chip[data-on=true]{color:var(--mwt-fg);border-color:var(--mwt-fg2)}
-.mwt-section{margin-top:32px}
-.mwt-section h2{display:flex;align-items:center;gap:8px;margin:0 0 10px;font-size:13px;font-weight:600;color:var(--mwt-fg2);text-transform:none}
+.mwt-section{margin-top:28px}
+.mwt-section h2{display:flex;align-items:center;gap:8px;margin:0 0 10px;font-size:13px;font-weight:600;color:var(--mwt-fg2)}
 .mwt-empty{color:var(--mwt-fg2);font-size:13px;padding:6px 0}
 .mwt-cards{display:grid;gap:8px}
 .mwt-card{display:grid;grid-template-columns:20px minmax(0,1fr) auto;align-items:start;column-gap:10px;padding:12px 14px;border:1px solid var(--mwt-line);border-radius:12px;background:var(--mwt-bg);cursor:pointer;text-align:left;font:inherit;color:inherit;width:100%}
@@ -243,23 +265,38 @@ const STYLE = `
 @media (prefers-reduced-motion:reduce){.mwt-dot svg{animation:none!important}}
 .mwt-toolbar{display:flex;align-items:center;gap:8px;margin:0 0 16px}
 .mwt-toolbar .grow{flex:1}
-.mwt-detail-head{display:flex;align-items:flex-start;gap:12px;margin:0 0 18px}
+.mwt-detail-head{display:flex;align-items:flex-start;gap:12px;margin:0 0 6px}
 .mwt-detail-head h1{flex:1;margin:0;font-size:20px;line-height:28px;font-weight:600}
+.mwt-meta{display:flex;flex-wrap:wrap;gap:6px 16px;color:var(--mwt-fg2);font-size:13px;margin:0 0 18px 32px}
 .mwt-actions{display:flex;gap:8px;flex-wrap:wrap}
-.mwt-kv{display:grid;grid-template-columns:auto 1fr;column-gap:16px;row-gap:4px;font-size:13px;margin:0 0 18px}
-.mwt-kv dt{color:var(--mwt-fg2);margin:0}
-.mwt-kv dd{margin:0;white-space:pre-wrap;word-break:break-word}
-.mwt-steps{list-style:none;margin:0;padding:0;border-left:2px solid var(--mwt-line);margin-left:6px}
-.mwt-steps li{position:relative;padding:2px 0 2px 16px;display:flex;gap:12px;align-items:baseline;font-size:13px}
-.mwt-steps li::before{content:"";position:absolute;left:-5px;top:11px;width:8px;height:8px;border-radius:50%;background:var(--mwt-fg2)}
-.mwt-steps li[data-live=true]::before{background:var(--mwt-accent)}
-.mwt-steps li .name{min-width:0;flex:1}
-.mwt-steps li .time{color:var(--mwt-fg2);font-variant-numeric:tabular-nums}
 .mwt-error{border:1px solid var(--mwt-err);border-radius:10px;padding:10px 12px;color:var(--mwt-err);font-size:13px;margin:0 0 18px;white-space:pre-wrap}
+.mwt-cols{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:20px;align-items:start}
+@media (max-width:960px){.mwt-cols{grid-template-columns:minmax(0,1fr)}}
+.mwt-col h2{display:flex;align-items:center;gap:8px;margin:0 0 10px;font-size:13px;font-weight:600;color:var(--mwt-fg2)}
+.mwt-col h2 .grow{flex:1}
+.mwt-stream{border:1px solid var(--mwt-line);border-radius:12px;background:var(--mwt-bg);padding:6px 0;max-height:70vh;overflow:auto}
+.mwt-ev{display:grid;grid-template-columns:18px minmax(0,1fr);column-gap:10px;padding:6px 14px;font-size:13px;line-height:20px}
+.mwt-ev .ic{display:flex;align-items:center;height:20px;color:var(--mwt-fg2)}
+.mwt-ev[data-ok=false] .ic{color:var(--mwt-err)}
+.mwt-ev .name{font-weight:500}
+.mwt-ev .detail{color:var(--mwt-fg2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mwt-ev .result{color:var(--mwt-fg2);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mwt-ev.text{padding:8px 14px}
+.mwt-ev.text .body{white-space:pre-wrap;word-break:break-word}
+.mwt-ev.live{color:var(--mwt-accent)}
+.mwt-steps{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.mwt-step{display:inline-flex;align-items:center;gap:6px;padding:2px 10px;border-radius:999px;background:var(--mwt-bg2);font-size:12px;color:var(--mwt-fg2)}
+.mwt-step[data-live=true]{color:var(--mwt-accent)}
 .mwt-doc{border:1px solid var(--mwt-line);border-radius:12px;background:var(--mwt-bg);padding:18px 22px;margin:0 0 12px}
-.mwt-doc-head{display:flex;align-items:center;gap:10px;margin:0 0 8px}
-.mwt-doc-head h3{flex:1;margin:0;font-size:15px;font-weight:600}
-.mwt-doc-head small{color:var(--mwt-fg2);font-size:12px}
+.mwt-doc-head{display:flex;align-items:center;gap:10px;margin:0 0 6px;flex-wrap:wrap}
+.mwt-doc-head h3{flex:1;margin:0;font-size:16px;font-weight:600;min-width:160px}
+.mwt-doc-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;color:var(--mwt-fg2);font-size:12px;margin:0 0 12px}
+.mwt-badge{display:inline-flex;align-items:center;gap:5px;padding:1px 8px;border-radius:999px;font-size:12px;border:1px solid var(--mwt-line);color:var(--mwt-fg2)}
+.mwt-badge[data-v=passed]{color:var(--mwt-accent);border-color:var(--mwt-accent)}
+.mwt-badge[data-v=issues]{color:var(--mwt-warn);border-color:var(--mwt-warn)}
+.mwt-badge[data-v=verifying] svg{animation:mwt-spin 1.2s linear infinite}
+.mwt-notes{font-size:13px;color:var(--mwt-fg2);border-left:3px solid var(--mwt-line);padding:2px 10px;margin:0 0 12px}
+.mwt-doc-actions{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0 0;padding-top:12px;border-top:1px solid var(--mwt-line)}
 .mwt-md{font-size:14px;line-height:1.7}
 .mwt-md h2,.mwt-md h3,.mwt-md h4{margin:18px 0 6px;font-weight:600;line-height:1.4}
 .mwt-md h2{font-size:17px}.mwt-md h3{font-size:15px}.mwt-md h4{font-size:14px}
@@ -270,6 +307,17 @@ const STYLE = `
 .mwt-md blockquote{margin:0 0 10px;padding:2px 12px;border-left:3px solid var(--mwt-line);color:var(--mwt-fg2)}
 .mwt-md hr{border:0;border-top:1px solid var(--mwt-line);margin:14px 0}
 .mwt-md a{color:var(--mwt-accent)}
+.mwt-scen{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.mwt-scen-card{border:1px solid var(--mwt-line);border-radius:14px;background:var(--mwt-bg);padding:16px 18px;display:flex;flex-direction:column;gap:8px}
+.mwt-scen-card h3{margin:0;font-size:15px;font-weight:600}
+.mwt-scen-card p{margin:0;color:var(--mwt-fg2);font-size:13px}
+.mwt-scen-card .ex{display:grid;gap:4px}
+.mwt-scen-card .ex button{appearance:none;border:0;background:transparent;color:var(--mwt-fg);font:inherit;font-size:13px;text-align:left;padding:4px 0;cursor:pointer;border-radius:6px}
+.mwt-scen-card .ex button:hover{color:var(--mwt-accent)}
+.mwt-toasts{position:fixed;right:18px;bottom:18px;z-index:10050;display:grid;gap:8px;max-width:360px}
+.mwt-toast{display:grid;grid-template-columns:20px minmax(0,1fr) auto;column-gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--dsw-alias-border-l2);border-radius:12px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);box-shadow:0 10px 30px rgba(0,0,0,.14);font-size:13px;line-height:18px}
+.mwt-toast b{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mwt-toast span{color:var(--dsw-alias-label-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
 `
 
 // ---- state ------------------------------------------------------------------
@@ -286,10 +334,16 @@ async function api(path, body) {
   return data
 }
 let refreshing = null
+const completionListeners = new Set() // (task) => void, fired when a task reaches done
 function refresh() {
   if (refreshing) return refreshing
-  refreshing = api('/tasks').then((d) => { setState({ items: d.items || [], scenarios: d.scenarios || [], error: '', loadedAt: Date.now() }) })
-    .catch((e) => { setState({ error: e.message || String(e) }) }).finally(() => { refreshing = null })
+  const before = new Map(state.items.map((t) => [t.id, t.status]))
+  refreshing = api('/tasks').then((d) => {
+    const items = d.items || []
+    setState({ items, scenarios: d.scenarios || [], error: '', loadedAt: Date.now() })
+    fire('mywork:tasks-updated', { items })
+    if (before.size) for (const t of items) if (t.status === 'done' && before.has(t.id) && before.get(t.id) !== 'done') for (const fn of completionListeners) { try { fn(t) } catch {} }
+  }).catch((e) => { setState({ error: e.message || String(e) }) }).finally(() => { refreshing = null })
   return refreshing
 }
 let pollTimer = null
@@ -310,7 +364,6 @@ function usePolling() {
   }, [])
   return React.useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
 }
-// the same clock for every elapsed counter
 function useTick(on) {
   const [, set] = React.useState(0)
   React.useEffect(() => { if (!on) return; const id = setInterval(() => set((n) => n + 1), 1000); return () => clearInterval(id) }, [on])
@@ -325,147 +378,302 @@ function fmtDuration(ms) {
   if (m < 60) return m + 'm ' + (s % 60) + 's'
   return Math.floor(m / 60) + 'h ' + (m % 60) + 'm'
 }
-function elapsedOf(t) {
-  const start = t.startedAt || t.createdAt
-  const end = t.finishedAt || new Date().toISOString()
-  return fmtDuration(new Date(end) - new Date(start))
-}
-function fmtTime(iso) { if (!iso) return ''; const d = new Date(iso); return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
+function elapsedOf(t) { return fmtDuration(new Date(t.finishedAt || new Date().toISOString()) - new Date(t.startedAt || t.createdAt)) }
+function fmtTime(iso) { if (!iso) return ''; return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
 function fmtDate(iso) { if (!iso) return ''; const d = new Date(iso); return d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + fmtTime(iso) }
-function isToday(iso) { if (!iso) return false; const d = new Date(iso); const n = new Date(); return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth() && d.getDate() === n.getDate() }
 function visual(t) { return t.status !== 'done' ? t.status : t.error ? 'err' : 'ok' }
 function StatusDot({ task }) {
   const v = visual(task)
   const name = v === 'ok' ? 'circle-check' : v === 'err' ? 'circle-x' : v === 'queued' ? 'history' : 'loader'
   return h('span', { className: 'mwt-dot', 'data-s': v, title: task.statusLabel }, icon(name, { size: 16 }))
 }
-function openSession(sessionId) {
-  if (!sessionId) return
-  try { window.dispatchEvent(new CustomEvent('mywork:open-session', { detail: { sessionId } })) } catch {}
-}
+function fire(name, detail) { try { window.dispatchEvent(new CustomEvent(name, { detail: detail || {} })) } catch {} }
 function Markdown({ text }) {
   const html = React.useMemo(() => md.render(text || ''), [text])
   return h('div', { className: 'mwt-md', dangerouslySetInnerHTML: { __html: html } })
 }
+function download(name, text, type) {
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(new Blob([text], { type: type || 'text/markdown;charset=utf-8' }))
+  a.download = name
+  document.body.appendChild(a); a.click(); a.remove()
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000)
+}
+function printDoc(d) {
+  const w = window.open('', '_blank')
+  if (!w) return
+  const css = 'body{font:14px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;color:#222;max-width:760px;margin:40px auto;padding:0 24px}h1{font-size:22px;margin:0 0 4px}h2{font-size:17px;margin:18px 0 6px}h3{font-size:15px}table{border-collapse:collapse;font-size:13px}th,td{border:1px solid #ccc;padding:4px 10px}pre{background:#f4f4f4;padding:10px 12px;border-radius:6px;overflow:auto}code{font-family:Menlo,monospace;font-size:12.5px}blockquote{border-left:3px solid #ccc;margin:0;padding:2px 12px;color:#555}.meta{color:#777;font-size:12px;margin:0 0 20px}'
+  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>' + md.esc(d.title) + '</title><style>' + css + '</style></head><body><h1>' + md.esc(d.title) + '</h1><p class="meta">' + md.esc(fmtDate(d.createdAt)) + (d.verification && d.verification.passed === true ? ' · 已核验' : '') + '</p>' + md.render(d.markdown) + '</body></html>')
+  w.document.close()
+  w.focus()
+  setTimeout(() => { try { w.print() } catch {} }, 300)
+}
+function safeName(s) { return String(s || 'deliverable').replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 60) || 'deliverable' }
 
 // ---- components -------------------------------------------------------------
 function makeComponents(ctx, t) {
-  const selectPanel = (id) => { if (ctx.layout && typeof ctx.layout.selectPanel === 'function') ctx.layout.selectPanel(id) }
+  const selectPanel = (id) => { try { if (ctx.layout && typeof ctx.layout.selectPanel === 'function') ctx.layout.selectPanel(id) } catch (e) { console.warn(`[${PLUGIN}] selectPanel`, e) } }
+  const nav = { pendingTask: '', pendingDeliverable: '', pendingInput: null }
+  const openTask = (id) => { nav.pendingTask = id; selectPanel(PANELS.tasks) }
+  const openDeliverable = (id) => { nav.pendingDeliverable = id; selectPanel(PANELS.deliverables) }
+  const newTask = (text, scenario) => { nav.pendingInput = { text: text || '', scenario: scenario || '' }; selectPanel(PANELS.today) }
 
-  function TaskCard({ task, onOpen }) {
+  function VerifyBadge({ v, status }) {
+    if (status === 'verifying') return h('span', { className: 'mwt-badge', 'data-v': 'verifying' }, icon('loader', { size: 12 }), t('verifying'))
+    if (!v) return null
+    const kind = v.passed === true ? 'passed' : v.passed === false ? 'issues' : 'none'
+    const label = kind === 'passed' ? t('verified') : kind === 'issues' ? t('verifyIssues') : t('verifyNone')
+    const detail = v.checked ? ` · ${t('checked')} ${v.checked}${v.issues ? ` · ${t('issues')} ${v.issues}` : ''}` : ''
+    return h('span', { className: 'mwt-badge', 'data-v': kind, title: v.notes || '' }, icon(kind === 'passed' ? 'circle-check' : kind === 'issues' ? 'circle-x' : 'x', { size: 12 }), label + detail)
+  }
+
+  function TaskCard({ task, onOpen, compact }) {
     const live = task.status !== 'done'
-    const sub = live ? (task.currentStep || task.statusLabel) : task.error ? (t('failed') + ' · ' + task.error) : (task.summary || (task.deliverables[0] && task.deliverables[0].title) || '')
+    const sub = live ? (task.currentStep || task.statusLabel) : task.error ? (t('failedTitle') + ' · ' + task.error) : (task.summary || (task.deliverables[0] && task.deliverables[0].title) || '')
     return h('button', { type: 'button', className: 'mwt-card', onClick: () => onOpen(task.id) },
       h(StatusDot, { task }),
-      h('span', null, h('div', { className: 'mwt-card-title' }, task.title), h('div', { className: 'mwt-card-sub' + (task.error ? ' err' : '') }, sub)),
+      h('span', null, h('div', { className: 'mwt-card-title' }, task.title), compact ? null : h('div', { className: 'mwt-card-sub' + (task.error ? ' err' : '') }, sub)),
       h('span', { className: 'mwt-card-meta' }, live ? elapsedOf(task) : fmtTime(task.finishedAt)))
   }
 
-  function Ask({ scenarios, onCreated }) {
-    const [text, setText] = React.useState('')
-    const [scenario, setScenario] = React.useState('general')
+  function Ask({ scenarios, initial, hero }) {
+    const [text, setText] = React.useState(initial && initial.text ? initial.text : '')
+    const [scenario, setScenario] = React.useState(initial && initial.scenario ? initial.scenario : 'general')
     const [busy, setBusy] = React.useState(false)
     const [err, setErr] = React.useState('')
     const ref = React.useRef(null)
     const current = scenarios.find((s) => s.id === scenario) || scenarios[0] || null
+    React.useEffect(() => { if (initial && initial.text && ref.current) ref.current.focus() }, [])
+    React.useEffect(() => {
+      const onNew = (e) => { const d = e.detail || {}; if (d.text !== undefined) setText(String(d.text)); if (d.scenario) setScenario(String(d.scenario)); if (ref.current) ref.current.focus() }
+      window.addEventListener('mywork:new-task', onNew)
+      return () => window.removeEventListener('mywork:new-task', onNew)
+    }, [])
     const submit = async () => {
       const input = text.trim()
       if (!input || busy) return
       setBusy(true); setErr('')
-      try { await api('/create', { input, scenario }); setText(''); await refresh(); schedulePoll(); if (onCreated) onCreated() } catch (e) { setErr(e.message || String(e)) } finally { setBusy(false) }
+      try { const d = await api('/create', { input, scenario }); setText(''); await refresh(); schedulePoll(); if (d.task) openTask(d.task.id) } catch (e) { setErr(e.message || String(e)) } finally { setBusy(false) }
     }
-    const grow = () => { const el = ref.current; if (!el) return; el.style.height = 'auto'; el.style.height = Math.min(200, el.scrollHeight) + 'px' }
+    const grow = () => { const el = ref.current; if (!el) return; el.style.height = 'auto'; el.style.height = Math.min(240, el.scrollHeight) + 'px' }
     React.useEffect(grow, [text])
     return h('div', null,
       h('div', { className: 'mwt-ask' },
         h('textarea', { ref, value: text, placeholder: t('ask'), rows: 2, onChange: (e) => setText(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); submit() } } }),
-        h('div', { className: 'mwt-ask-row' }, h('small', null, err || t('hint')), h('button', { type: 'button', className: 'mwt-btn primary', disabled: busy || !text.trim(), onClick: submit }, busy ? t('creating') : t('create')))),
-      scenarios.length > 1 ? h('div', { className: 'mwt-chips' }, scenarios.map((s) => h('button', { key: s.id, type: 'button', className: 'mwt-chip', 'data-on': s.id === scenario, onClick: () => setScenario(s.id) }, s.label))) : null,
-      current && current.examples.length ? h('div', { className: 'mwt-chips' }, current.examples.map((ex) => h('button', { key: ex, type: 'button', className: 'mwt-chip', title: ex, onClick: () => { setText(ex); if (ref.current) ref.current.focus() } }, ex))) : null)
+        h('div', { className: 'mwt-ask-row' },
+          scenarios.length > 1 ? h('select', { className: 'mwt-select', value: scenario, 'aria-label': t('scenario'), onChange: (e) => setScenario(e.target.value) }, scenarios.map((s) => h('option', { key: s.id, value: s.id }, s.label))) : null,
+          h('small', { className: 'grow' }, err || (hero ? '' : t('hint'))),
+          h('button', { type: 'button', className: 'mwt-btn primary round', 'aria-label': t('create'), title: t('create'), disabled: busy || !text.trim(), onClick: submit }, icon(busy ? 'loader' : 'send', { size: 15 })))),
+      current && current.examples.length ? h('div', { className: 'mwt-chips' + (hero ? ' center' : '') }, current.examples.map((ex) => h('button', { key: ex, type: 'button', className: 'mwt-chip', title: ex, onClick: () => { setText(ex); if (ref.current) ref.current.focus() } }, ex))) : null)
   }
 
   function TodayPage() {
     const s = usePolling()
+    const initial = nav.pendingInput; nav.pendingInput = null
     const active = s.items.filter((x) => x.status !== 'done')
     useTick(active.length > 0)
-    const todayDone = s.items.filter((x) => x.status === 'done' && isToday(x.finishedAt))
-    const openTask = (id) => { pendingOpen = id; selectPanel(TASKS_PANEL) }
-    const today = new Date()
+    const recent = s.items.filter((x) => x.status === 'done').slice(0, 6)
     return h('div', { className: 'mwt' }, h('style', null, STYLE), h('div', { className: 'mwt-page' },
-      h('div', { className: 'mwt-title' }, h('h1', null, t('today')), h('span', null, today.toLocaleDateString([], { month: 'long', day: 'numeric', weekday: 'short' }))),
-      h(Ask, { scenarios: s.scenarios }),
-      h('div', { className: 'mwt-section' }, h('h2', null, icon('loader', { size: 14 }), t('running'), active.length ? h('span', null, String(active.length)) : null),
-        active.length ? h('div', { className: 'mwt-cards' }, active.map((x) => h(TaskCard, { key: x.id, task: x, onOpen: openTask }))) : h('div', { className: 'mwt-empty' }, s.error || t('noneRunning'))),
-      h('div', { className: 'mwt-section' }, h('h2', null, icon('file-text', { size: 14 }), t('doneToday')),
-        todayDone.length ? h('div', { className: 'mwt-cards' }, todayDone.map((x) => h(TaskCard, { key: x.id, task: x, onOpen: openTask }))) : h('div', { className: 'mwt-empty' }, t('noneDeliverables')))))
+      h('div', { className: 'mwt-hero' }, h('h1', null, t('hero')), h(Ask, { scenarios: s.scenarios, initial, hero: true })),
+      active.length ? h('div', { className: 'mwt-section' }, h('h2', null, icon('loader', { size: 14 }), t('running'), h('span', null, String(active.length))),
+        h('div', { className: 'mwt-cards' }, active.map((x) => h(TaskCard, { key: x.id, task: x, onOpen: openTask })))) : null,
+      h('div', { className: 'mwt-section' }, h('h2', null, icon('history', { size: 14 }), t('recent')),
+        recent.length ? h('div', { className: 'mwt-cards' }, recent.map((x) => h(TaskCard, { key: x.id, task: x, onOpen: openTask }))) : h('div', { className: 'mwt-empty' }, s.error || t('none')))))
   }
 
-  let pendingOpen = ''
+  function Activity({ task, live }) {
+    const list = Array.isArray(task.activity) ? task.activity : []
+    const ref = React.useRef(null)
+    React.useEffect(() => { if (live && ref.current) ref.current.scrollTop = ref.current.scrollHeight }, [list.length, live])
+    if (!list.length) return h('div', { className: 'mwt-empty' }, live ? task.statusLabel + '…' : t('none2'))
+    return h('div', { className: 'mwt-stream', ref }, list.map((e, i) => e.kind === 'text'
+      ? h('div', { key: i, className: 'mwt-ev text' }, h('span', { className: 'ic' }, icon('message', { size: 13 })), h('div', { className: 'body' }, e.text))
+      : h('div', { key: i, className: 'mwt-ev', 'data-ok': e.ok === undefined ? undefined : e.ok }, h('span', { className: 'ic' }, icon(e.ok === false ? 'circle-x' : e.ok === true ? 'check' : 'loader', { size: 13 })),
+        h('div', null, h('span', { className: 'name' }, e.name), e.detail ? h('span', { className: 'detail' }, ' ' + e.detail) : null, e.ok === false && e.result ? h('div', { className: 'result' }, t('toolFailed') + ' · ' + e.result) : null))))
+  }
+
+  function Doc({ d, status, onRate, onOpenTask }) {
+    return h('div', { className: 'mwt-doc' },
+      h('div', { className: 'mwt-doc-head' }, icon('file-text', { size: 15 }), h('h3', null, d.title), h(VerifyBadge, { v: d.verification, status })),
+      h('div', { className: 'mwt-doc-meta' }, h('span', null, fmtDate(d.createdAt)), d.scenarioLabel ? h('span', null, d.scenarioLabel) : null, d.kind && d.kind !== 'markdown' ? h('span', null, d.kind) : null),
+      d.verification && d.verification.notes ? h('div', { className: 'mwt-notes' }, d.verification.notes) : null,
+      h(Markdown, { text: d.markdown }),
+      h('div', { className: 'mwt-doc-actions' },
+        h('button', { type: 'button', className: 'mwt-chip', 'data-on': d.rating === 1, onClick: () => onRate(d, 1) }, t('ratingGood')),
+        h('button', { type: 'button', className: 'mwt-chip', 'data-on': d.rating === -1, onClick: () => onRate(d, -1) }, t('ratingBad')),
+        h('span', { style: { flex: 1 } }),
+        h('button', { type: 'button', className: 'mwt-btn', onClick: () => download(safeName(d.title) + '.md', '# ' + d.title + '\n\n' + d.markdown) }, icon('file-text', { size: 13 }), t('exportMd')),
+        h('button', { type: 'button', className: 'mwt-btn', onClick: () => printDoc(d) }, icon('file-text', { size: 13 }), t('exportPdf')),
+        onOpenTask ? h('button', { type: 'button', className: 'mwt-btn', onClick: onOpenTask }, icon('list-checks', { size: 13 }), t('openTask')) : null))
+  }
+
+  function useTaskDetail(id, key) {
+    const [detail, setDetail] = React.useState(null)
+    React.useEffect(() => { let on = true; api('/task?id=' + encodeURIComponent(id)).then((d) => { if (on) setDetail(d) }).catch(() => {}); return () => { on = false } }, [id, key])
+    return [detail, setDetail]
+  }
+  const rateIn = (setDetail) => (d, r) => api('/rate', { id: d.id, rating: d.rating === r ? null : r }).then((x) => setDetail((prev) => prev ? { ...prev, deliverables: prev.deliverables.map((y) => y.id === x.deliverable.id ? x.deliverable : y) } : prev)).catch(() => {})
 
   function TaskDetail({ id, onBack }) {
     const s = usePolling()
     const task = s.items.find((x) => x.id === id) || null
-    const [detail, setDetail] = React.useState(null)
     const live = !!task && task.status !== 'done'
     useTick(live)
-    const key = task ? task.status + ':' + task.deliverableIds.length : ''
-    React.useEffect(() => { let on = true; api('/task?id=' + encodeURIComponent(id)).then((d) => { if (on) setDetail(d) }).catch(() => {}); return () => { on = false } }, [id, key])
+    const key = task ? task.status + ':' + task.deliverableIds.length + ':' + (live ? Math.floor(Date.now() / FAST_MS) : 0) : ''
+    const [detail, setDetail] = useTaskDetail(id, key)
     if (!task) return h('div', { className: 'mwt-empty' }, t('none'))
-    const deliverables = detail && detail.deliverables ? detail.deliverables : []
-    const rerun = () => api('/rerun', { id }).then((d) => { refresh().then(schedulePoll); if (d.task) onBack() }).catch(() => {})
+    const full = detail && detail.task ? detail.task : task
+    const docs = detail && detail.deliverables ? detail.deliverables : []
+    const scenarioLabel = (s.scenarios.find((x) => x.id === task.scenario) || {}).label || task.scenario
+    const rerun = () => api('/rerun', { id }).then((d) => { refresh().then(schedulePoll); if (d.task) openTask(d.task.id) }).catch(() => {})
     const cancel = () => api('/cancel', { id }).then(() => refresh()).catch(() => {})
-    const rate = (d, r) => api('/rate', { id: d.id, rating: d.rating === r ? null : r }).then((x) => setDetail((prev) => prev ? { ...prev, deliverables: prev.deliverables.map((y) => y.id === x.deliverable.id ? x.deliverable : y) } : prev)).catch(() => {})
+    const reverify = () => api('/verify', { id }).then(() => refresh().then(schedulePoll)).catch((e) => console.warn(`[${PLUGIN}]`, e))
     return h('div', null,
       h('div', { className: 'mwt-toolbar' }, h('button', { type: 'button', className: 'mwt-btn', onClick: onBack }, icon('arrow-left', { size: 14 }), t('back')), h('span', { className: 'grow' }),
         h('div', { className: 'mwt-actions' },
           live ? h('button', { type: 'button', className: 'mwt-btn', onClick: cancel }, icon('x', { size: 14 }), t('cancel')) : h('button', { type: 'button', className: 'mwt-btn', onClick: rerun }, icon('rotate-cw', { size: 14 }), t('rerun')),
-          task.sessionId ? h('button', { type: 'button', className: 'mwt-btn', onClick: () => openSession(task.sessionId) }, icon('history', { size: 14 }), t('process')) : null)),
+          !live && task.deliverableIds.length ? h('button', { type: 'button', className: 'mwt-btn', onClick: reverify }, icon('circle-check', { size: 14 }), t('verifyAgain')) : null,
+          task.sessionId ? h('button', { type: 'button', className: 'mwt-btn', onClick: () => fire('mywork:open-session', { sessionId: task.sessionId }) }, icon('history', { size: 14 }), t('process')) : null)),
       h('div', { className: 'mwt-detail-head' }, h(StatusDot, { task }), h('h1', null, task.title)),
-      h('dl', { className: 'mwt-kv' },
-        h('dt', null, t('input')), h('dd', null, task.input),
-        h('dt', null, t('scenario')), h('dd', null, (s.scenarios.find((x) => x.id === task.scenario) || {}).label || task.scenario),
-        h('dt', null, t('elapsed')), h('dd', null, elapsedOf(task) + (task.finishedAt ? ' · ' + fmtDate(task.finishedAt) : ''))),
+      h('div', { className: 'mwt-meta' }, h('span', null, scenarioLabel), h('span', null, t('elapsed') + ' ' + elapsedOf(task)), task.finishedAt ? h('span', null, fmtDate(task.finishedAt)) : null, task.input !== task.title ? h('span', { title: task.input }, t('input') + '：' + (task.input.length > 80 ? task.input.slice(0, 79) + '…' : task.input)) : null),
       task.error ? h('div', { className: 'mwt-error' }, task.error) : null,
-      h('div', { className: 'mwt-section', style: { marginTop: 0 } }, h('h2', null, t('steps')),
-        task.steps.length ? h('ol', { className: 'mwt-steps' }, task.steps.map((st, i) => h('li', { key: i, 'data-live': !st.endedAt },
-          h('span', { className: 'name' }, st.name + (st.count > 1 ? ' × ' + st.count : '')),
-          h('span', { className: 'time' }, fmtDuration(new Date(st.endedAt || Date.now()) - new Date(st.startedAt)))))) : h('div', { className: 'mwt-empty' }, live ? task.statusLabel : t('noSteps'))),
-      h('div', { className: 'mwt-section' }, h('h2', null, t('deliverables')),
-        deliverables.length ? deliverables.map((d) => h('div', { key: d.id, className: 'mwt-doc' },
-          h('div', { className: 'mwt-doc-head' }, icon('file-text', { size: 15 }), h('h3', null, d.title), h('small', null, fmtDate(d.createdAt)),
-            h('button', { type: 'button', className: 'mwt-chip', 'data-on': d.rating === 1, onClick: () => rate(d, 1) }, t('ratingGood')),
-            h('button', { type: 'button', className: 'mwt-chip', 'data-on': d.rating === -1, onClick: () => rate(d, -1) }, t('ratingBad'))),
-          h(Markdown, { text: d.markdown }))) : h('div', { className: 'mwt-empty' }, t('none2'))))
+      h('div', { className: 'mwt-cols' },
+        h('div', { className: 'mwt-col' }, h('h2', null, icon('loader', { size: 13 }), t('progress'), h('span', { className: 'grow' }), task.statusLabel),
+          task.steps.length ? h('div', { className: 'mwt-steps' }, task.steps.map((st, i) => h('span', { key: i, className: 'mwt-step', 'data-live': !st.endedAt }, st.name + (st.count > 1 ? ' × ' + st.count : ''), h('em', { style: { fontStyle: 'normal', opacity: .7 } }, fmtDuration(new Date(st.endedAt || Date.now()) - new Date(st.startedAt)))))) : null,
+          h(Activity, { task: full, live })),
+        h('div', { className: 'mwt-col' }, h('h2', null, icon('file-text', { size: 13 }), t('deliverable'), h('span', { className: 'grow' }), h(VerifyBadge, { v: task.verification, status: task.status })),
+          docs.length ? docs.map((d) => h(Doc, { key: d.id, d: { ...d, scenarioLabel }, status: task.status, onRate: rateIn(setDetail) })) : h('div', { className: 'mwt-empty' }, live ? t('waitingDeliverable') : t('none2')))))
   }
 
   function TasksPage() {
     const s = usePolling()
     const [filter, setFilter] = React.useState('all')
-    const [open, setOpen] = React.useState(() => { const id = pendingOpen; pendingOpen = ''; return id })
-    React.useEffect(() => { if (pendingOpen) { setOpen(pendingOpen); pendingOpen = '' } })
+    const [open, setOpen] = React.useState(() => { const id = nav.pendingTask; nav.pendingTask = ''; return id })
+    React.useEffect(() => {
+      const onOpen = (e) => { const id = e.detail && e.detail.id; if (id) setOpen(String(id)) }
+      window.addEventListener('mywork:open-task', onOpen)
+      if (nav.pendingTask) { setOpen(nav.pendingTask); nav.pendingTask = '' }
+      return () => window.removeEventListener('mywork:open-task', onOpen)
+    }, [])
     useTick(s.items.some((x) => x.status !== 'done'))
     const items = s.items.filter((x) => filter === 'all' ? true : filter === 'active' ? x.status !== 'done' : x.status === 'done')
-    return h('div', { className: 'mwt' }, h('style', null, STYLE), h('div', { className: 'mwt-page' },
+    return h('div', { className: 'mwt' }, h('style', null, STYLE), h('div', { className: 'mwt-page' + (open ? ' wide' : '') },
       open ? h(TaskDetail, { id: open, onBack: () => setOpen('') }) : h(React.Fragment, null,
         h('div', { className: 'mwt-title' }, h('h1', null, t('tasks')), h('span', null, String(s.items.length))),
         h('div', { className: 'mwt-chips', style: { margin: '0 0 16px' } }, [['all', t('all')], ['active', t('active')], ['done', t('finished')]].map(([k, label]) => h('button', { key: k, type: 'button', className: 'mwt-chip', 'data-on': filter === k, onClick: () => setFilter(k) }, label))),
         items.length ? h('div', { className: 'mwt-cards' }, items.map((x) => h(TaskCard, { key: x.id, task: x, onOpen: setOpen }))) : h('div', { className: 'mwt-empty' }, s.error || t('none')))))
   }
 
-  return { TodayPage, TasksPage }
+  function DeliverablesPage() {
+    const s = usePolling()
+    const [items, setItems] = React.useState([])
+    const [scenario, setScenario] = React.useState('all')
+    const [open, setOpen] = React.useState(() => { const id = nav.pendingDeliverable; nav.pendingDeliverable = ''; return id })
+    const [detail, setDetail] = React.useState(null)
+    React.useEffect(() => { api('/deliverables').then((d) => setItems(d.items || [])).catch(() => {}) }, [s.loadedAt])
+    React.useEffect(() => {
+      const onOpen = (e) => { const id = e.detail && e.detail.id; if (id) setOpen(String(id)) }
+      window.addEventListener('mywork:open-deliverable', onOpen)
+      return () => window.removeEventListener('mywork:open-deliverable', onOpen)
+    }, [])
+    React.useEffect(() => { if (!open) { setDetail(null); return } let on = true; api('/deliverable?id=' + encodeURIComponent(open)).then((d) => { if (on) setDetail(d) }).catch(() => {}); return () => { on = false } }, [open])
+    const labelOf = (id) => (s.scenarios.find((x) => x.id === id) || {}).label || id
+    const rate = (d, r) => api('/rate', { id: d.id, rating: d.rating === r ? null : r }).then((x) => { setDetail((prev) => prev ? { ...prev, deliverable: x.deliverable } : prev); setItems((prev) => prev.map((y) => y.id === x.deliverable.id ? { ...y, rating: x.deliverable.rating } : y)) }).catch(() => {})
+    const scenariosSeen = [...new Set(items.map((d) => d.scenario))]
+    const list = items.filter((d) => scenario === 'all' || d.scenario === scenario)
+    return h('div', { className: 'mwt' }, h('style', null, STYLE), h('div', { className: 'mwt-page' },
+      open ? h(React.Fragment, null,
+        h('div', { className: 'mwt-toolbar' }, h('button', { type: 'button', className: 'mwt-btn', onClick: () => setOpen('') }, icon('arrow-left', { size: 14 }), t('back'))),
+        detail && detail.deliverable ? h(Doc, { d: { ...detail.deliverable, scenarioLabel: labelOf(detail.deliverable.scenario) }, status: detail.task ? detail.task.status : 'done', onRate: rate, onOpenTask: detail.task ? () => openTask(detail.task.id) : null }) : h('div', { className: 'mwt-empty' }, '…'))
+      : h(React.Fragment, null,
+        h('div', { className: 'mwt-title' }, h('h1', null, t('deliverables')), h('span', null, String(items.length))),
+        scenariosSeen.length > 1 ? h('div', { className: 'mwt-chips', style: { margin: '0 0 16px' } }, [['all', t('all')], ...scenariosSeen.map((id) => [id, labelOf(id)])].map(([k, label]) => h('button', { key: k, type: 'button', className: 'mwt-chip', 'data-on': scenario === k, onClick: () => setScenario(k) }, label))) : null,
+        list.length ? h('div', { className: 'mwt-cards' }, list.map((d) => h('button', { key: d.id, type: 'button', className: 'mwt-card', onClick: () => setOpen(d.id) },
+          h('span', { className: 'mwt-dot', 'data-s': d.verification && d.verification.passed === true ? 'ok' : undefined }, icon('file-text', { size: 16 })),
+          h('span', null, h('div', { className: 'mwt-card-title' }, d.title), h('div', { className: 'mwt-card-sub' }, [labelOf(d.scenario), d.verification ? (d.verification.passed === true ? t('verified') : d.verification.passed === false ? t('verifyIssues') : t('verifyNone')) : '', d.rating === 1 ? t('ratingGood') : d.rating === -1 ? t('ratingBad') : ''].filter(Boolean).join(' · '))),
+          h('span', { className: 'mwt-card-meta' }, fmtDate(d.createdAt))))) : h('div', { className: 'mwt-empty' }, t('noneDeliverables')))))
+  }
+
+  function ScenariosPage() {
+    const s = usePolling()
+    return h('div', { className: 'mwt' }, h('style', null, STYLE), h('div', { className: 'mwt-page' },
+      h('div', { className: 'mwt-title' }, h('h1', null, t('scenarios')), h('span', null, String(s.scenarios.length))),
+      h('div', { className: 'mwt-scen' }, s.scenarios.map((sc) => h('div', { key: sc.id, className: 'mwt-scen-card' },
+        h('h3', null, sc.label), h('p', null, sc.intro),
+        sc.examples.length ? h('div', { className: 'ex' }, sc.examples.map((ex) => h('button', { key: ex, type: 'button', title: t('tryScenario'), onClick: () => newTask(ex, sc.id) }, '→ ' + ex))) : null,
+        h('div', null, h('button', { type: 'button', className: 'mwt-btn', onClick: () => newTask('', sc.id) }, icon('plus', { size: 13 }), t('tryScenario'))))))))
+  }
+
+  /** Always mounted: completion toasts and browser notifications, and the poll that feeds the sidebar. */
+  function Overlay() {
+    usePolling()
+    const [toasts, setToasts] = React.useState([])
+    React.useEffect(() => {
+      const onDone = (task) => {
+        setToasts((prev) => [...prev.slice(-3), { id: task.id + ':' + Date.now(), task }])
+        try { if (typeof Notification !== 'undefined' && Notification.permission === 'granted') new Notification((task.error ? t('failedToast') : t('doneToast')) + ' · ' + task.title, { body: task.error || task.summary || '' }) } catch {}
+      }
+      completionListeners.add(onDone)
+      return () => completionListeners.delete(onDone)
+    }, [])
+    React.useEffect(() => { if (!toasts.length) return; const id = setTimeout(() => setToasts((prev) => prev.slice(1)), 8000); return () => clearTimeout(id) }, [toasts])
+    if (!toasts.length) return null
+    return h('div', { className: 'mwt-toasts' }, h('style', null, STYLE), toasts.map(({ id, task }) => h('div', { key: id, className: 'mwt-toast' },
+      h(StatusDot, { task }), h('div', null, h('b', null, task.title), h('span', null, task.error || task.summary || '')),
+      h('button', { type: 'button', className: 'mwt-btn', onClick: () => { setToasts((prev) => prev.filter((x) => x.id !== id)); openTask(task.id) } }, t('open')))))
+  }
+
+  return { TodayPage, TasksPage, DeliverablesPage, ScenariosPage, Overlay, openTask, openDeliverable, newTask }
 }
 
 // ---- plugin -----------------------------------------------------------------
+function v2Active() { try { return localStorage.getItem(V2_KEY) !== 'off' } catch { return true } }
+
 exports.name = PLUGIN
 exports.inject = ['slots', 'locale', 'layout']
 exports.apply = function apply(ctx) {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), PLUGIN + ': dictionaries')
   const t = ctx.locale.bind(NS)
-  const { TodayPage, TasksPage } = makeComponents(ctx, t)
-  ctx.slots.inject('main', () => ctx.slots.register({ name: 'main', key: TODAY_PANEL, locale: NS, inject: () => ({}) }, function MyworkToday() { return h(TodayPage) }))
-  ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({ name: 'sidebar.panellist', id: TODAY_PANEL, order: 1, locale: NS, label: () => t('today'), inject: () => ({}) }, function MyworkTodayIcon() { return icon('sun', { size: 16, strokeWidth: 1.6 }) }))
-  ctx.slots.inject('main', () => ctx.slots.register({ name: 'main', key: TASKS_PANEL, locale: NS, inject: () => ({}) }, function MyworkTasks() { return h(TasksPage) }))
-  ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({ name: 'sidebar.panellist', id: TASKS_PANEL, order: 2, locale: NS, label: () => t('tasks'), inject: () => ({}) }, function MyworkTasksIcon() { return icon('list-checks', { size: 16, strokeWidth: 1.6 }) }))
+  const c = makeComponents(ctx, t)
+  const page = (key, order, label, iconName, Component) => {
+    ctx.slots.inject('main', () => ctx.slots.register({ name: 'main', key, locale: NS, inject: () => ({}) }, function MyworkPage() { return h(Component) }))
+    ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({ name: 'sidebar.panellist', id: key, order, locale: NS, label: () => t(label), inject: () => ({}) }, function MyworkPageIcon() { return icon(iconName, { size: 16, strokeWidth: 1.6 }) }))
+  }
+  page(PANELS.today, 1, 'today', 'sun', c.TodayPage)
+  page(PANELS.tasks, 2, 'tasks', 'list-checks', c.TasksPage)
+  page(PANELS.deliverables, 3, 'deliverables', 'file-text', c.DeliverablesPage)
+  page(PANELS.scenarios, 4, 'scenarios', 'package', c.ScenariosPage)
+  ctx.slots.inject('shell.overlay', () => ctx.slots.register({ name: 'shell.overlay', id: PLUGIN, order: 45 }, function MyworkOverlay() { return h(c.Overlay) }))
+
+  // Window events from the sidebar (dsh-mywork-codex-ui) and other members.
+  ctx.effect(() => {
+    const onNew = (e) => { const d = e.detail || {}; c.newTask(d.text, d.scenario) }
+    const onTask = (e) => { if (e.detail && e.detail.id) c.openTask(String(e.detail.id)) }
+    const onDeliverable = (e) => { if (e.detail && e.detail.id) c.openDeliverable(String(e.detail.id)) }
+    window.addEventListener('mywork:new-task', onNew)
+    window.addEventListener('mywork:open-task', onTask)
+    window.addEventListener('mywork:open-deliverable', onDeliverable)
+    return () => { window.removeEventListener('mywork:new-task', onNew); window.removeEventListener('mywork:open-task', onTask); window.removeEventListener('mywork:open-deliverable', onDeliverable) }
+  }, PLUGIN + ': window events')
+
+  // v2: the app opens on 今日, not on a conversation (unless a session deep link is present).
+  // dsh's own landing re-selects the conversation once or twice during startup, so the
+  // selection is re-asserted for a few seconds, and stops as soon as the user touches anything.
+  ctx.effect(() => {
+    if (!v2Active()) return () => {}
+    let touched = false
+    const onPointer = () => { touched = true }
+    window.addEventListener('pointerdown', onPointer, true)
+    window.addEventListener('keydown', onPointer, true)
+    const started = Date.now()
+    const timer = setInterval(() => {
+      try {
+        if (touched || Date.now() - started > 6000 || new URL(window.location.href).searchParams.get('session')) { clearInterval(timer); return }
+        if (!document.querySelector('.mwt-hero')) ctx.layout.selectPanel(PANELS.today)
+      } catch { /* panel not registered yet: try again */ }
+    }, 250)
+    return () => { clearInterval(timer); window.removeEventListener('pointerdown', onPointer, true); window.removeEventListener('keydown', onPointer, true) }
+  }, PLUGIN + ': open 今日')
 }
 
     return module.exports;

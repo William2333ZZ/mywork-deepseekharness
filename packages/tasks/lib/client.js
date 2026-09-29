@@ -210,7 +210,7 @@ const zh = {
   doneToast: '任务完成', failedToast: '任务失败', open: '打开', tryScenario: '用这个场景', kinds: '交付', examples: '示例',
   toolFailed: '失败', stepsTitle: '步骤',
   attention: '等你看', attentionEmpty: '没有等你处理的事。', failedCard: '失败，可以再来一次', issuesCard: '核验发现问题', rateCard: '交付了，看一眼给个评价', running1: '个在跑', waiting1: '份等你看', quiet: '今天还很安静', greetMorning: '早上好', greetDay: '下午好', greetNight: '晚上好', todayDone: '今天完成', examplesTitle: '可以试试',
-  notesMore: '点开看核验员的完整说明', paused: '已暂停', todayAt: '今天', allTasks: '全部', delivered: '已交付', answered: '已回答', quietDay: '今天没有等你的事。说一句，交给它。', moreRows: '还有 {n} 项', more: '更多', rawProcess: '原始对话', loadFailed: '没连上服务，稍后再试。', retry: '重试', moreRate: '还有 {n} 份交付了没评价',
+  notesMore: '点开看核验员的完整说明', paused: '已暂停', ended: '已结束', endedN: '已结束的 {n} 项', runs: '运行记录', todayAt: '今天', allTasks: '全部', delivered: '已交付', answered: '已回答', quietDay: '今天没有等你的事。说一句，交给它。', moreRows: '还有 {n} 项', more: '更多', rawProcess: '原始对话', loadFailed: '没连上服务，稍后再试。', retry: '重试', moreRate: '还有 {n} 份交付了没评价',
   routines: '例行', routinesLead: '还没有例行的事。说一句带时间的话，比如「每天 9 点给我一份简报」。',
   routinesEmpty: '还没有例行的事。', remindCard: '提醒', gotIt: '知道了', runNow: '现在跑一次', pause: '暂停', resume: '恢复', remove: '删除', nextRun: '下次', lastRun: '上次', neverRan: '还没跑过', noChange: '没有变化', changed: '有变化', briefs: '今天的例行', scheduled: '已安排', scheduledHint: '到点会自动做，结果在「例行」和「等你看」里。', kindTask: '例行任务', kindRemind: '提醒', quietTag: '安静',
   say: '回复', sayHint: '', sayBusy: '', conversational: '这次是回答，没有生成文档；要保存时说“整理成一份…”。',
@@ -229,7 +229,7 @@ const en = {
   doneToast: 'Task finished', failedToast: 'Task failed', open: 'Open', tryScenario: 'Use this scenario', kinds: 'Delivers', examples: 'Examples',
   toolFailed: 'failed', stepsTitle: 'Steps',
   attention: 'For you', attentionEmpty: 'Nothing waiting for you.', failedCard: 'Failed, can run again', issuesCard: 'Verification found issues', rateCard: 'Delivered, take a look and rate', running1: 'running', waiting1: 'waiting for you', quiet: 'A quiet day so far', greetMorning: 'Good morning', greetDay: 'Good afternoon', greetNight: 'Good evening', todayDone: 'Finished today', examplesTitle: 'Try',
-  notesMore: 'Tap for the verifier’s full notes', paused: 'Paused', todayAt: 'today', allTasks: 'All', delivered: 'Delivered', answered: 'Answered', quietDay: 'Nothing waiting for you today. Say something and hand it over.', moreRows: '{n} more', more: 'More', rawProcess: 'Raw conversation', loadFailed: 'Could not reach the service, try again shortly.', retry: 'Retry', moreRate: '{n} more deliveries waiting for a rating',
+  notesMore: 'Tap for the verifier’s full notes', paused: 'Paused', ended: 'Ended', endedN: '{n} ended', runs: 'Runs', todayAt: 'today', allTasks: 'All', delivered: 'Delivered', answered: 'Answered', quietDay: 'Nothing waiting for you today. Say something and hand it over.', moreRows: '{n} more', more: 'More', rawProcess: 'Raw conversation', loadFailed: 'Could not reach the service, try again shortly.', retry: 'Retry', moreRate: '{n} more deliveries waiting for a rating',
   routines: 'Routines', routinesLead: 'No routines yet. Say a sentence with a time: “every day at 9…”, “remind me at 6 on weekdays…”.',
   routinesEmpty: 'No routines yet.', remindCard: 'Reminder', gotIt: 'Got it', runNow: 'Run now', pause: 'Pause', resume: 'Resume', remove: 'Remove', nextRun: 'Next', lastRun: 'Last', neverRan: 'Never ran', noChange: 'No change', changed: 'Changed', briefs: 'Today’s routines', scheduled: 'Scheduled', scheduledHint: 'It runs on time; results land in Routines and For you.', kindTask: 'Routine', kindRemind: 'Reminder', quietTag: 'quiet',
   say: 'Reply', sayHint: '', sayBusy: '', conversational: 'This was an answer, no document was produced; ask for one when you want it saved.',
@@ -361,6 +361,7 @@ body[data-ds-dark-theme] .mwt{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 .mwt-row-state[data-tone=danger]{color:var(--danger)}
 .mwt-row-state[data-tone=warn]{color:var(--warn)}
 .mwt-row-more .mwt-row-title{font-weight:400;color:var(--muted)}
+.mwt-spent{margin:16px 0 0}
 .mwt-row-static{cursor:default}
 .mwt-row-static:hover{background:transparent}
 .mwt-row[data-off=true] .mwt-row-title,.mwt-row[data-off=true] .mwt-dot{color:var(--meta)}
@@ -905,30 +906,54 @@ function makeComponents(ctx, t) {
       packs.length ? null : h('div', { className: 'mwt-empty', style: { marginTop: 16 } }, t('packsEmpty'))))
   }
 
+  /** 例行: plain rows like everywhere else; a routine opens its own page where it is managed. */
   function RoutinesPage() {
     const s = usePolling()
     const [items, setItems] = React.useState([])
+    const [open, setOpen] = React.useState('')
+    const [showSpent, setShowSpent] = React.useState(false)
     const load = React.useCallback(() => api('/routines').then((d) => setItems(d.items || [])).catch(() => {}), [])
     React.useEffect(() => { load() }, [s.loadedAt, load])
-    const act = (path, body) => api(path, body).then(() => { load(); refresh().then(schedulePoll) }).catch((e) => console.warn(`[${PLUGIN}]`, e))
-    const row = (r) => {
-      const last = r.lastRun
-      const lastText = !last ? t('neverRan') : last.fired ? fmtDate(last.at) : (last.error ? t('failedTitle') : last.changed === false ? t('noChange') : last.changed === true ? t('changed') : '') + ' · ' + fmtDate(last.at)
-      return h('div', { key: r.id, className: 'mwt-rt', 'data-off': !r.enabled },
-        h('span', { className: 'mwt-dot' }, icon(r.kind === 'remind' ? 'bell' : 'history', { size: 16 })),
-        h('div', { className: 'mwt-rt-body' },
-          h('div', { className: 'mwt-rt-title' }, r.title, h('span', { className: 'mwt-badge' }, r.kind === 'remind' ? t('kindRemind') : t('kindTask'))),
-          h('div', { className: 'mwt-rt-sub' }, r.scheduleLabel, r.enabled && r.nextRunAt ? ` · ${t('nextRun')} ${fmtDate(r.nextRunAt)}` : '', ` · ${t('lastRun')} ${lastText}`)),
-        h('div', { className: 'mwt-actions' },
-          last && last.taskId ? h('button', { type: 'button', className: 'mwt-btn ghost', onClick: () => openTask(last.taskId) }, icon('file-text', { size: 13 }), t('open')) : null,
-          h('button', { type: 'button', className: 'mwt-btn ghost', onClick: () => act('/routines/run', { id: r.id }) }, icon('play', { size: 13 }), t('runNow')),
-          r.schedule.type !== 'once' || r.enabled ? h('button', { type: 'button', className: 'mwt-btn ghost', onClick: () => act('/routines/enable', { id: r.id, enabled: !r.enabled }) }, icon(r.enabled ? 'pause' : 'play', { size: 13 }), r.enabled ? t('pause') : t('resume')) : null,
-          h('button', { type: 'button', className: 'mwt-btn ghost', onClick: () => act('/routines/remove', { id: r.id }) }, icon('trash', { size: 13 }), t('remove'))))
-    }
+    const spent = items.filter((r) => !r.enabled && r.schedule && r.schedule.type === 'once')
+    const live = items.filter((r) => !spent.includes(r)).sort((x, y) => (x.enabled === y.enabled ? 0 : x.enabled ? -1 : 1) || (new Date(x.nextRunAt || 0) - new Date(y.nextRunAt || 0)))
+    const when = (r) => !r.enabled ? (spent.includes(r) ? t('ended') : t('paused')) : r.nextRunAt ? t('nextRun') + ' ' + (isToday(r.nextRunAt) ? t('todayAt') + ' ' + fmtTime(r.nextRunAt) : fmtDate(r.nextRunAt)) : ''
+    const row = (r) => h('div', { key: r.id, className: 'mwt-row', 'data-off': !r.enabled, role: 'button', tabIndex: 0, onClick: () => setOpen(r.id), onKeyDown: (e) => { if (e.key === 'Enter') setOpen(r.id) } },
+      h('span', { className: 'mwt-dot' }, icon(r.kind === 'remind' ? 'bell' : 'history', { size: 16 })),
+      h('span', { className: 'mwt-row-main' }, h('span', { className: 'mwt-row-title' }, r.title), h('span', { className: 'mwt-row-sub' }, r.scheduleLabel)),
+      h('span', { className: 'mwt-row-state' }, when(r)))
+    const current = open ? items.find((r) => r.id === open) : null
     return h('div', { className: 'mwt' }, h('style', null, STYLE), h('div', { className: 'mwt-page mwt-page-today' },
-      h('div', { className: 'mwt-title' }, h('h1', null, t('routines')), h('span', null, String(items.length))),
-      items.length ? h('div', { className: 'mwt-rts' }, items.map(row)) : h('div', { className: 'mwt-empty' }, t('routinesLead')),
-      h('div', { className: 'mwt-dock' }, h(Ask, { scenarios: s.scenarios, hero: false, compact: true, placeholder: t('askRoutine') }))))
+      current ? h(RoutineDetail, { r: current, onBack: () => setOpen(''), reload: () => { load(); refresh() } })
+        : h(React.Fragment, null,
+          h('div', { className: 'mwt-title' }, h('h1', null, t('routines'))),
+          !s.loadedAt && !s.error ? h(Skeleton, { rows: 3 })
+            : live.length ? h('div', { className: 'mwt-list' }, live.map(row)) : h('div', { className: 'mwt-empty' }, t('routinesLead')),
+          spent.length ? h('div', { className: 'mwt-spent' },
+            h('button', { type: 'button', className: 'mwt-btn ghost', onClick: () => setShowSpent(!showSpent) }, icon('history', { size: 13 }), t('endedN').replace('{n}', String(spent.length))),
+            showSpent ? h('div', { className: 'mwt-list', style: { marginTop: 8 } }, spent.map(row)) : null) : null,
+          h('div', { className: 'mwt-dock' }, h(Ask, { scenarios: s.scenarios, hero: false, compact: true, placeholder: t('askRoutine') })))))
+  }
+
+  /** One routine: what it is, when it runs, its runs, and the three things you can do to it. */
+  function RoutineDetail({ r, onBack, reload }) {
+    const act = (path, body, after) => api(path, body).then(() => { reload(); if (after) after() }).catch((e) => console.warn(`[${PLUGIN}]`, e))
+    const once = r.schedule && r.schedule.type === 'once'
+    const meta = [r.kind === 'remind' ? t('kindRemind') : t('kindTask'), r.scheduleLabel, !r.enabled ? (once ? t('ended') : t('paused')) : r.nextRunAt ? t('nextRun') + ' ' + fmtDate(r.nextRunAt) : ''].filter(Boolean).join(' · ')
+    const runs = Array.isArray(r.runs) ? r.runs : []
+    const runState = (x) => x.fired ? t('remindCard') : x.error ? t('failedTitle') : x.changed === false ? t('noChange') : x.changed === true ? t('changed') : t('delivered')
+    return h('div', null,
+      h('div', { className: 'mwt-toolbar' }, h('button', { type: 'button', className: 'mwt-btn ghost round', 'aria-label': t('back'), onClick: onBack }, icon('arrow-left', { size: 15 }))),
+      h('h1', { className: 'mwt-task-title' }, r.title),
+      h('p', { className: 'mwt-task-meta' }, meta),
+      h('div', { className: 'mwt-actions', style: { margin: '0 0 24px' } },
+        h('button', { type: 'button', className: 'mwt-btn', onClick: () => act('/routines/run', { id: r.id }) }, icon('play', { size: 13 }), t('runNow')),
+        !once || r.enabled ? h('button', { type: 'button', className: 'mwt-btn ghost', onClick: () => act('/routines/enable', { id: r.id, enabled: !r.enabled }) }, icon(r.enabled ? 'pause' : 'play', { size: 13 }), r.enabled ? t('pause') : t('resume')) : null,
+        h('button', { type: 'button', className: 'mwt-btn ghost', onClick: () => act('/routines/remove', { id: r.id }, onBack) }, icon('trash', { size: 13 }), t('remove'))),
+      h('section', { className: 'mwt-section' }, h('h2', null, t('runs')),
+        runs.length ? h('div', { className: 'mwt-list' }, runs.slice(0, 20).map((x, i) => h('div', { key: i, className: 'mwt-row' + (x.taskId ? '' : ' mwt-row-static'), role: x.taskId ? 'button' : undefined, tabIndex: x.taskId ? 0 : undefined, onClick: () => { if (x.taskId) openTask(x.taskId) } },
+          h('span', { className: 'mwt-dot', 'data-s': x.error ? 'err' : x.fired || x.changed !== undefined ? 'ok' : undefined }, icon(x.error ? 'circle-x' : x.fired ? 'bell' : 'circle-check', { size: 16 })),
+          h('span', { className: 'mwt-row-main' }, h('span', { className: 'mwt-row-title' }, runState(x))),
+          h('span', { className: 'mwt-row-state' }, fmtDate(x.at))))) : h('div', { className: 'mwt-empty' }, t('neverRan'))))
   }
 
   /** Always mounted: completion toasts and browser notifications, and the poll that feeds the sidebar. */

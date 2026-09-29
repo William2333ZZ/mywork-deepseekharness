@@ -46,7 +46,7 @@ const zh = {
   doneToast: '任务完成', failedToast: '任务失败', open: '打开', tryScenario: '用这个场景', kinds: '交付', examples: '示例',
   toolFailed: '失败', stepsTitle: '步骤',
   attention: '等你看', attentionEmpty: '没有等你处理的事。', failedCard: '失败，可以再来一次', issuesCard: '核验发现问题', rateCard: '交付了，看一眼给个评价', running1: '个在跑', waiting1: '份等你看', quiet: '今天还很安静', greetMorning: '早上好', greetDay: '下午好', greetNight: '晚上好', todayDone: '今天完成', examplesTitle: '可以试试',
-  notesMore: '点开看核验员的完整说明', delivered: '已交付', answered: '已回答', quietDay: '今天没有等你的事。说一句，交给它。', moreRows: '还有 {n} 项', more: '更多', rawProcess: '原始对话', loadFailed: '没连上服务，稍后再试。', retry: '重试', moreRate: '还有 {n} 份交付了没评价',
+  notesMore: '点开看核验员的完整说明', paused: '已暂停', todayAt: '今天', allTasks: '全部', delivered: '已交付', answered: '已回答', quietDay: '今天没有等你的事。说一句，交给它。', moreRows: '还有 {n} 项', more: '更多', rawProcess: '原始对话', loadFailed: '没连上服务，稍后再试。', retry: '重试', moreRate: '还有 {n} 份交付了没评价',
   routines: '例行', routinesLead: '还没有例行的事。说一句带时间的话，比如「每天 9 点给我一份简报」。',
   routinesEmpty: '还没有例行的事。', remindCard: '提醒', gotIt: '知道了', runNow: '现在跑一次', pause: '暂停', resume: '恢复', remove: '删除', nextRun: '下次', lastRun: '上次', neverRan: '还没跑过', noChange: '没有变化', changed: '有变化', briefs: '今天的例行', scheduled: '已安排', scheduledHint: '到点会自动做，结果在「例行」和「等你看」里。', kindTask: '例行任务', kindRemind: '提醒', quietTag: '安静',
   say: '回复', sayHint: '', sayBusy: '', conversational: '这次是回答，没有生成文档；要保存时说“整理成一份…”。',
@@ -65,7 +65,7 @@ const en = {
   doneToast: 'Task finished', failedToast: 'Task failed', open: 'Open', tryScenario: 'Use this scenario', kinds: 'Delivers', examples: 'Examples',
   toolFailed: 'failed', stepsTitle: 'Steps',
   attention: 'For you', attentionEmpty: 'Nothing waiting for you.', failedCard: 'Failed, can run again', issuesCard: 'Verification found issues', rateCard: 'Delivered, take a look and rate', running1: 'running', waiting1: 'waiting for you', quiet: 'A quiet day so far', greetMorning: 'Good morning', greetDay: 'Good afternoon', greetNight: 'Good evening', todayDone: 'Finished today', examplesTitle: 'Try',
-  notesMore: 'Tap for the verifier’s full notes', delivered: 'Delivered', answered: 'Answered', quietDay: 'Nothing waiting for you today. Say something and hand it over.', moreRows: '{n} more', more: 'More', rawProcess: 'Raw conversation', loadFailed: 'Could not reach the service, try again shortly.', retry: 'Retry', moreRate: '{n} more deliveries waiting for a rating',
+  notesMore: 'Tap for the verifier’s full notes', paused: 'Paused', todayAt: 'today', allTasks: 'All', delivered: 'Delivered', answered: 'Answered', quietDay: 'Nothing waiting for you today. Say something and hand it over.', moreRows: '{n} more', more: 'More', rawProcess: 'Raw conversation', loadFailed: 'Could not reach the service, try again shortly.', retry: 'Retry', moreRate: '{n} more deliveries waiting for a rating',
   routines: 'Routines', routinesLead: 'No routines yet. Say a sentence with a time: “every day at 9…”, “remind me at 6 on weekdays…”.',
   routinesEmpty: 'No routines yet.', remindCard: 'Reminder', gotIt: 'Got it', runNow: 'Run now', pause: 'Pause', resume: 'Resume', remove: 'Remove', nextRun: 'Next', lastRun: 'Last', neverRan: 'Never ran', noChange: 'No change', changed: 'Changed', briefs: 'Today’s routines', scheduled: 'Scheduled', scheduledHint: 'It runs on time; results land in Routines and For you.', kindTask: 'Routine', kindRemind: 'Reminder', quietTag: 'quiet',
   say: 'Reply', sayHint: '', sayBusy: '', conversational: 'This was an answer, no document was produced; ask for one when you want it saved.',
@@ -197,6 +197,10 @@ body[data-ds-dark-theme] .mwt{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 .mwt-row-state[data-tone=danger]{color:var(--danger)}
 .mwt-row-state[data-tone=warn]{color:var(--warn)}
 .mwt-row-more .mwt-row-title{font-weight:400;color:var(--muted)}
+.mwt-row-static{cursor:default}
+.mwt-row-static:hover{background:transparent}
+.mwt-row[data-off=true] .mwt-row-title,.mwt-row[data-off=true] .mwt-dot{color:var(--meta)}
+.mwt-row .mwt-menu .mwt-btn{height:28px;width:28px}
 .mwt-task-title{margin:4px 0 4px;font-size:24px;line-height:1.4;font-weight:600}
 .mwt-task-meta{margin:0 0 20px;color:var(--meta);font-size:12.5px;font-variant-numeric:tabular-nums}
 .mwt-answer{font-size:15px;line-height:1.7;margin:0 0 16px}
@@ -531,7 +535,30 @@ function makeComponents(ctx, t) {
           more || unrated ? h('button', { type: 'button', className: 'mwt-row mwt-row-more', onClick: () => selectPanel(PANELS.tasks) }, h('span', { className: 'mwt-dot' }, icon('list-checks', { size: 16 })), h('span', { className: 'mwt-row-main' }, h('span', { className: 'mwt-row-title' }, [more ? t('moreRows').replace('{n}', String(more)) : '', unrated ? t('moreRate').replace('{n}', String(unrated)) : ''].filter(Boolean).join(' · '))), h('span', { className: 'mwt-row-state' }, icon('arrow-left', { size: 14, style: { transform: 'rotate(180deg)' } }))) : null)
         : h('div', { className: 'mwt-quiet' }, h('p', null, t('quietDay')),
           h('div', { className: 'mwt-chips' }, s.scenarios.flatMap((sc) => sc.examples.slice(0, sc.builtin ? 3 : 1)).slice(0, 4).map((ex) => h('button', { key: ex, type: 'button', className: 'mwt-chip', onClick: () => fire('mywork:new-task', { text: ex }) }, ex)))),
+      h(RoutinesSection, { routines: s.routines }),
       h('div', { className: 'mwt-dock' }, h(Ask, { scenarios: s.scenarios, initial, hero: false, compact: true }))))
+  }
+
+  /** Standing things, on the same page: what the system will do for you next. */
+  function RoutinesSection({ routines }) {
+    const [all, setAll] = React.useState(false)
+    // A one-off that already fired is history, not a standing thing.
+    const list = (routines || []).filter((r) => r.enabled || !r.once).slice().sort((a, b) => (a.enabled === b.enabled ? 0 : a.enabled ? -1 : 1) || (new Date(a.nextRunAt || 0) - new Date(b.nextRunAt || 0)))
+    if (!list.length) return null
+    const shown = all ? list : list.slice(0, 3)
+    const act = (path, body) => api(path, body).then(() => refresh()).catch((e) => console.warn(`[${PLUGIN}]`, e))
+    const when = (r) => !r.enabled ? t('paused') : r.nextRunAt ? (isToday(r.nextRunAt) ? t('todayAt') + ' ' + fmtTime(r.nextRunAt) : fmtDate(r.nextRunAt)) : ''
+    return h('section', { className: 'mwt-section' },
+      h('h2', null, t('routines')),
+      h('div', { className: 'mwt-list' }, shown.map((r) => h('div', { key: r.id, className: 'mwt-row mwt-row-static', 'data-off': !r.enabled },
+        h('span', { className: 'mwt-dot' }, icon(r.kind === 'remind' ? 'bell' : 'history', { size: 16 })),
+        h('span', { className: 'mwt-row-main' }, h('span', { className: 'mwt-row-title' }, r.title), h('span', { className: 'mwt-row-sub' }, [r.scheduleLabel, when(r)].filter(Boolean).join(' · '))),
+        h(Menu, { items: [
+          { icon: 'play', label: t('runNow'), run: () => act('/routines/run', { id: r.id }) },
+          { icon: r.enabled ? 'pause' : 'play', label: r.enabled ? t('pause') : t('resume'), run: () => act('/routines/enable', { id: r.id, enabled: !r.enabled }) },
+          { icon: 'trash', label: t('remove'), run: () => act('/routines/remove', { id: r.id }) },
+        ] }))),
+        list.length > 3 && !all ? h('button', { type: 'button', className: 'mwt-row mwt-row-more', onClick: () => setAll(true) }, h('span', { className: 'mwt-dot' }), h('span', { className: 'mwt-row-main' }, h('span', { className: 'mwt-row-title' }, t('moreRows').replace('{n}', String(list.length - 3)))), h('span', { className: 'mwt-row-state' }, icon('arrow-left', { size: 14, style: { transform: 'rotate(-90deg)' } }))) : null))
   }
 
   function Activity({ task, live }) {
@@ -800,8 +827,8 @@ exports.apply = function apply(ctx) {
     ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({ name: 'sidebar.panellist', id: key, order, locale: NS, label: () => t(label), inject: () => ({}) }, function MyworkPageIcon() { return icon(iconName, { size: 16, strokeWidth: 1.6 }) }))
   }
   page(PANELS.today, 1, 'today', 'sun', c.TodayPage)
-  page(PANELS.tasks, 2, 'tasks', 'list-checks', c.TasksPage)
-  page(PANELS.routines, 3, 'routines', 'history', c.RoutinesPage)
+  ctx.slots.inject('main', () => ctx.slots.register({ name: 'main', key: PANELS.tasks, locale: NS, inject: () => ({}) }, function MyworkTasks() { return h(c.TasksPage) }))
+  ctx.slots.inject('main', () => ctx.slots.register({ name: 'main', key: PANELS.routines, locale: NS, inject: () => ({}) }, function MyworkRoutines() { return h(c.RoutinesPage) }))
   // Reachable, not navigated: deliverables open through their task; 领域 through 设置.
   ctx.slots.inject('main', () => ctx.slots.register({ name: 'main', key: PANELS.deliverables, locale: NS, inject: () => ({}) }, function MyworkDeliverables() { return h(c.DeliverablesPage) }))
   ctx.slots.inject('main', () => ctx.slots.register({ name: 'main', key: PANELS.scenarios, locale: NS, inject: () => ({}) }, function MyworkScenarios() { return h(c.ScenariosPage) }))

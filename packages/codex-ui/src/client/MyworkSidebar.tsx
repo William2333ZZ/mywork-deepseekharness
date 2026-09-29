@@ -7,7 +7,7 @@
  * plugin's pages goes through window events so neither package imports the other.
  */
 import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react'
-import { CircleCheck, CircleX, Clock, History, ListChecks, Loader, PanelLeft, Plus, Sun } from 'lucide-react'
+import { CircleCheck, CircleX, History, ListChecks, Loader, PanelLeft, Plus } from 'lucide-react'
 import type { CodexSidebarProps } from './CodexSidebar.tsx'
 
 export const V2_STORAGE_KEY = 'dsh-mywork:v2'
@@ -33,7 +33,9 @@ body[data-ds-dark-theme] .mws{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 .mws :focus-visible{outline:none;box-shadow:var(--focus-ring);border-radius:var(--radius-sm)}
 @media (prefers-reduced-motion:reduce){.mws *{transition:none!important;animation:none!important}}
 .mws-head{display:flex;align-items:center;gap:8px;height:52px;padding:10px 8px 4px 16px}
-.mws-brand{flex:1;display:flex;align-items:center;gap:8px;font-weight:600;font-size:14px;min-width:0}
+.mws-brand{appearance:none;border:0;background:transparent;padding:4px 6px 4px 0;border-radius:var(--radius-sm);flex:1;display:flex;align-items:center;gap:8px;font:inherit;font-weight:600;font-size:14px;color:var(--fg);min-width:0;cursor:pointer;text-align:left}
+.mws-brand:hover{color:var(--fg-2)}
+.mws-all span{color:var(--muted)}
 .mws-brand i{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:var(--radius-sm);background:var(--fg-2);color:var(--bg);font-style:normal;font-size:12px;font-weight:600}
 .mws-icon{appearance:none;display:inline-grid;place-items:center;width:28px;height:28px;border:0;border-radius:var(--radius-sm);background:transparent;color:var(--meta);cursor:pointer}
 .mws-icon:hover{background:var(--surface-2);color:var(--fg)}
@@ -47,7 +49,7 @@ body[data-ds-dark-theme] .mws-new:hover{background:var(--surface-2)}
 .mws-nav button[aria-current=page]{background:var(--bg);border-color:var(--border);color:var(--fg)}
 .mws-nav svg{flex:none;color:var(--meta)}
 .mws-nav button:hover svg,.mws-nav button[aria-current=page] svg{color:var(--fg-2)}
-.mws-list{flex:1;min-height:0;overflow:auto;margin-top:12px;padding:4px 8px 8px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.mws-list{flex:1;min-height:0;overflow:auto;margin-top:4px;padding:4px 8px 8px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
 .mws-group{padding:8px 10px 4px;color:var(--meta);font-size:12px;font-weight:500;letter-spacing:.02em;font-variant-numeric:tabular-nums}
 .mws-task{appearance:none;display:grid;grid-template-columns:16px minmax(0,1fr);column-gap:8px;align-items:center;width:100%;min-height:30px;padding:4px 10px;border:0;border-radius:var(--radius-md);background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
 .mws-task:hover{background:var(--surface-2)}
@@ -106,12 +108,6 @@ export function MyworkSidebar({ selectPanel, usePanelInfo = useLegacyPanelInfo, 
   }, [load])
 
   const go = (id: string): void => { if (selectPanel !== undefined) selectPanel(id) }
-  const nav: { id: string; label: string; Icon: typeof Sun }[] = [
-    { id: MYWORK_PANELS.today, label: t('v2.today'), Icon: Sun },
-    { id: MYWORK_PANELS.tasks, label: t('v2.tasks'), Icon: ListChecks },
-    { id: MYWORK_PANELS.routines, label: t('v2.routines'), Icon: Clock },
-  ]
-  useEffect(() => { document.body.setAttribute('data-mywork-v2', ''); return () => { document.body.removeAttribute('data-mywork-v2') } }, [])
   const active = tasks.filter(x => x.status !== 'done')
   const recent = tasks.filter(x => x.status === 'done').slice(0, 12)
   const openTask = (id: string): void => { go(MYWORK_PANELS.tasks); fire('mywork:open-task', { id }) }
@@ -121,12 +117,12 @@ export function MyworkSidebar({ selectPanel, usePanelInfo = useLegacyPanelInfo, 
 
   return <div className={'mws' + (compact ? ' compact' : '')} data-mywork-sidebar="v2">
     <style>{stylesheet}</style>
-    <div className="mws-head"><div className="mws-brand"><i>M</i><span>MyWork</span></div><button type="button" className="mws-icon" aria-label={compact ? t('sidebar.expand') : t('sidebar.collapse')} onClick={toggleSidebar}><PanelLeft size={16} strokeWidth={1.5} /></button></div>
+    <div className="mws-head"><button type="button" className="mws-brand" aria-current={activePanelId === MYWORK_PANELS.today ? 'page' : undefined} onClick={() => { go(MYWORK_PANELS.today) }}><i>M</i><span>MyWork</span></button><button type="button" className="mws-icon" aria-label={compact ? t('sidebar.expand') : t('sidebar.collapse')} onClick={toggleSidebar}><PanelLeft size={16} strokeWidth={1.5} /></button></div>
     <button type="button" className="mws-new" title={t('v2.newTask')} onClick={() => { go(MYWORK_PANELS.today); fire('mywork:new-task', {}) }}><Plus size={15} strokeWidth={1.6} /><span>{t('v2.newTask')}</span></button>
-    <nav className="mws-nav" aria-label="MyWork">{nav.map(({ id, label, Icon }) => <button key={id} type="button" aria-current={activePanelId === id ? 'page' : undefined} title={label} onClick={() => { go(id) }}><Icon size={16} strokeWidth={1.5} /><span>{label}</span></button>)}</nav>
     <div className="mws-list">
       {active.length > 0 && <><div className="mws-group">{t('v2.running')} · {active.length}</div>{active.map(item)}</>}
       {recent.length > 0 ? recent.map(item) : <div className="mws-empty">{t('v2.noTasks')}</div>}
+      {tasks.length > recent.length && <button type="button" className="mws-task mws-all" onClick={() => { go(MYWORK_PANELS.tasks) }}><span className="mws-dot"><ListChecks size={14} strokeWidth={1.6} /></span><span>{t('v2.allTasks')}</span></button>}
     </div>
     <footer className="mws-foot"><div>{renderSlot('sidebar.settings', { wide: !compact })}</div></footer>
   </div>

@@ -420,7 +420,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$33 = {
+		const __iconData$32 = {
 			name: "archive",
 			size: 24,
 			node: [
@@ -442,8 +442,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$33.node;
-		const Archive = createLucideIcon(__iconData$33);
+		__iconData$32.node;
+		const Archive = createLucideIcon(__iconData$32);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/arrow-left.mjs
 		/**
@@ -452,7 +452,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$32 = {
+		const __iconData$31 = {
 			name: "arrow-left",
 			size: 24,
 			node: [["path", {
@@ -463,8 +463,8 @@ window.__ModuleLoader__.load({
 				key: "x3x0zl"
 			}]]
 		};
-		__iconData$32.node;
-		const ArrowLeft = createLucideIcon(__iconData$32);
+		__iconData$31.node;
+		const ArrowLeft = createLucideIcon(__iconData$31);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/box.mjs
 		/**
@@ -473,7 +473,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$31 = {
+		const __iconData$30 = {
 			name: "box",
 			size: 24,
 			node: [
@@ -491,8 +491,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$31.node;
-		const Box = createLucideIcon(__iconData$31);
+		__iconData$30.node;
+		const Box = createLucideIcon(__iconData$30);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/calendar-clock.mjs
 		/**
@@ -501,7 +501,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$30 = {
+		const __iconData$29 = {
 			name: "calendar-clock",
 			size: 24,
 			node: [
@@ -533,8 +533,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$30.node;
-		const CalendarClock = createLucideIcon(__iconData$30);
+		__iconData$29.node;
+		const CalendarClock = createLucideIcon(__iconData$29);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/chart-column.mjs
 		/**
@@ -543,7 +543,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$29 = {
+		const __iconData$28 = {
 			name: "chart-column",
 			size: 24,
 			node: [
@@ -566,8 +566,8 @@ window.__ModuleLoader__.load({
 			],
 			aliases: ["bar-chart-3"]
 		};
-		__iconData$29.node;
-		const ChartColumn = createLucideIcon(__iconData$29);
+		__iconData$28.node;
+		const ChartColumn = createLucideIcon(__iconData$28);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/circle-check.mjs
 		/**
@@ -576,7 +576,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$28 = {
+		const __iconData$27 = {
 			name: "circle-check",
 			size: 24,
 			node: [["circle", {
@@ -590,8 +590,8 @@ window.__ModuleLoader__.load({
 			}]],
 			aliases: ["check-circle-2"]
 		};
-		__iconData$28.node;
-		const CircleCheck = createLucideIcon(__iconData$28);
+		__iconData$27.node;
+		const CircleCheck = createLucideIcon(__iconData$27);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/circle-question-mark.mjs
 		/**
@@ -600,7 +600,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$27 = {
+		const __iconData$26 = {
 			name: "circle-question-mark",
 			size: 24,
 			node: [
@@ -621,8 +621,8 @@ window.__ModuleLoader__.load({
 			],
 			aliases: ["help-circle", "circle-help"]
 		};
-		__iconData$27.node;
-		const CircleQuestionMark = createLucideIcon(__iconData$27);
+		__iconData$26.node;
+		const CircleQuestionMark = createLucideIcon(__iconData$26);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/circle-x.mjs
 		/**
@@ -631,7 +631,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$26 = {
+		const __iconData$25 = {
 			name: "circle-x",
 			size: 24,
 			node: [
@@ -652,8 +652,8 @@ window.__ModuleLoader__.load({
 			],
 			aliases: ["x-circle"]
 		};
-		__iconData$26.node;
-		const CircleX = createLucideIcon(__iconData$26);
+		__iconData$25.node;
+		const CircleX = createLucideIcon(__iconData$25);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/clock.mjs
 		/**
@@ -662,7 +662,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$25 = {
+		const __iconData$24 = {
 			name: "clock",
 			size: 24,
 			node: [["circle", {
@@ -675,8 +675,8 @@ window.__ModuleLoader__.load({
 				key: "mmk7yg"
 			}]]
 		};
-		__iconData$25.node;
-		const Clock = createLucideIcon(__iconData$25);
+		__iconData$24.node;
+		const Clock = createLucideIcon(__iconData$24);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/cpu.mjs
 		/**
@@ -685,7 +685,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$24 = {
+		const __iconData$23 = {
 			name: "cpu",
 			size: 24,
 			node: [
@@ -755,8 +755,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$24.node;
-		const Cpu = createLucideIcon(__iconData$24);
+		__iconData$23.node;
+		const Cpu = createLucideIcon(__iconData$23);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/eye-off.mjs
 		/**
@@ -765,7 +765,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$23 = {
+		const __iconData$22 = {
 			name: "eye-off",
 			size: 24,
 			node: [
@@ -787,8 +787,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$23.node;
-		const EyeOff = createLucideIcon(__iconData$23);
+		__iconData$22.node;
+		const EyeOff = createLucideIcon(__iconData$22);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/eye.mjs
 		/**
@@ -797,7 +797,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$22 = {
+		const __iconData$21 = {
 			name: "eye",
 			size: 24,
 			node: [["path", {
@@ -810,8 +810,8 @@ window.__ModuleLoader__.load({
 				key: "1v7zrd"
 			}]]
 		};
-		__iconData$22.node;
-		const Eye = createLucideIcon(__iconData$22);
+		__iconData$21.node;
+		const Eye = createLucideIcon(__iconData$21);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/file-spreadsheet.mjs
 		/**
@@ -820,7 +820,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$21 = {
+		const __iconData$20 = {
 			name: "file-spreadsheet",
 			size: 24,
 			node: [
@@ -850,8 +850,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$21.node;
-		const FileSpreadsheet = createLucideIcon(__iconData$21);
+		__iconData$20.node;
+		const FileSpreadsheet = createLucideIcon(__iconData$20);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/globe.mjs
 		/**
@@ -860,7 +860,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$20 = {
+		const __iconData$19 = {
 			name: "globe",
 			size: 24,
 			node: [
@@ -880,8 +880,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$20.node;
-		const Globe = createLucideIcon(__iconData$20);
+		__iconData$19.node;
+		const Globe = createLucideIcon(__iconData$19);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/link.mjs
 		/**
@@ -890,7 +890,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$19 = {
+		const __iconData$18 = {
 			name: "link",
 			size: 24,
 			node: [["path", {
@@ -901,8 +901,8 @@ window.__ModuleLoader__.load({
 				key: "19qd67"
 			}]]
 		};
-		__iconData$19.node;
-		const Link = createLucideIcon(__iconData$19);
+		__iconData$18.node;
+		const Link = createLucideIcon(__iconData$18);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/list-checks.mjs
 		/**
@@ -911,7 +911,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$18 = {
+		const __iconData$17 = {
 			name: "list-checks",
 			size: 24,
 			node: [
@@ -937,8 +937,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$18.node;
-		const ListChecks = createLucideIcon(__iconData$18);
+		__iconData$17.node;
+		const ListChecks = createLucideIcon(__iconData$17);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/loader.mjs
 		/**
@@ -947,7 +947,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$17 = {
+		const __iconData$16 = {
 			name: "loader",
 			size: 24,
 			node: [
@@ -985,8 +985,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$17.node;
-		const Loader = createLucideIcon(__iconData$17);
+		__iconData$16.node;
+		const Loader = createLucideIcon(__iconData$16);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/message-circle.mjs
 		/**
@@ -995,7 +995,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$16 = {
+		const __iconData$15 = {
 			name: "message-circle",
 			size: 24,
 			node: [["path", {
@@ -1003,8 +1003,8 @@ window.__ModuleLoader__.load({
 				key: "1sd12s"
 			}]]
 		};
-		__iconData$16.node;
-		const MessageCircle = createLucideIcon(__iconData$16);
+		__iconData$15.node;
+		const MessageCircle = createLucideIcon(__iconData$15);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/message-square-more.mjs
 		/**
@@ -1013,7 +1013,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$15 = {
+		const __iconData$14 = {
 			name: "message-square-more",
 			size: 24,
 			node: [
@@ -1035,8 +1035,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$15.node;
-		const MessageSquareMore = createLucideIcon(__iconData$15);
+		__iconData$14.node;
+		const MessageSquareMore = createLucideIcon(__iconData$14);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/message-square.mjs
 		/**
@@ -1045,7 +1045,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$14 = {
+		const __iconData$13 = {
 			name: "message-square",
 			size: 24,
 			node: [["path", {
@@ -1053,8 +1053,8 @@ window.__ModuleLoader__.load({
 				key: "18887p"
 			}]]
 		};
-		__iconData$14.node;
-		const MessageSquare = createLucideIcon(__iconData$14);
+		__iconData$13.node;
+		const MessageSquare = createLucideIcon(__iconData$13);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/panel-left.mjs
 		/**
@@ -1063,7 +1063,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$13 = {
+		const __iconData$12 = {
 			name: "panel-left",
 			size: 24,
 			node: [["rect", {
@@ -1079,8 +1079,8 @@ window.__ModuleLoader__.load({
 			}]],
 			aliases: ["sidebar"]
 		};
-		__iconData$13.node;
-		const PanelLeft = createLucideIcon(__iconData$13);
+		__iconData$12.node;
+		const PanelLeft = createLucideIcon(__iconData$12);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/panel-right.mjs
 		/**
@@ -1089,7 +1089,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$12 = {
+		const __iconData$11 = {
 			name: "panel-right",
 			size: 24,
 			node: [["rect", {
@@ -1104,8 +1104,8 @@ window.__ModuleLoader__.load({
 				key: "14nvp0"
 			}]]
 		};
-		__iconData$12.node;
-		const PanelRight = createLucideIcon(__iconData$12);
+		__iconData$11.node;
+		const PanelRight = createLucideIcon(__iconData$11);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/pin.mjs
 		/**
@@ -1114,7 +1114,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$11 = {
+		const __iconData$10 = {
 			name: "pin",
 			size: 24,
 			node: [["path", {
@@ -1125,8 +1125,8 @@ window.__ModuleLoader__.load({
 				key: "1nkz8b"
 			}]]
 		};
-		__iconData$11.node;
-		const Pin = createLucideIcon(__iconData$11);
+		__iconData$10.node;
+		const Pin = createLucideIcon(__iconData$10);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/plug.mjs
 		/**
@@ -1135,7 +1135,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$10 = {
+		const __iconData$9 = {
 			name: "plug",
 			size: 24,
 			node: [
@@ -1157,8 +1157,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$10.node;
-		const Plug = createLucideIcon(__iconData$10);
+		__iconData$9.node;
+		const Plug = createLucideIcon(__iconData$9);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/plus.mjs
 		/**
@@ -1167,7 +1167,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$9 = {
+		const __iconData$8 = {
 			name: "plus",
 			size: 24,
 			node: [["path", {
@@ -1178,8 +1178,8 @@ window.__ModuleLoader__.load({
 				key: "s699le"
 			}]]
 		};
-		__iconData$9.node;
-		const Plus = createLucideIcon(__iconData$9);
+		__iconData$8.node;
+		const Plus = createLucideIcon(__iconData$8);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/rotate-ccw-clock.mjs
 		/**
@@ -1188,7 +1188,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$8 = {
+		const __iconData$7 = {
 			name: "rotate-ccw-clock",
 			size: 24,
 			node: [
@@ -1207,8 +1207,8 @@ window.__ModuleLoader__.load({
 			],
 			aliases: ["history"]
 		};
-		__iconData$8.node;
-		const RotateCcwClock = createLucideIcon(__iconData$8);
+		__iconData$7.node;
+		const RotateCcwClock = createLucideIcon(__iconData$7);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/search.mjs
 		/**
@@ -1217,7 +1217,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$7 = {
+		const __iconData$6 = {
 			name: "search",
 			size: 24,
 			node: [["path", {
@@ -1230,8 +1230,8 @@ window.__ModuleLoader__.load({
 				key: "4ej97u"
 			}]]
 		};
-		__iconData$7.node;
-		const Search = createLucideIcon(__iconData$7);
+		__iconData$6.node;
+		const Search = createLucideIcon(__iconData$6);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/settings.mjs
 		/**
@@ -1240,7 +1240,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$6 = {
+		const __iconData$5 = {
 			name: "settings",
 			size: 24,
 			node: [["path", {
@@ -1253,8 +1253,8 @@ window.__ModuleLoader__.load({
 				key: "1v7zrd"
 			}]]
 		};
-		__iconData$6.node;
-		const Settings = createLucideIcon(__iconData$6);
+		__iconData$5.node;
+		const Settings = createLucideIcon(__iconData$5);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/sliders-horizontal.mjs
 		/**
@@ -1263,7 +1263,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$5 = {
+		const __iconData$4 = {
 			name: "sliders-horizontal",
 			size: 24,
 			node: [
@@ -1305,8 +1305,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$5.node;
-		const SlidersHorizontal = createLucideIcon(__iconData$5);
+		__iconData$4.node;
+		const SlidersHorizontal = createLucideIcon(__iconData$4);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/sparkles.mjs
 		/**
@@ -1315,7 +1315,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$4 = {
+		const __iconData$3 = {
 			name: "sparkles",
 			size: 24,
 			node: [
@@ -1340,8 +1340,8 @@ window.__ModuleLoader__.load({
 			],
 			aliases: ["stars"]
 		};
-		__iconData$4.node;
-		const Sparkles = createLucideIcon(__iconData$4);
+		__iconData$3.node;
+		const Sparkles = createLucideIcon(__iconData$3);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/square-pen.mjs
 		/**
@@ -1350,7 +1350,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$3 = {
+		const __iconData$2 = {
 			name: "square-pen",
 			size: 24,
 			node: [["path", {
@@ -1366,8 +1366,8 @@ window.__ModuleLoader__.load({
 				"pen-square"
 			]
 		};
-		__iconData$3.node;
-		const SquarePen = createLucideIcon(__iconData$3);
+		__iconData$2.node;
+		const SquarePen = createLucideIcon(__iconData$2);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/store.mjs
 		/**
@@ -1376,7 +1376,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$2 = {
+		const __iconData$1 = {
 			name: "store",
 			size: 24,
 			node: [
@@ -1394,62 +1394,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$2.node;
-		const Store = createLucideIcon(__iconData$2);
-		//#endregion
-		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/sun.mjs
-		/**
-		* @license lucide-react v1.47.0 - ISC
-		*
-		* This source code is licensed under the ISC license.
-		* See the LICENSE file in the root directory of this source tree.
-		*/
-		const __iconData$1 = {
-			name: "sun",
-			size: 24,
-			node: [
-				["circle", {
-					cx: "12",
-					cy: "12",
-					r: "4",
-					key: "4exip2"
-				}],
-				["path", {
-					d: "M12 2v2",
-					key: "tus03m"
-				}],
-				["path", {
-					d: "M12 20v2",
-					key: "1lh1kg"
-				}],
-				["path", {
-					d: "m4.93 4.93 1.41 1.41",
-					key: "149t6j"
-				}],
-				["path", {
-					d: "m17.66 17.66 1.41 1.41",
-					key: "ptbguv"
-				}],
-				["path", {
-					d: "M2 12h2",
-					key: "1t8f8n"
-				}],
-				["path", {
-					d: "M20 12h2",
-					key: "1q8mjw"
-				}],
-				["path", {
-					d: "m6.34 17.66-1.41 1.41",
-					key: "1m8zz5"
-				}],
-				["path", {
-					d: "m19.07 4.93-1.41 1.41",
-					key: "1shlcs"
-				}]
-			]
-		};
 		__iconData$1.node;
-		const Sun = createLucideIcon(__iconData$1);
+		const Store = createLucideIcon(__iconData$1);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/user.mjs
 		/**
@@ -1656,6 +1602,7 @@ window.__ModuleLoader__.load({
 			"v2.running": "进行中",
 			"v2.recent": "最近",
 			"v2.noTasks": "还没有任务",
+			"v2.allTasks": "全部",
 			"sidebar.channelsTab": "频道",
 			"sidebar.scheduleTab": "定时",
 			"sidebar.runsTab": "执行记录",
@@ -1971,6 +1918,7 @@ window.__ModuleLoader__.load({
 			"v2.running": "In progress",
 			"v2.recent": "Recent",
 			"v2.noTasks": "No tasks yet",
+			"v2.allTasks": "All",
 			"sidebar.channelsTab": "Channels",
 			"sidebar.scheduleTab": "Schedule",
 			"sidebar.runsTab": "Run history",
@@ -2521,7 +2469,9 @@ body[data-ds-dark-theme] .mws{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 .mws :focus-visible{outline:none;box-shadow:var(--focus-ring);border-radius:var(--radius-sm)}
 @media (prefers-reduced-motion:reduce){.mws *{transition:none!important;animation:none!important}}
 .mws-head{display:flex;align-items:center;gap:8px;height:52px;padding:10px 8px 4px 16px}
-.mws-brand{flex:1;display:flex;align-items:center;gap:8px;font-weight:600;font-size:14px;min-width:0}
+.mws-brand{appearance:none;border:0;background:transparent;padding:4px 6px 4px 0;border-radius:var(--radius-sm);flex:1;display:flex;align-items:center;gap:8px;font:inherit;font-weight:600;font-size:14px;color:var(--fg);min-width:0;cursor:pointer;text-align:left}
+.mws-brand:hover{color:var(--fg-2)}
+.mws-all span{color:var(--muted)}
 .mws-brand i{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:var(--radius-sm);background:var(--fg-2);color:var(--bg);font-style:normal;font-size:12px;font-weight:600}
 .mws-icon{appearance:none;display:inline-grid;place-items:center;width:28px;height:28px;border:0;border-radius:var(--radius-sm);background:transparent;color:var(--meta);cursor:pointer}
 .mws-icon:hover{background:var(--surface-2);color:var(--fg)}
@@ -2535,7 +2485,7 @@ body[data-ds-dark-theme] .mws-new:hover{background:var(--surface-2)}
 .mws-nav button[aria-current=page]{background:var(--bg);border-color:var(--border);color:var(--fg)}
 .mws-nav svg{flex:none;color:var(--meta)}
 .mws-nav button:hover svg,.mws-nav button[aria-current=page] svg{color:var(--fg-2)}
-.mws-list{flex:1;min-height:0;overflow:auto;margin-top:12px;padding:4px 8px 8px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.mws-list{flex:1;min-height:0;overflow:auto;margin-top:4px;padding:4px 8px 8px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
 .mws-group{padding:8px 10px 4px;color:var(--meta);font-size:12px;font-weight:500;letter-spacing:.02em;font-variant-numeric:tabular-nums}
 .mws-task{appearance:none;display:grid;grid-template-columns:16px minmax(0,1fr);column-gap:8px;align-items:center;width:100%;min-height:30px;padding:4px 10px;border:0;border-radius:var(--radius-md);background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
 .mws-task:hover{background:var(--surface-2)}
@@ -2615,29 +2565,6 @@ body[data-ds-dark-theme] .mws-new:hover{background:var(--surface-2)}
 			const go = (id) => {
 				if (selectPanel !== void 0) selectPanel(id);
 			};
-			const nav = [
-				{
-					id: MYWORK_PANELS.today,
-					label: t("v2.today"),
-					Icon: Sun
-				},
-				{
-					id: MYWORK_PANELS.tasks,
-					label: t("v2.tasks"),
-					Icon: ListChecks
-				},
-				{
-					id: MYWORK_PANELS.routines,
-					label: t("v2.routines"),
-					Icon: Clock
-				}
-			];
-			(0, react.useEffect)(() => {
-				document.body.setAttribute("data-mywork-v2", "");
-				return () => {
-					document.body.removeAttribute("data-mywork-v2");
-				};
-			}, []);
 			const active = tasks.filter((x) => x.status !== "done");
 			const recent = tasks.filter((x) => x.status === "done").slice(0, 12);
 			const openTask = (id) => {
@@ -2660,8 +2587,13 @@ body[data-ds-dark-theme] .mws-new:hover{background:var(--surface-2)}
 					/* @__PURE__ */ (0, react_jsx_runtime.jsx)("style", { children: stylesheet$5 }),
 					/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 						className: "mws-head",
-						children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+						children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
+							type: "button",
 							className: "mws-brand",
+							"aria-current": activePanelId === MYWORK_PANELS.today ? "page" : void 0,
+							onClick: () => {
+								go(MYWORK_PANELS.today);
+							},
 							children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("i", { children: "M" }), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: "MyWork" })]
 						}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
 							type: "button",
@@ -2687,35 +2619,36 @@ body[data-ds-dark-theme] .mws-new:hover{background:var(--surface-2)}
 							strokeWidth: 1.6
 						}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: t("v2.newTask") })]
 					}),
-					/* @__PURE__ */ (0, react_jsx_runtime.jsx)("nav", {
-						className: "mws-nav",
-						"aria-label": "MyWork",
-						children: nav.map(({ id, label, Icon }) => /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
-							type: "button",
-							"aria-current": activePanelId === id ? "page" : void 0,
-							title: label,
-							onClick: () => {
-								go(id);
-							},
-							children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(Icon, {
-								size: 16,
-								strokeWidth: 1.5
-							}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: label })]
-						}, id))
-					}),
 					/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 						className: "mws-list",
-						children: [active.length > 0 && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
-							className: "mws-group",
-							children: [
-								t("v2.running"),
-								" · ",
-								active.length
-							]
-						}), active.map(item)] }), recent.length > 0 ? recent.map(item) : /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
-							className: "mws-empty",
-							children: t("v2.noTasks")
-						})]
+						children: [
+							active.length > 0 && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+								className: "mws-group",
+								children: [
+									t("v2.running"),
+									" · ",
+									active.length
+								]
+							}), active.map(item)] }),
+							recent.length > 0 ? recent.map(item) : /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+								className: "mws-empty",
+								children: t("v2.noTasks")
+							}),
+							tasks.length > recent.length && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
+								type: "button",
+								className: "mws-task mws-all",
+								onClick: () => {
+									go(MYWORK_PANELS.tasks);
+								},
+								children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+									className: "mws-dot",
+									children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(ListChecks, {
+										size: 14,
+										strokeWidth: 1.6
+									})
+								}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: t("v2.allTasks") })]
+							})
+						]
 					}),
 					/* @__PURE__ */ (0, react_jsx_runtime.jsx)("footer", {
 						className: "mws-foot",

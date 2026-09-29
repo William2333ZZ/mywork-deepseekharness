@@ -200,7 +200,7 @@ const zh = {
   today: '今日', tasks: '任务', deliverables: '交付物', scenarios: '领域', packs: '领域', builtin: '内置', scenarioClear: '不指定，让系统判断',
   packsLead: '领域包决定一类事怎么做：用什么数据、交付什么、怎么核验。你不用选，说出来就行；装了领域包，它认得的事自动归它。',
   packsEmpty: '还没有装领域包。交易工作台是第一个。',
-  hero: '你要什么结果？', ask: '说一个你要的结果，或者问一句', hint: '回车创建，Shift + 回车换行。任务在后台完成，做完通知你。',
+  hero: '你要什么结果？', ask: '今天要做什么', askRoutine: '安排一件例行的事，比如每天 9 点给我一份简报', hint: '回车创建，Shift + 回车换行。任务在后台完成，做完通知你。',
   running: '进行中', recent: '最近', none: '还没有任务。', noneRunning: '现在没有在跑的任务。', noneDeliverables: '还没有交付物。',
   all: '全部', active: '进行中', finished: '已完成', back: '返回', rerun: '再来一次', cancel: '取消', process: '过程', verifyAgain: '重新核验',
   progress: '进度', deliverable: '交付物', waitingDeliverable: '做完后交付物出现在这里。', failedTitle: '失败',
@@ -213,13 +213,13 @@ const zh = {
   notesMore: '点开看核验员的完整说明', delivered: '已交付', answered: '已回答', quietDay: '今天没有等你的事。说一句，交给它。', moreRows: '还有 {n} 项', more: '更多', rawProcess: '原始对话', loadFailed: '没连上服务，稍后再试。', retry: '重试', moreRate: '还有 {n} 份交付了没评价',
   routines: '例行', routinesLead: '还没有例行的事。说一句带时间的话，比如「每天 9 点给我一份简报」。',
   routinesEmpty: '还没有例行的事。', remindCard: '提醒', gotIt: '知道了', runNow: '现在跑一次', pause: '暂停', resume: '恢复', remove: '删除', nextRun: '下次', lastRun: '上次', neverRan: '还没跑过', noChange: '没有变化', changed: '有变化', briefs: '今天的例行', scheduled: '已安排', scheduledHint: '到点会自动做，结果在「例行」和「等你看」里。', kindTask: '例行任务', kindRemind: '提醒', quietTag: '安静',
-  say: '接着说，比如“再短一点”或“换个角度”', sayHint: '回车发送，同一个会话继续。', sayBusy: '核验中，稍等。', conversational: '这次是回答，没有生成文档；要保存时说“整理成一份…”。',
+  say: '回复', sayHint: '', sayBusy: '', conversational: '这次是回答，没有生成文档；要保存时说“整理成一份…”。',
 }
 const en = {
   today: 'Today', tasks: 'Tasks', deliverables: 'Deliverables', scenarios: 'Domains', packs: 'Domains', builtin: 'built in', scenarioClear: 'Let the system decide',
   packsLead: 'A domain pack defines how one kind of work gets done: which data, what to deliver, how to verify. You never pick; a pack claims the requests it recognises.',
   packsEmpty: 'No domain packs installed yet. The trading workbench is the first.',
-  hero: 'What do you want done?', ask: 'Describe the result you want', hint: 'Enter creates the task, Shift + Enter for a new line. It runs in the background and notifies you when done.',
+  hero: 'What do you want done?', ask: 'What needs doing today', askRoutine: 'Schedule something, e.g. a brief every day at 9', hint: 'Enter creates the task, Shift + Enter for a new line. It runs in the background and notifies you when done.',
   running: 'In progress', recent: 'Recent', none: 'No tasks yet.', noneRunning: 'Nothing is running.', noneDeliverables: 'No deliverables yet.',
   all: 'All', active: 'Active', finished: 'Finished', back: 'Back', rerun: 'Run again', cancel: 'Cancel', process: 'Process', verifyAgain: 'Verify again',
   progress: 'Progress', deliverable: 'Deliverable', waitingDeliverable: 'The deliverable appears here when the task finishes.', failedTitle: 'Failed',
@@ -232,7 +232,7 @@ const en = {
   notesMore: 'Tap for the verifier’s full notes', delivered: 'Delivered', answered: 'Answered', quietDay: 'Nothing waiting for you today. Say something and hand it over.', moreRows: '{n} more', more: 'More', rawProcess: 'Raw conversation', loadFailed: 'Could not reach the service, try again shortly.', retry: 'Retry', moreRate: '{n} more deliveries waiting for a rating',
   routines: 'Routines', routinesLead: 'No routines yet. Say a sentence with a time: “every day at 9…”, “remind me at 6 on weekdays…”.',
   routinesEmpty: 'No routines yet.', remindCard: 'Reminder', gotIt: 'Got it', runNow: 'Run now', pause: 'Pause', resume: 'Resume', remove: 'Remove', nextRun: 'Next', lastRun: 'Last', neverRan: 'Never ran', noChange: 'No change', changed: 'Changed', briefs: 'Today’s routines', scheduled: 'Scheduled', scheduledHint: 'It runs on time; results land in Routines and For you.', kindTask: 'Routine', kindRemind: 'Reminder', quietTag: 'quiet',
-  say: 'Keep going, e.g. “shorter” or “from another angle”', sayHint: 'Enter sends into the same session.', sayBusy: 'Verifying, one moment.', conversational: 'This was an answer, no document was produced; ask for one when you want it saved.',
+  say: 'Reply', sayHint: '', sayBusy: '', conversational: 'This was an answer, no document was produced; ask for one when you want it saved.',
 }
 
 const STYLE = `
@@ -616,7 +616,7 @@ function makeComponents(ctx, t) {
       h('span', { className: 'mwt-card-meta' }, live ? elapsedOf(task) : fmtTime(task.finishedAt)))
   }
 
-  function Ask({ scenarios, initial, hero, compact }) {
+  function Ask({ scenarios, initial, hero, compact, placeholder }) {
     const [focused, setFocused] = React.useState(false)
     const [text, setText] = React.useState(initial && initial.text ? initial.text : '')
     const [scenario, setScenario] = React.useState(initial && initial.scenario ? initial.scenario : '')
@@ -640,7 +640,7 @@ function makeComponents(ctx, t) {
     React.useEffect(grow, [text])
     return h('div', { className: compact ? 'mwt-ask-wrap compact' + (focused || text ? ' open' : '') : 'mwt-ask-wrap' },
       h('div', { className: 'mwt-ask' },
-        h('textarea', { ref, value: text, placeholder: t('ask'), rows: compact ? 1 : 2, onFocus: () => setFocused(true), onBlur: () => setTimeout(() => setFocused(false), 150), onChange: (e) => setText(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); submit() } } }),
+        h('textarea', { ref, value: text, placeholder: placeholder || t('ask'), rows: compact ? 1 : 2, onFocus: () => setFocused(true), onBlur: () => setTimeout(() => setFocused(false), 150), onChange: (e) => setText(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); submit() } } }),
         h('div', { className: 'mwt-ask-row' },
           scenario ? h('button', { type: 'button', className: 'mwt-chip', 'data-on': true, title: t('scenarioClear'), onClick: () => setScenario('') }, (scenarios.find((s) => s.id === scenario) || { label: scenario }).label, ' ×') : null,
           err ? h('small', { className: 'grow' }, err) : h('span', { className: 'grow' }),
@@ -905,7 +905,7 @@ function makeComponents(ctx, t) {
     return h('div', { className: 'mwt' }, h('style', null, STYLE), h('div', { className: 'mwt-page mwt-page-today' },
       h('div', { className: 'mwt-title' }, h('h1', null, t('routines')), h('span', null, String(items.length))),
       items.length ? h('div', { className: 'mwt-rts' }, items.map(row)) : h('div', { className: 'mwt-empty' }, t('routinesLead')),
-      h('div', { className: 'mwt-dock' }, h(Ask, { scenarios: s.scenarios, hero: false, compact: true }))))
+      h('div', { className: 'mwt-dock' }, h(Ask, { scenarios: s.scenarios, hero: false, compact: true, placeholder: t('askRoutine') }))))
   }
 
   /** Always mounted: completion toasts and browser notifications, and the poll that feeds the sidebar. */

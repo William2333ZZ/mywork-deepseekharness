@@ -88,3 +88,28 @@ test('verification prompt and verdict parsing', async () => {
   assert.equal(argsPreview({ path: '/a/b', content: 'x'.repeat(200), empty: '' }), 'path=/a/b content=' + 'x'.repeat(79) + '…')
   assert.equal(resultPreview({ data: { message: { content: [{ type: 'text', text: ' a  b ' }] } } }), 'a b')
 })
+
+test('routines: schedule parsing, next run, store', async () => {
+  const { parseSchedule, nextRun, describeSchedule, RoutineStore, changedVerdict, routinePrompt } = await import('../src/routines.js')
+  const daily = parseSchedule('每天 9 点给我一份 Node 生态简报')
+  assert.equal(daily.kind, 'task'); assert.deepEqual(daily.schedule, { type: 'daily', time: '09:00' }); assert.equal(daily.text, '给我一份 Node 生态简报')
+  const weekly = parseSchedule('每周一 8:30 汇总上周的交付物'); assert.deepEqual(weekly.schedule, { type: 'weekly', weekday: 1, time: '08:30' })
+  const remind = parseSchedule('明天 8 点提醒我交周报'); assert.equal(remind.kind, 'remind'); assert.equal(remind.schedule.type, 'once'); assert.equal(remind.text, '交周报')
+  const soon = parseSchedule('30 分钟后提醒我喝水'); assert.ok(new Date(soon.schedule.at) - Date.now() > 29 * 60000)
+  assert.equal(parseSchedule('写一份周报'), null)
+  assert.equal(describeSchedule({ type: 'workdays', time: '18:00' }), '工作日 18:00')
+  const from = new Date('2026-09-29T10:00:00') // a Tuesday
+  assert.equal(nextRun({ type: 'daily', time: '09:00' }, from).toISOString(), new Date('2026-09-30T09:00:00').toISOString())
+  assert.equal(nextRun({ type: 'weekly', weekday: 1, time: '08:30' }, from).getDay(), 1)
+  assert.equal(nextRun({ type: 'workdays', time: '18:00' }, new Date('2026-10-02T19:00:00')).getDay(), 1) // Friday evening → Monday
+  assert.equal(nextRun({ type: 'once', at: '2020-01-01T00:00:00Z' }, from), null)
+  const s = new RoutineStore(null)
+  const r = s.create({ kind: 'task', input: '简报', schedule: { type: 'daily', time: '09:00' } })
+  assert.ok(r.nextRunAt); assert.equal(s.due(new Date(r.nextRunAt)).length, 1)
+  s.ran(r.id, { taskId: 't1' }); assert.equal(s.get(r.id).runs[0].taskId, 't1'); assert.ok(new Date(s.get(r.id).nextRunAt) > new Date())
+  const once = s.create({ kind: 'remind', input: '喝水', schedule: { type: 'once', at: new Date(Date.now() + 1000).toISOString() } })
+  s.fire(once.id); s.ran(once.id, { fired: true }); assert.equal(s.get(once.id).enabled, false); assert.equal(s.pending().length, 1)
+  s.ack(once.id); assert.equal(s.pending().length, 0)
+  assert.equal(changedVerdict('内容\n变化：无'), false); assert.equal(changedVerdict('变化：有'), true); assert.equal(changedVerdict('nothing'), null)
+  assert.match(routinePrompt(r, { markdown: '上次' }), /上一次的交付物[\s\S]*上次[\s\S]*变化：有/)
+})

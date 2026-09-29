@@ -21,6 +21,7 @@ import { randomUUID } from 'node:crypto'
 import { join } from 'node:path'
 import { ACTIVITY_DETAIL_MAX, myworkDir, titleOf } from './store.js'
 import { defaultVerifyPrompt, parseVerdict, stepNameFor } from './scenarios.js'
+import { changedVerdict, routinePrompt } from './routines.js'
 
 const CANCEL_CONVERGENCE_MS = 15000
 const VERIFY_TIMEOUT_MS = 5 * 60000
@@ -101,7 +102,7 @@ export function reasonError(reason) {
  *   config        { concurrency, timeoutMs, permission, agentPreset, cwd, verify }
  *   log(msg), emit(kind, task, deliverable?), controller() → dsh sessionController (for follow-up turns on finished tasks)
  */
-export function createEngine({ ctx, store, deliverables, scenarios, config, log, emit, controller, capabilities }) {
+export function createEngine({ ctx, store, deliverables, scenarios, config, log, emit, controller, capabilities, routines }) {
   const live = new Map()     // taskId → run state
   const verifying = new Map() // taskId → { text }
   let pumping = false
@@ -169,7 +170,15 @@ export function createEngine({ ctx, store, deliverables, scenarios, config, log,
       state.started = true
       store.setStatus(task.id, 'running', { startedAt: new Date().toISOString() })
       emit('started', store.get(task.id))
-      const prompt = scenario.compose(task.input, { date: new Date().toISOString().slice(0, 10), cwd: opened.workspace.path, task: { id: task.id, title: task.title }, capabilities: typeof capabilities === 'function' ? capabilities() : {} })
+      let request = task.input
+      if (task.routineId && routines) {
+        // A routine run is told what the previous run delivered and must lead with 变化.
+        const routine = routines.get(task.routineId)
+        const previousRun = routine ? routine.runs.find((r) => r.taskId && r.taskId !== task.id && r.deliverableId) : null
+        const previous = previousRun ? deliverables.get(previousRun.deliverableId) : null
+        if (routine) request = routinePrompt(routine, previous)
+      }
+      const prompt = scenario.compose(request, { date: new Date().toISOString().slice(0, 10), cwd: opened.workspace.path, task: { id: task.id, title: task.title }, capabilities: typeof capabilities === 'function' ? capabilities() : {} })
       agent.followup(userMessage(prompt, { kind: 'mywork-task', taskId: task.id, scenario: scenario.id }))
       const idle = agent.whenIdle()
       const deadline = new Promise((r) => { timer = setTimeout(() => { state.timedOut = true; agent.cancel({ kind: 'hook', reason: 'task timeout' }); r() }, config.timeoutMs) })
@@ -210,14 +219,22 @@ export function createEngine({ ctx, store, deliverables, scenarios, config, log,
     const newDeliverables = state.followup ? store.get(taskId).deliverableIds.length > state.deliverablesBefore : store.get(taskId).deliverableIds.length > 0
     const wantVerify = !error && config.verify && newDeliverables && !(scenario && scenario.verify === false)
     if (wantVerify) {
-      store.setStatus(taskId, 'verifying', { summary: summary || '已完成' })
+      store.setStatus(taskId, 'verifying', { summary: summary || '已完成', ...(t.routineId ? { quiet: changedVerdict(state.text) === false } : {}) })
       emit('verifying', store.get(taskId))
       verify(taskId).catch((e) => log(`verify ${taskId} crashed: ${e && e.message}`))
       return
     }
-    store.setStatus(taskId, 'done', { finishedAt: new Date().toISOString(), error, summary: summary || (error ? '' : '已完成') })
+    store.setStatus(taskId, 'done', { finishedAt: new Date().toISOString(), error, summary: summary || (error ? '' : '已完成'), ...(t.routineId ? { quiet: changedVerdict(state.text) === false } : {}) })
+    settleRoutine(taskId)
     log(`task ${taskId} ${error ? 'failed: ' + error : 'done'}`)
     emit('done', store.get(taskId))
+  }
+
+  /** Write the run outcome back onto its routine (receipt + what it delivered, for the next run). */
+  function settleRoutine(taskId) {
+    const t = store.get(taskId)
+    if (!t || !t.routineId || !routines) return
+    try { routines.markRun(t.routineId, '', { taskId, deliverableId: t.deliverableIds[t.deliverableIds.length - 1] || '', changed: t.quiet === true ? false : t.quiet === false ? true : null, error: t.error || '' }) } catch (e) { log('routine receipt: ' + (e && e.message)) }
   }
 
   /** Second session: read-only check of the deliverables against the task; stamps each deliverable. */
@@ -257,6 +274,7 @@ export function createEngine({ ctx, store, deliverables, scenarios, config, log,
     const stamp = verdict ? { ...verdict, at: new Date().toISOString() } : { passed: null, checked: 0, issues: 0, notes: '核验失败：' + failure, at: new Date().toISOString() }
     for (const d of docs) deliverables.update(d.id, { verification: stamp })
     store.setStatus(taskId, 'done', { finishedAt: new Date().toISOString(), error: '', verification: stamp })
+    settleRoutine(taskId)
     log(`task ${taskId} done, verified: ${verdict ? (verdict.passed ? 'passed' : 'issues') : 'unavailable'}`)
     emit('done', store.get(taskId))
   }

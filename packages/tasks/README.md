@@ -21,6 +21,15 @@ MyWork Kit v2 的核心成员：**一句话即任务，后台做完，交付一�
 
 数据在 `$DSH_HOME/mywork/tasks.json` 与 `deliverables.json`。默认同时跑两个任务，其余排队；单个任务最长 20 分钟，核验最长 5 分钟。
 
+## 例行与提醒
+
+一句带时间的话就是例行：「每天 9 点给我一份 Node 生态简报」「每周一 8:30 汇总上周的交付物」「工作日 18 点提醒我写日报」「30 分钟后提醒我喝水」。输入框、模型工具 `mywork_routine_create`、`POST /routines/create` 三个入口走同一个解析器（`src/routines.js`），支持 once / interval / daily / workdays / weekly。
+
+- **例行任务**：到点创建一个普通任务。提示词里附上上一次的交付物，要求第一段先写「变化」，最后一行给 `变化：有 / 无`。「无」的运行标记 `quiet`：存进交付物和「例行」页，但不弹通知、不推 IM。这是 OpenMuse 的 Goals & Tracking 和 Muse Code 目标跟踪观察者的逻辑：系统主动盯着，只有变化才打扰。
+- **提醒**：不跑 agent。到点进「等你看」直到你点「知道了」，同时弹通知、推 IM。
+- 每次运行都在例行上留回执（taskId、交付物、变化、错误）。服务停机期间错过的一次会在启动后补跑一次。
+- 数据在 `$DSH_HOME/mywork/routines.json`；调度器每 30 秒看一次到期。
+
 ## 场景
 
 内置四个：**通用**、**对话**（就是聊天，不强制交付，`deliverable: false`、`verify: false`）、**调研**（真实浏览器读网页，交付带来源的摘要）、**办公**（有 Univer 时生成表格 / 文档 / 幻灯片，否则 Markdown）。其他成员通过 cordis 服务 `myworkTasks` 注册自己的场景（交易工作台是第一个定制场景）：
@@ -44,8 +53,8 @@ export function apply(ctx) {
 ## 工具与 API
 
 - 工具：`deliver({ title, markdown, kind?, data? })`（任务会话内）、`mywork_task_create({ input, scenario? })`、`mywork_tasks()`。
-- HTTP（同源）：`GET /mywork-tasks/api/tasks`、`GET /task?id=`（含活动流）、`POST /create`、`POST /cancel`、`POST /rerun`、`POST /verify`、`POST /say`（追问：运行中进活体 agent 的收件箱，已完成的走 dsh sessionController 在原会话续一轮，产出新交付物时再核验一次）、`GET /scenarios`、`GET /deliverables`、`GET /deliverable?id=`、`POST /rate`。
-- 事件：`mywork/task`，`{ kind: queued | started | step | deliverable | verifying | done, task, deliverable? }`。
+- HTTP（同源）：`GET /mywork-tasks/api/tasks`、`GET /task?id=`（含活动流）、`POST /create`、`POST /cancel`、`POST /rerun`、`POST /verify`、`GET /routines`、`POST /routines/{create,run,enable,remove,ack}`、`POST /say`（追问：运行中进活体 agent 的收件箱，已完成的走 dsh sessionController 在原会话续一轮，产出新交付物时再核验一次）、`GET /scenarios`、`GET /deliverables`、`GET /deliverable?id=`、`POST /rate`。
+- 事件：`mywork/task`，`{ kind: queued | started | step | deliverable | verifying | done | routine | remind, task?, deliverable?, routine? }`；`done` 的 task 带 `quiet`（例行运行没有变化）。
 - 页面间的窗口事件：`mywork:new-task {text?, scenario?}`、`mywork:open-task {id}`、`mywork:open-deliverable {id}`、`mywork:open-session {sessionId}`。
 
 ## 配置

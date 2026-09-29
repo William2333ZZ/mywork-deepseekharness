@@ -1719,6 +1719,7 @@ window.__ModuleLoader__.load({
 			"v2.tasks": "任务",
 			"v2.deliverables": "交付物",
 			"v2.scenarios": "领域",
+			"v2.routines": "例行",
 			"v2.newTask": "新任务",
 			"v2.running": "进行中",
 			"v2.recent": "最近",
@@ -2033,6 +2034,7 @@ window.__ModuleLoader__.load({
 			"v2.tasks": "Tasks",
 			"v2.deliverables": "Deliverables",
 			"v2.scenarios": "Domains",
+			"v2.routines": "Routines",
 			"v2.newTask": "New task",
 			"v2.running": "In progress",
 			"v2.recent": "Recent",
@@ -2570,6 +2572,7 @@ window.__ModuleLoader__.load({
 			today: "mywork-today",
 			tasks: "mywork-tasks",
 			deliverables: "mywork-deliverables",
+			routines: "mywork-routines",
 			scenarios: "mywork-scenarios"
 		};
 		const API = "/mywork-tasks/api/tasks";
@@ -2693,6 +2696,11 @@ body[data-ds-dark-theme] .mws{--mws-bg:#1c1c1b;--mws-surface:#262625;--mws-fg:#e
 					id: MYWORK_PANELS.deliverables,
 					label: t("v2.deliverables"),
 					Icon: FileText
+				},
+				{
+					id: MYWORK_PANELS.routines,
+					label: t("v2.routines"),
+					Icon: Clock
 				},
 				{
 					id: MYWORK_PANELS.scenarios,

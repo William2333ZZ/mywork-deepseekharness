@@ -190,7 +190,7 @@ const h = React.createElement
 const PLUGIN = 'dsh-mywork-tasks'
 const NS = 'mywork.tasks'
 const API = '/mywork-tasks/api'
-const PANELS = { today: 'mywork-today', tasks: 'mywork-tasks', deliverables: 'mywork-deliverables', scenarios: 'mywork-scenarios' }
+const PANELS = { today: 'mywork-today', tasks: 'mywork-tasks', deliverables: 'mywork-deliverables', routines: 'mywork-routines', scenarios: 'mywork-scenarios' }
 const FAST_MS = 3000
 const SLOW_MS = 20000
 const V2_KEY = 'dsh-mywork:v2'
@@ -210,6 +210,8 @@ const zh = {
   toolFailed: '失败', stepsTitle: '步骤',
   attention: '等你看', attentionEmpty: '没有等你处理的事。', failedCard: '失败，可以再来一次', issuesCard: '核验发现问题', rateCard: '交付了，看一眼给个评价', running1: '个在跑', waiting1: '份等你看', quiet: '今天还很安静', greetMorning: '早上好', greetDay: '下午好', greetNight: '晚上好', todayDone: '今天完成', examplesTitle: '可以试试',
   notesMore: '点开看核验员的完整说明',
+  routines: '例行', routinesLead: '到点自动做的事和提醒。写一句带时间的话就行：「每天 9 点…」「每周一 8:30…」「工作日 18 点提醒我…」「30 分钟后提醒我…」。例行任务每次运行都会对照上一次，先说变化；没变化就不打扰你。',
+  routinesEmpty: '还没有例行的事。', remindCard: '提醒', gotIt: '知道了', runNow: '现在跑一次', pause: '暂停', resume: '恢复', remove: '删除', nextRun: '下次', lastRun: '上次', neverRan: '还没跑过', noChange: '没有变化', changed: '有变化', briefs: '今天的例行', scheduled: '已安排', scheduledHint: '到点会自动做，结果在「例行」和「等你看」里。', kindTask: '例行任务', kindRemind: '提醒', quietTag: '安静',
   say: '接着说，比如“再短一点”或“换个角度”', sayHint: '回车发送，同一个会话继续。', sayBusy: '核验中，稍等。', conversational: '这次是回答，没有生成文档；要保存时说“整理成一份…”。',
 }
 const en = {
@@ -227,6 +229,8 @@ const en = {
   toolFailed: 'failed', stepsTitle: 'Steps',
   attention: 'For you', attentionEmpty: 'Nothing waiting for you.', failedCard: 'Failed, can run again', issuesCard: 'Verification found issues', rateCard: 'Delivered, take a look and rate', running1: 'running', waiting1: 'waiting for you', quiet: 'A quiet day so far', greetMorning: 'Good morning', greetDay: 'Good afternoon', greetNight: 'Good evening', todayDone: 'Finished today', examplesTitle: 'Try',
   notesMore: 'Tap for the verifier’s full notes',
+  routines: 'Routines', routinesLead: 'Things done for you on a schedule, and reminders. Just say a sentence with a time. A routine run compares with the last one and leads with what changed; no change, no interruption.',
+  routinesEmpty: 'No routines yet.', remindCard: 'Reminder', gotIt: 'Got it', runNow: 'Run now', pause: 'Pause', resume: 'Resume', remove: 'Remove', nextRun: 'Next', lastRun: 'Last', neverRan: 'Never ran', noChange: 'No change', changed: 'Changed', briefs: 'Today’s routines', scheduled: 'Scheduled', scheduledHint: 'It runs on time; results land in Routines and For you.', kindTask: 'Routine', kindRemind: 'Reminder', quietTag: 'quiet',
   say: 'Keep going, e.g. “shorter” or “from another angle”', sayHint: 'Enter sends into the same session.', sayBusy: 'Verifying, one moment.', conversational: 'This was an answer, no document was produced; ask for one when you want it saved.',
 }
 
@@ -403,6 +407,13 @@ body[data-ds-dark-theme] .mwt{--mwt-canvas:#171716;--mwt-surface:#1f1f1e;--mwt-s
 .mwt-scen-card .ex button{appearance:none;border:0;background:transparent;color:var(--mwt-fg2);font:inherit;font-size:13px;text-align:left;padding:5px 0;cursor:pointer}
 .mwt-scen-card .ex button:hover{color:var(--mwt-fg)}
 .mwt-scen-card>div:last-child{padding-top:4px}
+.mwt-rts{display:grid;gap:8px}
+.mwt-rt{display:grid;grid-template-columns:20px minmax(0,1fr) auto;align-items:center;column-gap:12px;padding:12px 16px;border:1px solid var(--mwt-line);border-radius:14px;background:var(--mwt-surface)}
+.mwt-rt[data-off=true]{opacity:.55}
+.mwt-rt-title{font-weight:500;display:flex;align-items:center;gap:8px;min-width:0}
+.mwt-rt-title .mwt-badge{font-size:11px;padding:0 7px}
+.mwt-rt-sub{color:var(--mwt-fg2);font-size:12.5px;font-variant-numeric:tabular-nums}
+@media (max-width:720px){.mwt-rt{grid-template-columns:20px minmax(0,1fr)}.mwt-rt .mwt-actions{grid-column:2;margin-top:6px}}
 .mwt-toasts{position:fixed;right:20px;bottom:20px;z-index:10050;display:grid;gap:8px;max-width:380px}
 .mwt-toast{display:grid;grid-template-columns:20px minmax(0,1fr) auto;column-gap:10px;align-items:center;padding:12px 14px;border:1px solid var(--mwt-line);border-radius:14px;background:var(--mwt-surface);color:var(--mwt-fg);box-shadow:var(--mwt-shadow);font-size:13px;line-height:18px;animation:mwt-in 220ms cubic-bezier(.2,.8,.2,1)}
 @keyframes mwt-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
@@ -412,7 +423,7 @@ body[data-ds-dark-theme] .mwt{--mwt-canvas:#171716;--mwt-surface:#1f1f1e;--mwt-s
 
 // ---- state ------------------------------------------------------------------
 // `state` is replaced, never mutated: useSyncExternalStore compares snapshots by identity.
-let state = { items: [], deliverables: [], scenarios: [], loadedAt: 0, error: '' }
+let state = { items: [], deliverables: [], reminders: [], routines: [], scenarios: [], loadedAt: 0, error: '' }
 const listeners = new Set()
 function setState(patch) { state = { ...state, ...patch }; for (const fn of listeners) fn() }
 function subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn) }
@@ -425,12 +436,14 @@ async function api(path, body) {
 }
 let refreshing = null
 const completionListeners = new Set() // (task) => void, fired when a task reaches done
+const noticeListeners = new Set() // (title, body) => void
+function announce(title, body) { for (const fn of noticeListeners) { try { fn(title, body) } catch {} } }
 function refresh() {
   if (refreshing) return refreshing
   const before = new Map(state.items.map((t) => [t.id, t.status]))
   refreshing = api('/tasks').then((d) => {
     const items = d.items || []
-    setState({ items, deliverables: d.deliverables || [], scenarios: d.scenarios || [], error: '', loadedAt: Date.now() })
+    setState({ items, deliverables: d.deliverables || [], reminders: d.reminders || [], routines: d.routines || [], scenarios: d.scenarios || [], error: '', loadedAt: Date.now() })
     fire('mywork:tasks-updated', { items })
     if (before.size) for (const t of items) if (t.status === 'done' && before.has(t.id) && before.get(t.id) !== 'done') for (const fn of completionListeners) { try { fn(t) } catch {} }
   }).catch((e) => { setState({ error: e.message || String(e) }) }).finally(() => { refreshing = null })
@@ -520,7 +533,7 @@ function makeComponents(ctx, t) {
 
   function TaskCard({ task, onOpen, compact }) {
     const live = task.status !== 'done'
-    const sub = live ? (task.currentStep || task.statusLabel) : task.error ? (t('failedTitle') + ' · ' + task.error) : (task.summary || (task.deliverables[0] && task.deliverables[0].title) || '')
+    const sub = live ? (task.currentStep || task.statusLabel) : task.error ? (t('failedTitle') + ' · ' + task.error) : ((task.routineId ? (task.quiet ? t('noChange') + ' · ' : t('changed') + ' · ') : '') + (task.summary || (task.deliverables[0] && task.deliverables[0].title) || ''))
     return h('button', { type: 'button', className: 'mwt-card', onClick: () => onOpen(task.id) },
       h(StatusDot, { task }),
       h('span', null, h('div', { className: 'mwt-card-title' }, task.title), compact ? null : h('div', { className: 'mwt-card-sub' + (task.error ? ' err' : '') }, sub)),
@@ -545,7 +558,7 @@ function makeComponents(ctx, t) {
       const input = text.trim()
       if (!input || busy) return
       setBusy(true); setErr('')
-      try { const d = await api('/create', scenario ? { input, scenario } : { input }); setText(''); setScenario(''); await refresh(); schedulePoll(); if (d.task) openTask(d.task.id) } catch (e) { setErr(e.message || String(e)) } finally { setBusy(false) }
+      try { const d = await api('/create', scenario ? { input, scenario } : { input }); setText(''); setScenario(''); await refresh(); schedulePoll(); if (d.routine) { announce(t('scheduled') + '：' + d.routine.scheduleLabel + ' · ' + d.routine.title, t('scheduledHint')); selectPanel(PANELS.routines) } else if (d.task) openTask(d.task.id) } catch (e) { setErr(e.message || String(e)) } finally { setBusy(false) }
     }
     const grow = () => { const el = ref.current; if (!el) return; el.style.height = 'auto'; el.style.height = Math.min(240, el.scrollHeight) + 'px' }
     React.useEffect(grow, [text])
@@ -560,9 +573,10 @@ function makeComponents(ctx, t) {
   }
 
   /** What needs the user: failures, verification issues, unrated deliveries (last 7 days). */
-  function attentionItems(items, deliverables) {
+  function attentionItems(items, deliverables, reminders) {
     const week = Date.now() - 7 * 86400000
     const out = []
+    for (const r of reminders || []) out.push({ key: 'r' + r.routineId + r.at, kind: 'remind', at: r.at, title: r.title, sub: r.input && r.input !== r.title ? r.input : '', reminder: r })
     for (const t of items) {
       if (t.status !== 'done' || new Date(t.finishedAt || t.createdAt) < week) continue
       if (t.error && !/已取消/.test(t.error)) out.push({ key: 'f' + t.id, kind: 'failed', at: t.finishedAt, title: t.title, sub: t.error, task: t })
@@ -574,17 +588,18 @@ function makeComponents(ctx, t) {
       if (out.some((x) => x.task && x.task.id === d.taskId)) continue
       out.push({ key: 'd' + d.id, kind: 'rate', at: d.createdAt, title: d.title, sub: '', deliverable: d })
     }
-    return out.sort((a, b) => new Date(b.at) - new Date(a.at)).slice(0, 6)
+    return out.sort((a, b) => (a.kind === 'remind') !== (b.kind === 'remind') ? (a.kind === 'remind' ? -1 : 1) : new Date(b.at) - new Date(a.at)).slice(0, 8)
   }
 
   function AttentionCard({ item }) {
-    const label = item.kind === 'failed' ? t('failedCard') : item.kind === 'issues' ? t('issuesCard') : t('rateCard')
-    const open = () => { if (item.deliverable) openDeliverable(item.deliverable.id); else openTask(item.task.id) }
+    const label = item.kind === 'failed' ? t('failedCard') : item.kind === 'issues' ? t('issuesCard') : item.kind === 'remind' ? t('remindCard') + ' · ' + fmtTime(item.at) : t('rateCard')
+    const open = () => { if (item.reminder) return; if (item.deliverable) openDeliverable(item.deliverable.id); else openTask(item.task.id) }
+    const ack = (e) => { e.stopPropagation(); api('/routines/ack', { id: item.reminder.routineId, at: item.reminder.at }).then(() => refresh()).catch(() => {}) }
     const rerun = (e) => { e.stopPropagation(); api('/rerun', { id: item.task.id }).then((d) => { refresh().then(schedulePoll); if (d.task) openTask(d.task.id) }).catch(() => {}) }
     return h('div', { className: 'mwt-att', 'data-kind': item.kind, role: 'button', tabIndex: 0, onClick: open, onKeyDown: (e) => { if (e.key === 'Enter') open() } },
-      h('span', { className: 'mwt-att-ic' }, icon(item.kind === 'failed' ? 'circle-x' : item.kind === 'issues' ? 'circle-x' : 'file-text', { size: 16 })),
+      h('span', { className: 'mwt-att-ic' }, icon(item.kind === 'failed' ? 'circle-x' : item.kind === 'issues' ? 'circle-x' : item.kind === 'remind' ? 'bell' : 'file-text', { size: 16 })),
       h('div', { className: 'mwt-att-body' }, h('div', { className: 'mwt-att-label' }, label), h('div', { className: 'mwt-att-title' }, item.title), item.sub ? h('div', { className: 'mwt-att-sub' }, item.sub) : null),
-      item.kind === 'failed' ? h('button', { type: 'button', className: 'mwt-btn', onClick: rerun }, icon('rotate-cw', { size: 13 }), t('rerun')) : h('span', { className: 'mwt-att-go' }, icon('arrow-left', { size: 14, style: { transform: 'rotate(180deg)' } })))
+      item.kind === 'failed' ? h('button', { type: 'button', className: 'mwt-btn', onClick: rerun }, icon('rotate-cw', { size: 13 }), t('rerun')) : item.kind === 'remind' ? h('button', { type: 'button', className: 'mwt-btn primary', onClick: ack }, icon('check', { size: 13 }), t('gotIt')) : h('span', { className: 'mwt-att-go' }, icon('arrow-left', { size: 14, style: { transform: 'rotate(180deg)' } })))
   }
 
   function TodayPage() {
@@ -592,8 +607,10 @@ function makeComponents(ctx, t) {
     const initial = nav.pendingInput; nav.pendingInput = null
     const active = s.items.filter((x) => x.status !== 'done')
     useTick(active.length > 0)
-    const attention = attentionItems(s.items, s.deliverables)
-    const todayDocs = s.deliverables.filter((d) => isToday(d.createdAt)).slice(0, 8)
+    const attention = attentionItems(s.items, s.deliverables, s.reminders)
+    const briefs = s.items.filter((x) => x.routineId && x.status === 'done' && isToday(x.finishedAt)).slice(0, 6)
+    const routineTasks = new Set(briefs.map((x) => x.id))
+    const todayDocs = s.deliverables.filter((d) => isToday(d.createdAt) && !routineTasks.has(d.taskId)).slice(0, 8)
     const recent = s.items.filter((x) => x.status === 'done').slice(0, 5)
     const hour = new Date().getHours()
     const greet = hour < 12 ? t('greetMorning') : hour < 18 ? t('greetDay') : t('greetNight')
@@ -608,6 +625,8 @@ function makeComponents(ctx, t) {
         attention.length ? h('div', { className: 'mwt-atts' }, attention.map((item) => h(AttentionCard, { key: item.key, item }))) : h('div', { className: 'mwt-empty' }, t('attentionEmpty'))),
       active.length ? h('section', { className: 'mwt-section' }, h('h2', null, icon('loader', { size: 14 }), t('running'), h('span', null, String(active.length))),
         h('div', { className: 'mwt-cards' }, active.map((x) => h(TaskCard, { key: x.id, task: x, onOpen: openTask })))) : null,
+      briefs.length ? h('section', { className: 'mwt-section' }, h('h2', null, icon('history', { size: 14 }), t('briefs'), h('span', null, String(briefs.length))),
+        h('div', { className: 'mwt-cards' }, briefs.map((x) => h(TaskCard, { key: x.id, task: x, onOpen: openTask })))) : null,
       todayDocs.length ? h('section', { className: 'mwt-section' }, h('h2', null, icon('file-text', { size: 14 }), t('todayDone'), h('span', null, String(todayDocs.length))),
         h('div', { className: 'mwt-cards' }, todayDocs.map(docCard))) : null,
       h('section', { className: 'mwt-section' }, h('h2', null, icon('history', { size: 14 }), t('recent')),
@@ -773,26 +792,71 @@ function makeComponents(ctx, t) {
       packs.length ? null : h('div', { className: 'mwt-empty', style: { marginTop: 16 } }, t('packsEmpty'))))
   }
 
+  function RoutinesPage() {
+    const s = usePolling()
+    const [items, setItems] = React.useState([])
+    const load = React.useCallback(() => api('/routines').then((d) => setItems(d.items || [])).catch(() => {}), [])
+    React.useEffect(() => { load() }, [s.loadedAt, load])
+    const act = (path, body) => api(path, body).then(() => { load(); refresh().then(schedulePoll) }).catch((e) => console.warn(`[${PLUGIN}]`, e))
+    const row = (r) => {
+      const last = r.lastRun
+      const lastText = !last ? t('neverRan') : last.fired ? fmtDate(last.at) : (last.error ? t('failedTitle') : last.changed === false ? t('noChange') : last.changed === true ? t('changed') : '') + ' · ' + fmtDate(last.at)
+      return h('div', { key: r.id, className: 'mwt-rt', 'data-off': !r.enabled },
+        h('span', { className: 'mwt-dot' }, icon(r.kind === 'remind' ? 'bell' : 'history', { size: 16 })),
+        h('div', { className: 'mwt-rt-body' },
+          h('div', { className: 'mwt-rt-title' }, r.title, h('span', { className: 'mwt-badge' }, r.kind === 'remind' ? t('kindRemind') : t('kindTask'))),
+          h('div', { className: 'mwt-rt-sub' }, r.scheduleLabel, r.enabled && r.nextRunAt ? ` · ${t('nextRun')} ${fmtDate(r.nextRunAt)}` : '', ` · ${t('lastRun')} ${lastText}`)),
+        h('div', { className: 'mwt-actions' },
+          last && last.taskId ? h('button', { type: 'button', className: 'mwt-btn ghost', onClick: () => openTask(last.taskId) }, icon('file-text', { size: 13 }), t('open')) : null,
+          h('button', { type: 'button', className: 'mwt-btn ghost', onClick: () => act('/routines/run', { id: r.id }) }, icon('play', { size: 13 }), t('runNow')),
+          r.schedule.type !== 'once' || r.enabled ? h('button', { type: 'button', className: 'mwt-btn ghost', onClick: () => act('/routines/enable', { id: r.id, enabled: !r.enabled }) }, icon(r.enabled ? 'pause' : 'play', { size: 13 }), r.enabled ? t('pause') : t('resume')) : null,
+          h('button', { type: 'button', className: 'mwt-btn ghost', onClick: () => act('/routines/remove', { id: r.id }) }, icon('trash', { size: 13 }), t('remove'))))
+    }
+    return h('div', { className: 'mwt' }, h('style', null, STYLE), h('div', { className: 'mwt-page' },
+      h('div', { className: 'mwt-title' }, h('h1', null, t('routines')), h('span', null, String(items.length))),
+      h('p', { className: 'mwt-lead' }, t('routinesLead')),
+      items.length ? h('div', { className: 'mwt-rts' }, items.map(row)) : h('div', { className: 'mwt-empty' }, t('routinesEmpty')),
+      h('div', { className: 'mwt-dock' }, h(Ask, { scenarios: s.scenarios, hero: false, compact: true }))))
+  }
+
   /** Always mounted: completion toasts and browser notifications, and the poll that feeds the sidebar. */
   function Overlay() {
     usePolling()
     const [toasts, setToasts] = React.useState([])
     React.useEffect(() => {
       const onDone = (task) => {
+        if (task.quiet && !task.error) return
         setToasts((prev) => [...prev.slice(-3), { id: task.id + ':' + Date.now(), task }])
         try { if (typeof Notification !== 'undefined' && Notification.permission === 'granted') new Notification((task.error ? t('failedToast') : t('doneToast')) + ' · ' + task.title, { body: task.error || task.summary || '' }) } catch {}
       }
       completionListeners.add(onDone)
-      return () => completionListeners.delete(onDone)
+      const onNotice = (title, body) => setToasts((prev) => [...prev.slice(-3), { id: 'n' + Date.now(), notice: { title, body } }])
+      noticeListeners.add(onNotice)
+      return () => { completionListeners.delete(onDone); noticeListeners.delete(onNotice) }
     }, [])
+    // Reminders: a new pending reminder pops a toast and a browser notification once.
+    const seen = React.useRef(new Set())
+    const st = React.useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
+    React.useEffect(() => {
+      for (const r of st.reminders || []) {
+        const key = r.routineId + r.at
+        if (seen.current.has(key)) continue
+        seen.current.add(key)
+        if (Date.now() - new Date(r.at) > 3600000) continue
+        setToasts((prev) => [...prev.slice(-3), { id: 'r' + key, notice: { title: t('remindCard') + ' · ' + r.title, body: r.input && r.input !== r.title ? r.input : '' } }])
+        try { if (typeof Notification !== 'undefined' && Notification.permission === 'granted') new Notification(t('remindCard') + ' · ' + r.title, { body: r.input || '' }) } catch {}
+      }
+    }, [st.reminders])
     React.useEffect(() => { if (!toasts.length) return; const id = setTimeout(() => setToasts((prev) => prev.slice(1)), 8000); return () => clearTimeout(id) }, [toasts])
     if (!toasts.length) return null
-    return h('div', { className: 'mwt mwt-toasts', style: { height: 'auto', overflow: 'visible', background: 'transparent' } }, h('style', null, STYLE), toasts.map(({ id, task }) => h('div', { key: id, className: 'mwt-toast' },
-      h(StatusDot, { task }), h('div', null, h('b', null, task.title), h('span', null, task.error || task.summary || '')),
-      h('button', { type: 'button', className: 'mwt-btn', onClick: () => { setToasts((prev) => prev.filter((x) => x.id !== id)); openTask(task.id) } }, t('open')))))
+    return h('div', { className: 'mwt mwt-toasts', style: { height: 'auto', overflow: 'visible', background: 'transparent' } }, h('style', null, STYLE), toasts.map(({ id, task, notice }) => notice
+      ? h('div', { key: id, className: 'mwt-toast' }, h('span', { className: 'mwt-dot' }, icon('bell', { size: 16 })), h('div', null, h('b', null, notice.title), notice.body ? h('span', null, notice.body) : null), h('button', { type: 'button', className: 'mwt-btn', onClick: () => setToasts((prev) => prev.filter((x) => x.id !== id)) }, t('gotIt')))
+      : h('div', { key: id, className: 'mwt-toast' },
+        h(StatusDot, { task }), h('div', null, h('b', null, task.title), h('span', null, task.error || task.summary || '')),
+        h('button', { type: 'button', className: 'mwt-btn', onClick: () => { setToasts((prev) => prev.filter((x) => x.id !== id)); openTask(task.id) } }, t('open')))))
   }
 
-  return { TodayPage, TasksPage, DeliverablesPage, ScenariosPage, Overlay, openTask, openDeliverable, newTask }
+  return { TodayPage, TasksPage, DeliverablesPage, RoutinesPage, ScenariosPage, Overlay, openTask, openDeliverable, newTask }
 }
 
 // ---- plugin -----------------------------------------------------------------
@@ -811,7 +875,8 @@ exports.apply = function apply(ctx) {
   page(PANELS.today, 1, 'today', 'sun', c.TodayPage)
   page(PANELS.tasks, 2, 'tasks', 'list-checks', c.TasksPage)
   page(PANELS.deliverables, 3, 'deliverables', 'file-text', c.DeliverablesPage)
-  page(PANELS.scenarios, 4, 'scenarios', 'package', c.ScenariosPage)
+  page(PANELS.routines, 4, 'routines', 'history', c.RoutinesPage)
+  page(PANELS.scenarios, 5, 'scenarios', 'package', c.ScenariosPage)
   ctx.slots.inject('shell.overlay', () => ctx.slots.register({ name: 'shell.overlay', id: PLUGIN, order: 45 }, function MyworkOverlay() { return h(c.Overlay) }))
 
   // Window events from the sidebar (dsh-mywork-codex-ui) and other members.

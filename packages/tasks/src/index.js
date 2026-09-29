@@ -15,6 +15,7 @@ import { createEngine } from './engine.js'
 import { configSchema, defineRawTool, rejectUntrusted } from './harness.js'
 import { BUILTIN_SCENARIOS, createScenarioRegistry } from './scenarios.js'
 import { DeliverableStore, myworkDir, TaskStore, taskView } from './store.js'
+import { describeSchedule, parseSchedule, RoutineStore, routineView } from './routines.js'
 
 export const name = 'dsh-mywork-tasks'
 export const inject = ['tools', 'agents', 'sessions', 'workspaceRegistry', 'agentDefaultModel', 'agentPresets', 'permissionPresets']
@@ -27,11 +28,12 @@ export function apply(ctx, config = {}) {
   const dir = myworkDir()
   const store = new TaskStore(join(dir, 'tasks.json'))
   const deliverables = new DeliverableStore(join(dir, 'deliverables.json'))
+  const routines = new RoutineStore(join(dir, 'routines.json'))
   const scenarios = createScenarioRegistry()
   for (const s of BUILTIN_SCENARIOS) scenarios.register(s)
   const listeners = new Set()
-  const emit = (kind, task, deliverable) => {
-    const payload = { kind, task: task ? taskView(task, deliverables) : null, ...(deliverable ? { deliverable: { id: deliverable.id, title: deliverable.title, kind: deliverable.kind, taskId: deliverable.taskId } } : {}) }
+  const emit = (kind, task, deliverable, extra) => {
+    const payload = { kind, task: task ? taskView(task, deliverables) : null, ...(deliverable ? { deliverable: { id: deliverable.id, title: deliverable.title, kind: deliverable.kind, taskId: deliverable.taskId } } : {}), ...(extra || {}) }
     for (const fn of listeners) { try { fn(payload) } catch (e) { log('listener error: ' + (e && e.message)) } }
     try { ctx.emit('mywork/task', payload) } catch {}
   }
@@ -41,21 +43,45 @@ export function apply(ctx, config = {}) {
   const hasTool = (name) => { try { return !!ctx.tools.get(name) } catch { return false } }
   const capabilities = () => ({ browser: hasTool('open_url') || hasTool('browser_navigate'), office: hasTool('univer_new'), im: hasTool('im_send') })
   const engine = createEngine({
-    ctx, store, deliverables, scenarios, log, emit, controller: () => controller, capabilities,
+    ctx, store, deliverables, scenarios, log, emit, controller: () => controller, capabilities, routines,
     config: { concurrency: Number(config.concurrency) || 2, timeoutMs: Math.max(1, Number(config.timeoutMinutes) || 20) * 60000, permission: String(config.permission || 'workspace-write'), agentPreset: config.agentPreset === '' ? undefined : (config.agentPreset || 'standard'), cwd: String(config.cwd || ''), verify: config.verify !== false },
   })
 
-  const create = ({ input, scenario, title, source }) => {
+  const create = ({ input, scenario, title, source, routineId }) => {
     // The user never picks: a pack claims the input through match(), otherwise 通用 decides for itself.
     const s = scenario ? scenarios.resolve(scenario) : scenarios.route(input)
-    const task = store.create({ input, scenario: s ? s.id : 'general', title, source })
+    const task = store.create({ input, scenario: s ? s.id : 'general', title, source, routineId })
     log(`task ${task.id} queued (${task.scenario}): ${task.title}`)
     emit('queued', task)
     engine.pump()
     return taskView(task, deliverables)
   }
+  /** Routines: a sentence with a time becomes a standing thing instead of a one-off task. */
+  const createRoutine = ({ input, schedule, kind, title }) => {
+    let parsed = null
+    if (!schedule) { parsed = parseSchedule(input); if (!parsed) throw new Error('没看出时间。写法如「每天 9 点…」「每周一 8:30…」「工作日 18 点…」「明天 8 点提醒我…」「30 分钟后提醒我…」') }
+    const r = routines.create({ kind: kind || (parsed ? parsed.kind : 'task'), title, input: parsed ? parsed.text : input, schedule: schedule || parsed.schedule })
+    log(`routine ${r.id} ${r.kind} ${describeSchedule(r.schedule)}: ${r.title}`)
+    emit('routine', null, undefined, { routine: routineView(r) })
+    return routineView(r)
+  }
+  const runRoutine = (id) => {
+    const r = routines.get(id)
+    if (!r) throw new Error('routine not found')
+    if (r.kind === 'remind') { routines.fire(id); routines.ran(id, { fired: true }); emit('remind', null, undefined, { routine: routineView(routines.get(id)) }); return routineView(routines.get(id)) }
+    const task = create({ input: r.input, title: r.title, source: 'routine', routineId: r.id })
+    routines.ran(id, { taskId: task.id })
+    return routineView(routines.get(id))
+  }
+  // Scheduler: every 30 s run what is due. A run that fires while the server was down runs once on start.
+  ctx.effect(() => { const tick = () => { try { for (const r of routines.due()) runRoutine(r.id) } catch (e) { log('scheduler: ' + (e && e.message)) } }; const id = setInterval(tick, 30000); const first = setTimeout(tick, 5000); return () => { clearInterval(id); clearTimeout(first) } }, 'dsh-mywork-tasks: scheduler')
+
   const api = {
     register: (s) => scenarios.register(s),
+    routines: () => routines.list().map(routineView),
+    routine: (id) => { const r = routines.get(id); return r ? routineView(r) : null },
+    createRoutine,
+    runRoutine,
     scenarios: () => scenarios.list(),
     create,
     list: () => store.list().map((t) => taskView(t, deliverables)),
@@ -101,10 +127,17 @@ export function apply(ctx, config = {}) {
       render: (_a, v) => [{ type: 'text', text: `已创建后台任务「${v.title}」（${v.id}），完成后在「任务」页查看。` }],
     }))
     ctx.tools.register(defineRawTool({
+      name: 'mywork_routine_create',
+      description: '给用户安排一件例行的事或一个提醒：「每天 9 点…」「每周一 8:30…」「工作日 18 点…」「每 2 小时…」是例行任务（每次到点后台跑一遍，交付物里先说变化）；带"提醒"字样的是提醒（到点在首页和 IM 提示，不跑 agent）。schedule 用自然语言写在 input 里即可。用户说"每天/每周/到点提醒我"时用它，不要自己去写 cron。',
+      parameters: { input: { type: 'string', required: true, description: '含时间的一句话，例如"每天 9 点给我一份 Node 生态简报"或"明天 8 点提醒我交周报"' }, title: { type: 'string', description: '可选标题' } },
+      async execute(args) { const r = createRoutine({ input: args.input, title: args.title }); return { id: r.id, kind: r.kind, title: r.title, schedule: r.scheduleLabel, nextRunAt: r.nextRunAt } },
+      render: (_a, v) => [{ type: 'text', text: `已安排${v.kind === 'remind' ? '提醒' : '例行任务'}「${v.title}」：${v.schedule}，下次 ${v.nextRunAt ? new Date(v.nextRunAt).toLocaleString() : '—'}。` }],
+    }))
+    ctx.tools.register(defineRawTool({
       name: 'mywork_tasks',
-      description: '列出 MyWork 的后台任务（最近 20 条：状态、当前步骤、交付物）和已装的场景。',
+      description: '列出 MyWork 的后台任务（最近 20 条：状态、当前步骤、交付物）、例行任务与提醒、已装的领域包。',
       parameters: {},
-      async execute() { return { scenarios: scenarios.list().map((s) => ({ id: s.id, label: s.label })), tasks: api.list().slice(0, 20).map((t) => ({ id: t.id, title: t.title, status: t.statusLabel, step: t.currentStep, deliverables: t.deliverables.map((d) => d.title), error: t.error })) } },
+      async execute() { return { routines: api.routines().map((r) => ({ id: r.id, kind: r.kind, title: r.title, schedule: r.scheduleLabel, enabled: r.enabled, nextRunAt: r.nextRunAt })), scenarios: scenarios.list().map((s) => ({ id: s.id, label: s.label })), tasks: api.list().slice(0, 20).map((t) => ({ id: t.id, title: t.title, status: t.statusLabel, step: t.currentStep, deliverables: t.deliverables.map((d) => d.title), error: t.error })) } },
     }))
   }
 
@@ -116,9 +149,19 @@ export function apply(ctx, config = {}) {
     const post = (path, handler) => route(path, async (req, res) => { if (req.method !== 'POST') return json(res, { error: 'POST only' }, 405); return handler(await readBody(req), res, req) })
     const deliverableSummary = (d) => ({ id: d.id, taskId: d.taskId, title: d.title, kind: d.kind, scenario: d.scenario, createdAt: d.createdAt, rating: d.rating, verification: d.verification })
     // One payload feeds 今日, the sidebar and the lists: tasks without their activity, recent deliverables, packs, capabilities.
-    route('/tasks', async (_req, res) => json(res, { items: api.list().map(({ activity: _a, ...t }) => t), deliverables: deliverables.list().slice(0, 60).map(deliverableSummary), scenarios: scenarios.list(), capabilities: capabilities() }))
+    route('/tasks', async (_req, res) => json(res, { items: api.list().map(({ activity: _a, ...t }) => t), deliverables: deliverables.list().slice(0, 60).map(deliverableSummary), reminders: routines.pending(), routines: api.routines().map((r) => ({ id: r.id, kind: r.kind, title: r.title, scheduleLabel: r.scheduleLabel, enabled: r.enabled, nextRunAt: r.nextRunAt })), scenarios: scenarios.list(), capabilities: capabilities() }))
     route('/task', async (req, res) => { const t = api.get(query(req).get('id') || ''); if (!t) return json(res, { error: 'task not found' }, 404); json(res, { task: t, deliverables: deliverables.forTask(t.id) }) })
-    post('/create', async (b, res) => { if (!String(b.input || '').trim()) return json(res, { error: 'input is required' }, 400); json(res, { task: create({ input: b.input, scenario: b.scenario, title: b.title, source: 'ui' }) }) })
+    post('/create', async (b, res) => {
+      if (!String(b.input || '').trim()) return json(res, { error: 'input is required' }, 400)
+      if (!b.scenario && b.routine !== false && parseSchedule(b.input)) return json(res, { routine: createRoutine({ input: b.input }) })
+      json(res, { task: create({ input: b.input, scenario: b.scenario, title: b.title, source: 'ui' }) })
+    })
+    route('/routines', async (_req, res) => json(res, { items: api.routines(), pending: routines.pending() }))
+    post('/routines/create', async (b, res) => json(res, { routine: createRoutine({ input: b.input, schedule: b.schedule, kind: b.kind, title: b.title }) }))
+    post('/routines/run', async (b, res) => json(res, { routine: runRoutine(String(b.id || '')) }))
+    post('/routines/enable', async (b, res) => { const r = routines.setEnabled(String(b.id || ''), b.enabled !== false); if (!r) return json(res, { error: 'routine not found' }, 404); json(res, { routine: routineView(r) }) })
+    post('/routines/remove', async (b, res) => json(res, { removed: routines.remove(String(b.id || '')) }))
+    post('/routines/ack', async (b, res) => { const r = routines.ack(String(b.id || ''), b.at); if (!r) return json(res, { error: 'routine not found' }, 404); json(res, { routine: routineView(r), pending: routines.pending() }) })
     post('/cancel', async (b, res) => json(res, { task: api.cancel(String(b.id || '')) }))
     post('/verify', async (b, res) => json(res, { task: api.verify(String(b.id || '')) }))
     post('/say', async (b, res) => { if (!String(b.text || '').trim()) return json(res, { error: 'text is required' }, 400); json(res, { task: await api.say(String(b.id || ''), b.text) }) })
@@ -135,5 +178,5 @@ export function apply(ctx, config = {}) {
     } catch (e) { log('system prompt section skipped: ' + (e && e.message)) }
   })
 
-  log(`ready (${store.items.length} tasks, ${deliverables.items.length} deliverables, ${scenarios.list().length} scenario)`)
+  log(`ready (${store.items.length} tasks, ${deliverables.items.length} deliverables, ${routines.items.length} routines, ${scenarios.list().length} scenario)`)
 }

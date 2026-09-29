@@ -59,12 +59,12 @@ export class JsonList {
 
 export class TaskStore extends JsonList {
   constructor(file) { super(file, MAX_TASKS) }
-  create({ title, input, scenario, source }) {
+  create({ title, input, scenario, source, routineId }) {
     const text = String(input || '').trim()
     if (!text) throw new Error('input is required')
     return this.add({
       id: newId('task'), title: String(title || '').trim() || titleOf(text), scenario: scenario || 'general', input: text,
-      status: 'queued', steps: [], activity: [], sessionId: '', deliverableIds: [], source: source || 'ui',
+      status: 'queued', steps: [], activity: [], sessionId: '', deliverableIds: [], source: source || 'ui', routineId: routineId || '', quiet: false,
       createdAt: new Date().toISOString(), startedAt: '', finishedAt: '', error: '', summary: '',
     })
   }

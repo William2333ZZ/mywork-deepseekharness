@@ -7,13 +7,13 @@
  * plugin's pages goes through window events so neither package imports the other.
  */
 import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react'
-import { CircleCheck, CircleX, FileText, History, ListChecks, Loader, PanelLeft, Package, Plus, Sun } from 'lucide-react'
+import { CircleCheck, CircleX, Clock, FileText, History, ListChecks, Loader, PanelLeft, Package, Plus, Sun } from 'lucide-react'
 import type { CodexSidebarProps } from './CodexSidebar.tsx'
 
 export const V2_STORAGE_KEY = 'dsh-mywork:v2'
 export function v2Active(): boolean { try { return localStorage.getItem(V2_STORAGE_KEY) !== 'off' } catch { return true } }
 
-export const MYWORK_PANELS = { today: 'mywork-today', tasks: 'mywork-tasks', deliverables: 'mywork-deliverables', scenarios: 'mywork-scenarios' } as const
+export const MYWORK_PANELS = { today: 'mywork-today', tasks: 'mywork-tasks', deliverables: 'mywork-deliverables', routines: 'mywork-routines', scenarios: 'mywork-scenarios' } as const
 const API = '/mywork-tasks/api/tasks'
 const FAST_MS = 4000
 const SLOW_MS = 30000
@@ -108,6 +108,7 @@ export function MyworkSidebar({ selectPanel, usePanelInfo = useLegacyPanelInfo, 
     { id: MYWORK_PANELS.today, label: t('v2.today'), Icon: Sun },
     { id: MYWORK_PANELS.tasks, label: t('v2.tasks'), Icon: ListChecks },
     { id: MYWORK_PANELS.deliverables, label: t('v2.deliverables'), Icon: FileText },
+    { id: MYWORK_PANELS.routines, label: t('v2.routines'), Icon: Clock },
     { id: MYWORK_PANELS.scenarios, label: t('v2.scenarios'), Icon: Package },
   ]
   useEffect(() => { document.body.setAttribute('data-mywork-v2', ''); return () => { document.body.removeAttribute('data-mywork-v2') } }, [])

@@ -1708,6 +1708,13 @@ window.__ModuleLoader__.load({
 			"sidebar.assistant": "IM助理",
 			"sidebar.imSettings": "IM助理",
 			"sidebar.tasksTab": "任务",
+			"settings.v2.common": "常用",
+			"settings.v2.scenarios": "场景与成员",
+			"settings.v2.notify": "通知",
+			"settings.v2.routine": "例行任务",
+			"settings.v2.mcp": "MCP 连接器",
+			"settings.v2.process": "过程记录",
+			"settings.v2.about": "关于",
 			"v2.today": "今日",
 			"v2.tasks": "任务",
 			"v2.deliverables": "交付物",
@@ -2015,6 +2022,13 @@ window.__ModuleLoader__.load({
 			"sidebar.assistant": "IM Assistant",
 			"sidebar.imSettings": "IM Assistant",
 			"sidebar.tasksTab": "Tasks",
+			"settings.v2.common": "Common",
+			"settings.v2.scenarios": "Scenarios & members",
+			"settings.v2.notify": "Notifications",
+			"settings.v2.routine": "Routine tasks",
+			"settings.v2.mcp": "MCP connectors",
+			"settings.v2.process": "Process records",
+			"settings.v2.about": "About",
 			"v2.today": "Today",
 			"v2.tasks": "Tasks",
 			"v2.deliverables": "Deliverables",
@@ -2563,37 +2577,41 @@ window.__ModuleLoader__.load({
 		const SLOW_MS = 3e4;
 		const useLegacyPanelInfo$1 = (selector) => selector({ activePanelId: null });
 		const stylesheet$5 = `
-.mws{--mws-bg:#f3f4f2;--mws-fg:#2b2f2e;--mws-fg2:#6d7271;--mws-fg3:#9a9f9e;--mws-line:rgba(37,46,41,.10);--mws-hover:#e6e9e6;--mws-accent:var(--dsw-alias-brand-primary,#4d6fff);width:100%;height:100%;min-width:0;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;background:var(--mws-bg);color:var(--mws-fg);font:14px/20px Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI","Microsoft YaHei UI",sans-serif}
-body[data-ds-dark-theme] .mws{--mws-bg:#1d2120;--mws-fg:#c6c8c7;--mws-fg2:#8f9392;--mws-fg3:#666867;--mws-line:rgba(255,255,255,.08);--mws-hover:#2b302e}
+.mws{--mws-bg:#f2f1ed;--mws-surface:#ffffff;--mws-fg:#1c1c1a;--mws-fg2:#6f6e68;--mws-fg3:#a3a29b;--mws-line:rgba(28,28,26,.08);--mws-line2:rgba(28,28,26,.14);--mws-hover:rgba(28,28,26,.05);--mws-active:rgba(28,28,26,.08);--mws-ink:#1c1c1a;--mws-ink-fg:#fff;--mws-ok:#2f7d5b;--mws-err:#c2473c;width:100%;height:100%;min-width:0;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;background:var(--mws-bg);color:var(--mws-fg);font:13.5px/20px -apple-system,BlinkMacSystemFont,Inter,"PingFang SC","Hiragino Sans GB","Segoe UI","Microsoft YaHei UI",sans-serif;-webkit-font-smoothing:antialiased}
+body[data-ds-dark-theme] .mws{--mws-bg:#1c1c1b;--mws-surface:#262625;--mws-fg:#ebeae6;--mws-fg2:#9c9b95;--mws-fg3:#6b6a65;--mws-line:rgba(255,255,255,.08);--mws-line2:rgba(255,255,255,.14);--mws-hover:rgba(255,255,255,.05);--mws-active:rgba(255,255,255,.09);--mws-ink:#ebeae6;--mws-ink-fg:#171716;--mws-ok:#5fb08a;--mws-err:#e2685d}
 .mws *{box-sizing:border-box}
-.mws-head{display:flex;align-items:center;gap:8px;height:56px;padding:8px 10px 6px 14px}
-.mws-brand{flex:1;display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;letter-spacing:-.01em;min-width:0}
-.mws-brand i{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:7px;background:var(--mws-accent);color:#fff;font-style:normal;font-size:12px;font-weight:700}
-.mws-icon{appearance:none;display:inline-grid;place-items:center;width:30px;height:30px;border:0;border-radius:8px;background:transparent;color:var(--mws-fg2);cursor:pointer}
+.mws button{font-family:inherit;transition:background-color 160ms ease,border-color 160ms ease,color 160ms ease,transform 120ms ease}
+.mws button:active{transform:scale(.98)}
+.mws :focus-visible{outline:2px solid var(--mws-fg2);outline-offset:-2px;border-radius:8px}
+.mws-head{display:flex;align-items:center;gap:8px;height:56px;padding:10px 8px 6px 16px}
+.mws-brand{flex:1;display:flex;align-items:center;gap:9px;font-weight:600;font-size:14.5px;letter-spacing:-.01em;min-width:0}
+.mws-brand i{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:7px;background:var(--mws-ink);color:var(--mws-ink-fg);font-style:normal;font-size:12px;font-weight:700;letter-spacing:0}
+.mws-icon{appearance:none;display:inline-grid;place-items:center;width:30px;height:30px;border:0;border-radius:8px;background:transparent;color:var(--mws-fg3);cursor:pointer}
 .mws-icon:hover{background:var(--mws-hover);color:var(--mws-fg)}
-.mws-new{appearance:none;display:flex;align-items:center;gap:8px;margin:2px 10px 10px;height:36px;padding:0 12px;border:1px solid var(--mws-line);border-radius:10px;background:#fff;color:var(--mws-fg);font:inherit;font-weight:600;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.04)}
-body[data-ds-dark-theme] .mws-new{background:#262b29}
-.mws-new:hover{border-color:var(--mws-fg3)}
-.mws-nav{display:grid;gap:1px;padding:0 6px}
-.mws-nav button{appearance:none;display:flex;align-items:center;gap:10px;height:32px;padding:0 10px;border:0;border-radius:8px;background:transparent;color:var(--mws-fg);font:inherit;text-align:left;cursor:pointer}
-.mws-nav button:hover{background:var(--mws-hover)}
-.mws-nav button[aria-current=page]{background:var(--mws-hover);font-weight:600}
-.mws-nav svg{flex:none;color:var(--mws-fg2)}
-.mws-nav button[aria-current=page] svg{color:var(--mws-fg)}
-.mws-list{flex:1;min-height:0;overflow:auto;margin-top:10px;padding:8px 6px 8px;border-top:1px solid var(--mws-line)}
-.mws-group{padding:6px 10px 4px;color:var(--mws-fg3);font-size:12px;font-weight:600}
-.mws-task{appearance:none;display:grid;grid-template-columns:16px minmax(0,1fr);column-gap:8px;align-items:center;width:100%;min-height:30px;padding:4px 10px;border:0;border-radius:8px;background:transparent;color:var(--mws-fg);font:inherit;text-align:left;cursor:pointer}
+.mws-new{appearance:none;display:flex;align-items:center;gap:8px;margin:4px 10px 12px;height:36px;padding:0 12px;border:1px solid var(--mws-line);border-radius:12px;background:var(--mws-surface);color:var(--mws-fg);font:inherit;font-weight:500;cursor:pointer;box-shadow:0 1px 2px rgba(40,35,25,.05)}
+.mws-new:hover{border-color:var(--mws-line2)}
+.mws-new svg{color:var(--mws-fg2)}
+.mws-nav{display:grid;gap:1px;padding:0 8px}
+.mws-nav button{appearance:none;display:flex;align-items:center;gap:10px;height:32px;padding:0 10px;border:0;border-radius:9px;background:transparent;color:var(--mws-fg2);font:inherit;text-align:left;cursor:pointer}
+.mws-nav button:hover{background:var(--mws-hover);color:var(--mws-fg)}
+.mws-nav button[aria-current=page]{background:var(--mws-active);color:var(--mws-fg);font-weight:500}
+.mws-nav svg{flex:none;color:var(--mws-fg3)}
+.mws-nav button:hover svg,.mws-nav button[aria-current=page] svg{color:var(--mws-fg)}
+.mws-list{flex:1;min-height:0;overflow:auto;margin-top:14px;padding:6px 8px 8px;scrollbar-width:thin;scrollbar-color:var(--mws-line2) transparent}
+.mws-group{padding:8px 10px 4px;color:var(--mws-fg3);font-size:11.5px;font-weight:600;letter-spacing:.02em;font-variant-numeric:tabular-nums}
+.mws-task{appearance:none;display:grid;grid-template-columns:16px minmax(0,1fr);column-gap:8px;align-items:center;width:100%;min-height:30px;padding:4px 10px;border:0;border-radius:9px;background:transparent;color:var(--mws-fg);font:inherit;text-align:left;cursor:pointer}
 .mws-task:hover{background:var(--mws-hover)}
 .mws-task span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
 .mws-task small{display:block;color:var(--mws-fg3);font-size:11.5px;line-height:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mws-dot{display:inline-flex;color:var(--mws-fg3)}
-.mws-dot[data-s=running] svg,.mws-dot[data-s=delivering] svg,.mws-dot[data-s=verifying] svg{animation:mws-spin 1.2s linear infinite;color:var(--mws-accent)}
-.mws-dot[data-s=ok]{color:var(--mws-accent)}.mws-dot[data-s=err]{color:#c9463d}
+.mws-dot[data-s=running] svg,.mws-dot[data-s=delivering] svg,.mws-dot[data-s=verifying] svg{animation:mws-spin 1.4s linear infinite;color:var(--mws-fg)}
+.mws-dot[data-s=ok]{color:var(--mws-ok)}.mws-dot[data-s=err]{color:var(--mws-err)}
 @keyframes mws-spin{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){.mws-dot svg{animation:none!important}}
 .mws-empty{padding:8px 10px;color:var(--mws-fg3);font-size:12.5px}
-.mws-foot{padding:8px 6px 12px;border-top:1px solid var(--mws-line)}
-.mws-foot>div>button{width:100%;min-height:36px;padding-left:4px!important;color:var(--mws-fg2);font:14px/20px inherit;font-weight:400}
+.mws-foot{padding:8px 8px 12px;border-top:1px solid var(--mws-line)}
+.mws-foot>div>button{width:100%;min-height:34px;padding-left:6px!important;border-radius:9px;color:var(--mws-fg2);font:13.5px/20px inherit;font-weight:400}
+.mws-foot>div>button:hover{background:var(--mws-hover);color:var(--mws-fg)}
 .mws.compact{align-items:center}
 .mws.compact .mws-head{padding:10px 0 4px;justify-content:center}
 .mws.compact .mws-brand,.mws.compact .mws-list,.mws.compact .mws-nav button span,.mws.compact .mws-new span{display:none}
@@ -2682,6 +2700,12 @@ body[data-ds-dark-theme] .mws-new{background:#262b29}
 					Icon: Package
 				}
 			];
+			(0, react.useEffect)(() => {
+				document.body.setAttribute("data-mywork-v2", "");
+				return () => {
+					document.body.removeAttribute("data-mywork-v2");
+				};
+			}, []);
 			const active = tasks.filter((x) => x.status !== "done");
 			const recent = tasks.filter((x) => x.status === "done").slice(0, 14);
 			const openTask = (id) => {
@@ -10523,6 +10547,32 @@ html[data-dcu-official-turn-navigator-supported=true] .dcu-turn-navigator,html:h
 			if (/composer|font|conversation|chat|enter/.test(id)) return "editor";
 			return "general";
 		}
+		const SETTINGS_GROUPS_V2 = ["common", "advanced"];
+		const COMMON_V2 = [
+			"general",
+			"models",
+			"dsh-mywork-kit",
+			"im-assistant",
+			"scheduled-tasks"
+		];
+		function settingsGroupV2(id) {
+			return COMMON_V2.includes(id) ? "common" : "advanced";
+		}
+		function settingsOrderV2(id) {
+			const i = COMMON_V2.indexOf(id);
+			return i >= 0 ? i : 100;
+		}
+		/** Labels a task user understands; falls back to the section's own label. */
+		function settingsLabelV2(id) {
+			return {
+				"dsh-mywork-kit": "settings.v2.scenarios",
+				"im-assistant": "settings.v2.notify",
+				"scheduled-tasks": "settings.v2.routine",
+				connectors: "settings.v2.mcp",
+				"archived-sessions": "settings.v2.process",
+				about: "settings.v2.about"
+			}[id];
+		}
 		//#endregion
 		//#region src/client/settings-page-styles.ts
 		/** Codex 设置页的局部 tokens 与布局，不覆盖宿主其他弹窗。 */
@@ -10628,6 +10678,18 @@ html[data-dsh-native-backdrop=mica] .dcu-settings-page,html[data-dsh-native-back
 
 @media(max-width:900px){.dcu-settings-inner{padding:32px 28px}.dcu-settings-heading{align-items:flex-start;flex-direction:column;gap:12px}}
 @media(max-width:600px){.dcu-settings-page{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr)}.dcu-settings-nav{padding:8px 12px;max-height:220px;border-right:0;border-bottom:1px solid var(--sp-border)}.dcu-settings-search{margin:6px 0}.dcu-settings-groups{display:flex;gap:8px;overflow-x:auto;flex:none}.dcu-settings-group{display:flex;gap:4px;margin:0;flex:none}.dcu-settings-group-label{display:none}.dcu-settings-link{width:auto;min-height:40px;flex:none}.dcu-settings-link+.dcu-settings-link{margin-top:0}.dcu-settings-inner{padding:32px 16px}.dcu-settings-heading{margin-bottom:28px}.dcu-settings-heading h1,.dcu-settings-inner:is([data-settings-section=models],[data-settings-section=plugins],[data-settings-section=agent-presets]) [class$="_section"]>h2:is([class$="_title"],[class$="_heading"]){font-size:22px}.dcu-settings-card{padding:0 12px}.dcu-settings-row>[data-slot]>*{flex-wrap:wrap;gap:12px!important}.dcu-settings-general-group{margin-bottom:32px}}
+
+/* MyWork v2 shell: the settings page shares the warm neutral palette of the sidebar and pages. */
+body[data-mywork-v2] .dcu-settings-page{--sp-bg:#faf9f7;--sp-nav:#f2f1ed;--sp-card:#ffffff;--sp-border:rgba(28,28,26,.08);--sp-text:#1c1c1a;--sp-muted:#6f6e68;--sp-hover:rgba(28,28,26,.05);--sp-active:rgba(28,28,26,.08);font-family:-apple-system,BlinkMacSystemFont,Inter,"PingFang SC","Hiragino Sans GB","Segoe UI","Microsoft YaHei UI",sans-serif}
+body[data-mywork-v2] .dcu-settings-nav{--sp-text:#1c1c1a;--sp-muted:#a3a29b;--sp-hover:rgba(28,28,26,.05);--sp-active:rgba(28,28,26,.08);--sp-border:rgba(28,28,26,.08)}
+body[data-mywork-v2] .dcu-settings-link svg{color:#a3a29b}
+body[data-mywork-v2] .dcu-settings-link[aria-current=page] svg,body[data-mywork-v2] .dcu-settings-link:hover svg{color:#1c1c1a}
+body[data-mywork-v2] .dcu-settings-page :focus-visible{outline-color:#6f6e68}
+body[data-mywork-v2] .dcu-settings-search:focus-within{border-color:rgba(28,28,26,.2)}
+body[data-ds-dark-theme][data-mywork-v2] .dcu-settings-page{--sp-bg:#171716;--sp-nav:#1c1c1b;--sp-card:#1f1f1e;--sp-border:rgba(255,255,255,.08);--sp-text:#ebeae6;--sp-muted:#9c9b95;--sp-hover:rgba(255,255,255,.05);--sp-active:rgba(255,255,255,.09)}
+body[data-ds-dark-theme][data-mywork-v2] .dcu-settings-nav{--sp-text:#ebeae6;--sp-muted:#6b6a65;--sp-hover:rgba(255,255,255,.05);--sp-active:rgba(255,255,255,.09);--sp-border:rgba(255,255,255,.08)}
+body[data-ds-dark-theme][data-mywork-v2] .dcu-settings-link svg{color:#6b6a65}
+body[data-ds-dark-theme][data-mywork-v2] .dcu-settings-link[aria-current=page] svg,body[data-ds-dark-theme][data-mywork-v2] .dcu-settings-link:hover svg{color:#ebeae6}
 `;
 		//#endregion
 		//#region src/client/settings-focus.ts
@@ -10829,6 +10891,7 @@ html[data-dsh-native-backdrop=mica] .dcu-settings-page,html[data-dsh-native-back
 				if (main.current !== null) main.current.scrollTop = 0;
 			}, [active?.id]);
 			const visible = filterSettingsRows(rows, query);
+			const v2 = v2Active();
 			const ownTitle = active?.id === "general" ? t("settings.general") : active?.id === "plugin-config" ? t("settings.pluginConfig") : void 0;
 			const connectionIndicator = connection === "disconnected" ? "disconnected" : connection === "connecting" ? "connecting" : recovered ? "recovered" : void 0;
 			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [
@@ -10890,7 +10953,32 @@ html[data-dsh-native-backdrop=mica] .dcu-settings-page,html[data-dsh-native-back
 							}),
 							/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
 								className: "dcu-settings-groups",
-								children: [
+								children: v2 ? SETTINGS_GROUPS_V2.map((group) => {
+									const entries = visible.filter((row) => settingsGroupV2(row.id) === group).slice().sort((a, b) => settingsOrderV2(a.id) - settingsOrderV2(b.id) || a.order - b.order);
+									return entries.length > 0 && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("section", {
+										className: "dcu-settings-group",
+										children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("h2", {
+											className: "dcu-settings-group-label",
+											children: t(group === "common" ? "settings.v2.common" : "settings.advanced")
+										}), entries.map((row) => {
+											const Icon = sectionIcon(row.id);
+											const key = settingsLabelV2(row.id);
+											return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
+												type: "button",
+												className: "dcu-settings-link",
+												"aria-current": row.id === active?.id ? "page" : void 0,
+												onClick: () => {
+													setActiveId(row.id);
+												},
+												children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(Icon, {
+													size: 16,
+													strokeWidth: 1.6,
+													"aria-hidden": "true"
+												}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: row.id === "general" ? t("settings.general") : key !== void 0 ? t(key) : row.label })]
+											}, row.id);
+										})]
+									}, group);
+								}) : [
 									"personal",
 									"integrations",
 									"records"
@@ -10965,11 +11053,15 @@ html[data-dsh-native-backdrop=mica] .dcu-settings-page,html[data-dsh-native-back
 			const rows = (0, react.useSyncExternalStore)(items.subscribe, items.getSnapshot);
 			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 				className: "dcu-settings-general",
-				children: [[
+				children: [(v2Active() ? [
+					"general",
+					"editor",
+					"permissions"
+				] : [
 					"permissions",
 					"general",
 					"editor"
-				].map((group) => {
+				]).map((group) => {
 					const entries = rows.filter((row) => generalItemGroup(row.id) === group);
 					return entries.length > 0 && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("section", {
 						className: "dcu-settings-general-group",

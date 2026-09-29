@@ -24,37 +24,41 @@ type SidebarProps = Pick<CodexSidebarProps, 'selectPanel' | 'usePanelInfo' | 'co
 const useLegacyPanelInfo = <T,>(selector: (info: { activePanelId: string | null }) => T): T => selector({ activePanelId: null })
 
 const stylesheet = `
-.mws{--mws-bg:#f3f4f2;--mws-fg:#2b2f2e;--mws-fg2:#6d7271;--mws-fg3:#9a9f9e;--mws-line:rgba(37,46,41,.10);--mws-hover:#e6e9e6;--mws-accent:var(--dsw-alias-brand-primary,#4d6fff);width:100%;height:100%;min-width:0;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;background:var(--mws-bg);color:var(--mws-fg);font:14px/20px Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI","Microsoft YaHei UI",sans-serif}
-body[data-ds-dark-theme] .mws{--mws-bg:#1d2120;--mws-fg:#c6c8c7;--mws-fg2:#8f9392;--mws-fg3:#666867;--mws-line:rgba(255,255,255,.08);--mws-hover:#2b302e}
+.mws{--mws-bg:#f2f1ed;--mws-surface:#ffffff;--mws-fg:#1c1c1a;--mws-fg2:#6f6e68;--mws-fg3:#a3a29b;--mws-line:rgba(28,28,26,.08);--mws-line2:rgba(28,28,26,.14);--mws-hover:rgba(28,28,26,.05);--mws-active:rgba(28,28,26,.08);--mws-ink:#1c1c1a;--mws-ink-fg:#fff;--mws-ok:#2f7d5b;--mws-err:#c2473c;width:100%;height:100%;min-width:0;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;background:var(--mws-bg);color:var(--mws-fg);font:13.5px/20px -apple-system,BlinkMacSystemFont,Inter,"PingFang SC","Hiragino Sans GB","Segoe UI","Microsoft YaHei UI",sans-serif;-webkit-font-smoothing:antialiased}
+body[data-ds-dark-theme] .mws{--mws-bg:#1c1c1b;--mws-surface:#262625;--mws-fg:#ebeae6;--mws-fg2:#9c9b95;--mws-fg3:#6b6a65;--mws-line:rgba(255,255,255,.08);--mws-line2:rgba(255,255,255,.14);--mws-hover:rgba(255,255,255,.05);--mws-active:rgba(255,255,255,.09);--mws-ink:#ebeae6;--mws-ink-fg:#171716;--mws-ok:#5fb08a;--mws-err:#e2685d}
 .mws *{box-sizing:border-box}
-.mws-head{display:flex;align-items:center;gap:8px;height:56px;padding:8px 10px 6px 14px}
-.mws-brand{flex:1;display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;letter-spacing:-.01em;min-width:0}
-.mws-brand i{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:7px;background:var(--mws-accent);color:#fff;font-style:normal;font-size:12px;font-weight:700}
-.mws-icon{appearance:none;display:inline-grid;place-items:center;width:30px;height:30px;border:0;border-radius:8px;background:transparent;color:var(--mws-fg2);cursor:pointer}
+.mws button{font-family:inherit;transition:background-color 160ms ease,border-color 160ms ease,color 160ms ease,transform 120ms ease}
+.mws button:active{transform:scale(.98)}
+.mws :focus-visible{outline:2px solid var(--mws-fg2);outline-offset:-2px;border-radius:8px}
+.mws-head{display:flex;align-items:center;gap:8px;height:56px;padding:10px 8px 6px 16px}
+.mws-brand{flex:1;display:flex;align-items:center;gap:9px;font-weight:600;font-size:14.5px;letter-spacing:-.01em;min-width:0}
+.mws-brand i{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:7px;background:var(--mws-ink);color:var(--mws-ink-fg);font-style:normal;font-size:12px;font-weight:700;letter-spacing:0}
+.mws-icon{appearance:none;display:inline-grid;place-items:center;width:30px;height:30px;border:0;border-radius:8px;background:transparent;color:var(--mws-fg3);cursor:pointer}
 .mws-icon:hover{background:var(--mws-hover);color:var(--mws-fg)}
-.mws-new{appearance:none;display:flex;align-items:center;gap:8px;margin:2px 10px 10px;height:36px;padding:0 12px;border:1px solid var(--mws-line);border-radius:10px;background:#fff;color:var(--mws-fg);font:inherit;font-weight:600;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.04)}
-body[data-ds-dark-theme] .mws-new{background:#262b29}
-.mws-new:hover{border-color:var(--mws-fg3)}
-.mws-nav{display:grid;gap:1px;padding:0 6px}
-.mws-nav button{appearance:none;display:flex;align-items:center;gap:10px;height:32px;padding:0 10px;border:0;border-radius:8px;background:transparent;color:var(--mws-fg);font:inherit;text-align:left;cursor:pointer}
-.mws-nav button:hover{background:var(--mws-hover)}
-.mws-nav button[aria-current=page]{background:var(--mws-hover);font-weight:600}
-.mws-nav svg{flex:none;color:var(--mws-fg2)}
-.mws-nav button[aria-current=page] svg{color:var(--mws-fg)}
-.mws-list{flex:1;min-height:0;overflow:auto;margin-top:10px;padding:8px 6px 8px;border-top:1px solid var(--mws-line)}
-.mws-group{padding:6px 10px 4px;color:var(--mws-fg3);font-size:12px;font-weight:600}
-.mws-task{appearance:none;display:grid;grid-template-columns:16px minmax(0,1fr);column-gap:8px;align-items:center;width:100%;min-height:30px;padding:4px 10px;border:0;border-radius:8px;background:transparent;color:var(--mws-fg);font:inherit;text-align:left;cursor:pointer}
+.mws-new{appearance:none;display:flex;align-items:center;gap:8px;margin:4px 10px 12px;height:36px;padding:0 12px;border:1px solid var(--mws-line);border-radius:12px;background:var(--mws-surface);color:var(--mws-fg);font:inherit;font-weight:500;cursor:pointer;box-shadow:0 1px 2px rgba(40,35,25,.05)}
+.mws-new:hover{border-color:var(--mws-line2)}
+.mws-new svg{color:var(--mws-fg2)}
+.mws-nav{display:grid;gap:1px;padding:0 8px}
+.mws-nav button{appearance:none;display:flex;align-items:center;gap:10px;height:32px;padding:0 10px;border:0;border-radius:9px;background:transparent;color:var(--mws-fg2);font:inherit;text-align:left;cursor:pointer}
+.mws-nav button:hover{background:var(--mws-hover);color:var(--mws-fg)}
+.mws-nav button[aria-current=page]{background:var(--mws-active);color:var(--mws-fg);font-weight:500}
+.mws-nav svg{flex:none;color:var(--mws-fg3)}
+.mws-nav button:hover svg,.mws-nav button[aria-current=page] svg{color:var(--mws-fg)}
+.mws-list{flex:1;min-height:0;overflow:auto;margin-top:14px;padding:6px 8px 8px;scrollbar-width:thin;scrollbar-color:var(--mws-line2) transparent}
+.mws-group{padding:8px 10px 4px;color:var(--mws-fg3);font-size:11.5px;font-weight:600;letter-spacing:.02em;font-variant-numeric:tabular-nums}
+.mws-task{appearance:none;display:grid;grid-template-columns:16px minmax(0,1fr);column-gap:8px;align-items:center;width:100%;min-height:30px;padding:4px 10px;border:0;border-radius:9px;background:transparent;color:var(--mws-fg);font:inherit;text-align:left;cursor:pointer}
 .mws-task:hover{background:var(--mws-hover)}
 .mws-task span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
 .mws-task small{display:block;color:var(--mws-fg3);font-size:11.5px;line-height:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mws-dot{display:inline-flex;color:var(--mws-fg3)}
-.mws-dot[data-s=running] svg,.mws-dot[data-s=delivering] svg,.mws-dot[data-s=verifying] svg{animation:mws-spin 1.2s linear infinite;color:var(--mws-accent)}
-.mws-dot[data-s=ok]{color:var(--mws-accent)}.mws-dot[data-s=err]{color:#c9463d}
+.mws-dot[data-s=running] svg,.mws-dot[data-s=delivering] svg,.mws-dot[data-s=verifying] svg{animation:mws-spin 1.4s linear infinite;color:var(--mws-fg)}
+.mws-dot[data-s=ok]{color:var(--mws-ok)}.mws-dot[data-s=err]{color:var(--mws-err)}
 @keyframes mws-spin{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){.mws-dot svg{animation:none!important}}
 .mws-empty{padding:8px 10px;color:var(--mws-fg3);font-size:12.5px}
-.mws-foot{padding:8px 6px 12px;border-top:1px solid var(--mws-line)}
-.mws-foot>div>button{width:100%;min-height:36px;padding-left:4px!important;color:var(--mws-fg2);font:14px/20px inherit;font-weight:400}
+.mws-foot{padding:8px 8px 12px;border-top:1px solid var(--mws-line)}
+.mws-foot>div>button{width:100%;min-height:34px;padding-left:6px!important;border-radius:9px;color:var(--mws-fg2);font:13.5px/20px inherit;font-weight:400}
+.mws-foot>div>button:hover{background:var(--mws-hover);color:var(--mws-fg)}
 .mws.compact{align-items:center}
 .mws.compact .mws-head{padding:10px 0 4px;justify-content:center}
 .mws.compact .mws-brand,.mws.compact .mws-list,.mws.compact .mws-nav button span,.mws.compact .mws-new span{display:none}
@@ -106,6 +110,7 @@ export function MyworkSidebar({ selectPanel, usePanelInfo = useLegacyPanelInfo, 
     { id: MYWORK_PANELS.deliverables, label: t('v2.deliverables'), Icon: FileText },
     { id: MYWORK_PANELS.scenarios, label: t('v2.scenarios'), Icon: Package },
   ]
+  useEffect(() => { document.body.setAttribute('data-mywork-v2', ''); return () => { document.body.removeAttribute('data-mywork-v2') } }, [])
   const active = tasks.filter(x => x.status !== 'done')
   const recent = tasks.filter(x => x.status === 'done').slice(0, 14)
   const openTask = (id: string): void => { go(MYWORK_PANELS.tasks); fire('mywork:open-task', { id }) }

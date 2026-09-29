@@ -783,7 +783,8 @@ function makeComponents(ctx, t) {
   function RoutineDetail({ r, onBack, reload }) {
     const act = (path, body, after) => api(path, body).then(() => { reload(); if (after) after() }).catch((e) => console.warn(`[${PLUGIN}]`, e))
     const once = r.schedule && r.schedule.type === 'once'
-    const meta = [r.kind === 'remind' ? t('kindRemind') : t('kindTask'), r.scheduleLabel, !r.enabled ? (once ? t('ended') : t('paused')) : r.nextRunAt ? t('nextRun') + ' ' + fmtDate(r.nextRunAt) : ''].filter(Boolean).join(' · ')
+    // A one-off's schedule already is its next run; do not say it twice.
+    const meta = [r.kind === 'remind' ? t('kindRemind') : t('kindTask'), r.scheduleLabel, !r.enabled ? (once ? t('ended') : t('paused')) : r.nextRunAt && !once ? t('nextRun') + ' ' + fmtDate(r.nextRunAt) : ''].filter(Boolean).join(' · ')
     const runs = Array.isArray(r.runs) ? r.runs : []
     const runState = (x) => x.fired ? t('remindCard') : x.error ? t('failedTitle') : x.changed === false ? t('noChange') : x.changed === true ? t('changed') : t('delivered')
     return h('div', null,

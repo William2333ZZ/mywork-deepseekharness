@@ -171,13 +171,14 @@ body[data-ds-dark-theme] .mwt{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 .mwt-page-today{display:flex;flex-direction:column;min-height:100%;padding-bottom:0}
 .mwt-page-today>.mwt-greet,.mwt-page-today>.mwt-list,.mwt-page-today>.mwt-empty,.mwt-page-today>.mwt-cards,.mwt-page-today>.mwt-retry{flex:none}
 .mwt-dock{position:sticky;bottom:0;margin:32px 0 0;margin-top:auto;padding:12px 0 20px;background:linear-gradient(to top,var(--bg) 70%,transparent)}
-.mwt-ask-wrap.compact .mwt-ask{display:flex;flex-wrap:wrap;align-items:flex-end;gap:6px 8px;padding:7px 7px 7px 16px}
-.mwt-ask-wrap.compact textarea{flex:1 1 200px;min-width:0;min-height:34px;font-size:15px;line-height:24px;padding:5px 0}
+.mwt-ask-wrap.compact .mwt-ask{display:flex;flex-wrap:nowrap;align-items:flex-end;gap:8px;padding:7px 7px 7px 16px}
+.mwt-ask-wrap.compact textarea{flex:1 1 0;min-width:0;min-height:34px;font-size:15px;line-height:24px;padding:5px 0}
+.mwt-ask-wrap.compact .mwt-btn.round{flex:none}
 .mwt-ask-wrap.compact .mwt-ask-row{display:contents}
 .mwt-ask-wrap.compact .mwt-ask-row small{display:none}
 .mwt-ask-wrap.compact .mwt-ask-row .mwt-chip{order:1}
 .mwt-ask-wrap.compact .mwt-ask-row .mwt-btn.round{order:2}
-.mwt-ask-wrap.compact .mwt-chips{margin:6px 0 4px;flex-basis:100%}
+.mwt-ask-wrap.compact .mwt-chips{display:none}
 /* One row shape for 今日 and 任务 */
 .mwt-list{display:grid;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;background:var(--bg)}
 .mwt-row{display:grid;grid-template-columns:20px minmax(0,1fr) auto;align-items:center;column-gap:12px;min-height:48px;padding:12px 16px;border:0;border-top:1px solid var(--border-soft);background:transparent;color:inherit;font:inherit;text-align:left;width:100%;cursor:pointer;transition:background-color var(--motion-fast) var(--ease-standard)}

@@ -209,6 +209,7 @@ const zh = {
   doneToast: '任务完成', failedToast: '任务失败', open: '打开', tryScenario: '用这个场景', kinds: '交付', examples: '示例',
   toolFailed: '失败', stepsTitle: '步骤',
   attention: '等你看', attentionEmpty: '没有等你处理的事。', failedCard: '失败，可以再来一次', issuesCard: '核验发现问题', rateCard: '交付了，看一眼给个评价', running1: '个在跑', waiting1: '份等你看', quiet: '今天还很安静', greetMorning: '早上好', greetDay: '下午好', greetNight: '晚上好', todayDone: '今天完成', examplesTitle: '可以试试',
+  notesMore: '点开看核验员的完整说明',
   say: '接着说，比如“再短一点”或“换个角度”', sayHint: '回车发送，同一个会话继续。', sayBusy: '核验中，稍等。', conversational: '这次是回答，没有生成文档；要保存时说“整理成一份…”。',
 }
 const en = {
@@ -225,6 +226,7 @@ const en = {
   doneToast: 'Task finished', failedToast: 'Task failed', open: 'Open', tryScenario: 'Use this scenario', kinds: 'Delivers', examples: 'Examples',
   toolFailed: 'failed', stepsTitle: 'Steps',
   attention: 'For you', attentionEmpty: 'Nothing waiting for you.', failedCard: 'Failed, can run again', issuesCard: 'Verification found issues', rateCard: 'Delivered, take a look and rate', running1: 'running', waiting1: 'waiting for you', quiet: 'A quiet day so far', greetMorning: 'Good morning', greetDay: 'Good afternoon', greetNight: 'Good evening', todayDone: 'Finished today', examplesTitle: 'Try',
+  notesMore: 'Tap for the verifier’s full notes',
   say: 'Keep going, e.g. “shorter” or “from another angle”', sayHint: 'Enter sends into the same session.', sayBusy: 'Verifying, one moment.', conversational: 'This was an answer, no document was produced; ask for one when you want it saved.',
 }
 
@@ -378,7 +380,8 @@ body[data-ds-dark-theme] .mwt{--mwt-canvas:#171716;--mwt-surface:#1f1f1e;--mwt-s
 .mwt-badge[data-v=passed]{color:var(--mwt-ok);border-color:color-mix(in srgb,var(--mwt-ok) 40%,transparent);background:color-mix(in srgb,var(--mwt-ok) 8%,transparent)}
 .mwt-badge[data-v=issues]{color:var(--mwt-warn);border-color:color-mix(in srgb,var(--mwt-warn) 45%,transparent);background:color-mix(in srgb,var(--mwt-warn) 9%,transparent)}
 .mwt-badge[data-v=verifying] svg{animation:mwt-spin 1.4s linear infinite}
-.mwt-notes{font-size:13px;line-height:21px;color:var(--mwt-fg2);border-left:2px solid var(--mwt-line2);padding:2px 12px;margin:0 0 16px}
+.mwt-notes{font-size:13px;line-height:21px;color:var(--mwt-fg2);border-left:2px solid var(--mwt-line2);padding:2px 12px;margin:0 0 16px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;cursor:pointer}
+.mwt-notes.open{display:block;-webkit-line-clamp:unset}
 .mwt-doc-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:12px 18px;border-top:1px solid var(--mwt-line);background:var(--mwt-surface)}
 .mwt-md{font-size:14.5px;line-height:1.75;color:var(--mwt-fg)}
 .mwt-md>:first-child{margin-top:0}
@@ -646,12 +649,18 @@ function makeComponents(ctx, t) {
         h('button', { type: 'button', className: 'mwt-btn primary round', style: { width: 30, height: 30 }, 'aria-label': t('create'), disabled: busy || blocked || !text.trim(), onClick: submit }, icon(busy ? 'loader' : 'send', { size: 13 }))))
   }
 
+  /** Verifier notes: two lines by default, the whole text on tap. */
+  function Notes({ text }) {
+    const [open, setOpen] = React.useState(false)
+    return h('div', { className: 'mwt-notes' + (open ? ' open' : ''), role: 'button', tabIndex: 0, title: open ? '' : t('notesMore'), onClick: () => setOpen(!open), onKeyDown: (e) => { if (e.key === 'Enter') setOpen(!open) } }, text)
+  }
+
   function Doc({ d, status, onRate, onOpenTask }) {
     return h('div', { className: 'mwt-doc' },
       h('div', { className: 'mwt-doc-head' }, icon('file-text', { size: 15 }), h('h3', null, d.title), h(VerifyBadge, { v: d.verification, status })),
       h('div', { className: 'mwt-doc-body' },
         h('div', { className: 'mwt-doc-meta' }, h('span', null, fmtDate(d.createdAt)), d.scenarioLabel ? h('span', null, d.scenarioLabel) : null, d.kind && d.kind !== 'markdown' ? h('span', null, d.kind) : null),
-        d.verification && d.verification.notes ? h('div', { className: 'mwt-notes' }, d.verification.notes) : null,
+        d.verification && d.verification.notes ? h(Notes, { text: d.verification.notes }) : null,
         h(Markdown, { text: d.markdown })),
       h('div', { className: 'mwt-doc-actions' },
         h('button', { type: 'button', className: 'mwt-chip', 'data-on': d.rating === 1, onClick: () => onRate(d, 1) }, t('ratingGood')),

@@ -347,13 +347,17 @@ function Skeleton({ rows }) { return h('div', { className: 'mwt-cards mwt-skelet
 function fire(name, detail) { try { window.dispatchEvent(new CustomEvent(name, { detail: detail || {} })) } catch {} }
 /** One plain line per tool call: a verb and the thing it touched; the raw arguments stay in the tooltip. */
 function describeTool(name, detail) {
-  const kv = {}
-  for (const m of String(detail || '').matchAll(/(\w+)=("(?:[^"\\]|\\.)*"|\S+)/g)) { let v = m[2]; if (v.startsWith('"')) { try { v = JSON.parse(v) } catch { v = v.slice(1, -1) } } kv[m[1]] = v }
+  // Arguments reach the stream either as a JSON string (dsh serialises tool calls) or as key=value pairs.
+  let kv = {}
+  const raw = String(detail || '').trim()
+  if (raw.startsWith('{')) { try { kv = JSON.parse(raw) } catch { try { kv = JSON.parse(raw.replace(/[,\s]*…?$/, '').replace(/,\s*"[^"]*$/, '') + '}') } catch { kv = {} } } }
+  if (!Object.keys(kv).length) for (const m of raw.matchAll(/(\w+)=("(?:[^"\\]|\\.)*"|\S+)/g)) { let v = m[2]; if (v.startsWith('"')) { try { v = JSON.parse(v) } catch { v = v.slice(1, -1) } } kv[m[1]] = v }
+  if (!Object.keys(kv).length && raw.startsWith('{')) { const m = raw.match(/"(url|file_path|path|title|query|command|pattern|description)"\s*:\s*"([^"]{1,200})/); if (m) kv[m[1]] = m[2]; const q = raw.match(/"queries"\s*:\s*\[\s*"([^"]{1,200})/); if (q) kv.queries = q[1] }
   const host = (u) => { try { const x = new URL(String(u)); return x.host.replace(/^www\./, '') + (x.pathname.length > 1 ? x.pathname.replace(/\/$/, '').slice(0, 40) : '') } catch { return String(u).slice(0, 60) } }
   const base = (p) => String(p || '').split('/').filter(Boolean).slice(-1)[0] || String(p || '')
   const n = String(name || '')
   if (/^web_fetch$|^open_url$|^browser_navigate$/.test(n)) return { verb: '读取网页', obj: host(kv.url || kv.href || '') }
-  if (/^web_search$|search/.test(n)) { let q = kv.queries || kv.query || kv.q || ''; if (typeof q === 'string' && q.startsWith('[')) { try { q = JSON.parse(q)[0] } catch {} } return { verb: '搜索', obj: q ? '“' + String(q).slice(0, 60) + '”' : '' } }
+  if (/^web_search$|search/.test(n)) { let q = kv.queries || kv.query || kv.q || ''; if (Array.isArray(q)) q = q[0] || ''; if (typeof q === 'string' && q.startsWith('[')) { try { q = JSON.parse(q)[0] } catch {} } return { verb: '搜索', obj: q ? '“' + String(q).slice(0, 60) + '”' : '' } }
   if (/^read$|read_file|^cat$|^view$/.test(n)) return { verb: '读取', obj: base(kv.file_path || kv.path || '') }
   if (/^(edit|write|apply_patch|create_file|write_file)$/.test(n)) return { verb: '整理', obj: base(kv.file_path || kv.path || '') }
   if (/^(glob|grep|list|ls|find)$/.test(n)) return { verb: '查找', obj: String(kv.pattern || kv.query || kv.path || '').slice(0, 60) }

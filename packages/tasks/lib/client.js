@@ -403,12 +403,12 @@ body[data-ds-dark-theme] .mwt{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 .mwt-ev.user .body{display:inline-block;max-width:100%;padding:6px 12px;border-radius:var(--radius-lg);background:var(--surface);color:var(--fg);white-space:pre-wrap;word-break:break-word;font-size:14px;line-height:1.6}
 .mwt-ev.user .ic{color:var(--meta)}
 .mwt-say{margin:12px 0 0}
-.mwt-say-inner{border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--bg);padding:6px 6px 6px 12px;transition:border-color var(--motion-fast) var(--ease-standard),box-shadow var(--motion-fast) var(--ease-standard)}
+.mwt-say-inner{display:flex;align-items:flex-end;gap:8px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--bg);padding:7px 7px 7px 16px;transition:border-color var(--motion-fast) var(--ease-standard)}
 .mwt-say-inner:focus-within{border-color:var(--border-strong)}
-.mwt-say textarea{display:block;width:100%;min-height:24px;max-height:160px;resize:none;border:0;outline:0;background:transparent;color:inherit;font:inherit;font-size:14px;line-height:22px;padding:4px 0}
+.mwt-say textarea{flex:1 1 0;min-width:0;display:block;min-height:34px;max-height:160px;resize:none;border:0;outline:0;background:transparent;color:inherit;font:inherit;font-size:15px;line-height:24px;padding:5px 0}
 .mwt-say textarea::placeholder{color:var(--meta)}
-.mwt-say-row{display:flex;align-items:center;gap:8px;margin-top:2px}
-.mwt-say-row small{flex:1;color:var(--meta);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mwt-say .mwt-btn.send{flex:none}
+.mwt-say-err{display:block;color:var(--danger);font-size:12.5px;padding:6px 2px 0}
 /* Deliverable: the one raised card. */
 .mwt-doc{margin:0 0 8px}
 .mwt-doc-head{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--surface);border-bottom:1px solid var(--border-soft);flex-wrap:wrap}
@@ -726,10 +726,11 @@ function makeComponents(ctx, t) {
     const grow = () => { const el = ref.current; if (!el) return; el.style.height = 'auto'; el.style.height = Math.min(160, el.scrollHeight) + 'px' }
     React.useEffect(grow, [text])
     if (!task.sessionId) return null
-    return h('div', { className: 'mwt-say' }, h('div', { className: 'mwt-say-inner' },
-      h('textarea', { ref, value: text, rows: 1, placeholder: t('say'), disabled: blocked, onChange: (e) => setText(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); submit() } } }),
-      h('div', { className: 'mwt-say-row' }, err ? h('small', null, err) : h('span', { style: { flex: 1 } }),
-        h('button', { type: 'button', className: 'mwt-btn send round', 'aria-label': t('create'), disabled: busy || blocked || !text.trim(), onClick: submit }, icon(busy ? 'loader' : 'send', { size: 13 })))))
+    return h('div', { className: 'mwt-say' },
+      h('div', { className: 'mwt-say-inner' },
+        h('textarea', { ref, value: text, rows: 1, placeholder: t('say'), disabled: blocked, onChange: (e) => setText(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); submit() } } }),
+        h('button', { type: 'button', className: 'mwt-btn send round', 'aria-label': t('create'), disabled: busy || blocked || !text.trim(), onClick: submit }, icon(busy ? 'loader' : 'send', { size: 13 }))),
+      err ? h('small', { className: 'mwt-say-err' }, err) : null)
   }
 
   /** Verifier notes: two lines by default, the whole text on tap. */

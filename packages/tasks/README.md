@@ -50,6 +50,6 @@ export function apply(ctx) {
 
 ## 配置
 
-`concurrency`（2）、`timeoutMinutes`（20）、`permission`（workspace-write）、`agentPreset`（standard）、`cwd`（空 = 第一个工作区，否则 `$DSH_HOME/mywork/workbench`）、`tools`（true）、`verify`（true）。
+`concurrency`（2）、`timeoutMinutes`（20）、`permission`（workspace-write）、`agentPreset`（standard）、`cwd`（空 = `$DSH_HOME/mywork/workbench`，任务从不在你打开的代码仓库里跑）、`tools`（true）、`verify`（true）。
 
 浏览器里 `localStorage['dsh-mywork:v2'] = 'off'` 可退回 Codex 侧栏与对话首页。

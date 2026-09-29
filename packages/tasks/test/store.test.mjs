@@ -40,6 +40,8 @@ test('scenario registry resolves and validates', () => {
   assert.equal(stepNameFor('oracle_fetch', { oracle_fetch: '取数' }), '取数')
   assert.equal(stepNameFor('browser_navigate'), '查阅'); assert.equal(stepNameFor('deliver'), '交付'); assert.equal(stepNameFor('weird_tool'), '工具 weird_tool')
   assert.match(GENERAL.compose('要一份清单', { date: '2026-09-29', cwd: '/w' }), /要一份清单[\s\S]*deliver[\s\S]*2026-09-29/)
+  const rr = createScenarioRegistry(); rr.register(GENERAL); rr.register({ id: 'trade', label: '交易', compose: () => 'p', match: (x) => /黄金|美债/.test(x) })
+  assert.equal(rr.route('黄金未来一个月').id, 'trade'); assert.equal(rr.route('写个周报').id, 'general')
 })
 
 test('engine helpers', () => {
@@ -74,8 +76,10 @@ test('activity stream is capped and trimmed for old tasks', async () => {
 test('verification prompt and verdict parsing', async () => {
   const { defaultVerifyPrompt, parseVerdict, BUILTIN_SCENARIOS } = await import('../src/scenarios.js')
   const { argsPreview, resultPreview } = await import('../src/engine.js')
-  assert.deepEqual(BUILTIN_SCENARIOS.map((s) => s.id), ['general', 'chat', 'research', 'office'])
-  assert.equal(BUILTIN_SCENARIOS[1].deliverable, false)
+  assert.deepEqual(BUILTIN_SCENARIOS.map((s) => s.id), ['general'])
+  assert.equal(BUILTIN_SCENARIOS[0].deliverable, 'auto')
+  assert.match(BUILTIN_SCENARIOS[0].compose('x', { capabilities: { browser: true, office: false } }), /open_url[\s\S]*Markdown 表格/)
+  assert.match(BUILTIN_SCENARIOS[0].compose('x', { capabilities: {} }), /没有浏览器工具/)
   const p = defaultVerifyPrompt({ input: '做一张表' }, [{ title: 'T', markdown: '| a |' }], [{ kind: 'tool', name: 'open_url', detail: 'url=x', ok: false }])
   assert.match(p, /做一张表/); assert.match(p, /open_url（失败）/); assert.match(p, /"passed"/)
   assert.deepEqual(parseVerdict('结论如下：\n{"passed": true, "checked": 3, "issues": 0, "notes": "ok"}'), { passed: true, checked: 3, issues: 0, notes: 'ok' })

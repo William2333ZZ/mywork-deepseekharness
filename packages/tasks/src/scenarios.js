@@ -10,6 +10,8 @@
  *   compose(input, context) → string            prompt for the task session
  *   toolStepMap: { toolName: stepLabel }        tool call → step name (falls back to GENERIC_STEPS)
  *   deliverableKinds: string[]                  what `deliver` may produce
+ *   deliverable: true | 'auto' | false         must deliver / decides itself (default) / never (chat-like)
+ *   match(input) → boolean                     optional, packs claim inputs they recognise; the user never picks
  *   verifyPrompt(task, deliverable) → string    optional, phase 3
  *   model: { provider, model } | undefined      optional model override
  *   permission: string | undefined              optional permission preset override
@@ -26,6 +28,9 @@ export const GENERIC_STEPS = [
   [/^(write|edit|create|apply_patch|patch|save|mkdir|move|copy)/i, '整理'],
   [/^(bash|run_code|shell|exec|python|node)/i, '执行'],
   [/^(oracle_|im_|reminder_|automation_)/, '取数'],
+  [/^univer_/, '文档'],
+  [/^skill/, '技能'],
+  [/^present/, '展示'],
 ]
 
 export function stepNameFor(tool, map) {
@@ -35,30 +40,41 @@ export function stepNameFor(tool, map) {
   return '工具 ' + name
 }
 
+/**
+ * The one built-in way of working. It decides by itself whether to answer or to deliver,
+ * and uses whatever capabilities this machine has (browser, office documents, IM). Domain
+ * packs (交易 …) register their own scenarios with a `match(input)` and take over the inputs
+ * they recognise; the user never picks.
+ */
 export const GENERAL = {
   id: 'general',
   label: '通用',
-  intro: '说一个你要的结果：一份摘要、一张清单、一段说明、一次比较。后台完成后交给你一份 Markdown。',
-  examples: ['把这个目录的 README 整理成一页产品介绍', '比较三种 Node 定时任务方案，给出推荐', '写一份本周工作计划，按天列出'],
-  toolStepMap: {},
-  deliverableKinds: ['markdown'],
+  intro: '说一个你要的结果或者问一个问题。该回答就回答，该交付就交付：报告、清单、比较、表格、网页摘要。',
+  examples: ['把这个目录的 README 整理成一页产品介绍', '比较三种 Node 定时任务方案，给出推荐', '解释一下什么是 agent harness', '做一张本月支出表，按类别汇总'],
+  toolStepMap: { open_url: '打开网页', quick_links: '打开网页', univer_new: '新建文档', univer_execute: '编辑文档', univer_export: '导出', univer_print_pdf: '导出', univer_screenshot: '预览' },
+  deliverableKinds: ['markdown', 'report', 'table', 'summary'],
+  deliverable: 'auto',
   compose(input, context) {
+    const caps = (context && context.capabilities) || {}
     const lines = [
-      '你是 MyWork 的后台执行者。用户不在线，不要提问，不要等待确认，自己把事情做完。',
-      '',
-      '用户要的结果：',
-      input,
-      '',
-      '要求：',
-      '1. 需要查资料、读文件、跑命令时直接用工具；缺信息就按合理假设继续，并在交付物里注明假设。',
-      '2. 做完后必须调用 deliver 工具交付一份 Markdown 交付物：title 是一句话标题，markdown 正文先给结论，再给依据和过程要点。不要把交付内容只写在回复里。',
-      '3. 交付后用一两句话总结你做了什么，作为最后的回复。',
+      '你是 MyWork 的后台执行者。用户不在线：不要提问，不要等确认，按合理假设把事情做完，假设写进结果里。',
+      '', '用户说：', input, '',
+      '怎么做：',
+      '1. 先判断这是一个问题还是一件要交付的事。问题（尤其是"一句话""简单说说"这类）就凭已有知识直接、具体地回答，像和同事说话，不要铺垫，不要为它上网、不要交付。',
+      '2. 要交付的事（用户要一份报告、清单、比较、方案、表格、摘要、文档，或说了"整理成""做成""保存"），做完必须调用 deliver：title 一句话，markdown 先结论后依据，kind 用 report / table / summary / markdown。不要把交付内容只写在回复里。',
+      '   规模要匹配：一次比较或一份摘要，读几页资料、写一份 Markdown 就够，不要为此写脚本、建工程或生成额外文件；只有用户明确要文件（表格 / 幻灯片 / 代码）时才产出文件。',
+      caps.browser ? '3. 需要外部信息时用浏览器工具（open_url / browser_*）打开真实网页读原文，每个事实标来源网址；不确定的写"待核实"。' : '3. 没有浏览器工具：只用已有知识和本机文件，并在结果里说明没有联网核实。',
+      caps.office ? '4. 要表格 / 文档 / 幻灯片文件时用 univer_* 工具生成，并在交付物里写明文件名和位置；同时把内容用 Markdown 表格或大纲放进交付物。' : '4. 表格用 Markdown 表格，幻灯片用大纲交付。',
+      '5. 读文件、跑命令直接用工具；数字要可追溯，假设的数值标"示例"。',
+      '6. 交付后用一两句话总结你做了什么；纯回答就不必总结。',
     ]
     if (context && context.date) lines.push('', '今天是 ' + context.date + '。')
     if (context && context.cwd) lines.push('工作目录：' + context.cwd + '。')
     return lines.join('\n')
   },
 }
+
+export const BUILTIN_SCENARIOS = [GENERAL]
 
 export function createScenarioRegistry() {
   const map = new Map()
@@ -75,80 +91,24 @@ export function createScenarioRegistry() {
     },
     get(id) { return map.get(String(id || '')) || null },
     resolve(id) { return map.get(String(id || '')) || map.get('general') || null },
+    /** Pick the scenario for an input: the first registered pack whose match(input) says yes, else 通用. */
+    route(input) {
+      const text = String(input || '')
+      for (const s of map.values()) {
+        if (s.id === 'general' || typeof s.match !== 'function') continue
+        try { if (s.match(text)) return s } catch {}
+      }
+      return map.get('general') || null
+    },
     list() { return [...map.values()].map(publicView) },
     subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn) },
   }
 }
 
 export function publicView(s) {
-  return { id: s.id, label: s.label, intro: s.intro || '', examples: Array.isArray(s.examples) ? s.examples.slice(0, 6) : [], deliverableKinds: s.deliverableKinds || ['markdown'], conversational: s.deliverable === false, homeWidget: s.homeWidget || '' }
+  return { id: s.id, label: s.label, intro: s.intro || '', examples: Array.isArray(s.examples) ? s.examples.slice(0, 6) : [], deliverableKinds: s.deliverableKinds || ['markdown'], conversational: s.deliverable === false, builtin: s.id === 'general', homeWidget: s.homeWidget || '' }
 }
 
-/** 调研：真实浏览器读网页，交付一份带来源的摘要。 */
-export const RESEARCH = {
-  id: 'research',
-  label: '调研',
-  intro: '给一个问题或几个网址，后台打开网页读完，交付一份带来源链接的摘要或比较。',
-  examples: ['调研三家国产向量数据库的定价，做成对比表', '读一下 Paseo 的 GitHub 主页，总结它解决什么问题', '这周 Node.js 有哪些新版本，各改了什么'],
-  toolStepMap: { open_url: '打开网页', quick_links: '打开网页' },
-  deliverableKinds: ['summary', 'markdown'],
-  compose(input, context) {
-    return [
-      '你是 MyWork 的后台调研员。用户不在线，不要提问，自己完成。',
-      '', '调研题目：', input, '',
-      '做法：',
-      '1. 优先用浏览器工具（open_url / browser_*）打开真实网页读原文；没有浏览器工具就用已有知识并注明。',
-      '2. 每个事实标来源（网址）。不确定的写"待核实"。',
-      '3. 做完必须调用 deliver：kind 用 summary，title 一句话，markdown 先给结论（三到五句），再给依据表或要点，最后列来源。',
-      '4. 交付后一两句话总结。',
-      context && context.date ? `今天是 ${context.date}。` : '',
-    ].filter(Boolean).join('\n')
-  },
-}
-
-/** 办公：表格 / 文档 / 幻灯片（dsh-univer-office 提供工具）。 */
-export const OFFICE = {
-  id: 'office',
-  label: '办公',
-  intro: '要一张表、一份文档或一组幻灯片。装了 Univer 办公成员时直接生成文件，否则交付 Markdown 版本。',
-  examples: ['做一张本月支出表，按类别汇总并画一个饼图', '把这段会议记录整理成一页纪要，带待办清单', '给新人写一份五页的入职介绍幻灯片大纲'],
-  toolStepMap: { univer_new: '新建文档', univer_execute: '编辑文档', univer_export: '导出', univer_print_pdf: '导出', univer_screenshot: '预览' },
-  deliverableKinds: ['markdown', 'table'],
-  compose(input, context) {
-    return [
-      '你是 MyWork 的后台办公助理。用户不在线，不要提问，自己完成。',
-      '', '要做的东西：', input, '',
-      '做法：',
-      '1. 如果有 univer_* 工具，用它们生成表格 / 文档 / 幻灯片，并在交付物里写明文件名和位置；没有就用 Markdown 表格或大纲直接交付。',
-      '2. 数字要可追溯：假设的数值要标"示例"。',
-      '3. 做完必须调用 deliver：title 一句话，markdown 里放最终内容（表格用 Markdown 表格），kind 用 table 或 markdown。',
-      '4. 交付后一两句话总结。',
-      context && context.cwd ? `工作目录：${context.cwd}。` : '',
-    ].filter(Boolean).join('\n')
-  },
-}
-
-/** 对话：像聊天一样回答，不强制交付；要文档时再 deliver。 */
-export const CHAT = {
-  id: 'chat',
-  label: '对话',
-  intro: '就是聊天：问个问题、要个建议、让它解释一段话。不强制交付文档，需要时说“整理成一份”它会交付。',
-  examples: ['解释一下什么是 agent harness', '帮我想三个周报的标题', '这段话哪里写得别扭：……'],
-  toolStepMap: {},
-  deliverableKinds: ['markdown'],
-  deliverable: false,
-  verify: false,
-  compose(input, context) {
-    return [
-      '你是 MyWork 里的对话助手。直接、具体地回答，像和同事说话；不要长篇铺垫。需要查资料或读文件时可以用工具。',
-      '只有当用户明确要一份可以保存的东西（报告、清单、文档、表格）时，才调用 deliver 交付；平时不要调用。',
-      '', input,
-      context && context.date ? `\n今天是 ${context.date}。` : '',
-    ].filter(Boolean).join('\n')
-  },
-}
-
-export const BUILTIN_SCENARIOS = [GENERAL, CHAT, RESEARCH, OFFICE]
 
 /** Verification prompt: a second, read-only session checks the deliverable against the task and the run. */
 export function defaultVerifyPrompt(task, deliverables, activity) {

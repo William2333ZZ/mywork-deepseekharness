@@ -32,7 +32,9 @@ const SLOW_MS = 20000
 const V2_KEY = 'dsh-mywork:v2'
 
 const zh = {
-  today: '今日', tasks: '任务', deliverables: '交付物', scenarios: '场景',
+  today: '今日', tasks: '任务', deliverables: '交付物', scenarios: '领域', packs: '领域', builtin: '内置', scenarioClear: '不指定，让系统判断',
+  packsLead: '领域包决定一类事怎么做：用什么数据、交付什么、怎么核验。你不用选，说出来就行；装了领域包，它认得的事自动归它。',
+  packsEmpty: '还没有装领域包。交易工作台是第一个。',
   hero: '你要什么结果？', ask: '说一个你要的结果，比如"把这个目录的 README 整理成一页产品介绍"', hint: '回车创建，Shift + 回车换行。任务在后台完成，做完通知你。',
   running: '进行中', recent: '最近', none: '还没有任务。', noneRunning: '现在没有在跑的任务。', noneDeliverables: '还没有交付物。',
   all: '全部', active: '进行中', finished: '已完成', back: '返回', rerun: '再来一次', cancel: '取消', process: '过程', verifyAgain: '重新核验',
@@ -42,10 +44,12 @@ const zh = {
   verified: '已核验', verifyIssues: '核验发现问题', verifyNone: '未能核验', verifying: '核验中', checked: '核对', issues: '问题',
   doneToast: '任务完成', failedToast: '任务失败', open: '打开', tryScenario: '用这个场景', kinds: '交付', examples: '示例',
   toolFailed: '失败', stepsTitle: '步骤',
-  say: '接着说，比如“再短一点”或“换个角度”', sayHint: '回车发送，同一个会话继续。', sayBusy: '核验中，稍等。', conversational: '这是一次对话；要保存成文档时说“整理成一份…”。',
+  say: '接着说，比如“再短一点”或“换个角度”', sayHint: '回车发送，同一个会话继续。', sayBusy: '核验中，稍等。', conversational: '这次是回答，没有生成文档；要保存时说“整理成一份…”。',
 }
 const en = {
-  today: 'Today', tasks: 'Tasks', deliverables: 'Deliverables', scenarios: 'Scenarios',
+  today: 'Today', tasks: 'Tasks', deliverables: 'Deliverables', scenarios: 'Domains', packs: 'Domains', builtin: 'built in', scenarioClear: 'Let the system decide',
+  packsLead: 'A domain pack defines how one kind of work gets done: which data, what to deliver, how to verify. You never pick; a pack claims the requests it recognises.',
+  packsEmpty: 'No domain packs installed yet. The trading workbench is the first.',
   hero: 'What do you want done?', ask: 'Describe the result you want', hint: 'Enter creates the task, Shift + Enter for a new line. It runs in the background and notifies you when done.',
   running: 'In progress', recent: 'Recent', none: 'No tasks yet.', noneRunning: 'Nothing is running.', noneDeliverables: 'No deliverables yet.',
   all: 'All', active: 'Active', finished: 'Finished', back: 'Back', rerun: 'Run again', cancel: 'Cancel', process: 'Process', verifyAgain: 'Verify again',
@@ -55,7 +59,7 @@ const en = {
   verified: 'Verified', verifyIssues: 'Issues found', verifyNone: 'Not verified', verifying: 'Verifying', checked: 'checked', issues: 'issues',
   doneToast: 'Task finished', failedToast: 'Task failed', open: 'Open', tryScenario: 'Use this scenario', kinds: 'Delivers', examples: 'Examples',
   toolFailed: 'failed', stepsTitle: 'Steps',
-  say: 'Keep going, e.g. “shorter” or “from another angle”', sayHint: 'Enter sends into the same session.', sayBusy: 'Verifying, one moment.', conversational: 'This is a conversation; ask for a document when you want one saved.',
+  say: 'Keep going, e.g. “shorter” or “from another angle”', sayHint: 'Enter sends into the same session.', sayBusy: 'Verifying, one moment.', conversational: 'This was an answer, no document was produced; ask for one when you want it saved.',
 }
 
 const STYLE = `
@@ -70,6 +74,7 @@ body[data-ds-dark-theme] .mwt{--mwt-canvas:#171716;--mwt-surface:#1f1f1e;--mwt-s
 .mwt-title{display:flex;align-items:baseline;gap:10px;margin:8px 0 22px}
 .mwt-title h1{margin:0;font-size:20px;line-height:28px;font-weight:600;letter-spacing:-.01em}
 .mwt-title span{color:var(--mwt-fg3);font-size:13px;font-variant-numeric:tabular-nums}
+.mwt-lead{margin:-8px 0 20px;max-width:60ch;color:var(--mwt-fg2);font-size:14px;line-height:23px}
 .mwt-hero{min-height:min(40vh,400px);display:flex;flex-direction:column;justify-content:flex-end;padding:24px 0 12px;text-align:center}
 .mwt-hero h1{margin:0 0 26px;font-size:30px;line-height:38px;font-weight:600;letter-spacing:-.022em;text-wrap:balance}
 .mwt-ask{text-align:left;border:1px solid var(--mwt-line);border-radius:22px;background:var(--mwt-surface);padding:16px 16px 12px 20px;box-shadow:var(--mwt-shadow);transition:border-color 160ms ease,box-shadow 160ms ease}
@@ -303,11 +308,11 @@ function makeComponents(ctx, t) {
 
   function Ask({ scenarios, initial, hero }) {
     const [text, setText] = React.useState(initial && initial.text ? initial.text : '')
-    const [scenario, setScenario] = React.useState(initial && initial.scenario ? initial.scenario : 'general')
+    const [scenario, setScenario] = React.useState(initial && initial.scenario ? initial.scenario : '')
     const [busy, setBusy] = React.useState(false)
     const [err, setErr] = React.useState('')
     const ref = React.useRef(null)
-    const current = scenarios.find((s) => s.id === scenario) || scenarios[0] || null
+    const examples = (scenario ? (scenarios.find((s) => s.id === scenario) || { examples: [] }).examples : scenarios.flatMap((s) => s.examples.slice(0, s.builtin ? 4 : 2))).slice(0, 6)
     React.useEffect(() => { if (initial && initial.text && ref.current) ref.current.focus() }, [])
     React.useEffect(() => {
       const onNew = (e) => { const d = e.detail || {}; if (d.text !== undefined) setText(String(d.text)); if (d.scenario) setScenario(String(d.scenario)); if (ref.current) ref.current.focus() }
@@ -318,7 +323,7 @@ function makeComponents(ctx, t) {
       const input = text.trim()
       if (!input || busy) return
       setBusy(true); setErr('')
-      try { const d = await api('/create', { input, scenario }); setText(''); await refresh(); schedulePoll(); if (d.task) openTask(d.task.id) } catch (e) { setErr(e.message || String(e)) } finally { setBusy(false) }
+      try { const d = await api('/create', scenario ? { input, scenario } : { input }); setText(''); setScenario(''); await refresh(); schedulePoll(); if (d.task) openTask(d.task.id) } catch (e) { setErr(e.message || String(e)) } finally { setBusy(false) }
     }
     const grow = () => { const el = ref.current; if (!el) return; el.style.height = 'auto'; el.style.height = Math.min(240, el.scrollHeight) + 'px' }
     React.useEffect(grow, [text])
@@ -326,10 +331,10 @@ function makeComponents(ctx, t) {
       h('div', { className: 'mwt-ask' },
         h('textarea', { ref, value: text, placeholder: t('ask'), rows: 2, onChange: (e) => setText(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); submit() } } }),
         h('div', { className: 'mwt-ask-row' },
-          scenarios.length > 1 ? h('select', { className: 'mwt-select', value: scenario, 'aria-label': t('scenario'), onChange: (e) => setScenario(e.target.value) }, scenarios.map((s) => h('option', { key: s.id, value: s.id }, s.label))) : null,
+          scenario ? h('button', { type: 'button', className: 'mwt-chip', 'data-on': true, title: t('scenarioClear'), onClick: () => setScenario('') }, (scenarios.find((s) => s.id === scenario) || { label: scenario }).label, ' ×') : null,
           h('small', { className: 'grow' }, err || (hero ? '' : t('hint'))),
           h('button', { type: 'button', className: 'mwt-btn primary round', 'aria-label': t('create'), title: t('create'), disabled: busy || !text.trim(), onClick: submit }, icon(busy ? 'loader' : 'send', { size: 15 })))),
-      current && current.examples.length ? h('div', { className: 'mwt-chips' + (hero ? ' center' : '') }, current.examples.map((ex) => h('button', { key: ex, type: 'button', className: 'mwt-chip', title: ex, onClick: () => { setText(ex); if (ref.current) ref.current.focus() } }, ex))) : null)
+      examples.length ? h('div', { className: 'mwt-chips' + (hero ? ' center' : '') }, examples.map((ex) => h('button', { key: ex, type: 'button', className: 'mwt-chip', title: ex, onClick: () => { setText(ex); if (ref.current) ref.current.focus() } }, ex))) : null)
   }
 
   function TodayPage() {
@@ -424,7 +429,7 @@ function makeComponents(ctx, t) {
           !live && task.deliverableIds.length ? h('button', { type: 'button', className: 'mwt-btn ghost', onClick: reverify }, icon('circle-check', { size: 14 }), t('verifyAgain')) : null,
           task.sessionId ? h('button', { type: 'button', className: 'mwt-btn ghost', onClick: () => fire('mywork:open-session', { sessionId: task.sessionId }) }, icon('history', { size: 14 }), t('process')) : null)),
       h('div', { className: 'mwt-detail-head' }, h(StatusDot, { task }), h('h1', null, task.title)),
-      h('div', { className: 'mwt-meta' }, h('span', null, scenarioLabel), h('span', null, t('elapsed') + ' ' + elapsedOf(task)), task.finishedAt ? h('span', null, fmtDate(task.finishedAt)) : null, task.input !== task.title ? h('span', { title: task.input }, t('input') + '：' + (task.input.length > 80 ? task.input.slice(0, 79) + '…' : task.input)) : null),
+      h('div', { className: 'mwt-meta' }, task.scenario !== 'general' ? h('span', null, scenarioLabel) : null, h('span', null, t('elapsed') + ' ' + elapsedOf(task)), task.finishedAt ? h('span', null, fmtDate(task.finishedAt)) : null, task.input !== task.title ? h('span', { title: task.input }, t('input') + '：' + (task.input.length > 80 ? task.input.slice(0, 79) + '…' : task.input)) : null),
       task.error ? h('div', { className: 'mwt-error' }, task.error) : null,
       h('div', { className: 'mwt-cols' },
         h('div', { className: 'mwt-col' }, h('h2', null, icon('loader', { size: 13 }), t('progress'), h('span', { className: 'grow' }), task.statusLabel),
@@ -432,7 +437,7 @@ function makeComponents(ctx, t) {
           h(Activity, { task: full, live }),
           h(Say, { task })),
         h('div', { className: 'mwt-col sticky' }, h('h2', null, icon('file-text', { size: 13 }), t('deliverable'), h('span', { className: 'grow' }), docs.length ? null : h(VerifyBadge, { v: task.verification, status: task.status })),
-          docs.length ? docs.map((d) => h(Doc, { key: d.id, d: { ...d, scenarioLabel }, status: task.status, onRate: rateIn(setDetail) })) : h('div', { className: 'mwt-empty' }, (s.scenarios.find((x) => x.id === task.scenario) || {}).conversational ? t('conversational') : live ? t('waitingDeliverable') : t('none2')))))
+          docs.length ? docs.map((d) => h(Doc, { key: d.id, d: { ...d, scenarioLabel }, status: task.status, onRate: rateIn(setDetail) })) : h('div', { className: 'mwt-empty' }, live ? t('waitingDeliverable') : t('conversational')))))
   }
 
   function TasksPage() {
@@ -486,12 +491,16 @@ function makeComponents(ctx, t) {
 
   function ScenariosPage() {
     const s = usePolling()
+    const packs = s.scenarios.filter((x) => !x.builtin)
+    const general = s.scenarios.find((x) => x.builtin)
+    const card = (sc) => h('div', { key: sc.id, className: 'mwt-scen-card' },
+      h('h3', null, sc.label, sc.builtin ? h('span', { className: 'mwt-badge', style: { marginLeft: 8 } }, t('builtin')) : null), h('p', null, sc.intro),
+      sc.examples.length ? h('div', { className: 'ex' }, sc.examples.map((ex) => h('button', { key: ex, type: 'button', onClick: () => newTask(ex, sc.builtin ? '' : sc.id) }, '→ ' + ex))) : null)
     return h('div', { className: 'mwt' }, h('style', null, STYLE), h('div', { className: 'mwt-page' },
-      h('div', { className: 'mwt-title' }, h('h1', null, t('scenarios')), h('span', null, String(s.scenarios.length))),
-      h('div', { className: 'mwt-scen' }, s.scenarios.map((sc) => h('div', { key: sc.id, className: 'mwt-scen-card' },
-        h('h3', null, sc.label), h('p', null, sc.intro),
-        sc.examples.length ? h('div', { className: 'ex' }, sc.examples.map((ex) => h('button', { key: ex, type: 'button', title: t('tryScenario'), onClick: () => newTask(ex, sc.id) }, '→ ' + ex))) : null,
-        h('div', null, h('button', { type: 'button', className: 'mwt-btn', onClick: () => newTask('', sc.id) }, icon('plus', { size: 13 }), t('tryScenario'))))))))
+      h('div', { className: 'mwt-title' }, h('h1', null, t('packs')), h('span', null, String(packs.length))),
+      h('p', { className: 'mwt-lead' }, t('packsLead')),
+      h('div', { className: 'mwt-scen' }, general ? card(general) : null, packs.map(card)),
+      packs.length ? null : h('div', { className: 'mwt-empty', style: { marginTop: 16 } }, t('packsEmpty'))))
   }
 
   /** Always mounted: completion toasts and browser notifications, and the poll that feeds the sidebar. */

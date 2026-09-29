@@ -37,13 +37,17 @@ export function apply(ctx, config = {}) {
   }
   let controller = null
   ctx.inject(['sessionController'], (sctx) => { controller = sctx.sessionController; sctx.effect(() => () => { controller = null }, 'dsh-mywork-tasks: controller') })
+  /** What this machine can do, read from the tool registry at task time (members come and go). */
+  const hasTool = (name) => { try { return !!ctx.tools.get(name) } catch { return false } }
+  const capabilities = () => ({ browser: hasTool('open_url') || hasTool('browser_navigate'), office: hasTool('univer_new'), im: hasTool('im_send') })
   const engine = createEngine({
-    ctx, store, deliverables, scenarios, log, emit, controller: () => controller,
+    ctx, store, deliverables, scenarios, log, emit, controller: () => controller, capabilities,
     config: { concurrency: Number(config.concurrency) || 2, timeoutMs: Math.max(1, Number(config.timeoutMinutes) || 20) * 60000, permission: String(config.permission || 'workspace-write'), agentPreset: config.agentPreset === '' ? undefined : (config.agentPreset || 'standard'), cwd: String(config.cwd || ''), verify: config.verify !== false },
   })
 
   const create = ({ input, scenario, title, source }) => {
-    const s = scenarios.resolve(scenario)
+    // The user never picks: a pack claims the input through match(), otherwise 通用 decides for itself.
+    const s = scenario ? scenarios.resolve(scenario) : scenarios.route(input)
     const task = store.create({ input, scenario: s ? s.id : 'general', title, source })
     log(`task ${task.id} queued (${task.scenario}): ${task.title}`)
     emit('queued', task)
@@ -110,14 +114,14 @@ export function apply(ctx, config = {}) {
     const query = (req) => new URL(req.url || '/', 'http://localhost').searchParams
     const route = (path, handler) => wctx.webServer.register({ kind: 'exact', path: '/mywork-tasks/api' + path, handler: (req, res) => rejectUntrusted(ctx, req, res, json) || Promise.resolve(handler(req, res)).catch((e) => json(res, { error: e instanceof Error ? e.message : String(e) }, 500)) })
     const post = (path, handler) => route(path, async (req, res) => { if (req.method !== 'POST') return json(res, { error: 'POST only' }, 405); return handler(await readBody(req), res, req) })
-    route('/tasks', async (_req, res) => json(res, { items: api.list().map(({ activity: _a, ...t }) => t), scenarios: scenarios.list() }))
+    route('/tasks', async (_req, res) => json(res, { items: api.list().map(({ activity: _a, ...t }) => t), scenarios: scenarios.list(), capabilities: capabilities() }))
     route('/task', async (req, res) => { const t = api.get(query(req).get('id') || ''); if (!t) return json(res, { error: 'task not found' }, 404); json(res, { task: t, deliverables: deliverables.forTask(t.id) }) })
     post('/create', async (b, res) => { if (!String(b.input || '').trim()) return json(res, { error: 'input is required' }, 400); json(res, { task: create({ input: b.input, scenario: b.scenario, title: b.title, source: 'ui' }) }) })
     post('/cancel', async (b, res) => json(res, { task: api.cancel(String(b.id || '')) }))
     post('/verify', async (b, res) => json(res, { task: api.verify(String(b.id || '')) }))
     post('/say', async (b, res) => { if (!String(b.text || '').trim()) return json(res, { error: 'text is required' }, 400); json(res, { task: await api.say(String(b.id || ''), b.text) }) })
     post('/rerun', async (b, res) => { const t = store.get(String(b.id || '')); if (!t) return json(res, { error: 'task not found' }, 404); json(res, { task: create({ input: t.input, scenario: t.scenario, title: t.title, source: 'rerun' }) }) })
-    route('/scenarios', async (_req, res) => json(res, { items: scenarios.list() }))
+    route('/scenarios', async (_req, res) => json(res, { items: scenarios.list(), capabilities: capabilities() }))
     route('/deliverables', async (_req, res) => json(res, { items: deliverables.list().map((d) => ({ id: d.id, taskId: d.taskId, title: d.title, kind: d.kind, scenario: d.scenario, createdAt: d.createdAt, rating: d.rating, verification: d.verification })) }))
     route('/deliverable', async (req, res) => { const d = deliverables.get(query(req).get('id') || ''); if (!d) return json(res, { error: 'deliverable not found' }, 404); json(res, { deliverable: d, task: api.get(d.taskId) }) })
     post('/rate', async (b, res) => { const d = deliverables.update(String(b.id || ''), { rating: b.rating === null ? null : Number(b.rating) || 0 }); if (!d) return json(res, { error: 'deliverable not found' }, 404); json(res, { deliverable: d }) })

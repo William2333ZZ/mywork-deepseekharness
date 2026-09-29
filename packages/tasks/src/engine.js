@@ -101,23 +101,21 @@ export function reasonError(reason) {
  *   config        { concurrency, timeoutMs, permission, agentPreset, cwd, verify }
  *   log(msg), emit(kind, task, deliverable?), controller() → dsh sessionController (for follow-up turns on finished tasks)
  */
-export function createEngine({ ctx, store, deliverables, scenarios, config, log, emit, controller }) {
+export function createEngine({ ctx, store, deliverables, scenarios, config, log, emit, controller, capabilities }) {
   const live = new Map()     // taskId → run state
   const verifying = new Map() // taskId → { text }
   let pumping = false
 
-  /** Pick the workspace tasks run in: config.cwd, else the first registered one, else $DSH_HOME/mywork/workbench. */
+  /**
+   * Where tasks run: config.cwd, else a dedicated $DSH_HOME/mywork/workbench directory that is
+   * registered as a workspace on first use. Never a code repository the user happens to have
+   * open: a task with workspace-write permission would otherwise leave files in it.
+   */
   async function resolveWorkspace() {
     const registry = ctx.workspaceRegistry
-    if (config.cwd) {
-      const found = await registry.resolveByPath(config.cwd)
-      if (found) return found
-      return registry.create(config.cwd, 'MyWork')
-    }
-    for (const ws of registry.list()) if ((await ws.status()) === 'ok') return ws
-    const dir = join(myworkDir(), 'workbench')
+    const dir = config.cwd || join(myworkDir(), 'workbench')
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
-    return (await registry.resolveByPath(dir)) || registry.create(dir, 'MyWork')
+    return (await registry.resolveByPath(dir)) || registry.create(dir, 'MyWork 工作台')
   }
 
   /**
@@ -171,7 +169,7 @@ export function createEngine({ ctx, store, deliverables, scenarios, config, log,
       state.started = true
       store.setStatus(task.id, 'running', { startedAt: new Date().toISOString() })
       emit('started', store.get(task.id))
-      const prompt = scenario.compose(task.input, { date: new Date().toISOString().slice(0, 10), cwd: opened.workspace.path, task: { id: task.id, title: task.title } })
+      const prompt = scenario.compose(task.input, { date: new Date().toISOString().slice(0, 10), cwd: opened.workspace.path, task: { id: task.id, title: task.title }, capabilities: typeof capabilities === 'function' ? capabilities() : {} })
       agent.followup(userMessage(prompt, { kind: 'mywork-task', taskId: task.id, scenario: scenario.id }))
       const idle = agent.whenIdle()
       const deadline = new Promise((r) => { timer = setTimeout(() => { state.timedOut = true; agent.cancel({ kind: 'hook', reason: 'task timeout' }); r() }, config.timeoutMs) })
@@ -197,16 +195,17 @@ export function createEngine({ ctx, store, deliverables, scenarios, config, log,
     // A run that never reached its first turn left no session behind: drop the id so 「过程」 does not point at nothing.
     if (!state.started) store.update(taskId, { sessionId: '' })
     const scenario = scenarios.resolve(t.scenario)
-    const conversational = !!(scenario && scenario.deliverable === false)
+    // deliverable: true = the scenario promised a document (missing one is a failure, the text fills in);
+    // 'auto' (default) = the agent decides, an answer in the stream is a fine outcome; false = never.
+    const mode = scenario && scenario.deliverable !== undefined ? scenario.deliverable : 'auto'
     const summary = state.text ? titleOf(state.text) : ''
     let error = thrown || (state.cancelled ? '已取消。' : state.timedOut ? '超过最长运行时间。' : reasonError(state.reason))
-    // A task that produced nothing but text still yields a deliverable: the text itself (not for conversational scenarios).
-    if (!error && !conversational && t.deliverableIds.length === 0 && state.text) {
+    if (!error && mode === true && t.deliverableIds.length === 0 && state.text) {
       const d = deliverables.create({ taskId, title: t.title, kind: 'markdown', scenario: t.scenario, markdown: state.text })
       store.update(taskId, (x) => { x.deliverableIds.push(d.id) })
       emit('deliverable', store.get(taskId), d)
     }
-    if (!error && !conversational && store.get(taskId).deliverableIds.length === 0) error = '没有产出交付物。'
+    if (!error && mode === true && store.get(taskId).deliverableIds.length === 0) error = '没有产出交付物。'
     // Follow-up turns only re-verify when they produced a new deliverable.
     const newDeliverables = state.followup ? store.get(taskId).deliverableIds.length > state.deliverablesBefore : store.get(taskId).deliverableIds.length > 0
     const wantVerify = !error && config.verify && newDeliverables && !(scenario && scenario.verify === false)

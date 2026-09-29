@@ -271,6 +271,9 @@ body[data-ds-dark-theme] .mwt{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 .mwt-col h2 .grow{flex:1}
 .mwt-section h2 svg,.mwt-col h2 svg{color:var(--meta)}
 .mwt-empty{color:var(--muted);font-size:14px;padding:8px 2px}
+.mwt-quiet{padding:4px 2px}
+.mwt-quiet p{margin:0 0 4px;color:var(--muted);font-size:14px}
+.mwt-quiet .mwt-chips{margin-top:10px}
 /* Lists: one recipe. Container with a whisper border, rows divided by soft lines. */
 .mwt-cards,.mwt-atts,.mwt-rts{display:grid;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;background:var(--bg)}
 .mwt-card,.mwt-att,.mwt-rt{display:grid;align-items:center;column-gap:12px;min-height:44px;padding:12px 16px;border:0;border-top:1px solid var(--border-soft);background:transparent;color:inherit;font:inherit;text-align:left;width:100%;transition:background-color var(--motion-fast) var(--ease-standard)}
@@ -305,6 +308,7 @@ body[data-ds-dark-theme] .mwt{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 .mwt-btn{appearance:none;display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border:0;border-radius:var(--radius-sm);background:var(--surface);color:var(--fg);font:inherit;font-size:13px;font-weight:500;letter-spacing:.01em;cursor:pointer;white-space:nowrap}
 .mwt-btn:hover{background:var(--surface-2)}
 .mwt-btn[disabled]{opacity:.4;cursor:default;transform:none}
+.mwt-btn.primary[disabled]{opacity:1;background:var(--surface);color:var(--meta)}
 .mwt-btn.primary{background:var(--accent);color:var(--accent-on)}
 .mwt-btn.primary:hover{background:var(--accent-hover)}
 .mwt-btn.round{width:32px;height:32px;padding:0;border-radius:50%;justify-content:center}
@@ -328,13 +332,13 @@ body[data-ds-dark-theme] .mwt{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 .mwt-ask-row{display:flex;align-items:center;gap:8px;margin-top:8px}
 .mwt-ask-row .grow{flex:1;min-width:0}
 .mwt-ask-row small{display:block;color:var(--meta);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mwt-page-today{padding-bottom:140px}
-.mwt-dock{position:sticky;bottom:0;margin:32px 0 0;padding:12px 0 16px;background:linear-gradient(to top,var(--bg) 70%,transparent)}
-.mwt-ask-wrap.compact .mwt-ask{display:flex;flex-wrap:wrap;align-items:flex-end;gap:6px 8px;padding:6px 6px 6px 14px}
-.mwt-ask-wrap.compact textarea{flex:1 1 200px;min-width:0;min-height:32px;font-size:15px;line-height:24px;padding:4px 0}
+.mwt-page-today{display:flex;flex-direction:column;min-height:100%;padding-bottom:0}
+.mwt-page-today>.mwt-greet,.mwt-page-today>.mwt-list,.mwt-page-today>.mwt-empty,.mwt-page-today>.mwt-cards,.mwt-page-today>.mwt-retry{flex:none}
+.mwt-dock{position:sticky;bottom:0;margin:32px 0 0;margin-top:auto;padding:12px 0 20px;background:linear-gradient(to top,var(--bg) 70%,transparent)}
+.mwt-ask-wrap.compact .mwt-ask{display:flex;flex-wrap:wrap;align-items:flex-end;gap:6px 8px;padding:7px 7px 7px 16px}
+.mwt-ask-wrap.compact textarea{flex:1 1 200px;min-width:0;min-height:34px;font-size:15px;line-height:24px;padding:5px 0}
 .mwt-ask-wrap.compact .mwt-ask-row{display:contents}
 .mwt-ask-wrap.compact .mwt-ask-row small{display:none}
-.mwt-ask-wrap.compact.open .mwt-ask-row small{display:block;flex-basis:100%;order:3;padding:0 8px 4px 2px}
 .mwt-ask-wrap.compact .mwt-ask-row .mwt-chip{order:1}
 .mwt-ask-wrap.compact .mwt-ask-row .mwt-btn.round{order:2}
 .mwt-ask-wrap.compact .mwt-chips{margin:6px 0 4px;flex-basis:100%}
@@ -635,7 +639,7 @@ function makeComponents(ctx, t) {
           scenario ? h('button', { type: 'button', className: 'mwt-chip', 'data-on': true, title: t('scenarioClear'), onClick: () => setScenario('') }, (scenarios.find((s) => s.id === scenario) || { label: scenario }).label, ' ×') : null,
           h('small', { className: 'grow' }, err || (hero ? '' : t('hint'))),
           h('button', { type: 'button', className: 'mwt-btn primary round', 'aria-label': t('create'), title: t('create'), disabled: busy || !text.trim(), onClick: submit }, icon(busy ? 'loader' : 'send', { size: 15 })))),
-      examples.length && (!compact || focused) && !text ? h('div', { className: 'mwt-chips' + (hero ? ' center' : '') }, examples.map((ex) => h('button', { key: ex, type: 'button', className: 'mwt-chip', title: ex, onMouseDown: (e) => e.preventDefault(), onClick: () => { setText(ex); if (ref.current) ref.current.focus() } }, ex))) : null)
+      examples.length && !compact && !text ? h('div', { className: 'mwt-chips' + (hero ? ' center' : '') }, examples.map((ex) => h('button', { key: ex, type: 'button', className: 'mwt-chip', title: ex, onMouseDown: (e) => e.preventDefault(), onClick: () => { setText(ex); if (ref.current) ref.current.focus() } }, ex))) : null)
   }
 
   /**
@@ -683,7 +687,8 @@ function makeComponents(ctx, t) {
         : s.error && !s.items.length ? h('div', { className: 'mwt-retry' }, h('span', null, t('loadFailed')), h('button', { type: 'button', className: 'mwt-btn', onClick: () => { refresh().then(schedulePoll) } }, t('retry')))
         : rows.length || unrated ? h('div', { className: 'mwt-list' }, rows.map((row) => h(Row, { key: row.key, row })),
           more || unrated ? h('button', { type: 'button', className: 'mwt-row mwt-row-more', onClick: () => selectPanel(PANELS.tasks) }, h('span', { className: 'mwt-dot' }, icon('list-checks', { size: 16 })), h('span', { className: 'mwt-row-main' }, h('span', { className: 'mwt-row-title' }, [more ? t('moreRows').replace('{n}', String(more)) : '', unrated ? t('moreRate').replace('{n}', String(unrated)) : ''].filter(Boolean).join(' · '))), h('span', { className: 'mwt-row-state' }, icon('arrow-left', { size: 14, style: { transform: 'rotate(180deg)' } }))) : null)
-        : h('div', { className: 'mwt-empty' }, t('quietDay')),
+        : h('div', { className: 'mwt-quiet' }, h('p', null, t('quietDay')),
+          h('div', { className: 'mwt-chips' }, s.scenarios.flatMap((sc) => sc.examples.slice(0, sc.builtin ? 3 : 1)).slice(0, 4).map((ex) => h('button', { key: ex, type: 'button', className: 'mwt-chip', onClick: () => fire('mywork:new-task', { text: ex }) }, ex)))),
       h('div', { className: 'mwt-dock' }, h(Ask, { scenarios: s.scenarios, initial, hero: false, compact: true }))))
   }
 
@@ -891,7 +896,7 @@ function makeComponents(ctx, t) {
           r.schedule.type !== 'once' || r.enabled ? h('button', { type: 'button', className: 'mwt-btn ghost', onClick: () => act('/routines/enable', { id: r.id, enabled: !r.enabled }) }, icon(r.enabled ? 'pause' : 'play', { size: 13 }), r.enabled ? t('pause') : t('resume')) : null,
           h('button', { type: 'button', className: 'mwt-btn ghost', onClick: () => act('/routines/remove', { id: r.id }) }, icon('trash', { size: 13 }), t('remove'))))
     }
-    return h('div', { className: 'mwt' }, h('style', null, STYLE), h('div', { className: 'mwt-page' },
+    return h('div', { className: 'mwt' }, h('style', null, STYLE), h('div', { className: 'mwt-page mwt-page-today' },
       h('div', { className: 'mwt-title' }, h('h1', null, t('routines')), h('span', null, String(items.length))),
       items.length ? h('div', { className: 'mwt-rts' }, items.map(row)) : h('div', { className: 'mwt-empty' }, t('routinesLead')),
       h('div', { className: 'mwt-dock' }, h(Ask, { scenarios: s.scenarios, hero: false, compact: true }))))

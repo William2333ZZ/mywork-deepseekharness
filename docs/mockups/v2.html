@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>交易工作台 v2 样稿</title>
+<meta name="description" content="静态样稿：今日 / 报告 / 任务 三个核心界面。全部数据为示例。">
+<style>
+:root{--bg:#F6F5F2;--l1:#FFFFFF;--l2:#EEECE7;--line:rgba(22,26,31,.13);--line-soft:rgba(22,26,31,.07);--text:#161A1F;--sec:#5B6470;--ter:#5F6874;--accent:#1A5DC8;--up:#B83232;--down:#157A4B;--warn:#8C5A12;--fg-on-accent:#fff;--mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,monospace;--sans:"Geist","Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;--r:4px}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0E1116;--l1:#141920;--l2:#1B2129;--line:rgba(238,242,246,.14);--line-soft:rgba(238,242,246,.08);--text:#EEF2F6;--sec:#A7B1BE;--ter:#8C97A4;--accent:#5AA0FF;--up:#FF6B6B;--down:#3CCB7F;--warn:#F2B84B;--fg-on-accent:#0E1116}}
+:root[data-theme="dark"]{--bg:#0E1116;--l1:#141920;--l2:#1B2129;--line:rgba(238,242,246,.14);--line-soft:rgba(238,242,246,.08);--text:#EEF2F6;--sec:#A7B1BE;--ter:#8C97A4;--accent:#5AA0FF;--up:#FF6B6B;--down:#3CCB7F;--warn:#F2B84B;--fg-on-accent:#0E1116}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--text);font:13px/1.5 var(--sans)}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.app{display:grid;grid-template-columns:232px 1fr;min-height:100vh}
+.side{border-right:1px solid var(--line);background:var(--l1);padding:14px 10px;display:flex;flex-direction:column;gap:4px}
+.brand{display:flex;align-items:center;gap:8px;font-weight:600;font-size:15px;padding:6px 8px 14px}
+.brand svg{color:var(--accent)}
+.nav a{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:var(--r);color:var(--sec);text-decoration:none}
+.nav a[aria-current]{background:var(--l2);color:var(--text)}
+.nav a svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.side .foot{margin-top:auto;padding:8px 10px;color:var(--ter);font-size:12px}
+main{padding:22px 28px 40px;max-width:1120px}
+.mock{position:fixed;right:14px;top:10px;font-size:11px;color:var(--ter);border:1px solid var(--line);border-radius:var(--r);padding:2px 8px;background:var(--l1);z-index:2}
+.tabs{display:flex;gap:4px;margin:0 0 18px;border-bottom:1px solid var(--line)}
+.tabs button{border:0;background:transparent;font:inherit;padding:8px 12px;color:var(--sec);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button[aria-selected=true]{color:var(--text);border-bottom-color:var(--accent)}
+.screen{display:none}.screen[data-on]{display:block}
+h1{font-size:20px;font-weight:600;margin:0 0 4px;letter-spacing:-.01em}
+.sub{color:var(--sec);margin:0 0 18px}
+h2{font-size:13px;font-weight:600;margin:26px 0 10px;padding-bottom:8px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:baseline}
+h2 .meta{font-weight:400;font-size:12px;color:var(--ter)}
+.ask{border:1px solid var(--line);border-radius:6px;background:var(--l1);padding:12px 14px}
+.ask .in{display:flex;align-items:center;gap:10px}
+.ask input{flex:1;border:0;background:transparent;font:inherit;font-size:15px;color:var(--text);outline:0}
+.ask input::placeholder{color:var(--ter)}
+.btn{border:0;border-radius:var(--r);background:var(--accent);color:var(--fg-on-accent);padding:7px 14px;font:inherit;font-weight:600;cursor:pointer;white-space:nowrap}
+.mini{border:1px solid var(--line);border-radius:var(--r);background:transparent;color:var(--sec);padding:4px 10px;font:inherit;font-size:12px;cursor:pointer;white-space:nowrap}
+.chips{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.state{display:flex;justify-content:space-between;gap:14px;align-items:baseline;margin:0 0 14px;color:var(--sec)}
+.state b{color:var(--text);font-weight:600;margin-right:6px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+.card{border:1px solid var(--line);border-radius:6px;background:var(--l1);padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+.card .t{font-weight:600}
+.card .s{color:var(--sec);font-size:12.5px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.card .p{font-size:26px;font-weight:500;line-height:1.1}
+.card .st{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--ter)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--accent);display:inline-block}
+.dot.run{animation:pulse 1.2s ease-in-out infinite}@keyframes pulse{50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){.dot.run{animation:none}}
+.steps{display:flex;gap:6px;flex-wrap:wrap;font-size:11.5px;color:var(--ter)}
+.steps span{padding:2px 8px;border:1px solid var(--line);border-radius:999px}
+.steps span.done{color:var(--text)}.steps span.now{border-color:var(--accent);color:var(--accent)}
+.brief{display:grid;grid-template-columns:120px 1fr;gap:18px;border:1px solid var(--line);border-radius:6px;background:var(--l1);padding:14px 16px}
+.brief .p{font-size:34px;font-weight:500;line-height:1}
+.brief .p small{display:block;font-size:11.5px;color:var(--ter);font-family:var(--sans);margin-top:6px}
+.brief ul{margin:8px 0 0;padding-left:16px;color:var(--sec)}
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+th{text-align:left;font-weight:500;font-size:11.5px;color:var(--ter);padding:6px 8px 6px 0}
+td{padding:7px 8px 7px 0;border-top:1px solid var(--line-soft);vertical-align:middle}
+td.num,th.num{text-align:right}
+.up{color:var(--up)}.down{color:var(--down)}
+.sub2{display:block;font-size:11px;color:var(--ter)}
+/* report */
+.doc{max-width:860px}
+.doc .head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.doc h1{font-size:22px;line-height:1.3}
+.tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.tag{border:1px solid var(--line);border-radius:var(--r);padding:1px 8px;font-size:11.5px;color:var(--sec)}
+.tag.ok{color:var(--down);border-color:var(--down)}
+.actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.verdict{display:grid;grid-template-columns:200px 1fr;gap:24px;padding:22px 0;border-bottom:1px solid var(--line)}
+.verdict .p{font-size:48px;font-weight:500;line-height:1}
+.verdict .p small{display:block;font-size:12px;color:var(--ter);font-family:var(--sans);margin-top:8px}
+.verdict p{margin:0;font-size:14px;line-height:1.7}
+.doc h3{font-size:14px;margin:24px 0 8px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.box{border:1px solid var(--line);border-radius:6px;padding:12px 14px;background:var(--l1)}
+.box h4{margin:0 0 6px;font-size:12px;color:var(--ter);font-weight:500}
+.scen td:first-child{width:90px}
+.hist{display:flex;gap:6px;align-items:baseline;color:var(--sec);font-size:12px}
+.hist b{color:var(--text)}
+details{border:1px solid var(--line);border-radius:6px;padding:10px 14px;margin-top:24px;background:var(--l1)}
+summary{cursor:pointer;font-weight:600}
+.tl{margin:10px 0 0;padding:0;list-style:none}
+.tl li{display:grid;grid-template-columns:90px 1fr 70px;gap:12px;padding:6px 0;border-top:1px solid var(--line-soft);font-size:12.5px}
+.tl li span:first-child{font-weight:600}.tl li span:last-child{text-align:right;color:var(--ter)}
+/* tasks */
+.tasks{margin:0;padding:0;list-style:none}
+.tasks li{display:grid;grid-template-columns:1fr 200px 90px;gap:14px;padding:10px 0;border-top:1px solid var(--line-soft);align-items:center}
+.tasks .t{font-weight:600}.tasks .r{color:var(--sec);font-size:12.5px}
+@media (max-width:900px){.app{grid-template-columns:1fr}.side{display:none}.verdict,.two,.brief{grid-template-columns:1fr}.tasks li{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="mock">静态样稿 · 示例数据</div>
+<div class="app">
+  <aside class="side">
+    <div class="brand"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 7l-8.5 8.5-5-5L2 17"/><path d="M16 7h6v6"/></svg>交易工作台</div>
+    <nav class="nav">
+      <a href="#today" aria-current="page" data-go="today"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg>今日</a>
+      <a href="#tasks" data-go="tasks"><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></svg>任务</a>
+      <a href="#report" data-go="report"><svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v4a2 2 0 0 0 2 2h4M10 9H8M16 13H8M16 17H8"/></svg>报告</a>
+      <a href="#pos"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-4 4 3 5-6"/></svg>持仓</a>
+    </nav>
+    <div class="foot">设置</div>
+  </aside>
+  <main>
+    <div class="tabs" role="tablist"><button role="tab" aria-selected="true" data-go="today">今日</button><button role="tab" data-go="report">报告页</button><button role="tab" data-go="tasks">任务</button></div>
+
+    <section class="screen" id="s-today" data-on>
+      <div class="state"><span><b>9 月 29 日 周二</b>风险偏好恐惧（37），实际利率高位 2.83%，曲线正常 36bp，黄金月内 -6.3%，加密杠杆冷淡。</span><span class="num" style="color:var(--ter)">更新于 08:31</span></div>
+      <div class="ask">
+        <div class="in"><input placeholder="问一个市场问题，或者选一只标的：黄金现在要不要加仓？" aria-label="提问"><button class="btn">研究</button></div>
+        <div class="chips"><button class="mini">研究我的持仓</button><button class="mini">今天的变化说明了什么</button><button class="mini">未来 12 个月衰退概率</button><button class="mini">A 股主力在往哪走</button></div>
+      </div>
+
+      <h2>早盘简报 <span class="meta num">08:30 · 已核验 9/9</span></h2>
+      <div class="brief">
+        <div class="p num">-6.3%<small>黄金 30 日，回撤已至 4 月高点的 11%</small></div>
+        <div><div class="t" style="font-weight:600">黄金回撤逼近结构位，实际利率仍是唯一逆风</div><ul><li>10Y 实际利率 2.83%，2008 年以来最高，机会成本压制金价</li><li>CFTC 管理基金净多两周减仓 1.7 万手，投机盘在撤、实需在接</li><li>A 股主力净流入转向电力与公用事业，军工连续第三日流出</li></ul><div style="margin-top:8px"><button class="mini">打开简报</button></div></div>
+      </div>
+
+      <h2>进行中 <span class="meta">2 个任务</span></h2>
+      <div class="cards">
+        <div class="card"><div class="st"><span class="dot run"></span>正在推理 · 1 分 12 秒</div><div class="t">黄金现在要不要加仓？</div><div class="steps"><span class="done">取数 8 源</span><span class="done">交叉 3 处矛盾</span><span class="now">结论</span><span>核验</span></div></div>
+        <div class="card"><div class="st"><span class="dot"></span>完成 · 3 分 46 秒</div><div class="t">贵州茅台主力是在买还是卖？</div><div class="p num">38% <small style="font-size:12px;color:var(--ter);font-family:var(--sans)">30 日内主力净流入转正</small></div><div class="s">主力连续 5 日净流出，板块内相对强度靠后；期权侧没有对应的美股线索，结论只依赖资金流与量价。</div><div class="st"><button class="mini">打开报告</button><span class="num">已核验 7/7</span></div></div>
+      </div>
+
+      <h2>我的持仓 <span class="meta num">USD 8,379 · +379 (+4.7%)</span></h2>
+      <table>
+        <thead><tr><th>标的</th><th class="num">最新</th><th class="num">日</th><th class="num">持仓</th><th class="num">浮动盈亏</th><th>最近报告</th><th></th></tr></thead>
+        <tbody>
+          <tr><td>黄金<span class="sub2">xauusd</span></td><td class="num">4,189</td><td class="num down">-3.05%</td><td class="num">2 @ 4,000</td><td class="num up">+379 (+4.7%)</td><td><span class="tag">52% · 09-27</span></td><td class="num"><button class="mini">研究</button></td></tr>
+          <tr><td>贵州茅台<span class="sub2">600519</span></td><td class="num">1,237</td><td class="num down">-1.14%</td><td class="num" style="color:var(--ter)">无</td><td class="num" style="color:var(--ter)">-</td><td><span class="tag">38% · 今天</span></td><td class="num"><button class="mini">研究</button></td></tr>
+          <tr><td>NVDA<span class="sub2">nvda.us</span></td><td class="num">225.07</td><td class="num up">+0.22%</td><td class="num" style="color:var(--ter)">无</td><td class="num" style="color:var(--ter)">-</td><td style="color:var(--ter)">-</td><td class="num"><button class="mini">研究</button></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="screen doc" id="s-report">
+      <div class="head">
+        <div>
+          <h1>黄金 4,321：6 到 12 个月正收益概率约 52%，期权定价斜向上但无溢价</h1>
+          <div class="tags"><span class="tag">黄金</span><span class="tag">资产择时</span><span class="tag">2026-09-27 20:31</span><span class="tag ok">已核验 12/12 数据点</span></div>
+        </div>
+        <div class="actions"><button class="mini">对</button><button class="mini">错</button><button class="mini">再问一次</button><button class="mini">导出</button></div>
+      </div>
+      <div class="verdict">
+        <div class="p num">52%<small>6 到 12 个月正收益 · 置信中等</small></div>
+        <p>利率说卖，价格说买。10Y 实际利率 2.83% 是 2008 年以来最高，本应压制金价，但黄金 30 日仅回撤 6.3%，距高点 11%，说明结构性买盘在吸收利率逆风。CFTC 净多减仓 1.7 万手而价格守稳，是投机盘在撤、实需盘在接。期权 IV 16.4% 低于已实现 24.8%，卖方并不恐慌。<b>建议分批而非一次性建仓，真正的风险是不降息时投机净多的平仓踩踏。</b></p>
+      </div>
+      <h3>分层信号</h3>
+      <table><thead><tr><th>层</th><th>信号</th><th class="num">数据</th><th>含义</th><th>窗口</th></tr></thead><tbody>
+        <tr><td>预测市场</td><td>Polymarket GC 12 月触及 4,500</td><td class="num">49.5%</td><td>上行略大于下行，无强趋势定价</td><td>3 个月</td></tr>
+        <tr><td>期权</td><td>GLD ATM IV / 30 日已实现</td><td class="num">16.4% / 24.8%</td><td>对冲需求平淡，跌势已被消化</td><td>3 个月</td></tr>
+        <tr><td>利率</td><td>10Y TIPS 实际利率</td><td class="num">2.83%</td><td>持有黄金的机会成本极高，历史级逆风</td><td>6 到 12 个月</td></tr>
+        <tr><td>持仓</td><td>CFTC 管理基金净多 / OI</td><td class="num">127,389 / 30.9%</td><td>高位减仓，投机盘撤退</td><td>1 到 3 个月</td></tr>
+        <tr><td>相对价格</td><td>铜 / 金比 30 日</td><td class="num">+5.3%</td><td>风险偏好未恶化，避险溢价收敛</td><td>1 个月</td></tr>
+      </tbody></table>
+      <h3>矛盾</h3>
+      <div class="two"><div class="box"><h4>利率说卖</h4>实际利率 2.83%，联储 2026 年不降息概率 96.5%，无货币宽松可押注。</div><div class="box"><h4>价格说买</h4>GLD 30 日仅 -2%，距高点 -8.1%；净多减仓 1.7 万手价格仍守稳。</div></div>
+      <h3>概率场景</h3>
+      <table class="scen"><tbody>
+        <tr><td class="num">45%</td><td>上涨（>4,600）</td><td style="color:var(--sec)">实需吸收利率逆风，预测市场上行略占优</td></tr>
+        <tr><td class="num">35%</td><td>区间（4,000 到 4,600）</td><td style="color:var(--sec)">实际利率封顶，期权无趋势定价</td></tr>
+        <tr><td class="num">20%</td><td>下跌（<4,000）</td><td style="color:var(--sec)">不降息，投机净多偏高易踩踏</td></tr>
+      </tbody></table>
+      <h3>监测阈值</h3>
+      <table><thead><tr><th>信号</th><th class="num">当前</th><th>触发</th></tr></thead><tbody>
+        <tr><td>10Y TIPS</td><td class="num">2.83%</td><td>跌破 2.5% 看多胜率升至 70%</td></tr>
+        <tr><td>CFTC 净多 / OI</td><td class="num">30.9%</td><td>跌破 25% 洗盘完成，更好的买点</td></tr>
+        <tr><td>GLD ATM IV</td><td class="num">16.4%</td><td>升破 25% 反而接近底部</td></tr>
+      </tbody></table>
+      <h3>同题历史 <span class="hist" style="display:inline-flex;margin-left:10px"><span class="num">09-20 48%</span>→<span class="num">09-24 50%</span>→<b class="num">09-27 52%</b></span></h3>
+      <p style="color:var(--ter);font-size:12px;margin:6px 0 0">数据来源：Polymarket、Yahoo Finance、YFinance 期权链、CFTC COT、US Treasury、CNN Fear &amp; Greed。取数时间 2026-09-27 20:28。数据摘要，不是交易建议。</p>
+      <details><summary>过程 · 3 分 46 秒 · 6 次工具调用</summary>
+        <ul class="tl"><li><span>取数</span><span>Polymarket 2 个合约、GLD 期权链、CFTC 黄金、国债曲线、恐惧贪婪、Yahoo 6 个代码</span><span class="num">14 秒</span></li><li><span>交叉</span><span>找到 3 处矛盾：利率 vs 价格、期权 vs 已实现、投机 vs 实需</span><span class="num">1 分 40 秒</span></li><li><span>结论</span><span>三个场景，一句建议，三个监测阈值</span><span class="num">1 分 20 秒</span></li><li><span>核验</span><span>12 个数据点与工具返回一致；概率均带时间窗口；5 个独立维度</span><span class="num">32 秒</span></li></ul>
+        <div style="margin-top:8px"><button class="mini">查看对话原文</button></div>
+      </details>
+    </section>
+
+    <section class="screen" id="s-tasks">
+      <h1>任务</h1><p class="sub">每个问题一条。完成的显示概率和一句结论，点开是报告。</p>
+      <ul class="tasks">
+        <li><div><div class="t">黄金现在要不要加仓？</div><div class="r">正在推理 · 取数 8 源 · 交叉 3 处矛盾</div></div><div class="steps"><span class="done">取数</span><span class="done">交叉</span><span class="now">结论</span><span>核验</span></div><div class="num" style="text-align:right;color:var(--ter)">1 分 12 秒</div></li>
+        <li><div><div class="t">贵州茅台主力是在买还是卖？</div><div class="r">38% · 30 日内主力净流入转正 · 已核验 7/7</div></div><div class="steps"><span class="done">完成</span></div><div class="num" style="text-align:right;color:var(--ter)">3 分 46 秒</div></li>
+        <li><div><div class="t">早盘简报 · 9 月 29 日</div><div class="r">黄金回撤逼近结构位，实际利率仍是唯一逆风 · 已推送飞书</div></div><div class="steps"><span class="done">完成</span></div><div class="num" style="text-align:right;color:var(--ter)">08:30</div></li>
+        <li><div><div class="t">未来 12 个月美国衰退的概率？</div><div class="r">18% · 曲线正常、联储不降息 96.5%、恐惧贪婪 37 · 已核验 10/10</div></div><div class="steps"><span class="done">完成</span></div><div class="num" style="text-align:right;color:var(--ter)">昨天</div></li>
+        <li><div><div class="t">NVDA 期权溢价是不是太高？</div><div class="r">失败 · YFinance 期权链超时，已重试 2 次</div></div><div class="steps"><span style="color:var(--warn);border-color:var(--warn)">失败</span></div><div class="num" style="text-align:right;color:var(--ter)">昨天</div></li>
+      </ul>
+    </section>
+  </main>
+</div>
+<script>
+  const go = (id) => { document.querySelectorAll('.screen').forEach(s => s.removeAttribute('data-on')); document.getElementById('s-' + id).setAttribute('data-on', ''); document.querySelectorAll('[role=tab]').forEach(b => b.setAttribute('aria-selected', b.dataset.go === id)); document.querySelectorAll('.nav a').forEach(a => { if (a.dataset.go === id) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current') }) }
+  document.querySelectorAll('[data-go]').forEach(el => el.addEventListener('click', (e) => { e.preventDefault(); go(el.dataset.go) }))
+  if (location.hash) go(location.hash.slice(1) === 'report' ? 'report' : location.hash.slice(1) === 'tasks' ? 'tasks' : 'today')
+</script>
+</body>
+</html>

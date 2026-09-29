@@ -298,7 +298,7 @@ body[data-ds-dark-theme] .mwt{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
   .mwt-md table{display:block;overflow:auto;max-width:100%}
   .mwt-scen{grid-template-columns:minmax(0,1fr)}
   .mwt-toasts{left:12px;right:12px;bottom:12px;max-width:none}
-  .mwt-dock{margin:24px 0 0;padding:8px 0 calc(8px + env(safe-area-inset-bottom))}
+  .mwt-dock{margin:24px 0 0;margin-top:auto;padding:8px 0 calc(8px + env(safe-area-inset-bottom))}
 }
 `
 

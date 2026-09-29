@@ -281,7 +281,7 @@ body[data-ds-dark-theme] .mwt{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 .mwt-toast span{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
 @media (max-width:720px){
   .mwt-page{padding:20px 12px 56px}
-  .mwt-page-today{padding-bottom:120px}
+  .mwt-page-today{padding-bottom:0}
   .mwt-greet h1,.mwt-title h1,.mwt-detail-head h1,.mwt-hero h1{font-size:20px}
   .mwt-card,.mwt-att,.mwt-rt{padding:11px 12px}
   .mwt-card{grid-template-columns:18px minmax(0,1fr) auto}

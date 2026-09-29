@@ -2504,6 +2504,7 @@ window.__ModuleLoader__.load({
 		}
 		const MYWORK_PANELS = {
 			today: "mywork-today",
+			create: "mywork-new",
 			tasks: "mywork-tasks",
 			deliverables: "mywork-deliverables",
 			routines: "mywork-routines",
@@ -2682,7 +2683,6 @@ body[data-ds-dark-theme] .mws-new:hover{background:var(--surface-2)}
 						className: "mws-new",
 						title: t("v2.newTask"),
 						onClick: () => {
-							go(MYWORK_PANELS.today);
 							fire("mywork:new-task", {});
 						},
 						children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(Plus, {

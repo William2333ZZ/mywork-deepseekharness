@@ -13,7 +13,7 @@ import type { CodexSidebarProps } from './CodexSidebar.tsx'
 export const V2_STORAGE_KEY = 'dsh-mywork:v2'
 export function v2Active(): boolean { try { return localStorage.getItem(V2_STORAGE_KEY) !== 'off' } catch { return true } }
 
-export const MYWORK_PANELS = { today: 'mywork-today', tasks: 'mywork-tasks', deliverables: 'mywork-deliverables', routines: 'mywork-routines', scenarios: 'mywork-scenarios' } as const
+export const MYWORK_PANELS = { today: 'mywork-today', create: 'mywork-new', tasks: 'mywork-tasks', deliverables: 'mywork-deliverables', routines: 'mywork-routines', scenarios: 'mywork-scenarios' } as const
 const API = '/mywork-tasks/api/tasks'
 const FAST_MS = 4000
 const SLOW_MS = 30000
@@ -123,7 +123,7 @@ export function MyworkSidebar({ selectPanel, usePanelInfo = useLegacyPanelInfo, 
   return <div className={'mws' + (compact ? ' compact' : '')} data-mywork-sidebar="v2">
     <style>{stylesheet}</style>
     <div className="mws-head"><button type="button" className="mws-brand" aria-current={activePanelId === MYWORK_PANELS.today ? 'page' : undefined} onClick={() => { go(MYWORK_PANELS.today) }}><i>M</i><span>MyWork</span></button><button type="button" className="mws-icon" aria-label={compact ? t('sidebar.expand') : t('sidebar.collapse')} onClick={toggleSidebar}><PanelLeft size={16} strokeWidth={1.5} /></button></div>
-    <button type="button" className="mws-new" title={t('v2.newTask')} onClick={() => { go(MYWORK_PANELS.today); fire('mywork:new-task', {}) }}><Plus size={15} strokeWidth={1.6} /><span>{t('v2.newTask')}</span></button>
+    <button type="button" className="mws-new" title={t('v2.newTask')} onClick={() => { fire('mywork:new-task', {}) }}><Plus size={15} strokeWidth={1.6} /><span>{t('v2.newTask')}</span></button>
     <nav className="mws-nav" aria-label="MyWork">{nav.map(({ id, label, Icon }) => <button key={id} type="button" aria-current={activePanelId === id ? 'page' : undefined} title={label} onClick={() => { go(id) }}><Icon size={16} strokeWidth={1.5} /><span>{label}</span></button>)}</nav>
     <div className="mws-list">
       {active.length > 0 && <><div className="mws-group">{t('v2.running')} · {active.length}</div>{active.map(item)}</>}

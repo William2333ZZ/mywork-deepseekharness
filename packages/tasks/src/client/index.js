@@ -27,7 +27,7 @@ const h = React.createElement
 const PLUGIN = 'dsh-mywork-tasks'
 const NS = 'mywork.tasks'
 const API = '/mywork-tasks/api'
-const PANELS = { today: 'mywork-today', tasks: 'mywork-tasks', deliverables: 'mywork-deliverables', routines: 'mywork-routines', scenarios: 'mywork-scenarios' }
+const PANELS = { today: 'mywork-today', create: 'mywork-new', tasks: 'mywork-tasks', deliverables: 'mywork-deliverables', routines: 'mywork-routines', scenarios: 'mywork-scenarios' }
 const FAST_MS = 3000
 const SLOW_MS = 20000
 const V2_KEY = 'dsh-mywork:v2'
@@ -100,8 +100,9 @@ body[data-ds-dark-theme] .mwt{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 .mwt-greet{margin:0 0 32px}
 .mwt-greet h1{margin:0 0 4px;font-size:24px;line-height:1.4;font-weight:600}
 .mwt-greet p{margin:0;color:var(--muted);font-size:14px}
-.mwt-hero{padding:24px 0 8px;text-align:center}
+.mwt-hero{min-height:calc(100vh - 220px);display:flex;flex-direction:column;justify-content:center;padding:0 0 8vh;text-align:center}
 .mwt-hero h1{margin:0 0 20px;font-size:24px;line-height:1.4;font-weight:600}
+@media (max-width:720px){.mwt-hero{min-height:0;padding:24px 0 8px}}
 .mwt-section{margin-top:32px}
 .mwt-section.first{margin-top:0}
 .mwt-section h2,.mwt-col h2{display:flex;align-items:center;gap:6px;margin:0 0 8px 2px;font-size:12px;line-height:16px;font-weight:500;letter-spacing:.02em;color:var(--muted)}
@@ -434,10 +435,11 @@ function safeName(s) { return String(s || 'deliverable').replace(/[\\/:*?"<>|]+/
 // ---- components -------------------------------------------------------------
 function makeComponents(ctx, t) {
   const selectPanel = (id) => { try { if (ctx.layout && typeof ctx.layout.selectPanel === 'function') ctx.layout.selectPanel(id) } catch (e) { console.warn(`[${PLUGIN}] selectPanel`, e) } }
-  const nav = { pendingTask: '', pendingDeliverable: '', pendingInput: null }
+  const nav = { pendingTask: '', pendingDeliverable: '', pendingRoutine: '', pendingInput: null }
   const openTask = (id) => { nav.pendingTask = id; selectPanel(PANELS.tasks) }
+  const openRoutine = (id) => { nav.pendingRoutine = id; selectPanel(PANELS.routines); fire('mywork:open-routine', { id }) }
   const openDeliverable = (id) => { const d = state.deliverables.find((x) => x.id === id); if (d && d.taskId) openTask(d.taskId); else { nav.pendingDeliverable = id; selectPanel(PANELS.deliverables) } }
-  const newTask = (text, scenario) => { nav.pendingInput = { text: text || '', scenario: scenario || '' }; selectPanel(PANELS.today) }
+  const newTask = (text, scenario) => { nav.pendingInput = { text: text || '', scenario: scenario || '' }; selectPanel(PANELS.create) }
 
   function VerifyBadge({ v, status }) {
     if (status === 'verifying') return h('span', { className: 'mwt-badge', 'data-v': 'verifying' }, icon('loader', { size: 12 }), t('verifying'))
@@ -465,7 +467,7 @@ function makeComponents(ctx, t) {
     const [err, setErr] = React.useState('')
     const ref = React.useRef(null)
     const examples = (scenario ? (scenarios.find((s) => s.id === scenario) || { examples: [] }).examples : scenarios.flatMap((s) => s.examples.slice(0, s.builtin ? 4 : 2))).slice(0, 6)
-    React.useEffect(() => { if (initial && initial.text && ref.current) ref.current.focus() }, [])
+    React.useEffect(() => { if ((initial || hero) && ref.current) ref.current.focus() }, [])
     React.useEffect(() => {
       const onNew = (e) => { const d = e.detail || {}; if (d.text !== undefined) setText(String(d.text)); if (d.scenario) setScenario(String(d.scenario)); if (ref.current) ref.current.focus() }
       window.addEventListener('mywork:new-task', onNew)
@@ -475,7 +477,7 @@ function makeComponents(ctx, t) {
       const input = text.trim()
       if (!input || busy) return
       setBusy(true); setErr('')
-      try { const d = await api('/create', scenario ? { input, scenario } : { input }); setText(''); setScenario(''); await refresh(); schedulePoll(); if (d.routine) { announce(t('scheduled') + '：' + d.routine.scheduleLabel + ' · ' + d.routine.title, t('scheduledHint')); selectPanel(PANELS.routines) } else if (d.task) openTask(d.task.id) } catch (e) { setErr(e.message || String(e)) } finally { setBusy(false) }
+      try { const d = await api('/create', scenario ? { input, scenario } : { input }); setText(''); setScenario(''); await refresh(); schedulePoll(); if (d.routine) openRoutine(d.routine.id); else if (d.task) openTask(d.task.id) } catch (e) { setErr(e.message || String(e)) } finally { setBusy(false) }
     }
     const grow = () => { const el = ref.current; if (!el) return; el.style.height = 'auto'; el.style.height = Math.min(240, el.scrollHeight) + 'px' }
     React.useEffect(grow, [text])
@@ -528,16 +530,23 @@ function makeComponents(ctx, t) {
     const greet = hour < 12 ? t('greetMorning') : hour < 18 ? t('greetDay') : t('greetNight')
     const waiting = rows.filter((r) => r.rank <= 2).length
     const status = [active.length ? `${active.length} ${t('running1')}` : '', waiting ? `${waiting} ${t('waiting1')}` : ''].filter(Boolean).join(' · ') || t('quiet')
-    return h('div', { className: 'mwt mwt-today' }, h('style', null, STYLE), h('div', { className: 'mwt-page mwt-page-today' },
+    return h('div', { className: 'mwt mwt-today' }, h('style', null, STYLE), h('div', { className: 'mwt-page' },
       h('header', { className: 'mwt-greet' }, h('h1', null, greet)),
       !s.loadedAt && !s.error ? h(Skeleton, { rows: 3 })
         : s.error && !s.items.length ? h('div', { className: 'mwt-retry' }, h('span', null, t('loadFailed')), h('button', { type: 'button', className: 'mwt-btn', onClick: () => { refresh().then(schedulePoll) } }, t('retry')))
         : rows.length || unrated ? h('div', { className: 'mwt-list' }, rows.map((row) => h(Row, { key: row.key, row })),
           more || unrated ? h('button', { type: 'button', className: 'mwt-row mwt-row-more', onClick: () => selectPanel(PANELS.tasks) }, h('span', { className: 'mwt-dot' }, icon('list-checks', { size: 16 })), h('span', { className: 'mwt-row-main' }, h('span', { className: 'mwt-row-title' }, [more ? t('moreRows').replace('{n}', String(more)) : '', unrated ? t('moreRate').replace('{n}', String(unrated)) : ''].filter(Boolean).join(' · '))), h('span', { className: 'mwt-row-state' }, icon('arrow-left', { size: 14, style: { transform: 'rotate(180deg)' } }))) : null)
         : h('div', { className: 'mwt-quiet' }, h('p', null, t('quietDay')),
-          h('div', { className: 'mwt-chips' }, s.scenarios.flatMap((sc) => sc.examples.slice(0, sc.builtin ? 3 : 1)).slice(0, 4).map((ex) => h('button', { key: ex, type: 'button', className: 'mwt-chip', onClick: () => fire('mywork:new-task', { text: ex }) }, ex)))),
-      h(RoutinesSection, { routines: s.routines }),
-      h('div', { className: 'mwt-dock' }, h(Ask, { scenarios: s.scenarios, initial, hero: false, compact: true }))))
+          h('div', { className: 'mwt-chips' }, s.scenarios.flatMap((sc) => sc.examples.slice(0, sc.builtin ? 3 : 1)).slice(0, 4).map((ex) => h('button', { key: ex, type: 'button', className: 'mwt-chip', onClick: () => newTask(ex) }, ex)))),
+      h(RoutinesSection, { routines: s.routines })))
+  }
+
+  /** 新任务: one screen, one field. Sending lands on the task (or the routine) it created. */
+  function CreatePage() {
+    const s = usePolling()
+    const initial = nav.pendingInput; nav.pendingInput = null
+    return h('div', { className: 'mwt mwt-create' }, h('style', null, STYLE), h('div', { className: 'mwt-page' },
+      h('div', { className: 'mwt-hero' }, h('h1', null, t('hero')), h(Ask, { scenarios: s.scenarios, initial: initial || { text: '', scenario: '' }, hero: true }))))
   }
 
   /** Standing things, on the same page: what the system will do for you next. */
@@ -550,10 +559,10 @@ function makeComponents(ctx, t) {
     const when = (r) => !r.enabled ? t('paused') : r.nextRunAt ? t('nextRun') + ' ' + (isToday(r.nextRunAt) ? t('todayAt') + ' ' + fmtTime(r.nextRunAt) : fmtDate(r.nextRunAt)) : ''
     return h('section', { className: 'mwt-section' },
       h('h2', null, t('routines')),
-      h('div', { className: 'mwt-list' }, shown.map((r) => h('div', { key: r.id, className: 'mwt-row', 'data-off': !r.enabled, role: 'button', tabIndex: 0, onClick: () => selectPanel(PANELS.routines), onKeyDown: (e) => { if (e.key === 'Enter') selectPanel(PANELS.routines) } },
+      h('div', { className: 'mwt-list' }, shown.map((r) => { const go = () => { if (r.lastTaskId) openTask(r.lastTaskId); else openRoutine(r.id) }; return h('div', { key: r.id, className: 'mwt-row', 'data-off': !r.enabled, role: 'button', tabIndex: 0, onClick: go, onKeyDown: (e) => { if (e.key === 'Enter') go() } },
         h('span', { className: 'mwt-dot' }, icon(r.kind === 'remind' ? 'bell' : 'history', { size: 16 })),
         h('span', { className: 'mwt-row-main' }, h('span', { className: 'mwt-row-title' }, r.title), h('span', { className: 'mwt-row-sub' }, r.scheduleLabel)),
-        h('span', { className: 'mwt-row-state' }, when(r)))),
+        h('span', { className: 'mwt-row-state' }, when(r))) }),
         list.length > 3 && !all ? h('button', { type: 'button', className: 'mwt-row mwt-row-more', onClick: () => setAll(true) }, h('span', { className: 'mwt-dot' }), h('span', { className: 'mwt-row-main' }, h('span', { className: 'mwt-row-title' }, t('moreRows').replace('{n}', String(list.length - 3)))), h('span', { className: 'mwt-row-state' }, icon('arrow-left', { size: 14, style: { transform: 'rotate(-90deg)' } }))) : null))
   }
 
@@ -746,8 +755,9 @@ function makeComponents(ctx, t) {
   function RoutinesPage() {
     const s = usePolling()
     const [items, setItems] = React.useState([])
-    const [open, setOpen] = React.useState('')
+    const [open, setOpen] = React.useState(() => { const id = nav.pendingRoutine; nav.pendingRoutine = ''; return id })
     const [showSpent, setShowSpent] = React.useState(false)
+    React.useEffect(() => { const onOpen = (e) => { const id = e.detail && e.detail.id; if (id) setOpen(String(id)) }; window.addEventListener('mywork:open-routine', onOpen); return () => window.removeEventListener('mywork:open-routine', onOpen) }, [])
     const load = React.useCallback(() => api('/routines').then((d) => setItems(d.items || [])).catch(() => {}), [])
     React.useEffect(() => { load() }, [s.loadedAt, load])
     const spent = items.filter((r) => !r.enabled && r.schedule && r.schedule.type === 'once')
@@ -758,7 +768,7 @@ function makeComponents(ctx, t) {
       h('span', { className: 'mwt-row-main' }, h('span', { className: 'mwt-row-title' }, r.title), h('span', { className: 'mwt-row-sub' }, r.scheduleLabel)),
       h('span', { className: 'mwt-row-state' }, when(r)))
     const current = open ? items.find((r) => r.id === open) : null
-    return h('div', { className: 'mwt' }, h('style', null, STYLE), h('div', { className: 'mwt-page mwt-page-today' },
+    return h('div', { className: 'mwt' }, h('style', null, STYLE), h('div', { className: 'mwt-page' },
       current ? h(RoutineDetail, { r: current, onBack: () => setOpen(''), reload: () => { load(); refresh() } })
         : h(React.Fragment, null,
           h('div', { className: 'mwt-title' }, h('h1', null, t('routines'))),
@@ -766,8 +776,7 @@ function makeComponents(ctx, t) {
             : live.length ? h('div', { className: 'mwt-list' }, live.map(row)) : h('div', { className: 'mwt-empty' }, t('routinesLead')),
           spent.length ? h('div', { className: 'mwt-spent' },
             h('button', { type: 'button', className: 'mwt-btn ghost', onClick: () => setShowSpent(!showSpent) }, icon('history', { size: 13 }), t('endedN').replace('{n}', String(spent.length))),
-            showSpent ? h('div', { className: 'mwt-list', style: { marginTop: 8 } }, spent.map(row)) : null) : null,
-          h('div', { className: 'mwt-dock' }, h(Ask, { scenarios: s.scenarios, hero: false, compact: true, placeholder: t('askRoutine') })))))
+            showSpent ? h('div', { className: 'mwt-list', style: { marginTop: 8 } }, spent.map(row)) : null) : null)))
   }
 
   /** One routine: what it is, when it runs, its runs, and the three things you can do to it. */
@@ -829,7 +838,7 @@ function makeComponents(ctx, t) {
         h('button', { type: 'button', className: 'mwt-btn', onClick: () => { setToasts((prev) => prev.filter((x) => x.id !== id)); openTask(task.id) } }, t('open')))))
   }
 
-  return { TodayPage, TasksPage, DeliverablesPage, RoutinesPage, ScenariosPage, Overlay, openTask, openDeliverable, newTask }
+  return { TodayPage, CreatePage, TasksPage, DeliverablesPage, RoutinesPage, ScenariosPage, Overlay, openTask, openDeliverable, newTask }
 }
 
 // ---- plugin -----------------------------------------------------------------
@@ -847,6 +856,7 @@ exports.apply = function apply(ctx) {
     ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({ name: 'sidebar.panellist', id: key, order, locale: NS, label: () => t(label), inject: () => ({}) }, function MyworkPageIcon() { return icon(iconName, { size: 16, strokeWidth: 1.6 }) }))
   }
   page(PANELS.today, 1, 'today', 'sun', c.TodayPage)
+  ctx.slots.inject('main', () => ctx.slots.register({ name: 'main', key: PANELS.create, locale: NS, inject: () => ({}) }, function MyworkCreate() { return h(c.CreatePage) }))
   page(PANELS.tasks, 2, 'tasks', 'list-checks', c.TasksPage)
   page(PANELS.routines, 3, 'routines', 'history', c.RoutinesPage)
   // Reachable, not navigated: deliverables open through their task; 领域 through 设置.
@@ -878,7 +888,7 @@ exports.apply = function apply(ctx) {
     const timer = setInterval(() => {
       try {
         if (touched || Date.now() - started > 6000 || new URL(window.location.href).searchParams.get('session')) { clearInterval(timer); return }
-        if (!document.querySelector('.mwt-hero')) ctx.layout.selectPanel(PANELS.today)
+        if (!document.querySelector('.mwt-today')) ctx.layout.selectPanel(PANELS.today)
       } catch { /* panel not registered yet: try again */ }
     }, 250)
     return () => { clearInterval(timer); window.removeEventListener('pointerdown', onPointer, true); window.removeEventListener('keydown', onPointer, true) }

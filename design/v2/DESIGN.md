@@ -68,11 +68,11 @@ Weights: 400 read, 500 emphasize, 600 announce. 700 is not used. Seven sizes tot
 
 ## 5. Layout & Composition
 
-- **Sidebar** (`--surface`): wordmark, 新任务, 今日 / 任务 / 交付物 / 例行 / 领域, task list in two groups (进行中, 最近), 设置. Active item: `--bg` fill with a whisper border, no shadow.
-- **今日**: greeting and one status line; 等你看 first (reminders, failures, verification issues, unrated deliveries) as a bordered list; 进行中; 今天的例行; 今天完成; 最近. Composer docked at the bottom of the page as a raised card. Empty 等你看 is a sentence, not a card.
-- **Task page**: title, one meta line, ghost actions right. Two columns on desktop (5:6): progress stream left, document right and sticky; single column below 980px with the document first (result before process).
-- **Deliverable card**: whisper border, `--elev-raised`, radius 12, a `--surface` header strip with title and verdict pill, body at document typography, actions row at the bottom.
-- **Lists everywhere** share one recipe: container with whisper border and radius 12, rows divided by `--border-soft`, 20px status glyph, title, one-line secondary, right-aligned mono meta. Hover: `--surface` fill. No per-row borders or shadows.
+- **Sidebar** (`--surface`): wordmark, 新任务, 今日 / 任务 / 例行, the task list (a 进行中 group only when something runs, otherwise a plain recent list), 设置. Active item: `--bg` fill with a whisper border, no shadow. 交付物 and 领域 are pages, not rail entries.
+- **今日**: a greeting, one status line, and **one list**: reminders, failures, verification issues, running, delivered today, in that order, one row each; unrated deliveries fold into one row that opens 任务. No section labels, no cards, no 最近 (the sidebar has it). Composer docked at the bottom as a raised card. A quiet day is one sentence.
+- **Task page**: the answer is the page. Back arrow and a ··· menu (再来一次 / 重新核验 / 取消 / 原始对话); title; one meta line (verdict · pack · time); the document full width as plain text with rating and export as ghost actions under it; conversational tasks show the exchange instead; then one folded line 过程 · 读取网页 9 次 · 搜索 3 次 · 3m that opens the stream; then the follow-up field. Single column at every width, 760px reading column.
+- **Deliverable**: not a card. Verifier notes (two lines, tap to expand) above the document; the document at document typography; one row of ghost actions below.
+- **Lists everywhere** share one recipe: container with whisper border and radius 12, rows divided by `--border-soft`, 20px status glyph, title, and one state on the right (text or a single button). Hover: `--surface` fill. No per-row borders, shadows, or label lines.
 
 ## 6. Components
 
@@ -111,3 +111,4 @@ Weights: 400 read, 500 emphasize, 600 announce. 700 is not used. Seven sizes tot
 - Uppercase labels; weight 700; more than three type sizes above the fold.
 - Entrance animations on page load; motion longer than 200ms; anything animating width, height or position.
 - Populated-only design: every list ships its empty, loading and error sentence.
+- More than one list on 今日; section labels on 今日; a two-column task page; a card around the document; toolbars with more than one visible action.

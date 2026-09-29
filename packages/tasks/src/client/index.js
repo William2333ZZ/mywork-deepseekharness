@@ -46,8 +46,8 @@ const zh = {
   doneToast: '任务完成', failedToast: '任务失败', open: '打开', tryScenario: '用这个场景', kinds: '交付', examples: '示例',
   toolFailed: '失败', stepsTitle: '步骤',
   attention: '等你看', attentionEmpty: '没有等你处理的事。', failedCard: '失败，可以再来一次', issuesCard: '核验发现问题', rateCard: '交付了，看一眼给个评价', running1: '个在跑', waiting1: '份等你看', quiet: '今天还很安静', greetMorning: '早上好', greetDay: '下午好', greetNight: '晚上好', todayDone: '今天完成', examplesTitle: '可以试试',
-  notesMore: '点开看核验员的完整说明', loadFailed: '没连上服务，稍后再试。', retry: '重试', moreRate: '还有 {n} 份交付了没评价',
-  routines: '例行', routinesLead: '到点自动做的事和提醒。写一句带时间的话就行：「每天 9 点…」「每周一 8:30…」「工作日 18 点提醒我…」「30 分钟后提醒我…」。例行任务每次运行都会对照上一次，先说变化；没变化就不打扰你。',
+  notesMore: '点开看核验员的完整说明', delivered: '已交付', answered: '已回答', quietDay: '今天没有等你的事。说一句，交给它。', moreRows: '还有 {n} 项', more: '更多', rawProcess: '原始对话', loadFailed: '没连上服务，稍后再试。', retry: '重试', moreRate: '还有 {n} 份交付了没评价',
+  routines: '例行', routinesLead: '还没有例行的事。说一句带时间的话：「每天 9 点…」「每周一 8:30…」「工作日 18 点提醒我…」。',
   routinesEmpty: '还没有例行的事。', remindCard: '提醒', gotIt: '知道了', runNow: '现在跑一次', pause: '暂停', resume: '恢复', remove: '删除', nextRun: '下次', lastRun: '上次', neverRan: '还没跑过', noChange: '没有变化', changed: '有变化', briefs: '今天的例行', scheduled: '已安排', scheduledHint: '到点会自动做，结果在「例行」和「等你看」里。', kindTask: '例行任务', kindRemind: '提醒', quietTag: '安静',
   say: '接着说，比如“再短一点”或“换个角度”', sayHint: '回车发送，同一个会话继续。', sayBusy: '核验中，稍等。', conversational: '这次是回答，没有生成文档；要保存时说“整理成一份…”。',
 }
@@ -65,8 +65,8 @@ const en = {
   doneToast: 'Task finished', failedToast: 'Task failed', open: 'Open', tryScenario: 'Use this scenario', kinds: 'Delivers', examples: 'Examples',
   toolFailed: 'failed', stepsTitle: 'Steps',
   attention: 'For you', attentionEmpty: 'Nothing waiting for you.', failedCard: 'Failed, can run again', issuesCard: 'Verification found issues', rateCard: 'Delivered, take a look and rate', running1: 'running', waiting1: 'waiting for you', quiet: 'A quiet day so far', greetMorning: 'Good morning', greetDay: 'Good afternoon', greetNight: 'Good evening', todayDone: 'Finished today', examplesTitle: 'Try',
-  notesMore: 'Tap for the verifier’s full notes', loadFailed: 'Could not reach the service, try again shortly.', retry: 'Retry', moreRate: '{n} more deliveries waiting for a rating',
-  routines: 'Routines', routinesLead: 'Things done for you on a schedule, and reminders. Just say a sentence with a time. A routine run compares with the last one and leads with what changed; no change, no interruption.',
+  notesMore: 'Tap for the verifier’s full notes', delivered: 'Delivered', answered: 'Answered', quietDay: 'Nothing waiting for you today. Say something and hand it over.', moreRows: '{n} more', more: 'More', rawProcess: 'Raw conversation', loadFailed: 'Could not reach the service, try again shortly.', retry: 'Retry', moreRate: '{n} more deliveries waiting for a rating',
+  routines: 'Routines', routinesLead: 'No routines yet. Say a sentence with a time: “every day at 9…”, “remind me at 6 on weekdays…”.',
   routinesEmpty: 'No routines yet.', remindCard: 'Reminder', gotIt: 'Got it', runNow: 'Run now', pause: 'Pause', resume: 'Resume', remove: 'Remove', nextRun: 'Next', lastRun: 'Last', neverRan: 'Never ran', noChange: 'No change', changed: 'Changed', briefs: 'Today’s routines', scheduled: 'Scheduled', scheduledHint: 'It runs on time; results land in Routines and For you.', kindTask: 'Routine', kindRemind: 'Reminder', quietTag: 'quiet',
   say: 'Keep going, e.g. “shorter” or “from another angle”', sayHint: 'Enter sends into the same session.', sayBusy: 'Verifying, one moment.', conversational: 'This was an answer, no document was produced; ask for one when you want it saved.',
 }
@@ -90,7 +90,7 @@ body[data-ds-dark-theme] .mwt{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 @media (prefers-reduced-motion:reduce){.mwt *{transition:none!important;animation:none!important}}
 /* Page */
 .mwt-page{max-width:808px;margin:0 auto;padding:32px 24px 72px}
-.mwt-page.wide{max-width:1168px}
+.mwt-page.wide{max-width:808px}
 .mwt-title{display:flex;align-items:baseline;gap:10px;margin:0 0 24px}
 .mwt-title h1{margin:0;font-size:24px;line-height:1.4;font-weight:600}
 .mwt-title span{color:var(--meta);font-size:12.5px;font-family:var(--font-mono)}
@@ -174,6 +174,31 @@ body[data-ds-dark-theme] .mwt{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 .mwt-ask-wrap.compact .mwt-ask-row .mwt-chip{order:1}
 .mwt-ask-wrap.compact .mwt-ask-row .mwt-btn.round{order:2}
 .mwt-ask-wrap.compact .mwt-chips{margin:6px 0 4px;flex-basis:100%}
+/* One row shape for 今日 and 任务 */
+.mwt-list{display:grid;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;background:var(--bg)}
+.mwt-row{display:grid;grid-template-columns:20px minmax(0,1fr) auto;align-items:center;column-gap:12px;min-height:48px;padding:12px 16px;border:0;border-top:1px solid var(--border-soft);background:transparent;color:inherit;font:inherit;text-align:left;width:100%;cursor:pointer;transition:background-color var(--motion-fast) var(--ease-standard)}
+.mwt-row:first-child{border-top:0}
+.mwt-row:hover{background:var(--surface)}
+.mwt-row:focus-visible{box-shadow:inset var(--focus-ring);border-radius:0}
+.mwt-row-main{min-width:0;display:grid}
+.mwt-row-title{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mwt-row-sub{color:var(--muted);font-size:12.5px;line-height:18px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mwt-row-state{color:var(--meta);font-size:12.5px;white-space:nowrap;font-variant-numeric:tabular-nums;display:inline-flex;align-items:center;gap:6px}
+.mwt-row-state[data-tone=danger]{color:var(--danger)}
+.mwt-row-state[data-tone=warn]{color:var(--warn)}
+.mwt-row-more .mwt-row-title{font-weight:400;color:var(--muted)}
+.mwt-task-title{margin:4px 0 4px;font-size:24px;line-height:1.4;font-weight:600}
+.mwt-task-meta{margin:0 0 20px;color:var(--meta);font-size:12.5px;font-variant-numeric:tabular-nums}
+.mwt-answer{font-size:15px;line-height:1.7;margin:0 0 16px}
+.mwt-talk{margin:0 0 8px}
+.mwt-proc{margin:24px 0 0;border-top:1px solid var(--border-soft)}
+.mwt-proc-head{appearance:none;display:flex;align-items:center;gap:10px;width:100%;padding:12px 0;border:0;background:transparent;color:var(--muted);font:inherit;font-size:13px;text-align:left;cursor:pointer}
+.mwt-proc-head:hover{color:var(--fg)}
+.mwt-proc-head .grow{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mwt-menu{position:relative}
+.mwt-menu-pop{position:absolute;right:0;top:36px;min-width:160px;padding:4px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--bg);box-shadow:var(--elev-raised);z-index:5;display:grid}
+.mwt-menu-pop button{appearance:none;display:flex;align-items:center;gap:8px;height:32px;padding:0 10px;border:0;border-radius:var(--radius-sm);background:transparent;color:var(--fg);font:inherit;font-size:13px;text-align:left;cursor:pointer}
+.mwt-menu-pop button:hover{background:var(--surface)}
 /* Task page */
 .mwt-toolbar{display:flex;align-items:center;gap:4px;margin:0 0 12px}
 .mwt-toolbar .grow{flex:1}
@@ -211,8 +236,7 @@ body[data-ds-dark-theme] .mwt{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 .mwt-say-row{display:flex;align-items:center;gap:8px;margin-top:2px}
 .mwt-say-row small{flex:1;color:var(--meta);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* Deliverable: the one raised card. */
-.mwt-doc{margin:0 0 12px}
-.mwt-doc-inner{border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--bg);overflow:hidden;box-shadow:var(--elev-raised)}
+.mwt-doc{margin:0 0 8px}
 .mwt-doc-head{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--surface);border-bottom:1px solid var(--border-soft);flex-wrap:wrap}
 .mwt-doc-head h3{flex:1;margin:0;font-size:14px;font-weight:500;min-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mwt-doc-head>svg{color:var(--muted)}
@@ -220,7 +244,8 @@ body[data-ds-dark-theme] .mwt{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 .mwt-doc-meta{display:flex;align-items:center;gap:12px;flex-wrap:wrap;color:var(--meta);font-size:12px;font-family:var(--font-mono);margin:0 0 14px;font-variant-numeric:tabular-nums}
 .mwt-notes{font-size:13px;line-height:1.7;color:var(--muted);border-left:2px solid var(--border);padding:2px 12px;margin:0 0 16px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;cursor:pointer}
 .mwt-notes.open{display:block;-webkit-line-clamp:unset}
-.mwt-doc-actions{display:flex;gap:2px;flex-wrap:wrap;align-items:center;padding:8px 10px 10px;border-top:1px solid var(--border-soft)}
+.mwt-doc-actions{display:flex;gap:2px;flex-wrap:wrap;align-items:center;padding:8px 0 0;margin-top:8px}
+.mwt-doc-actions .mwt-btn[aria-pressed=true]{color:var(--fg);background:var(--surface)}
 .mwt-md{font-size:15px;line-height:1.7;color:var(--fg)}
 .mwt-md>:first-child{margin-top:0}
 .mwt-md h2,.mwt-md h3,.mwt-md h4{margin:22px 0 8px;font-weight:600;line-height:1.4}
@@ -396,7 +421,7 @@ function makeComponents(ctx, t) {
   const selectPanel = (id) => { try { if (ctx.layout && typeof ctx.layout.selectPanel === 'function') ctx.layout.selectPanel(id) } catch (e) { console.warn(`[${PLUGIN}] selectPanel`, e) } }
   const nav = { pendingTask: '', pendingDeliverable: '', pendingInput: null }
   const openTask = (id) => { nav.pendingTask = id; selectPanel(PANELS.tasks) }
-  const openDeliverable = (id) => { nav.pendingDeliverable = id; selectPanel(PANELS.deliverables) }
+  const openDeliverable = (id) => { const d = state.deliverables.find((x) => x.id === id); if (d && d.taskId) openTask(d.taskId); else { nav.pendingDeliverable = id; selectPanel(PANELS.deliverables) } }
   const newTask = (text, scenario) => { nav.pendingInput = { text: text || '', scenario: scenario || '' }; selectPanel(PANELS.today) }
 
   function VerifyBadge({ v, status }) {
@@ -449,44 +474,33 @@ function makeComponents(ctx, t) {
       examples.length && (!compact || focused) && !text ? h('div', { className: 'mwt-chips' + (hero ? ' center' : '') }, examples.map((ex) => h('button', { key: ex, type: 'button', className: 'mwt-chip', title: ex, onMouseDown: (e) => e.preventDefault(), onClick: () => { setText(ex); if (ref.current) ref.current.focus() } }, ex))) : null)
   }
 
-  /** What needs the user: failures, verification issues, unrated deliveries (last 7 days). */
-  function attentionItems(items, deliverables, reminders) {
-    const week = Date.now() - 7 * 86400000
-    const out = []
-    for (const r of reminders || []) out.push({ key: 'r' + r.routineId + r.at, kind: 'remind', at: r.at, title: r.title, sub: r.input && r.input !== r.title ? r.input : '', reminder: r })
-    for (const t of items) {
-      if (t.status !== 'done' || new Date(t.finishedAt || t.createdAt) < week) continue
-      if (t.error && !/已取消/.test(t.error)) out.push({ key: 'f' + t.id, kind: 'failed', at: t.finishedAt, title: t.title, sub: t.error, task: t })
-      else if (t.verification && t.verification.passed === false) out.push({ key: 'v' + t.id, kind: 'issues', at: t.finishedAt, title: t.title, sub: t.verification.notes || '', task: t })
+  /**
+   * 今日 is one list. Every row is the same shape: glyph, title, one state on the right.
+   * Order: reminders, failures, verification issues, running, delivered today, the rest of today.
+   */
+  function todayRows(items, deliverables, reminders) {
+    const rows = []
+    const dayStart = new Date(); dayStart.setHours(0, 0, 0, 0)
+    for (const r of reminders || []) rows.push({ key: 'r' + r.routineId + r.at, rank: 0, at: r.at, glyph: 'bell', tone: 'fg', title: r.title, state: t('remindCard') + ' · ' + fmtTime(r.at), action: { label: t('gotIt'), run: () => api('/routines/ack', { id: r.routineId, at: r.at }).then(() => refresh()) } })
+    for (const x of items) {
+      const done = x.status === 'done'
+      const when = new Date(x.finishedAt || x.createdAt)
+      if (done && x.error && !/已取消/.test(x.error) && when >= dayStart) rows.push({ key: 'f' + x.id, rank: 1, at: x.finishedAt, glyph: 'circle-x', tone: 'danger', title: x.title, state: t('failedTitle'), sub: x.error, action: { label: t('rerun'), run: () => api('/rerun', { id: x.id }).then((d) => { refresh(); if (d.task) openTask(d.task.id) }) }, open: () => openTask(x.id) })
+      else if (done && x.verification && x.verification.passed === false && when >= dayStart) rows.push({ key: 'v' + x.id, rank: 2, at: x.finishedAt, glyph: 'circle-x', tone: 'warn', title: x.title, state: t('verifyIssues'), open: () => openTask(x.id) })
+      else if (!done) rows.push({ key: 'l' + x.id, rank: 3, at: x.createdAt, glyph: 'loader', tone: 'live', spin: true, title: x.title, state: (x.currentStep || x.statusLabel) + ' · ' + elapsedOf(x), open: () => openTask(x.id) })
+      else if (done && when >= dayStart) rows.push({ key: 'd' + x.id, rank: 4, at: x.finishedAt, glyph: 'circle-check', tone: 'success', title: x.title, state: x.routineId ? (x.quiet ? t('noChange') : t('changed')) : (x.deliverables.length ? t('delivered') : t('answered')), open: () => openTask(x.id) })
     }
-    for (const d of deliverables) {
-      if (d.rating !== null && d.rating !== undefined) continue
-      if (new Date(d.createdAt) < week) continue
-      if (out.some((x) => x.task && x.task.id === d.taskId)) continue
-      out.push({ key: 'd' + d.id, kind: 'rate', at: d.createdAt, title: d.title, sub: '', deliverable: d })
-    }
-    out.sort((a, b) => (a.kind === 'remind') !== (b.kind === 'remind') ? (a.kind === 'remind' ? -1 : 1) : new Date(b.at) - new Date(a.at))
-    // Six identical 「看一眼给个评价」 rows are noise: keep two, fold the rest into one row that opens 交付物.
-    const rates = out.filter((x) => x.kind === 'rate')
-    if (rates.length > 3) {
-      const keep = new Set(rates.slice(0, 2).map((x) => x.key))
-      const folded = out.filter((x) => x.kind !== 'rate' || keep.has(x.key))
-      folded.push({ key: 'more-rate', kind: 'more', at: rates[2].at, title: '', count: rates.length - 2 })
-      return folded.slice(0, 8)
-    }
-    return out.slice(0, 8)
+    rows.sort((a, b) => a.rank - b.rank || new Date(b.at) - new Date(a.at))
+    const unrated = (deliverables || []).filter((d) => d.rating === null || d.rating === undefined).length
+    return { rows: rows.slice(0, 10), more: Math.max(0, rows.length - 10), unrated }
   }
 
-  function AttentionCard({ item }) {
-    if (item.kind === 'more') return h('div', { className: 'mwt-att', 'data-kind': 'more', role: 'button', tabIndex: 0, onClick: () => selectPanel(PANELS.deliverables), onKeyDown: (e) => { if (e.key === 'Enter') selectPanel(PANELS.deliverables) } }, h('span', { className: 'mwt-att-ic' }, icon('file-text', { size: 16 })), h('div', { className: 'mwt-att-body' }, h('div', { className: 'mwt-att-title' }, t('moreRate').replace('{n}', String(item.count)))), h('span', { className: 'mwt-att-go' }, icon('arrow-left', { size: 14, style: { transform: 'rotate(180deg)' } })))
-    const label = item.kind === 'failed' ? t('failedCard') : item.kind === 'issues' ? t('issuesCard') : item.kind === 'remind' ? t('remindCard') + ' · ' + fmtTime(item.at) : t('rateCard')
-    const open = () => { if (item.reminder) return; if (item.deliverable) openDeliverable(item.deliverable.id); else openTask(item.task.id) }
-    const ack = (e) => { e.stopPropagation(); api('/routines/ack', { id: item.reminder.routineId, at: item.reminder.at }).then(() => refresh()).catch(() => {}) }
-    const rerun = (e) => { e.stopPropagation(); api('/rerun', { id: item.task.id }).then((d) => { refresh().then(schedulePoll); if (d.task) openTask(d.task.id) }).catch(() => {}) }
-    return h('div', { className: 'mwt-att', 'data-kind': item.kind, role: 'button', tabIndex: 0, onClick: open, onKeyDown: (e) => { if (e.key === 'Enter') open() } },
-      h('span', { className: 'mwt-att-ic' }, icon(item.kind === 'failed' ? 'circle-x' : item.kind === 'issues' ? 'circle-x' : item.kind === 'remind' ? 'bell' : 'file-text', { size: 16 })),
-      h('div', { className: 'mwt-att-body' }, h('div', { className: 'mwt-att-label' }, label), h('div', { className: 'mwt-att-title' }, item.title), item.sub ? h('div', { className: 'mwt-att-sub' }, item.sub) : null),
-      item.kind === 'failed' ? h('button', { type: 'button', className: 'mwt-btn', onClick: rerun }, icon('rotate-cw', { size: 13 }), t('rerun')) : item.kind === 'remind' ? h('button', { type: 'button', className: 'mwt-btn', onClick: ack }, icon('check', { size: 13 }), t('gotIt')) : h('span', { className: 'mwt-att-go' }, icon('arrow-left', { size: 14, style: { transform: 'rotate(180deg)' } })))
+  function Row({ row }) {
+    const open = row.open || (() => {})
+    return h('div', { className: 'mwt-row', role: row.open ? 'button' : undefined, tabIndex: row.open ? 0 : undefined, onClick: open, onKeyDown: (e) => { if (e.key === 'Enter' && row.open) open() } },
+      h('span', { className: 'mwt-dot', 'data-s': row.spin ? 'running' : row.tone === 'success' ? 'ok' : row.tone === 'danger' ? 'err' : undefined, style: row.tone === 'warn' ? { color: 'var(--warn)' } : row.tone === 'fg' ? { color: 'var(--fg-2)' } : undefined }, icon(row.glyph, { size: 16 })),
+      h('span', { className: 'mwt-row-main' }, h('span', { className: 'mwt-row-title' }, row.title), row.sub ? h('span', { className: 'mwt-row-sub' }, row.sub) : null),
+      row.action ? h('button', { type: 'button', className: 'mwt-btn', onClick: (e) => { e.stopPropagation(); row.action.run().catch(() => {}) } }, row.action.label) : h('span', { className: 'mwt-row-state', 'data-tone': row.tone }, row.state))
   }
 
   function TodayPage() {
@@ -494,32 +508,18 @@ function makeComponents(ctx, t) {
     const initial = nav.pendingInput; nav.pendingInput = null
     const active = s.items.filter((x) => x.status !== 'done')
     useTick(active.length > 0)
-    const attention = attentionItems(s.items, s.deliverables, s.reminders)
-    const briefs = s.items.filter((x) => x.routineId && x.status === 'done' && isToday(x.finishedAt)).slice(0, 6)
-    const routineTasks = new Set(briefs.map((x) => x.id))
-    const todayDocs = s.deliverables.filter((d) => isToday(d.createdAt) && !routineTasks.has(d.taskId)).slice(0, 8)
-    const recent = s.items.filter((x) => x.status === 'done').slice(0, 5)
+    const { rows, more, unrated } = todayRows(s.items, s.deliverables, s.reminders)
     const hour = new Date().getHours()
     const greet = hour < 12 ? t('greetMorning') : hour < 18 ? t('greetDay') : t('greetNight')
-    const status = [active.length ? `${active.length} ${t('running1')}` : '', attention.length ? `${attention.length} ${t('waiting1')}` : ''].filter(Boolean).join(' · ') || t('quiet')
-    const docCard = (d) => h('button', { key: d.id, type: 'button', className: 'mwt-card', onClick: () => openDeliverable(d.id) },
-      h('span', { className: 'mwt-dot', 'data-s': d.verification && d.verification.passed === true ? 'ok' : undefined }, icon('file-text', { size: 16 })),
-      h('span', null, h('span', { className: 'mwt-card-title' }, d.title), h('span', { className: 'mwt-card-sub' }, [d.verification ? (d.verification.passed === true ? t('verified') : d.verification.passed === false ? t('verifyIssues') : t('verifyNone')) : '', d.rating === 1 ? t('ratingGood') : d.rating === -1 ? t('ratingBad') : ''].filter(Boolean).join(' · '))),
-      h('span', { className: 'mwt-card-meta' }, fmtTime(d.createdAt)))
+    const waiting = rows.filter((r) => r.rank <= 2).length
+    const status = [active.length ? `${active.length} ${t('running1')}` : '', waiting ? `${waiting} ${t('waiting1')}` : ''].filter(Boolean).join(' · ') || t('quiet')
     return h('div', { className: 'mwt mwt-today' }, h('style', null, STYLE), h('div', { className: 'mwt-page mwt-page-today' },
-      h('header', { className: 'mwt-greet' }, h('h1', null, greet), h('p', null, new Date().toLocaleDateString([], { month: 'long', day: 'numeric', weekday: 'long' }) + ' · ' + status)),
-      h('section', { className: 'mwt-section first' }, h('h2', null, icon('bell', { size: 14 }), t('attention'), attention.length ? h('span', null, String(attention.length)) : null),
-        !s.loadedAt && !s.error ? h(Skeleton, { rows: 3 })
-          : s.error && !s.items.length ? h('div', { className: 'mwt-retry' }, h('span', null, t('loadFailed')), h('button', { type: 'button', className: 'mwt-btn', onClick: () => { refresh().then(schedulePoll) } }, t('retry')))
-          : attention.length ? h('div', { className: 'mwt-atts' }, attention.map((item) => h(AttentionCard, { key: item.key, item }))) : h('div', { className: 'mwt-empty' }, t('attentionEmpty'))),
-      active.length ? h('section', { className: 'mwt-section' }, h('h2', null, icon('loader', { size: 14 }), t('running'), h('span', null, String(active.length))),
-        h('div', { className: 'mwt-cards' }, active.map((x) => h(TaskCard, { key: x.id, task: x, onOpen: openTask })))) : null,
-      briefs.length ? h('section', { className: 'mwt-section' }, h('h2', null, icon('history', { size: 14 }), t('briefs'), h('span', null, String(briefs.length))),
-        h('div', { className: 'mwt-cards' }, briefs.map((x) => h(TaskCard, { key: x.id, task: x, onOpen: openTask })))) : null,
-      todayDocs.length ? h('section', { className: 'mwt-section' }, h('h2', null, icon('file-text', { size: 14 }), t('todayDone'), h('span', null, String(todayDocs.length))),
-        h('div', { className: 'mwt-cards' }, todayDocs.map(docCard))) : null,
-      h('section', { className: 'mwt-section' }, h('h2', null, icon('history', { size: 14 }), t('recent')),
-        recent.length ? h('div', { className: 'mwt-cards' }, recent.map((x) => h(TaskCard, { key: x.id, task: x, onOpen: openTask }))) : h('div', { className: 'mwt-empty' }, s.error || t('none'))),
+      h('header', { className: 'mwt-greet' }, h('h1', null, greet), h('p', null, status)),
+      !s.loadedAt && !s.error ? h(Skeleton, { rows: 3 })
+        : s.error && !s.items.length ? h('div', { className: 'mwt-retry' }, h('span', null, t('loadFailed')), h('button', { type: 'button', className: 'mwt-btn', onClick: () => { refresh().then(schedulePoll) } }, t('retry')))
+        : rows.length || unrated ? h('div', { className: 'mwt-list' }, rows.map((row) => h(Row, { key: row.key, row })),
+          more || unrated ? h('button', { type: 'button', className: 'mwt-row mwt-row-more', onClick: () => selectPanel(PANELS.tasks) }, h('span', { className: 'mwt-dot' }, icon('list-checks', { size: 16 })), h('span', { className: 'mwt-row-main' }, h('span', { className: 'mwt-row-title' }, [more ? t('moreRows').replace('{n}', String(more)) : '', unrated ? t('moreRate').replace('{n}', String(unrated)) : ''].filter(Boolean).join(' · '))), h('span', { className: 'mwt-row-state' }, icon('arrow-left', { size: 14, style: { transform: 'rotate(180deg)' } }))) : null)
+        : h('div', { className: 'mwt-empty' }, t('quietDay')),
       h('div', { className: 'mwt-dock' }, h(Ask, { scenarios: s.scenarios, initial, hero: false, compact: true }))))
   }
 
@@ -564,19 +564,16 @@ function makeComponents(ctx, t) {
   }
 
   function Doc({ d, status, onRate, onOpenTask }) {
-    return h('div', { className: 'mwt-doc' }, h('div', { className: 'mwt-doc-inner' },
-      h('div', { className: 'mwt-doc-head' }, icon('file-text', { size: 15 }), h('h3', null, d.title), h(VerifyBadge, { v: d.verification, status })),
-      h('div', { className: 'mwt-doc-body' },
-        h('div', { className: 'mwt-doc-meta' }, h('span', null, fmtDate(d.createdAt)), d.scenarioLabel ? h('span', null, d.scenarioLabel) : null, d.kind && d.kind !== 'markdown' ? h('span', null, d.kind) : null),
-        d.verification && d.verification.notes ? h(Notes, { text: d.verification.notes }) : null,
-        h(Markdown, { text: d.markdown })),
+    return h('article', { className: 'mwt-doc' },
+      d.verification && d.verification.notes ? h(Notes, { text: d.verification.notes }) : null,
+      h(Markdown, { text: d.markdown }),
       h('div', { className: 'mwt-doc-actions' },
-        h('button', { type: 'button', className: 'mwt-chip', 'data-on': d.rating === 1, onClick: () => onRate(d, 1) }, t('ratingGood')),
-        h('button', { type: 'button', className: 'mwt-chip', 'data-on': d.rating === -1, onClick: () => onRate(d, -1) }, t('ratingBad')),
+        h('button', { type: 'button', className: 'mwt-btn ghost', 'aria-pressed': d.rating === 1, onClick: () => onRate(d, 1) }, icon('check', { size: 13 }), t('ratingGood')),
+        h('button', { type: 'button', className: 'mwt-btn ghost', 'aria-pressed': d.rating === -1, onClick: () => onRate(d, -1) }, icon('x', { size: 13 }), t('ratingBad')),
         h('span', { style: { flex: 1 } }),
-        h('button', { type: 'button', className: 'mwt-btn', onClick: () => download(safeName(d.title) + '.md', '# ' + d.title + '\n\n' + d.markdown) }, icon('file-text', { size: 13 }), t('exportMd')),
-        h('button', { type: 'button', className: 'mwt-btn', onClick: () => printDoc(d) }, icon('file-text', { size: 13 }), t('exportPdf')),
-        onOpenTask ? h('button', { type: 'button', className: 'mwt-btn', onClick: onOpenTask }, icon('list-checks', { size: 13 }), t('openTask')) : null)))
+        h('button', { type: 'button', className: 'mwt-btn ghost', onClick: () => download(safeName(d.title) + '.md', '# ' + d.title + '\n\n' + d.markdown) }, t('exportMd')),
+        h('button', { type: 'button', className: 'mwt-btn ghost', onClick: () => printDoc(d) }, t('exportPdf')),
+        onOpenTask ? h('button', { type: 'button', className: 'mwt-btn ghost', onClick: onOpenTask }, t('openTask')) : null))
   }
 
   function useTaskDetail(id, key) {
@@ -585,6 +582,29 @@ function makeComponents(ctx, t) {
     return [detail, setDetail]
   }
   const rateIn = (setDetail) => (d, r) => api('/rate', { id: d.id, rating: d.rating === r ? null : r }).then((x) => setDetail((prev) => prev ? { ...prev, deliverables: prev.deliverables.map((y) => y.id === x.deliverable.id ? x.deliverable : y) } : prev)).catch(() => {})
+
+  /** One line that says what the run did, and a fold that shows how. */
+  function Process({ task, live }) {
+    const [open, setOpen] = React.useState(live)
+    React.useEffect(() => { if (live) setOpen(true) }, [live])
+    const list = Array.isArray(task.activity) ? task.activity : []
+    const counts = {}
+    for (const e of list) if (e.kind === 'tool') { const v = describeTool(e.name, e.detail).verb; counts[v] = (counts[v] || 0) + 1 }
+    const parts = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([v, n]) => `${v} ${n} 次`)
+    const summary = [t('process'), ...parts, elapsedOf(task)].join(' · ')
+    return h('div', { className: 'mwt-proc' },
+      h('button', { type: 'button', className: 'mwt-proc-head', 'aria-expanded': open, onClick: () => setOpen(!open) }, h('span', { className: 'mwt-dot', 'data-s': live ? 'running' : undefined }, icon(live ? 'loader' : 'history', { size: 15 })), h('span', { className: 'grow' }, summary), icon('arrow-left', { size: 14, style: { transform: open ? 'rotate(-90deg)' : 'rotate(180deg)', transition: 'transform 150ms' } })),
+      open ? h(Activity, { task, live }) : null)
+  }
+
+  function Menu({ items }) {
+    const [open, setOpen] = React.useState(false)
+    const ref = React.useRef(null)
+    React.useEffect(() => { if (!open) return; const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }; const onKey = (e) => { if (e.key === 'Escape') setOpen(false) }; document.addEventListener('mousedown', onDoc); document.addEventListener('keydown', onKey); return () => { document.removeEventListener('mousedown', onDoc); document.removeEventListener('keydown', onKey) } }, [open])
+    return h('div', { className: 'mwt-menu', ref },
+      h('button', { type: 'button', className: 'mwt-btn ghost round', 'aria-label': t('more'), 'aria-haspopup': 'menu', 'aria-expanded': open, onClick: () => setOpen(!open) }, '···'),
+      open ? h('div', { className: 'mwt-menu-pop', role: 'menu' }, items.filter(Boolean).map((it) => h('button', { key: it.label, type: 'button', role: 'menuitem', onClick: () => { setOpen(false); it.run() } }, icon(it.icon, { size: 14 }), it.label))) : null)
+  }
 
   function TaskDetail({ id, onBack }) {
     const s = usePolling()
@@ -597,25 +617,28 @@ function makeComponents(ctx, t) {
     const full = detail && detail.task ? detail.task : task
     const docs = detail && detail.deliverables ? detail.deliverables : []
     const scenarioLabel = (s.scenarios.find((x) => x.id === task.scenario) || {}).label || task.scenario
-    const rerun = () => api('/rerun', { id }).then((d) => { refresh().then(schedulePoll); if (d.task) openTask(d.task.id) }).catch(() => {})
-    const cancel = () => api('/cancel', { id }).then(() => refresh()).catch(() => {})
-    const reverify = () => api('/verify', { id }).then(() => refresh().then(schedulePoll)).catch((e) => console.warn(`[${PLUGIN}]`, e))
+    const v = task.verification
+    const verdict = task.status === 'verifying' ? t('verifying') : v ? (v.passed === true ? t('verified') : v.passed === false ? t('verifyIssues') : t('verifyNone')) + (v.checked ? ` · ${t('checked')} ${v.checked}${v.issues ? ` · ${t('issues')} ${v.issues}` : ''}` : '') : ''
+    const meta = [task.status !== 'done' ? task.statusLabel : verdict, task.scenario !== 'general' ? scenarioLabel : '', fmtDate(task.finishedAt || task.createdAt)].filter(Boolean).join(' · ')
+    const menu = [
+      live ? { icon: 'x', label: t('cancel'), run: () => api('/cancel', { id }).then(() => refresh()) } : { icon: 'rotate-cw', label: t('rerun'), run: () => api('/rerun', { id }).then((d) => { refresh().then(schedulePoll); if (d.task) openTask(d.task.id) }) },
+      !live && task.deliverableIds.length ? { icon: 'circle-check', label: t('verifyAgain'), run: () => api('/verify', { id }).then(() => refresh().then(schedulePoll)) } : null,
+      task.sessionId ? { icon: 'history', label: t('rawProcess'), run: () => fire('mywork:open-session', { sessionId: task.sessionId }) } : null,
+    ]
+    // Conversational tasks: the assistant's replies are the body.
+    const talk = (Array.isArray(full.activity) ? full.activity : []).filter((e) => e.kind === 'text' || e.kind === 'user')
     return h('div', null,
-      h('div', { className: 'mwt-toolbar' }, h('button', { type: 'button', className: 'mwt-btn ghost', onClick: onBack }, icon('arrow-left', { size: 14 }), t('back')), h('span', { className: 'grow' }),
-        h('div', { className: 'mwt-actions' },
-          live ? h('button', { type: 'button', className: 'mwt-btn ghost', onClick: cancel }, icon('x', { size: 14 }), t('cancel')) : h('button', { type: 'button', className: 'mwt-btn ghost', onClick: rerun }, icon('rotate-cw', { size: 14 }), t('rerun')),
-          !live && task.deliverableIds.length ? h('button', { type: 'button', className: 'mwt-btn ghost', onClick: reverify }, icon('circle-check', { size: 14 }), t('verifyAgain')) : null,
-          task.sessionId ? h('button', { type: 'button', className: 'mwt-btn ghost', onClick: () => fire('mywork:open-session', { sessionId: task.sessionId }) }, icon('history', { size: 14 }), t('process')) : null)),
-      h('div', { className: 'mwt-detail-head' }, h(StatusDot, { task }), h('h1', null, task.title)),
-      h('div', { className: 'mwt-meta' }, task.scenario !== 'general' ? h('span', null, scenarioLabel) : null, h('span', null, t('elapsed') + ' ' + elapsedOf(task)), task.finishedAt ? h('span', null, fmtDate(task.finishedAt)) : null, task.input !== task.title ? h('span', { title: task.input }, t('input') + '：' + (task.input.length > 80 ? task.input.slice(0, 79) + '…' : task.input)) : null),
+      h('div', { className: 'mwt-toolbar' }, h('button', { type: 'button', className: 'mwt-btn ghost round', 'aria-label': t('back'), onClick: onBack }, icon('arrow-left', { size: 15 })), h('span', { className: 'grow' }), h(Menu, { items: menu })),
+      h('h1', { className: 'mwt-task-title' }, task.title),
+      h('p', { className: 'mwt-task-meta' }, meta),
       task.error ? h('div', { className: 'mwt-error' }, task.error) : null,
-      h('div', { className: 'mwt-cols' },
-        h('div', { className: 'mwt-col' }, h('h2', null, icon('loader', { size: 13 }), t('progress'), h('span', { className: 'grow' }), task.statusLabel),
-          task.steps.length ? h('div', { className: 'mwt-steps' }, task.steps.map((st, i) => h('span', { key: i, className: 'mwt-step', 'data-live': !st.endedAt }, st.name + (st.count > 1 ? ' × ' + st.count : ''), h('em', { style: { fontStyle: 'normal', opacity: .7 } }, fmtDuration(new Date(st.endedAt || Date.now()) - new Date(st.startedAt)))))) : null,
-          h(Activity, { task: full, live }),
-          h(Say, { task })),
-        h('div', { className: 'mwt-col sticky' }, h('h2', null, icon('file-text', { size: 13 }), t('deliverable'), h('span', { className: 'grow' }), docs.length ? null : h(VerifyBadge, { v: task.verification, status: task.status })),
-          docs.length ? docs.map((d) => h(Doc, { key: d.id, d: { ...d, scenarioLabel }, status: task.status, onRate: rateIn(setDetail) })) : h('div', { className: 'mwt-empty' }, live ? t('waitingDeliverable') : t('conversational')))))
+      docs.length ? docs.map((d) => h(Doc, { key: d.id, d: { ...d, scenarioLabel }, status: task.status, onRate: rateIn(setDetail) }))
+        : talk.length ? h('div', { className: 'mwt-talk' }, talk.map((e, i) => e.kind === 'user'
+          ? h('div', { key: i, className: 'mwt-ev user' }, h('span', { className: 'ic' }), h('div', null, h('span', { className: 'body' }, e.text)))
+          : h('div', { key: i, className: 'mwt-answer' }, h(Markdown, { text: e.text }))))
+        : live ? h('div', { className: 'mwt-empty' }, t('waitingDeliverable')) : null,
+      h(Process, { task: full, live }),
+      h(Say, { task }))
   }
 
   function TasksPage() {
@@ -629,12 +652,15 @@ function makeComponents(ctx, t) {
       return () => window.removeEventListener('mywork:open-task', onOpen)
     }, [])
     useTick(s.items.some((x) => x.status !== 'done'))
-    const items = s.items.filter((x) => filter === 'all' ? true : filter === 'active' ? x.status !== 'done' : x.status === 'done')
+    const items = s.items.filter((x) => filter === 'all' ? true : filter === 'active' ? x.status !== 'done' : filter === 'delivered' ? x.deliverables.length > 0 : x.status === 'done')
+    const state = (x) => x.status !== 'done' ? (x.currentStep || x.statusLabel) : x.error ? t('failedTitle') : x.verification && x.verification.passed === false ? t('verifyIssues') : x.deliverables.length ? (x.verification && x.verification.passed ? t('verified') : t('delivered')) : t('answered')
     return h('div', { className: 'mwt' }, h('style', null, STYLE), h('div', { className: 'mwt-page' + (open ? ' wide' : '') },
       open ? h(TaskDetail, { id: open, onBack: () => setOpen('') }) : h(React.Fragment, null,
-        h('div', { className: 'mwt-title' }, h('h1', null, t('tasks')), h('span', null, String(s.items.length))),
-        h('div', { className: 'mwt-chips', style: { margin: '0 0 16px' } }, [['all', t('all')], ['active', t('active')], ['done', t('finished')]].map(([k, label]) => h('button', { key: k, type: 'button', className: 'mwt-chip', 'data-on': filter === k, onClick: () => setFilter(k) }, label))),
-        items.length ? h('div', { className: 'mwt-cards' }, items.map((x) => h(TaskCard, { key: x.id, task: x, onOpen: setOpen }))) : h('div', { className: 'mwt-empty' }, s.error || t('none')))))
+        h('div', { className: 'mwt-title' }, h('h1', null, t('tasks'))),
+        h('div', { className: 'mwt-chips', style: { margin: '0 0 12px' } }, [['all', t('all')], ['active', t('active')], ['delivered', t('deliverables')]].map(([k, label]) => h('button', { key: k, type: 'button', className: 'mwt-chip', 'data-on': filter === k, onClick: () => setFilter(k) }, label))),
+        !s.loadedAt && !s.error ? h(Skeleton, { rows: 4 })
+          : items.length ? h('div', { className: 'mwt-list' }, items.map((x) => h(Row, { key: x.id, row: { glyph: x.status !== 'done' ? 'loader' : x.error ? 'circle-x' : 'circle-check', spin: x.status !== 'done', tone: x.status !== 'done' ? 'live' : x.error ? 'danger' : 'success', title: x.title, state: state(x) + ' · ' + fmtTime(x.finishedAt || x.createdAt), open: () => setOpen(x.id) } })))
+          : h('div', { className: 'mwt-empty' }, s.error || t('none')))))
   }
 
   function DeliverablesPage() {
@@ -703,8 +729,7 @@ function makeComponents(ctx, t) {
     }
     return h('div', { className: 'mwt' }, h('style', null, STYLE), h('div', { className: 'mwt-page' },
       h('div', { className: 'mwt-title' }, h('h1', null, t('routines')), h('span', null, String(items.length))),
-      h('p', { className: 'mwt-lead' }, t('routinesLead')),
-      items.length ? h('div', { className: 'mwt-rts' }, items.map(row)) : h('div', { className: 'mwt-empty' }, t('routinesEmpty')),
+      items.length ? h('div', { className: 'mwt-rts' }, items.map(row)) : h('div', { className: 'mwt-empty' }, t('routinesLead')),
       h('div', { className: 'mwt-dock' }, h(Ask, { scenarios: s.scenarios, hero: false, compact: true }))))
   }
 
@@ -764,9 +789,10 @@ exports.apply = function apply(ctx) {
   }
   page(PANELS.today, 1, 'today', 'sun', c.TodayPage)
   page(PANELS.tasks, 2, 'tasks', 'list-checks', c.TasksPage)
-  page(PANELS.deliverables, 3, 'deliverables', 'file-text', c.DeliverablesPage)
-  page(PANELS.routines, 4, 'routines', 'history', c.RoutinesPage)
-  page(PANELS.scenarios, 5, 'scenarios', 'package', c.ScenariosPage)
+  page(PANELS.routines, 3, 'routines', 'history', c.RoutinesPage)
+  // Reachable, not navigated: deliverables open through their task; 领域 through 设置.
+  ctx.slots.inject('main', () => ctx.slots.register({ name: 'main', key: PANELS.deliverables, locale: NS, inject: () => ({}) }, function MyworkDeliverables() { return h(c.DeliverablesPage) }))
+  ctx.slots.inject('main', () => ctx.slots.register({ name: 'main', key: PANELS.scenarios, locale: NS, inject: () => ({}) }, function MyworkScenarios() { return h(c.ScenariosPage) }))
   ctx.slots.inject('shell.overlay', () => ctx.slots.register({ name: 'shell.overlay', id: PLUGIN, order: 45 }, function MyworkOverlay() { return h(c.Overlay) }))
 
   // Window events from the sidebar (dsh-mywork-codex-ui) and other members.

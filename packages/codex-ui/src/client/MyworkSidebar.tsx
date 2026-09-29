@@ -7,7 +7,7 @@
  * plugin's pages goes through window events so neither package imports the other.
  */
 import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react'
-import { CircleCheck, CircleX, Clock, FileText, History, ListChecks, Loader, PanelLeft, Package, Plus, Sun } from 'lucide-react'
+import { CircleCheck, CircleX, Clock, History, ListChecks, Loader, PanelLeft, Plus, Sun } from 'lucide-react'
 import type { CodexSidebarProps } from './CodexSidebar.tsx'
 
 export const V2_STORAGE_KEY = 'dsh-mywork:v2'
@@ -109,13 +109,11 @@ export function MyworkSidebar({ selectPanel, usePanelInfo = useLegacyPanelInfo, 
   const nav: { id: string; label: string; Icon: typeof Sun }[] = [
     { id: MYWORK_PANELS.today, label: t('v2.today'), Icon: Sun },
     { id: MYWORK_PANELS.tasks, label: t('v2.tasks'), Icon: ListChecks },
-    { id: MYWORK_PANELS.deliverables, label: t('v2.deliverables'), Icon: FileText },
     { id: MYWORK_PANELS.routines, label: t('v2.routines'), Icon: Clock },
-    { id: MYWORK_PANELS.scenarios, label: t('v2.scenarios'), Icon: Package },
   ]
   useEffect(() => { document.body.setAttribute('data-mywork-v2', ''); return () => { document.body.removeAttribute('data-mywork-v2') } }, [])
   const active = tasks.filter(x => x.status !== 'done')
-  const recent = tasks.filter(x => x.status === 'done').slice(0, 14)
+  const recent = tasks.filter(x => x.status === 'done').slice(0, 12)
   const openTask = (id: string): void => { go(MYWORK_PANELS.tasks); fire('mywork:open-task', { id }) }
   const item = (task: SidebarTask): ReactElement => <button key={task.id} type="button" className="mws-task" title={task.title} onClick={() => { openTask(task.id) }}>
     <Dot task={task} /><span>{task.title}{task.status !== 'done' ? <small>{task.currentStep || task.statusLabel}</small> : null}</span>
@@ -128,7 +126,6 @@ export function MyworkSidebar({ selectPanel, usePanelInfo = useLegacyPanelInfo, 
     <nav className="mws-nav" aria-label="MyWork">{nav.map(({ id, label, Icon }) => <button key={id} type="button" aria-current={activePanelId === id ? 'page' : undefined} title={label} onClick={() => { go(id) }}><Icon size={16} strokeWidth={1.5} /><span>{label}</span></button>)}</nav>
     <div className="mws-list">
       {active.length > 0 && <><div className="mws-group">{t('v2.running')} · {active.length}</div>{active.map(item)}</>}
-      <div className="mws-group">{t('v2.recent')}</div>
       {recent.length > 0 ? recent.map(item) : <div className="mws-empty">{t('v2.noTasks')}</div>}
     </div>
     <footer className="mws-foot"><div>{renderSlot('sidebar.settings', { wide: !compact })}</div></footer>

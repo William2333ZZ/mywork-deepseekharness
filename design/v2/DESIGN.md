@@ -61,20 +61,22 @@ Weights: 400 read, 500 emphasize, 600 announce. 700 is not used. Seven sizes tot
 ## 4. Spacing & Grid
 
 - 8px base: 4, 8, 12, 16, 24, 32, 48.
-- Page gutter 24px desktop, 12px phone. Reading column 760px; task page 1120px.
+- Page gutter 24px desktop, 12px phone. Reading column 760px on every thread; the on-demand aside (这台电脑) is 384px beside it only when the container has room, otherwise it slides over without a mask.
 - Section gap 32px; label to list 8px; list rows 12px vertical padding, 16px horizontal, minimum height 44px.
-- Sidebar 240px, compact rail 56px. Hairline (`--border-soft`) between sidebar and page.
+- Sidebar follows dsh: 280px default, drag 264–420, dsh's 56px rail when collapsed (mark and expand control only). Hairline (`--border-soft`) between sidebar and page.
 - Radii: 6px buttons and inputs, 8px rows and pills' containers, 12px cards and the composer, pill (9999px) badges. Nothing larger than 12px.
 
 ## 5. Layout & Composition
 
-- **Sidebar** (`--surface`): the wordmark (also the home button), 新任务, 今日 / 任务 / 例行, the task history (a 进行中 group only when something runs), 设置. 交付物 and 领域 are pages reached from content, not rail entries.
-- **新任务** is its own screen: one heading, one field, the examples; sending lands on the task it created, or on the routine when the sentence carried a time. It is the only place things are created.
-- **今日** is where the day happens (see FLOW.md): a greeting; **the day's list** (reminders, failures, verification issues, running, delivered today, one row each; unrated deliveries fold into one row that opens 任务); **例行**, plain rows that open the routine's latest result; then **today's conversation** with the assistant (your lines, its short replies, and hand-off lines 已交给后台：… that open the task it created); the composer docked at the bottom talks to that assistant, which decides between answering, a background task and a routine.
-- **Task page**: the answer is the page. Back arrow and a ··· menu (再来一次 / 重新核验 / 取消 / 原始对话); title; one meta line (verdict · pack · time); the document full width as plain text with rating and export as ghost actions under it; conversational tasks show the exchange instead; then one folded line 过程 · 读取网页 9 次 · 搜索 3 次 · 3m that opens the stream; then the follow-up field. Single column at every width, 760px reading column.
-- **Deliverable**: not a card. Verifier notes (two lines, tap to expand) above the document; the document at document typography; one row of ghost actions below.
-- **例行 page**: the same rows (title, schedule, next run on the right); a routine opens its own page: title, one meta line, three actions (现在跑一次 / 暂停 / 删除) as buttons, then 运行记录 as rows that open the run's task. Ended one-offs sit behind an 已结束 toggle.
-- **任务 page**: the same rows with three filter chips (全部 / 进行中 / 交付物); a task opens its page.
+Decided 2026-09-30 (TEAMMATES.md §8): the product is one column of conversations and one thread.
+
+- **Column** (`--surface`): a search field and 「+」 on top; rows of one shape — 20px glyph, title, time on the right, a 6px unread dot, and a second muted line with the latest sentence; 今日 pinned first (its glyph is the brand mark), then tasks and routines by last activity with no date headers; 交付物 and 设置 as two plain rows at the bottom. Rows never carry actions, hover buttons or menus. While the search field is non-empty the rows are results (tasks, routines, deliverables), told apart by glyph only.
+- **Thread** is the only centre form. Header: back, serif title, one meta line, the monitor button only when the aside has content, ···. User lines are bubbles on the right; replies are plain text on the left, no avatar, no grey bubble. The docked composer never changes colour and has no attachment, microphone or stop control. Four kinds share the same chrome:
+  - **今日**: 「今日 · date」 with the status words on the right; a sticky 44px 等你看 bar underneath (「等你看 3 · 2 个在跑」) that expands the list in place, auto-expanded when a reminder, failure or question waits, absent when empty; then the day's line — user bubbles, replies, hand-off rows that update in place from 「查阅 · 40s」 to 「✓ 已交付 · 已核验」 and open the task (the row is the deliverable card; nothing else is added), reminder cards with one 知道了, date separators only when looking back at earlier days.
+  - **Task**: the ask as a bubble; while running a single line 「在做 · step · elapsed」 (no progress card); the reply segment = the countable results as plain ✓ lines (no box), the deliverable as full-width text, one meta line 「已核验 · 核对 n · 问题 m · 有用 / 没用」 reading verification live (核验中 / 已核验 / 核验发现 n 处 / 未能核验); follow-ups continue the same line; another delivery is another segment. The folded 「过程 · n 步 · 3m」 line sits at the end above the composer.
+  - **Routine**: meta line, then runs newest first, each a date separator and that run's reply; unchanged runs are one line 「没有变化」; reports are always full text. ··· holds 现在跑一次 / 暂停 / 改要求 / 删除.
+  - **New**: an empty thread with the serif question 「要什么结果？」, example pills and the composer; sending always creates a task (or a routine when the sentence carries a time) and the thread becomes it in place.
+- **这台电脑** (aside): a single section, the live browser picture (JPEG frames on an img, never an iframe); clicking the picture takes over in place. Registered only when the task used the browser; otherwise the monitor button does not render. Opens once automatically while running with the browser; closing is remembered.
 - **Lists everywhere** share one recipe: container with whisper border and radius 12, rows divided by `--border-soft`, 20px status glyph, title, and one state on the right (text or a single button). Hover: `--surface` fill. No per-row borders, shadows, or label lines.
 
 ## 6. Components
@@ -115,4 +117,4 @@ Weights: 400 read, 500 emphasize, 600 announce. 700 is not used. Seven sizes tot
 - Hint lines under fields (回车发送…), status captions under headings, tooltips that repeat visible text. The field and the button speak for themselves.
 - Entrance animations on page load; motion longer than 200ms; anything animating width, height or position.
 - Populated-only design: every list ships its empty, loading and error sentence.
-- More than one list on 今日; section labels on 今日; a two-column task page; a card around the document; toolbars with more than one visible action.
+- More than one list on 今日; section labels on 今日; a second document column (the aside is a picture, never a second page); a card around the document; result or progress cards inside a thread; toolbars with more than one visible action.

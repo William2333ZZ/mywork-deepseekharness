@@ -59,7 +59,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const api = useMemo(() => (conn ? new Api(conn.base) : null), [conn])
   const tryLogin = useCallback(async (c: Connection | null) => {
     if (!c) { setConn(null); setFailed(false); setReady(true); return }
-    const ok = await login(c)
+    const { ok } = await login(c)
     setConn(c); setFailed(!ok); setReady(true)
   }, [])
   useEffect(() => { loadConnection().then(tryLogin) }, [tryLogin])
@@ -67,8 +67,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
     const p = parsePairText(text)
     if (!p) return '看不出这是一个地址。'
     const c: Connection = { base: p.base, token: p.token, pairedAt: new Date().toISOString() }
-    const ok = await login(c)
-    if (!ok) return '连不上这台电脑。手机和电脑要在同一个 Wi‑Fi，电脑上的「允许手机连接」要打开。'
+    const { ok, reason } = await login(c)
+    if (!ok) return `连不上这台电脑（${reason}）。手机和电脑要在同一个 Wi‑Fi，电脑上的「允许手机连接」要打开。`
     await saveConnection(c); setConn(c); setFailed(false); setReady(true)
     setStack([{ name: 'home' }])
     return null

@@ -90,7 +90,7 @@ export default function Pair() {
         {busy ? <Meta style={styles.line}>连接中…</Meta> : err ? <Meta style={styles.lineErr}>{err}</Meta> : null}
         {mode === 'manual' ? (
           <View style={styles.manual}>
-            <Field value={addr} onChange={setAddr} placeholder="http://192.168.1.8:3090" mono autoFocus onSubmit={() => connect(addr)} />
+            <Field value={addr} onChange={setAddr} placeholder="电脑上显示的地址" mono autoFocus onSubmit={() => connect(addr)} />
             <View style={styles.actions}>
               <Btn label="粘贴" icon="clipboard-outline" onPress={paste} disabled={busy} />
               <Btn label="连接" kind="primary" onPress={() => connect(addr)} disabled={busy || !addr.trim()} />

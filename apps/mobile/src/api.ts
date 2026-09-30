@@ -52,13 +52,19 @@ export class ApiError extends Error { constructor(public status: number, message
 
 const PREFIX = '/mywork-tasks/api'
 
-/** Exchange the launch token for the session cookie. Returns false when the computer refuses (token stale, gateway off). */
-export async function login(c: Connection): Promise<boolean> {
+/** Exchange the launch token for the session cookie, then prove it with one API call. `reason` says which step failed. */
+export async function login(c: Connection): Promise<{ ok: boolean; reason: string }> {
+  let step = '连接'
   try {
-    if (c.token) await fetch(`${c.base}/?token=${encodeURIComponent(c.token)}`, { credentials: 'include' })
+    if (c.token) {
+      step = '换令牌'
+      const t = await fetch(`${c.base}/?token=${encodeURIComponent(c.token)}`, { credentials: 'include' })
+      if (!t.ok && t.status !== 303 && t.status !== 302) return { ok: false, reason: `换令牌 HTTP ${t.status}` }
+    }
+    step = '取任务'
     const r = await fetch(`${c.base}${PREFIX}/tasks`, { credentials: 'include' })
-    return r.ok
-  } catch { return false }
+    return r.ok ? { ok: true, reason: '' } : { ok: false, reason: `取任务 HTTP ${r.status}${r.status === 401 ? '（cookie 没带上）' : ''}` }
+  } catch (e) { return { ok: false, reason: `${step}：${e instanceof Error ? e.message : String(e)}` } }
 }
 
 export class Api {

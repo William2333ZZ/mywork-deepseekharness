@@ -209,7 +209,8 @@ M2 的触发条件（任一成立即开工）：交付物不再是能读的文�
 用户定下：手机端是一个新的 App，不是网页套壳；App 连电脑，不上云。第一版在 `apps/mobile`：
 
 - **栈**：Expo SDK 53 / React Native 0.79 / TypeScript，原生控件，不用 WebView；不用路由库，`src/store.tsx` 里一个栈；关掉新架构（`newArchEnabled: false`，少一层原生编译）。同一份代码出 Android 和 iOS。
-- **连接**：扫 设置 → MyWork → 手机 的二维码（`http://<ip>:<网关端口>/?token=…`），App 用 dsh 自己的令牌换 cookie（平台的 HTTP 栈保管），之后只走 `/mywork-tasks/api/*`，在跑时 5 秒、闲时 30 秒轮询。配对信息存在系统安全存储里。
+- **连接**：扫 设置 → MyWork → 手机 的二维码（`http://<ip>:<网关端口>/?token=…`）。App 不用 cookie：每个请求带 `Authorization: Bearer <令牌>`，网关核对令牌后用自己持有的 dsh 会话转发（网关启动后用同一令牌换过一次 cookie，401 时重换）。Android 的 cookie 存储会丢掉 dsh 那个 SameSite=Strict 的 cookie，cookie 路线在真机上不可靠，这是实测出来的。之后只走 `/mywork-tasks/api/*`，在跑时 5 秒、闲时 30 秒轮询。配对信息存在系统安全存储里。
 - **屏幕**：§2 的 S0 连接、S1 会话 + 等你看 sheet、S2 新任务、S3 任务页（正文 + ··· sheet + 过程时间线 + 追问）、S4 MyWork 页、S5 例行页、S6 任务列表、S7 设置。契约文件 `src/api.ts`、`src/store.tsx`、`src/components.tsx`、`src/theme.ts`；每个屏幕只从这四个文件和已装依赖 import。
+- **构建**：Expo 云端（EAS，项目 @hhdz/mywork，`preview` 档出可直接安装的 APK / IPA）；本地 Android 编译也能跑，但外置盘上的原生编译会把磁盘拖死（Spotlight 索引 + CMake），已把外置盘设为不索引。
 - **这台 Mac 上能编什么**：Android 能（SDK 34/35、JDK 17、模拟器 TestDevice）；iOS 不能，没有 Xcode。系统盘只剩几个 G，NDK 和 CMake 装在外置盘 `android-sdk-ext` 里软链进 SDK。iOS 的路：Xcode 装外盘 + 真机免费签名（模拟器镜像必须在系统盘，装不下），或 EAS 云端构建。
 - **没做的**：推送（前台轮询，后台仍靠飞书）、出局域网的中继、扫码创建 agent 之类的 Cue 特性。

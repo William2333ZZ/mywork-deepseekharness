@@ -204,7 +204,7 @@ const zh = {
   packsEmpty: '还没有装领域包。交易工作台是第一个。',
   hero: '你要什么结果？', ask: '今天要做什么', askRoutine: '安排一件例行的事，比如每天 9 点给我一份简报', hint: '回车创建，Shift + 回车换行。任务在后台完成，做完通知你。',
   running: '进行中', recent: '最近', none: '还没有任务。', noneRunning: '现在没有在跑的任务。', noneDeliverables: '还没有交付物。',
-  all: '全部', active: '进行中', finished: '已完成', back: '返回', rerun: '再来一次', cancel: '取消', process: '过程', verifyAgain: '重新核验', times: '次', phases: '步', verifyLabel: '核验', passed: '通过',
+  all: '全部', active: '进行中', finished: '已完成', back: '返回', rerun: '再来一次', cancel: '取消', process: '过程', verifyAgain: '重新核验', rename: '重命名', remove: '删除', removeAsk: '删掉这条记录和它的交付物？', search: '搜索', noMatch: '没有匹配的', times: '次', phases: '步', verifyLabel: '核验', passed: '通过',
   progress: '进度', deliverable: '交付物', waitingDeliverable: '做完后交付物出现在这里。', failedTitle: '失败',
   queued: '排队', input: '你说的', elapsed: '用时', scenario: '场景', create: '创建', creating: '创建中…', openTask: '打开任务',
   ratingGood: '有用', ratingBad: '没用', exportMd: '导出 Markdown', exportPdf: '导出 PDF', none2: '无',
@@ -223,7 +223,7 @@ const en = {
   packsEmpty: 'No domain packs installed yet. The trading workbench is the first.',
   hero: 'What do you want done?', ask: 'What needs doing today', askRoutine: 'Schedule something, e.g. a brief every day at 9', hint: 'Enter creates the task, Shift + Enter for a new line. It runs in the background and notifies you when done.',
   running: 'In progress', recent: 'Recent', none: 'No tasks yet.', noneRunning: 'Nothing is running.', noneDeliverables: 'No deliverables yet.',
-  all: 'All', active: 'Active', finished: 'Finished', back: 'Back', rerun: 'Run again', cancel: 'Cancel', process: 'Process', verifyAgain: 'Verify again', times: 'calls', phases: 'steps', verifyLabel: 'Verification', passed: 'passed',
+  all: 'All', active: 'Active', finished: 'Finished', back: 'Back', rerun: 'Run again', cancel: 'Cancel', process: 'Process', verifyAgain: 'Verify again', rename: 'Rename', remove: 'Delete', removeAsk: 'Delete this record and its deliverables?', search: 'Search', noMatch: 'Nothing matches', times: 'calls', phases: 'steps', verifyLabel: 'Verification', passed: 'passed',
   progress: 'Progress', deliverable: 'Deliverable', waitingDeliverable: 'The deliverable appears here when the task finishes.', failedTitle: 'Failed',
   queued: 'Queued', input: 'Your request', elapsed: 'Elapsed', scenario: 'Scenario', create: 'Create', creating: 'Creating…', openTask: 'Open task',
   ratingGood: 'Useful', ratingBad: 'Not useful', exportMd: 'Export Markdown', exportPdf: 'Export PDF', none2: 'none',
@@ -377,6 +377,14 @@ body[data-ds-dark-theme] .mwt{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 .mwt-row[data-off=true] .mwt-row-title,.mwt-row[data-off=true] .mwt-dot{color:var(--meta)}
 .mwt-row .mwt-menu .mwt-btn{height:28px;width:28px}
 .mwt-task-title{margin:4px 0 4px;font-size:24px;line-height:1.4;font-weight:600}
+.mwt-task-title.edit{display:block;width:100%;box-sizing:border-box;padding:0 0 2px;border:0;border-bottom:1px solid var(--border-strong);border-radius:0;outline:0;background:transparent;color:inherit;font:inherit;font-size:24px;line-height:1.4;font-weight:600}
+.mwt-confirm{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 16px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface);font-size:13.5px}
+.mwt-confirm>span{flex:1;min-width:160px}
+.mwt-btn.danger{color:var(--danger);border-color:color-mix(in srgb,var(--danger) 40%,transparent)}
+.mwt-filters{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 12px}
+.mwt-search{display:flex;align-items:center;gap:6px;flex:1 1 180px;min-width:0;max-width:320px;height:30px;padding:0 10px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--bg);color:var(--meta)}
+.mwt-search input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:var(--fg);font:inherit;font-size:13.5px}
+.mwt-search input::-webkit-search-cancel-button{-webkit-appearance:none}
 .mwt-task-meta{margin:0 0 20px;color:var(--meta);font-size:12.5px;font-variant-numeric:tabular-nums}
 .mwt-answer{font-size:15px;line-height:1.7;margin:0 0 16px}
 .mwt-talk{margin:0 0 8px}
@@ -910,6 +918,14 @@ function makeComponents(ctx, t) {
         : v ? h('div', { className: 'mwt-phase-head', 'data-tone': v.passed === false ? 'danger' : undefined }, h('span', { className: 'ic' }, icon(v.passed === false ? 'circle-x' : v.passed === true ? 'check' : 'minus', { size: 13 })), h('span', { className: 'verb' }, t('verifyLabel')), h('span', { className: 'meta' }, [v.passed === true ? t('passed') : v.passed === false ? t('verifyIssues') : t('verifyNone'), v.checked ? t('checked') + ' ' + v.checked : '', v.issues ? t('issues') + ' ' + v.issues : ''].filter(Boolean).join(' · '))) : null)
   }
 
+  /** The title as a field: Enter saves, Escape or blur leaves it. */
+  function TitleEdit({ value, onDone }) {
+    const [v, setV] = React.useState(value)
+    const ref = React.useRef(null)
+    React.useEffect(() => { if (ref.current) { ref.current.focus(); ref.current.select() } }, [])
+    return h('input', { ref, className: 'mwt-task-title edit', value: v, 'aria-label': t('rename'), onChange: (e) => setV(e.target.value), onBlur: () => onDone(v), onKeyDown: (e) => { if (e.key === 'Enter') { e.preventDefault(); onDone(v) } if (e.key === 'Escape') { e.preventDefault(); onDone(value) } } })
+  }
+
   /** What the agent said mid-run: two lines, the whole note on tap. */
   function PhaseNote({ text, label }) {
     const [open, setOpen] = React.useState(false)
@@ -934,6 +950,9 @@ function makeComponents(ctx, t) {
     useTick(live)
     const key = task ? task.status + ':' + task.deliverableIds.length + ':' + (live ? Math.floor(Date.now() / FAST_MS) : 0) : ''
     const [detail, setDetail] = useTaskDetail(id, key)
+    const [renaming, setRenaming] = React.useState(false)
+    const [confirm, setConfirm] = React.useState(false)
+    const [busy, setBusy] = React.useState(false)
     if (!task) return h('div', { className: 'mwt-empty' }, t('none'))
     const full = detail && detail.task ? detail.task : task
     const docs = detail && detail.deliverables ? detail.deliverables : []
@@ -945,13 +964,18 @@ function makeComponents(ctx, t) {
       live ? { icon: 'x', label: t('cancel'), run: () => api('/cancel', { id }).then(() => refresh()) } : { icon: 'rotate-cw', label: t('rerun'), run: () => api('/rerun', { id }).then((d) => { refresh().then(schedulePoll); if (d.task) openTask(d.task.id) }) },
       !live && task.deliverableIds.length ? { icon: 'circle-check', label: t('verifyAgain'), run: () => api('/verify', { id }).then(() => refresh().then(schedulePoll)) } : null,
       task.sessionId ? { icon: 'history', label: t('rawProcess'), run: () => fire('mywork:open-session', { sessionId: task.sessionId }) } : null,
+      { icon: 'pencil', label: t('rename'), run: () => setRenaming(true) },
+      { icon: 'trash', label: t('remove'), run: () => setConfirm(true) },
     ]
+    const saveTitle = (title) => { const v = String(title || '').trim(); setRenaming(false); if (!v || v === task.title) return; api('/rename', { id, title: v }).then(() => refresh()).catch(() => {}) }
+    const remove = () => { if (busy) return; setBusy(true); api('/remove', { id }).then(() => refresh()).then(() => onBack()).catch(() => setBusy(false)) }
     // Conversational tasks: the assistant's replies are the body.
     const talk = (Array.isArray(full.activity) ? full.activity : []).filter((e) => e.kind === 'text' || e.kind === 'user')
     return h('div', null,
       h('div', { className: 'mwt-toolbar' }, h('button', { type: 'button', className: 'mwt-btn ghost round', 'aria-label': t('back'), onClick: onBack }, icon('arrow-left', { size: 15 })), h('span', { className: 'grow' }), h(Menu, { items: menu })),
-      h('h1', { className: 'mwt-task-title' }, task.title),
+      renaming ? h(TitleEdit, { value: task.title, onDone: saveTitle }) : h('h1', { className: 'mwt-task-title' }, task.title),
       h('p', { className: 'mwt-task-meta' }, meta),
+      confirm ? h('div', { className: 'mwt-confirm', role: 'alertdialog' }, h('span', null, t('removeAsk')), h('button', { type: 'button', className: 'mwt-btn danger', disabled: busy, onClick: remove }, t('remove')), h('button', { type: 'button', className: 'mwt-btn ghost', onClick: () => setConfirm(false) }, t('cancel'))) : null,
       task.error ? h('div', { className: 'mwt-error' }, task.error) : null,
       docs.length ? docs.map((d) => h(Doc, { key: d.id, d: { ...d, scenarioLabel }, status: task.status, onRate: rateIn(setDetail) }))
         : talk.length ? h('div', { className: 'mwt-talk' }, talk.map((e, i) => e.kind === 'user'
@@ -965,23 +989,30 @@ function makeComponents(ctx, t) {
   function TasksPage() {
     const s = usePolling()
     const [filter, setFilter] = React.useState('all')
+    const [q, setQ] = React.useState('')
     const [open, setOpen] = React.useState(() => { const id = nav.pendingTask; nav.pendingTask = ''; return id })
     React.useEffect(() => {
       const onOpen = (e) => { const id = e.detail && e.detail.id; if (id) setOpen(String(id)) }
+      const onHome = (e) => { if (e.detail && e.detail.id === 'mywork-tasks') setOpen('') } // 任务 in the sidebar, tapped again: back to the list
       window.addEventListener('mywork:open-task', onOpen)
+      window.addEventListener('mywork:panel-home', onHome)
       if (nav.pendingTask) { setOpen(nav.pendingTask); nav.pendingTask = '' }
-      return () => window.removeEventListener('mywork:open-task', onOpen)
+      return () => { window.removeEventListener('mywork:open-task', onOpen); window.removeEventListener('mywork:panel-home', onHome) }
     }, [])
     useTick(s.items.some((x) => x.status !== 'done'))
-    const items = s.items.filter((x) => filter === 'all' ? true : filter === 'active' ? x.status !== 'done' : filter === 'delivered' ? x.deliverables.length > 0 : x.status === 'done')
+    const needle = q.trim().toLowerCase()
+    const hit = (x) => !needle || String(x.title || '').toLowerCase().includes(needle) || String(x.input || '').toLowerCase().includes(needle) || (x.deliverables || []).some((d) => String(d.title || '').toLowerCase().includes(needle))
+    const items = s.items.filter((x) => (filter === 'all' ? true : filter === 'active' ? x.status !== 'done' : filter === 'delivered' ? x.deliverables.length > 0 : x.status === 'done') && hit(x))
     const state = (x) => x.status !== 'done' ? (x.currentStep || x.statusLabel) : x.error ? t('failedTitle') : x.verification && x.verification.passed === false ? t('verifyIssues') : x.deliverables.length ? (x.verification && x.verification.passed ? t('verified') : t('delivered')) : t('answered')
     return h('div', { className: 'mwt' }, h('style', null, STYLE), h('div', { className: 'mwt-page' + (open ? ' wide' : '') },
       open ? h(TaskDetail, { id: open, onBack: () => setOpen('') }) : h(React.Fragment, null,
         h('div', { className: 'mwt-title' }, h('h1', null, t('tasks'))),
-        h('div', { className: 'mwt-chips', style: { margin: '0 0 12px' } }, [['all', t('all')], ['active', t('active')], ['delivered', t('deliverables')]].map(([k, label]) => h('button', { key: k, type: 'button', className: 'mwt-chip', 'data-on': filter === k, onClick: () => setFilter(k) }, label))),
+        h('div', { className: 'mwt-filters' },
+          h('div', { className: 'mwt-chips', style: { margin: 0 } }, [['all', t('all')], ['active', t('active')], ['delivered', t('deliverables')]].map(([k, label]) => h('button', { key: k, type: 'button', className: 'mwt-chip', 'data-on': filter === k, onClick: () => setFilter(k) }, label))),
+          h('label', { className: 'mwt-search' }, icon('search', { size: 14 }), h('input', { type: 'search', value: q, placeholder: t('search'), 'aria-label': t('search'), onChange: (e) => setQ(e.target.value) }))),
         !s.loadedAt && !s.error ? h(Skeleton, { rows: 4 })
           : items.length ? h('div', { className: 'mwt-list' }, items.map((x) => h(Row, { key: x.id, row: { glyph: x.status !== 'done' ? 'loader' : x.error ? 'circle-x' : 'circle-check', spin: x.status !== 'done', tone: x.status !== 'done' ? 'live' : x.error ? 'danger' : 'success', title: x.title, state: state(x) + ' · ' + fmtTime(x.finishedAt || x.createdAt), open: () => setOpen(x.id) } })))
-          : h('div', { className: 'mwt-empty' }, s.error || t('none')))))
+          : h('div', { className: 'mwt-empty' }, s.error || (needle ? t('noMatch') : t('none'))))))
   }
 
   function DeliverablesPage() {
@@ -1034,7 +1065,7 @@ function makeComponents(ctx, t) {
     const [items, setItems] = React.useState([])
     const [open, setOpen] = React.useState(() => { const id = nav.pendingRoutine; nav.pendingRoutine = ''; return id })
     const [showSpent, setShowSpent] = React.useState(false)
-    React.useEffect(() => { const onOpen = (e) => { const id = e.detail && e.detail.id; if (id) setOpen(String(id)) }; window.addEventListener('mywork:open-routine', onOpen); return () => window.removeEventListener('mywork:open-routine', onOpen) }, [])
+    React.useEffect(() => { const onOpen = (e) => { const id = e.detail && e.detail.id; if (id) setOpen(String(id)) }; const onHome = (e) => { if (e.detail && e.detail.id === 'mywork-routines') setOpen('') }; window.addEventListener('mywork:open-routine', onOpen); window.addEventListener('mywork:panel-home', onHome); return () => { window.removeEventListener('mywork:open-routine', onOpen); window.removeEventListener('mywork:panel-home', onHome) } }, [])
     const load = React.useCallback(() => api('/routines').then((d) => setItems(d.items || [])).catch(() => {}), [])
     React.useEffect(() => { load() }, [s.loadedAt, load])
     const spent = items.filter((r) => !r.enabled && r.schedule && r.schedule.type === 'once')

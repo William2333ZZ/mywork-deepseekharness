@@ -2736,6 +2736,7 @@ body[data-ds-dark-theme] .mws-new:hover{background:var(--surface-2)}
 							"aria-current": activePanelId === id ? "page" : void 0,
 							title: label,
 							onClick: () => {
+								if (activePanelId === id) fire("mywork:panel-home", { id });
 								go(id);
 							},
 							children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(Icon, {

@@ -256,6 +256,17 @@ export function apply(ctx, config = {}) {
     route('/today', async (_req, res) => json(res, { thread: api.today() }))
     post('/today/say', async (b, res) => { if (!String(b.text || '').trim()) return json(res, { error: 'text is required' }, 400); json(res, { thread: await todaySay(b.text) }) })
     post('/say', async (b, res) => { if (!String(b.text || '').trim()) return json(res, { error: 'text is required' }, 400); json(res, { task: await api.say(String(b.id || ''), b.text) }) })
+    // History is the user's: rename a task, or delete it with its deliverables (a running one is cancelled first).
+    post('/rename', async (b, res) => { const t = store.get(String(b.id || '')); if (!t) return json(res, { error: 'task not found' }, 404); const title = String(b.title || '').trim().slice(0, 200); if (!title) return json(res, { error: 'title is required' }, 400); store.update(t.id, { title }); json(res, { task: taskView(store.get(t.id), deliverables) }) })
+    post('/remove', async (b, res) => {
+      const t = store.get(String(b.id || '')); if (!t) return json(res, { error: 'task not found' }, 404)
+      if (t.status !== 'done') { try { engine.cancel(t.id) } catch {} }
+      for (const d of deliverables.forTask(t.id)) deliverables.remove(d.id)
+      routines.forgetTask(t.id)
+      store.remove(t.id)
+      log(`task ${t.id} removed by the user: ${t.title}`)
+      json(res, { removed: true })
+    })
     post('/rerun', async (b, res) => { const t = store.get(String(b.id || '')); if (!t) return json(res, { error: 'task not found' }, 404); json(res, { task: create({ input: t.input, scenario: t.scenario, title: t.title, source: 'rerun' }) }) })
     route('/scenarios', async (_req, res) => json(res, { items: scenarios.list(), capabilities: capabilities() }))
     route('/deliverables', async (_req, res) => json(res, { items: deliverables.list().map(deliverableSummary) }))

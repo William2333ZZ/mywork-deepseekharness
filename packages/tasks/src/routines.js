@@ -156,6 +156,8 @@ export function nextRun(s, from = new Date()) {
 
 export class RoutineStore extends JsonList {
   constructor(file) { super(file, MAX_ROUTINES) }
+  /** Drop the run receipts that pointed at a task the user deleted. */
+  forgetTask(taskId) { let n = 0; for (const r of this.items) { const before = (r.runs || []).length; r.runs = (r.runs || []).filter((x) => x.taskId !== taskId); n += before - r.runs.length } if (n) this.save(); return n }
   create({ kind, title, input, schedule }) {
     const text = String(input || '').trim()
     if (!text) throw new Error('input is required')

@@ -138,7 +138,7 @@ export function MyworkSidebar({ selectPanel, usePanelInfo = useLegacyPanelInfo, 
     <style>{stylesheet}</style>
     <div className="mws-head"><button type="button" className="mws-brand" aria-current={activePanelId === MYWORK_PANELS.today ? 'page' : undefined} onClick={() => { go(MYWORK_PANELS.today) }}><i>M</i><span>MyWork</span></button><button type="button" className="mws-icon" aria-label={compact ? t('sidebar.expand') : t('sidebar.collapse')} onClick={toggleSidebar}><PanelLeft size={16} strokeWidth={1.5} /></button></div>
     <button type="button" className="mws-new" title={t('v2.newTask')} onClick={() => { fire('mywork:new-task', {}) }}><Plus size={15} strokeWidth={1.6} /><span>{t('v2.newTask')}</span></button>
-    <nav className="mws-nav" aria-label="MyWork">{nav.map(({ id, label, Icon }) => <button key={id} type="button" aria-current={activePanelId === id ? 'page' : undefined} title={label} onClick={() => { go(id) }}><Icon size={16} strokeWidth={1.5} /><span>{label}</span></button>)}</nav>
+    <nav className="mws-nav" aria-label="MyWork">{nav.map(({ id, label, Icon }) => <button key={id} type="button" aria-current={activePanelId === id ? 'page' : undefined} title={label} onClick={() => { if (activePanelId === id) fire('mywork:panel-home', { id }); go(id) }}><Icon size={16} strokeWidth={1.5} /><span>{label}</span></button>)}</nav>
     <div className="mws-list">
       {active.length > 0 && <><div className="mws-group">{t('v2.running')} · {active.length}</div>{active.map(item)}</>}
       {recent.length > 0 ? groups.map(g => <div key={g.label}><div className="mws-group">{g.label}</div>{g.items.map(item)}</div>) : active.length === 0 ? <div className="mws-empty">{t('v2.noTasks')}</div> : null}

@@ -56,7 +56,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const [conn, setConn] = useState<Connection | null>(null)
   const [ready, setReady] = useState(false)
   const [failed, setFailed] = useState(false)
-  const api = useMemo(() => (conn ? new Api(conn.base) : null), [conn])
+  const api = useMemo(() => (conn ? new Api(conn.base, conn.token) : null), [conn])
   const tryLogin = useCallback(async (c: Connection | null) => {
     if (!c) { setConn(null); setFailed(false); setReady(true); return }
     const { ok } = await login(c)

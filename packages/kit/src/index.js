@@ -84,13 +84,13 @@ export function apply(ctx, config = {}) {
     const lanAddresses = () => Object.values(networkInterfaces()).flat().filter((i) => i && i.family === 'IPv4' && !i.internal && privateV4(i.address)).map((i) => i.address)
     const gatewayPort = () => Number(readLan().port) || wctx.webServer.port + 1
     let gateway = null
-    const openGateway = () => { if (gateway) return; gateway = startLanGateway({ targetPort: wctx.webServer.port, listenPort: gatewayPort(), log: (m) => console.log('[dsh-mywork-kit] ' + m) }) }
+    const openGateway = () => { if (gateway) return; gateway = startLanGateway({ targetPort: wctx.webServer.port, listenPort: gatewayPort(), log: (m) => console.log('[dsh-mywork-kit] ' + m), launchToken }) }
     const closeGateway = () => { if (!gateway) return; try { gateway.close() } catch { /* already closed */ } gateway = null }
-    if (readLan().enabled) openGateway()
-    ctx.effect(() => () => closeGateway(), 'dsh-mywork-kit: phone gateway')
     const launchToken = () => {
       try { const c = ctx.get('connection'); const u = new URL(c.authenticatedUrl(`http://127.0.0.1:${wctx.webServer.port}`)); return u.searchParams.get('token') || '' } catch { return '' }
     }
+    if (readLan().enabled) openGateway()
+    ctx.effect(() => () => closeGateway(), 'dsh-mywork-kit: phone gateway')
     route('/phone', async (req, res) => {
       const exposed = !!gateway
       const here = loopback(req) // the login URL is only ever shown on the computer itself

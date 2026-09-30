@@ -2,9 +2,10 @@
  * MyWork mobile — the connection to the computer and the task API.
  *
  * The phone talks to the LAN gateway the desktop opens (设置 → MyWork → 手机): `http://<lan ip>:<port>`.
- * Login is dsh's own launch-token exchange: `GET /?token=…` answers with the session cookie, which the
- * platform's HTTP stack keeps and sends back. Everything after that is the same JSON API the web pages
- * use, under /mywork-tasks/api. The pairing (base URL + token) is kept in the secure store.
+ * Every request carries the launch token from the QR as `Authorization: Bearer …`; the gateway holds
+ * the dsh session for us, so nothing here depends on the platform's cookie jar. The API is the same
+ * JSON API the web pages use, under /mywork-tasks/api. The pairing (base URL + token) is kept in the
+ * secure store.
  */
 import * as SecureStore from 'expo-secure-store'
 
@@ -52,32 +53,22 @@ export class ApiError extends Error { constructor(public status: number, message
 
 const PREFIX = '/mywork-tasks/api'
 
-/** Exchange the launch token for the session cookie, then prove it with one API call. `reason` says which step failed. */
+/** Prove the pairing with one API call. `reason` says what went wrong. */
 export async function login(c: Connection): Promise<{ ok: boolean; reason: string }> {
-  let step = '连接'
+  if (!c.token) return { ok: false, reason: '地址里没有令牌' }
   try {
-    if (c.token) {
-      step = '换令牌'
-      const t = await fetch(`${c.base}/?token=${encodeURIComponent(c.token)}`, { credentials: 'include', redirect: 'follow' })
-      await t.text().catch(() => '') // let the platform finish the response (and store its cookie) before the next call
-      if (!t.ok && t.status !== 303 && t.status !== 302) return { ok: false, reason: `换令牌 HTTP ${t.status}` }
-    }
-    step = '取任务'
-    let r = await fetch(`${c.base}${PREFIX}/tasks`, { credentials: 'include' })
-    for (let i = 0; i < 3 && r.status === 401; i++) { // Android's cookie store can lag one request behind
-      await new Promise((res) => setTimeout(res, 400))
-      r = await fetch(`${c.base}${PREFIX}/tasks`, { credentials: 'include' })
-    }
-    return r.ok ? { ok: true, reason: '' } : { ok: false, reason: `取任务 HTTP ${r.status}${r.status === 401 ? '（cookie 没带上）' : ''}` }
-  } catch (e) { return { ok: false, reason: `${step}：${e instanceof Error ? e.message : String(e)}` } }
+    const r = await fetch(`${c.base}${PREFIX}/tasks`, { credentials: 'omit', headers: { authorization: `Bearer ${c.token}` } })
+    return r.ok ? { ok: true, reason: '' } : { ok: false, reason: r.status === 401 ? '令牌不对或已过期，重新扫码' : `HTTP ${r.status}` }
+  } catch (e) { return { ok: false, reason: e instanceof Error ? e.message : String(e) } }
 }
 
 export class Api {
-  constructor(public base: string) {}
+  constructor(public base: string, private token: string) {}
   private async req<T>(path: string, body?: unknown): Promise<T> {
+    const auth = { authorization: `Bearer ${this.token}` }
     const r = await fetch(this.base + PREFIX + path, body === undefined
-      ? { credentials: 'include' }
-      : { method: 'POST', credentials: 'include', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+      ? { credentials: 'omit', headers: auth }
+      : { method: 'POST', credentials: 'omit', headers: { ...auth, 'content-type': 'application/json' }, body: JSON.stringify(body) })
     const data = await r.json().catch(() => ({}))
     if (!r.ok) throw new ApiError(r.status, (data && data.error) || `HTTP ${r.status}`)
     return data as T

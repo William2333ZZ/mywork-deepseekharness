@@ -60,6 +60,22 @@ profile 的 `cordis.patch.yml`（patch 会整体替换 config，所以要把需�
 
 `MYWORK_DESKTOP=1`（桌面壳会设）时插件不再启动后台 Chrome，只接到 `MYWORK_BROWSER_PORT` 上已经在跑的 Electron DevTools 端口（`autoLaunch` 为 false，`/status` 里 `desktop: true`），标签页由桌面壳的原生视图承载，面板只显示标签条 / 地址栏 / 空状态；实时流、文字层、有头模式开关在桌面版都不出现。模型要开新页时，插件通过 `/events` 广播 `open-request`，面板建好原生标签后 `POST /open-ack` 回执（8 s 没人回执则报错「先打开实时浏览器面板」）。细节见 [apps/desktop/README.md](../../apps/desktop/README.md)。
 
+## 线程右栏：这台电脑 → 画面
+
+任务线程的右栏（tasks 页声明的子插槽 `mywork.thread.aside`）里，本包注册唯一一段「画面」：
+
+```js
+ctx.slots.inject('mywork.thread.aside', () => ctx.slots.register({
+  name: 'mywork.thread.aside', id: 'screen', order: 10, title: '画面', when: (task) => boolean,
+}, AsideScreen))
+// 容器读 entry.options.{ id, order, title, when }，用 renderSlot(slot, { task, deliverables, live }, { only: id }) 渲染
+```
+
+- `when(task)`：任务活动（`task.activity` 里 `kind: 'tool'` 的条目，或 `task.steps[].tool`）出现过 `browser_*`（带不带 `mcp__playwright-mcp__` 前缀都算）、`open_url`、`web_fetch`；或任务未完成且模型一分钟内在浏览（`/events` 上的模型导航）。纯历史判断另外导出为 `usesBrowser(task)`（`require('dsh-mywork-browser/client').usesBrowser`）。不成立就不注册——容器不画显示器键、不留空框。传给 `when` 的应是带 activity 的任务详情。
+- 画面：一行 13.5px 的状态字（「在浏览 · 页面标题或域名」/「需要你」= 任务停在等你答 /「空闲」），下面一张 16:10、圆角 12、细边框的图，画的是实时浏览器同一条 `/stream` 的 JPEG 帧（`<img>`，object-fit: contain 留边），**不调用 `/resize`**，模型的视口不受影响。
+- 接管：点画面即原地接管，状态字变「你在控制 · 交还」；鼠标、滚轮、键盘（画面有焦点时）经 `/input` 转发，坐标按留边后的画面换算；「交还」（幽灵按钮）回到跟随模型。没有地址栏、标签条、独立的接管按钮。
+- 浏览器没在跑或没有页面时，只有一句「没有在用浏览器」。卸载时关流、退订活动事件。
+
 ## 实现
 
 零依赖：`src/chrome.js`（找浏览器、拉起、等端口）、`src/cdp.js`（用 Node 自带 `WebSocket` 的最小 CDP 客户端 + 截屏流广播 + 目标监听）、`src/links.js`（书签存储）、`src/index.js`（宿主 API、open_url / quick_links / /open、系统提示词提示）、`src/client/index.js`（右侧栏标签）。

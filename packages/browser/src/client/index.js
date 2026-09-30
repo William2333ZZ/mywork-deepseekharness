@@ -5,6 +5,11 @@
  * over. Also adds a globe button next to the composer that opens the tab, a
  * bookmark menu in the address bar (saved links → navigate the live browser) and
  * the "浏览器 / Browser" tab inside Settings → MyWork (status, restart, bookmarks).
+ *
+ * Thread aside (这台电脑 → 画面): the same frames as a compact picture inside a task
+ * thread, registered into the tasks page's slot `mywork.thread.aside` only for tasks
+ * that used the browser (see `usesBrowser`). It shares the live tab's hooks
+ * (status / follow, frame stream, input forwarding) and never resizes the page.
  */
 'use strict'
 
@@ -24,6 +29,34 @@ const handledOpens = new Set()
 /** One id per page load so the host can tell panes apart when several watch the same tab. */
 const VIEWER_ID = Math.random().toString(36).slice(2, 10)
 const TAB_SLOT = 'mywork.settings.tab'
+/** Tasks page child slot for the thread aside (这台电脑); entries: { id, order, title, when(task), component }. */
+const ASIDE_SLOT = 'mywork.thread.aside'
+/** Last model navigation seen on the activity feed (page-wide), so a freshly mounted viewer knows the model is browsing. */
+const liveState = { modelAt: 0 }
+/** A created / navigated page that is not dsh itself: the model (or the user in the live tab) moved the browser. */
+const isModelNav = (ev) => !!(ev && (ev.type === 'created' || ev.type === 'changed') && ev.targetId && ev.url && ev.url !== 'about:blank' && !ev.url.startsWith(location.origin))
+/** Tool names that mean "this task used the browser": Playwright's browser_* (with or without the MCP prefix), this package's browser_set_cookies / open_url, and web_fetch. */
+const BROWSER_TOOLS = new Set(['open_url', 'web_fetch'])
+function isBrowserTool(name) {
+  const s = String(name || '')
+  const base = s.lastIndexOf('__') >= 0 ? s.slice(s.lastIndexOf('__') + 2) : s
+  return base.startsWith('browser_') || BROWSER_TOOLS.has(base)
+}
+/** Pure: did this task's history (activity tool entries or steps) touch the browser? Expects the task with its activity (the detail view). */
+function usesBrowser(task) {
+  if (!task) return false
+  const activity = Array.isArray(task.activity) ? task.activity : []
+  if (activity.some((e) => e && e.kind === 'tool' && isBrowserTool(e.name))) return true
+  const steps = Array.isArray(task.steps) ? task.steps : []
+  return steps.some((s) => s && isBrowserTool(s.tool))
+}
+/** Slot predicate: used the browser, or is running while the model is browsing right now (the feed's last navigation within a minute). */
+function asideWhen(task) {
+  if (usesBrowser(task)) return true
+  const st = task && task.status
+  const active = !!st && st !== 'done' && st !== 'queued' && st !== 'pending'
+  return active && Date.now() - liveState.modelAt < 60000
+}
 
 const zh = {
   tab: '实时浏览器', guide: '实时浏览器', guideDesc: '后台 Chrome 的实时画面，可围观模型操作，也可自己点',
@@ -40,6 +73,7 @@ const zh = {
   cookies: '登录态（Cookie 导入）', cookiesHint: '有些网站在实时浏览器里不好登录（扫码、短信）。把你在自己浏览器里已登录的 Cookie 粘进来，后台 Chrome 就直接是登录状态。三种格式都行：name=value; name2=value2（要填域名）、Cookie-Editor 导出的 JSON、cookies.txt。取法：自己的 Chrome 里 F12 → Application → Cookies，或装 Cookie-Editor 一键导出。Cookie 只写进本机的后台浏览器，不会显示、不会上传。', cookieDomain: '域名，例如 .xiaohongshu.com', cookieText: '粘贴 Cookie（name=value; … / JSON / cookies.txt）', importCookies: '导入', cookiesImported: '已写入 %n 个 Cookie，刷新页面即可', cookieDomains: '当前已有登录态的域名', noCookies: '后台浏览器里还没有 Cookie。', clearDomain: '清除', modelCookieHint: '也可以在对话里直接把 Cookie 粘给模型，它会用 browser_set_cookies 写进去。',
   omniPlaceholder: '搜索或输入网址', tabs: '标签页', liveView: '实时浏览器画面：可直接点击、滚动、输入，按 Ctrl/Cmd+L 跳到地址栏', goTo: '前往', searchWith: '用 %e 搜索', fromHistory: '历史', fromBookmarks: '书签', searchEngine: '地址栏搜索引擎', searchEngineHint: '地址栏里输入的不是网址时，用它搜索。网址（如 github.com）直接打开，书签名也可以直接输。', history: '地址栏历史', historyCount: '%n 条', clearHistory: '清除历史', cleared: '已清除',
   help: '后台 Chrome 由本插件拉起，模型通过 Playwright MCP 操作它；它每次导航都会自动在右侧栏展示。模型可用 open_url / quick_links 工具，你可用 /open <网址或书签名> 命令。',
+  aside: '画面', asideBrowsing: '在浏览', asideNeedsYou: '需要你', asideIdle: '空闲', asideYours: '你在控制', asideRelease: '交还', asideNone: '没有在用浏览器',
 }
 const en = {
   tab: 'Live browser', guide: 'Live browser', guideDesc: 'Live view of the background Chrome: watch the model, take over anytime',
@@ -56,6 +90,7 @@ const en = {
   status: 'Status', running: 'running', stopped: 'not running', engine: 'Engine', port: 'DevTools port', headless: 'Headless', yes: 'yes', no: 'no', tabs: 'Tabs', dataFile: 'Bookmarks file',
   omniPlaceholder: 'Search or type a URL', tabs: 'Tabs', liveView: 'Live browser view: click, scroll and type directly; Ctrl/Cmd+L jumps to the address bar', goTo: 'Go to', searchWith: 'Search with %e', fromHistory: 'History', fromBookmarks: 'Bookmarks', searchEngine: 'Address-bar search engine', searchEngineHint: 'Used when what you type is not an address. Addresses (github.com) open directly; a bookmark name works too.', history: 'Address-bar history', historyCount: '%n entries', clearHistory: 'Clear history', cleared: 'cleared',
   help: 'This plugin starts the background Chrome; the model drives it through Playwright MCP, and every navigation is shown in the right sidebar automatically. The model can use the open_url / quick_links tools, you can type /open <url or bookmark name>.',
+  aside: 'Screen', asideBrowsing: 'Browsing', asideNeedsYou: 'Needs you', asideIdle: 'Idle', asideYours: 'You are in control', asideRelease: 'Hand back', asideNone: 'The browser is not in use',
 }
 
 const CSS = `
@@ -151,6 +186,17 @@ const CSS = `
 .mwb-primary{border:0;border-radius:8px;background:var(--dsw-alias-button-primary-fill,var(--dsw-alias-brand-primary));color:var(--dsw-alias-label-primary-inverted,#fff);padding:6px 14px;cursor:pointer;font:inherit;font-weight:600}
 .mwb-primary:disabled{opacity:.5;cursor:default}
 .mwb-err{color:var(--dsw-alias-state-error-primary);font-size:12px}
+/* thread aside (这台电脑 → 画面): Open Design tokens from the tasks page, dsh aliases as fallback */
+.mwb-aside{display:flex;flex-direction:column;gap:8px;min-width:0}
+.mwb-aside-state,.mwb-aside-none{display:flex;align-items:center;gap:6px;min-width:0;margin:0;font-size:13.5px;line-height:20px;color:var(--muted,var(--dsw-alias-label-secondary))}
+.mwb-aside-state .pg{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mwb-aside-release{appearance:none;border:0;background:transparent;margin:0;padding:0 6px;height:24px;border-radius:var(--radius-sm,6px);color:var(--muted,var(--dsw-alias-label-secondary));font:inherit;font-size:13.5px;line-height:20px;cursor:pointer;transition:background-color var(--motion-fast,150ms),color var(--motion-fast,150ms)}
+.mwb-aside-release:hover{background:var(--surface,var(--dsw-alias-interactive-bg-hover));color:var(--fg,var(--dsw-alias-label-primary))}
+.mwb-aside-release:focus-visible{outline:none;box-shadow:var(--focus-ring,0 0 0 3px rgba(0,117,222,.25))}
+.mwb-aside-pic{position:relative;width:100%;aspect-ratio:16/10;min-width:0;border:1px solid var(--border,var(--dsw-alias-border-l2));border-radius:12px;overflow:hidden;background:var(--surface,var(--dsw-alias-bg-layer-2));outline:none;transition:border-color var(--motion-fast,150ms)}
+.mwb-aside-pic.yours{border-color:var(--border-strong,var(--dsw-alias-border-l2))}
+.mwb-aside-pic:focus-visible{box-shadow:var(--focus-ring,0 0 0 3px rgba(0,117,222,.25))}
+.mwb-aside-img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center;display:block;cursor:default;user-select:none;-webkit-user-drag:none}
 `
 
 function injectStyles() {
@@ -175,9 +221,25 @@ function normalizeUrl(input) {
   return u.toString()
 }
 function mods(e) { return (e.altKey ? 1 : 0) | (e.ctrlKey ? 2 : 0) | (e.metaKey ? 4 : 0) | (e.shiftKey ? 8 : 0) }
+/**
+ * Viewer pointer → page CSS px (what /input expects). The frame is drawn with object-fit: contain, so the picture can be
+ * smaller than the element's box: one scale for both axes, `align` says where the picture sits ('start' = top left like
+ * the live tab, 'center' = the aside's letterbox). Equals the old width/height ratios whenever the picture fills the box.
+ */
+function pagePoint(img, m, e, align) {
+  if (!img || !m || !(m.deviceWidth > 0) || !(m.deviceHeight > 0)) return null
+  const r = img.getBoundingClientRect()
+  if (!(r.width > 0) || !(r.height > 0)) return null
+  const k = Math.min(r.width / m.deviceWidth, r.height / m.deviceHeight)
+  const ox = align === 'center' ? (r.width - m.deviceWidth * k) / 2 : 0
+  const oy = align === 'center' ? (r.height - m.deviceHeight * k) / 2 : 0
+  const clamp = (v, max) => Math.max(0, Math.min(max, Math.round(v)))
+  return { x: clamp((e.clientX - r.left - ox) / k, m.deviceWidth), y: clamp((e.clientY - r.top - oy) / k, m.deviceHeight) }
+}
 
 exports.name = PLUGIN
 exports.inject = ['slots', 'locale', 'sidebarRight', 'sidebarRightTabs']
+exports.usesBrowser = usesBrowser
 
 exports.apply = function apply(ctx) {
   ctx.effect(() => injectStyles(), `${PLUGIN}: stylesheet`)
@@ -370,26 +432,19 @@ exports.apply = function apply(ctx) {
       }))
   }
 
-  function LiveBrowser(props) {
+  // ---- viewer internals shared by the live tab and the thread aside ----------------------------------------------
+
+  /**
+   * /status polling (5 s + every activity event) and follow-the-model target choice.
+   * `answerOpens`: this viewer answers the desktop shell's open-request (the live tab does; one pane must).
+   * `seedModelAt`: start from the feed's last model navigation instead of 0 (a viewer mounted mid-browse).
+   */
+  function useLiveTarget(opts) {
+    const answerOpens = !!(opts && opts.answerOpens)
     const [status, setStatus] = React.useState(null)
     const [target, setTarget] = React.useState(null)
     const [follow, setFollow] = React.useState(true)
-    const [frame, setFrame] = React.useState(null) // { data, format, metadata, still }
-    const [modelAt, setModelAt] = React.useState(0) // last time the model navigated / opened a page
-    const [textMode, setTextMode] = React.useState(false)
-    const [textLayer, setTextLayer] = React.useState(null) // { vw, vh, items }
-    const [draft, setDraft] = React.useState('')
-    const [conn, setConn] = React.useState('idle')
-    const omniRef = React.useRef(null)
-    const imgRef = React.useRef(null)
-    const viewRef = React.useRef(null)
-    const queue = React.useRef([])
-    const flushTimer = React.useRef(null)
-    const lastMove = React.useRef(0)
-    const targetRef = React.useRef(null)
-    targetRef.current = target
-    const running = !!(status && status.running)
-
+    const [modelAt, setModelAt] = React.useState(() => (opts && opts.seedModelAt ? liveState.modelAt : 0)) // last time the model navigated / opened a page
     const refresh = React.useCallback(async () => {
       try {
         const s = await api('/status'); setStatus(s)
@@ -407,18 +462,99 @@ exports.apply = function apply(ctx) {
       const id = setInterval(refresh, 5000)
       const off = onActivity((ev) => {
         // Desktop shell: the host cannot create tabs on Electron's DevTools port, so it asks the page; one pane answers.
-        if (ev && ev.type === 'open-request' && desktop() && ev.id && !handledOpens.has(ev.id)) {
+        if (ev && ev.type === 'open-request' && answerOpens && desktop() && ev.id && !handledOpens.has(ev.id)) {
           handledOpens.add(ev.id)
           desktop().newTab(ev.url || 'about:blank').then(async (tid) => { setFollow(true); setTarget(tid); await api('/open-ack', { id: ev.id, target: tid }); refresh() }).catch(() => api('/open-ack', { id: ev.id, target: null }).catch(() => {}))
           return
         }
-        const modelNav = ev && (ev.type === 'created' || ev.type === 'changed') && ev.targetId && ev.url && ev.url !== 'about:blank' && !ev.url.startsWith(location.origin)
+        const modelNav = isModelNav(ev)
         if (modelNav) setModelAt(Date.now())
         if (follow && modelNav) setTarget(ev.targetId)
         refresh()
       })
       return () => { clearInterval(id); off() }
-    }, [refresh, follow])
+    }, [refresh, follow, answerOpens])
+    return { status, target, setTarget, follow, setFollow, modelAt, refresh, running: !!(status && status.running) }
+  }
+
+  /**
+   * SSE JPEG frames of one target → { frame: { data, format, metadata, still }, conn }. Closed on unmount / target change.
+   * On the desktop shell the live tab shows a native view instead (conn 'native'); `stream: true` streams anyway.
+   * `onNav(url)` / `onClosed()` are read from the latest render.
+   */
+  function useFrameStream(target, opts) {
+    const [frame, setFrame] = React.useState(null)
+    const [conn, setConn] = React.useState('idle')
+    const cb = React.useRef(opts); cb.current = opts
+    React.useEffect(() => {
+      if (!target) { setFrame(null); return undefined }
+      if (desktop() && !(cb.current && cb.current.stream)) { setFrame(null); setConn('native'); return undefined }
+      setConn('connecting')
+      const es = new EventSource(`${API}/stream?target=${encodeURIComponent(target)}`)
+      es.onmessage = (ev) => {
+        let msg; try { msg = JSON.parse(ev.data) } catch { return }
+        const o = cb.current || {}
+        if (msg.type === 'frame') { setFrame({ data: msg.data, format: msg.format || 'jpeg', metadata: msg.metadata, still: !!msg.still }); setConn('live') }
+        else if (msg.type === 'nav') { if (o.onNav) o.onNav(msg.url) }
+        else if (msg.type === 'closed') { setConn('closed'); if (o.onClosed) o.onClosed() }
+        else if (msg.type === 'error') { setConn('error:' + msg.message) }
+      }
+      es.onerror = () => { setConn((c) => (c === 'live' ? 'reconnecting' : c)) }
+      return () => { es.close() }
+    }, [target])
+    return { frame, conn, setConn }
+  }
+
+  /**
+   * Mouse / keyboard on the frame → POST /input (batched 40 ms, immediate for presses / keys), coordinates mapped
+   * through the picture's letterbox (`pagePoint`). `onKey(e)` runs first and returns true when it consumed the key;
+   * Escape blurs `focusRef`; presses and wheel call `onTakeOver` and a press focuses `focusRef` for keyboard input.
+   */
+  function useInputForwarder({ targetRef, imgRef, metadata, align, focusRef, onTakeOver, onKey }) {
+    const queue = React.useRef([])
+    const flushTimer = React.useRef(null)
+    const lastMove = React.useRef(0)
+    React.useEffect(() => () => { if (flushTimer.current) { clearTimeout(flushTimer.current); flushTimer.current = null } }, [])
+    const flush = () => {
+      flushTimer.current = null
+      const ev = queue.current; queue.current = []
+      const id = targetRef.current
+      if (!id || ev.length === 0) return
+      api('/input', { target: id, events: ev }).catch(() => {})
+    }
+    const push = (e, immediate) => {
+      queue.current.push(e)
+      if (immediate) { if (flushTimer.current) { clearTimeout(flushTimer.current) } flush() }
+      else if (!flushTimer.current) flushTimer.current = setTimeout(flush, 40)
+    }
+    const pageXY = (e) => pagePoint(imgRef.current, metadata, e, align)
+    const btn = (e) => (e.button === 2 ? 'right' : e.button === 1 ? 'middle' : 'left')
+    const takeOver = () => { if (onTakeOver) onTakeOver() }
+    const onMouseDown = (e) => { const p = pageXY(e); if (!p) return; e.preventDefault(); takeOver(); focusRef && focusRef.current && focusRef.current.focus(); push({ kind: 'mouse', type: 'mousePressed', ...p, button: btn(e), buttons: e.buttons, clickCount: e.detail || 1, modifiers: mods(e) }, true) }
+    const onMouseUp = (e) => { const p = pageXY(e); if (!p) return; push({ kind: 'mouse', type: 'mouseReleased', ...p, button: btn(e), buttons: e.buttons, clickCount: e.detail || 1, modifiers: mods(e) }, true) }
+    const onMouseMove = (e) => { const now = Date.now(); if (now - lastMove.current < 50) return; lastMove.current = now; const p = pageXY(e); if (!p) return; push({ kind: 'mouse', type: 'mouseMoved', ...p, buttons: e.buttons, modifiers: mods(e) }) }
+    const onWheel = (e) => { const p = pageXY(e); if (!p) return; e.preventDefault(); takeOver(); push({ kind: 'mouse', type: 'mouseWheel', ...p, deltaX: Math.round(e.deltaX), deltaY: Math.round(e.deltaY), modifiers: mods(e) }, true) }
+    const onKeyDown = (e) => {
+      if (onKey && onKey(e)) return
+      if (e.key === 'Escape') { e.preventDefault(); focusRef && focusRef.current && focusRef.current.blur(); return }
+      if (['Enter', 'Backspace', 'Tab', 'Delete', 'ArrowLeft', 'ArrowUp', 'ArrowRight', 'ArrowDown', 'Home', 'End', 'PageUp', 'PageDown'].includes(e.key)) { e.preventDefault(); push({ kind: 'key', key: e.key, modifiers: mods(e) }, true); return }
+      if (e.key.length === 1 && !e.metaKey && !e.ctrlKey) { e.preventDefault(); push({ kind: 'text', text: e.key }, true) }
+    }
+    const onPaste = (e) => { const txt = e.clipboardData && e.clipboardData.getData('text'); if (txt) { e.preventDefault(); push({ kind: 'text', text: txt }, true) } }
+    return { onMouseDown, onMouseUp, onMouseMove, onWheel, onKeyDown, onPaste }
+  }
+
+  function LiveBrowser(props) {
+    const { status, target, setTarget, follow, setFollow, modelAt, refresh, running } = useLiveTarget({ answerOpens: true })
+    const [textMode, setTextMode] = React.useState(false)
+    const [textLayer, setTextLayer] = React.useState(null) // { vw, vh, items }
+    const [draft, setDraft] = React.useState('')
+    const omniRef = React.useRef(null)
+    const imgRef = React.useRef(null)
+    const viewRef = React.useRef(null)
+    const targetRef = React.useRef(null)
+    targetRef.current = target
+    const lastUrl = React.useRef(null)
 
     // The page viewport follows the pane: measure the view box and ask the host to resize the
     // target (debounced), also whenever the viewed target changes. Frames then fill the pane.
@@ -454,22 +590,11 @@ exports.apply = function apply(ctx) {
       return () => { ro.disconnect(); window.removeEventListener('scroll', schedule, true); window.removeEventListener('resize', schedule); clearInterval(iv); if (raf) cancelAnimationFrame(raf); d.setBounds(null).catch(() => {}) }
     }, [target, running, status])
 
-    // SSE frames for the active target.
-    React.useEffect(() => {
-      if (!target) { setFrame(null); return undefined }
-      if (desktop()) { setFrame(null); setConn('native'); return undefined }
-      setConn('connecting')
-      const es = new EventSource(`${API}/stream?target=${encodeURIComponent(target)}`)
-      es.onmessage = (ev) => {
-        let msg; try { msg = JSON.parse(ev.data) } catch { return }
-        if (msg.type === 'frame') { setFrame({ data: msg.data, format: msg.format || 'jpeg', metadata: msg.metadata, still: !!msg.still }); setConn('live') }
-        else if (msg.type === 'nav') { lastUrl.current = target + '|' + msg.url; setDraft(msg.url === 'about:blank' ? '' : msg.url); refresh() }
-        else if (msg.type === 'closed') { setConn('closed'); refresh() }
-        else if (msg.type === 'error') { setConn('error:' + msg.message) }
-      }
-      es.onerror = () => { setConn((c) => (c === 'live' ? 'reconnecting' : c)) }
-      return () => { es.close() }
-    }, [target])
+    // SSE frames for the active target; a navigation lands in the address bar right away.
+    const { frame, conn, setConn } = useFrameStream(target, {
+      onNav: (url) => { lastUrl.current = target + '|' + url; setDraft(url === 'about:blank' ? '' : url); refresh() },
+      onClosed: refresh,
+    })
 
     // Text layer (select / copy / find): refreshed shortly after the picture settles, only while text mode is on.
     const textTimer = React.useRef(null)
@@ -482,7 +607,6 @@ exports.apply = function apply(ctx) {
 
     // Mirror the page URL into the address bar only when it actually changes,
     // so a half-typed address survives status polls and button clicks.
-    const lastUrl = React.useRef(null)
     React.useEffect(() => {
       if (!status || !status.running || !target) return
       const tinfo = status.targets.find((x) => x.id === target)
@@ -493,38 +617,12 @@ exports.apply = function apply(ctx) {
       setDraft(tinfo.url === 'about:blank' ? '' : tinfo.url)
     }, [status, target])
 
-    const flush = () => {
-      flushTimer.current = null
-      const ev = queue.current; queue.current = []
-      const id = targetRef.current
-      if (!id || ev.length === 0) return
-      api('/input', { target: id, events: ev }).catch(() => {})
-    }
-    const push = (e, immediate) => {
-      queue.current.push(e)
-      if (immediate) { if (flushTimer.current) { clearTimeout(flushTimer.current) } flush() }
-      else if (!flushTimer.current) flushTimer.current = setTimeout(flush, 40)
-    }
-    const pageXY = (e) => {
-      const img = imgRef.current; const m = frame && frame.metadata
-      if (!img || !m) return null
-      const r = img.getBoundingClientRect()
-      const sx = m.deviceWidth / r.width; const sy = m.deviceHeight / r.height
-      return { x: Math.max(0, Math.round((e.clientX - r.left) * sx)), y: Math.max(0, Math.round((e.clientY - r.top) * sy)) }
-    }
-    const btn = (e) => (e.button === 2 ? 'right' : e.button === 1 ? 'middle' : 'left')
-    const takeOver = () => { if (follow) setFollow(false) }
-    const onMouseDown = (e) => { const p = pageXY(e); if (!p) return; e.preventDefault(); takeOver(); viewRef.current && viewRef.current.focus(); push({ kind: 'mouse', type: 'mousePressed', ...p, button: btn(e), buttons: e.buttons, clickCount: e.detail || 1, modifiers: mods(e) }, true) }
-    const onMouseUp = (e) => { const p = pageXY(e); if (!p) return; push({ kind: 'mouse', type: 'mouseReleased', ...p, button: btn(e), buttons: e.buttons, clickCount: e.detail || 1, modifiers: mods(e) }, true) }
-    const onMouseMove = (e) => { const now = Date.now(); if (now - lastMove.current < 50) return; lastMove.current = now; const p = pageXY(e); if (!p) return; push({ kind: 'mouse', type: 'mouseMoved', ...p, buttons: e.buttons, modifiers: mods(e) }) }
-    const onWheel = (e) => { const p = pageXY(e); if (!p) return; e.preventDefault(); takeOver(); push({ kind: 'mouse', type: 'mouseWheel', ...p, deltaX: Math.round(e.deltaX), deltaY: Math.round(e.deltaY), modifiers: mods(e) }, true) }
-    const onKeyDown = (e) => {
-      if ((e.metaKey || e.ctrlKey) && (e.key === 'l' || e.key === 'L')) { e.preventDefault(); omniRef.current && omniRef.current.focus(); return }
-      if (e.key === 'Escape') { e.preventDefault(); viewRef.current && viewRef.current.blur(); return }
-      if (['Enter', 'Backspace', 'Tab', 'Delete', 'ArrowLeft', 'ArrowUp', 'ArrowRight', 'ArrowDown', 'Home', 'End', 'PageUp', 'PageDown'].includes(e.key)) { e.preventDefault(); push({ kind: 'key', key: e.key, modifiers: mods(e) }, true); return }
-      if (e.key.length === 1 && !e.metaKey && !e.ctrlKey) { e.preventDefault(); push({ kind: 'text', text: e.key }, true) }
-    }
-    const onPaste = (e) => { const txt = e.clipboardData && e.clipboardData.getData('text'); if (txt) { e.preventDefault(); push({ kind: 'text', text: txt }, true) } }
+    // Input: any press / wheel hands control to the user; Ctrl/Cmd+L jumps to the address bar.
+    const { onMouseDown, onMouseUp, onMouseMove, onWheel, onKeyDown, onPaste } = useInputForwarder({
+      targetRef, imgRef, metadata: frame && frame.metadata, align: 'start', focusRef: viewRef,
+      onTakeOver: () => { if (follow) setFollow(false) },
+      onKey: (e) => { if ((e.metaKey || e.ctrlKey) && (e.key === 'l' || e.key === 'L')) { e.preventDefault(); omniRef.current && omniRef.current.focus(); return true } return false },
+    })
 
     const act = (path, extra) => () => { if (!target) return; api(path, { target, ...(extra || {}) }).then(refresh).catch(() => {}) }
     const newTab = async () => { setFollow(false); try { const d = desktop(); if (d) { const id = await d.newTab('about:blank'); await refresh(); if (id) setTarget(id); return } const tinfo = await api('/new-tab', {}); await refresh(); if (tinfo && tinfo.id) setTarget(tinfo.id) } catch { /* ignore */ } }
@@ -610,7 +708,7 @@ exports.apply = function apply(ctx) {
     const open = () => {
       es = new EventSource(`${API}/events`)
       activity.es = es
-      es.onmessage = (ev) => { let msg; try { msg = JSON.parse(ev.data) } catch { return }; activity.subs.forEach((fn) => { try { fn(msg) } catch { /* ignore */ } }) }
+      es.onmessage = (ev) => { let msg; try { msg = JSON.parse(ev.data) } catch { return }; if (isModelNav(msg)) liveState.modelAt = Date.now(); activity.subs.forEach((fn) => { try { fn(msg) } catch { /* ignore */ } }) }
       es.onerror = () => { es.close(); retry = setTimeout(open, 5000) }
     }
     open()
@@ -738,4 +836,54 @@ exports.apply = function apply(ctx) {
   ctx.slots.inject(TAB_SLOT, () => ctx.slots.register({
     name: TAB_SLOT, id: 'browser', order: 40, label: () => t('nav'),
   }, function MyworkBrowserTab() { return h(BrowserSettings) }))
+
+  // ---- 这台电脑 → 画面: the thread aside ----------------------------------------
+  /**
+   * The followed page as a compact picture inside a task thread. One 13.5px state line above it
+   * (在浏览 · page / 需要你 / 空闲 / 你在控制 · 交还), then the same JPEG stream as the live tab, letterboxed
+   * 16:10 and never resized (the page keeps the model's viewport). Clicking the picture takes control in
+   * place: mouse, wheel and keys (while the picture has focus) go through /input with the live tab's
+   * mapping; 交还 hands control back to the model. With nothing to paint it is one muted sentence.
+   */
+  function AsideScreen(props) {
+    const task = props && props.task
+    const { status, target, follow, setFollow, modelAt, refresh, running } = useLiveTarget({ seedModelAt: true })
+    const yours = React.useRef(!follow) // synchronous twin of !follow: the press that takes over must also forward its release
+    yours.current = !follow
+    // The page you were driving went away: back to following the model (the next page is not yours).
+    const { frame } = useFrameStream(target, { onClosed: () => { yours.current = false; setFollow(true); refresh() }, stream: true })
+    const imgRef = React.useRef(null)
+    const boxRef = React.useRef(null)
+    const targetRef = React.useRef(null)
+    targetRef.current = target
+    const [, tick] = React.useState(0)
+    React.useEffect(() => { if (!follow || !modelAt) return undefined; const id = setInterval(() => tick((n) => n + 1), 1000); return () => clearInterval(id) }, [follow, modelAt])
+    const io = useInputForwarder({ targetRef, imgRef, metadata: frame && frame.metadata, align: 'center', focusRef: boxRef, onTakeOver: () => { yours.current = true; setFollow(false) } })
+    const whenYours = (fn) => (e) => { if (yours.current) fn(e) }
+    const release = () => { yours.current = false; setFollow(true); if (boxRef.current) boxRef.current.blur(); refresh() }
+    const onKeyDown = (e) => {
+      if (yours.current) { io.onKeyDown(e); return }
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); yours.current = true; setFollow(false) } // keyboard take-over; nothing is forwarded yet
+    }
+    if (!status) return h('div', { className: 'mwb-aside' }, h('div', { className: 'mwb-aside-pic', 'aria-hidden': 'true' }))
+    if (!running || !target) return h('div', { className: 'mwb-aside' }, h('p', { className: 'mwb-aside-none' }, t('asideNone')))
+    const current = status.targets.find((x) => x.id === target)
+    const active = !!task && task.status !== 'done'
+    const driving = modelAt > 0 && Date.now() - modelAt < (active ? 60000 : 6000)
+    const page = current && current.url && current.url !== 'about:blank' ? (current.title || hostOf(current.url)) : ''
+    let line
+    if (!follow) line = [h('span', { key: 'y' }, t('asideYours')), h('span', { key: 's', 'aria-hidden': 'true' }, '·'), h('button', { key: 'r', type: 'button', className: 'mwb-aside-release', onClick: release }, t('asideRelease'))]
+    else if (task && task.status === 'waiting') line = h('span', null, t('asideNeedsYou'))
+    else if (driving) line = h('span', { className: 'pg' }, page ? t('asideBrowsing') + ' · ' + page : t('asideBrowsing'))
+    else line = h('span', null, t('asideIdle'))
+    return h('div', { className: 'mwb-aside' },
+      h('p', { className: 'mwb-aside-state', 'aria-live': 'polite' }, line),
+      h('div', { ref: boxRef, className: 'mwb-aside-pic' + (follow ? '' : ' yours'), tabIndex: 0, 'aria-label': t('aside'), onKeyDown, onPaste: whenYours(io.onPaste), onContextMenu: (e) => e.preventDefault() },
+        frame ? h('img', { ref: imgRef, className: 'mwb-aside-img', src: 'data:image/' + (frame.format || 'jpeg') + ';base64,' + frame.data, draggable: false, alt: '',
+          onMouseDown: io.onMouseDown, onMouseUp: whenYours(io.onMouseUp), onMouseMove: whenYours(io.onMouseMove), onWheel: whenYours(io.onWheel) }) : null),
+    )
+  }
+  ctx.slots.inject(ASIDE_SLOT, () => ctx.slots.register({
+    name: ASIDE_SLOT, id: 'screen', order: 10, title: '画面', when: asideWhen,
+  }, function MyworkAsideScreen(props) { return h(AsideScreen, props) }))
 }

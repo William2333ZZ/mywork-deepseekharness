@@ -165,14 +165,19 @@ export function publicView(s) {
 export function defaultVerifyPrompt(task, deliverables, activity) {
   const tools = (activity || []).filter((a) => a.kind === 'tool').map((a) => `- ${a.name}${a.ok === false ? '（失败）' : ''}${a.detail ? '：' + a.detail : ''}`).slice(0, 40)
   const docs = (deliverables || []).map((d, i) => `### 交付物 ${i + 1}：${d.title}\n\n${String(d.markdown || '').slice(0, 6000)}`).join('\n\n')
+  // What the user said after the first line (follow-ups, answers to the task's questions) changes the
+  // requirement: 「只写草稿，不要发送」 overrides 「写好后直接发给他」. The verifier judges against all of it.
+  const later = (activity || []).filter((a) => a.kind === 'user' && !a.auto && String(a.text || '').trim()).map((a) => '- ' + String(a.text).slice(0, 500)).slice(-10)
+  const asked = (activity || []).filter((a) => a.kind === 'ask' && a.status === 'answered').map((a) => `- 任务问：${String(a.question || '').slice(0, 200)}\n  用户答：${String(a.answer || '').slice(0, 500)}`).slice(-4)
   return [
     '你是核验员。下面是一个后台任务、它执行时调用过的工具，以及它交付的内容。请只做核对，不要重做任务，不要调用会修改东西的工具。',
     '', '## 任务', task.input, '',
+    later.length || asked.length ? '## 用户后来补充的话（与任务原文冲突时，以后说的为准）\n' + [...asked, ...later].join('\n') + '\n' : '',
     '## 执行时调用的工具', tools.length ? tools.join('\n') : '（没有调用工具）', '',
     task.material ? '## 任务拿到的素材（系统从自己的记录里给的，视为已核实）\n' + String(task.material).slice(0, 8000) + '\n' : '',
     '## 交付内容', docs, '',
     '## 核对什么',
-    '1. 交付内容是否回答了任务要求；有没有承诺了但没做的事。',
+    '1. 交付内容是否回答了任务要求（含用户后来补充的话）；有没有承诺了但没做的事。',
     task.material ? '2. 交付里的关键事实和数字，是否能对应到上面的素材或工具调用（素材里没有、也没调用工具就给出的具体数据，视为未核实）。' : '2. 交付里的关键事实和数字，是否能对应到上面的工具调用（没有调用工具却给出具体数据的，视为未核实）。',
     '3. 有没有明显的自相矛盾或格式问题。',
     '', '最后只输出一个 JSON 对象，不要别的：{"passed": true 或 false, "checked": 核对过的要点数, "issues": 发现的问题数, "notes": "两三句话的结论"}',

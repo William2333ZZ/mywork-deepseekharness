@@ -275,3 +275,19 @@ test('thread trimming never drops an ask entry; an ask keeps a 500-char detail',
   s.setStatus(t.id, 'done')
   assert.equal(s.get(t.id).activity.length, 1) // old done tasks keep the thread (the ask) and lose only tool calls
 })
+
+test('verifier prompt carries the user answers and follow-ups, later words win', async () => {
+  const { defaultVerifyPrompt } = await import('../src/scenarios.js')
+  const task = { input: '给房东写退租通知，写好后直接发给他' }
+  const activity = [
+    { kind: 'ask', status: 'answered', question: '房东联系方式？', answer: '只写草稿，不要发送' },
+    { kind: 'user', text: '回答：只写草稿，不要发送', askId: 'ask-1' },
+    { kind: 'user', text: '用户 24 小时没有回答，按合理假设继续', auto: true },
+  ]
+  const p = defaultVerifyPrompt(task, [{ title: '草稿', markdown: '正文' }], activity)
+  assert.match(p, /## 用户后来补充的话/)
+  assert.match(p, /用户答：只写草稿，不要发送/)
+  assert.doesNotMatch(p, /24 小时没有回答/)
+  const plain = defaultVerifyPrompt(task, [{ title: '草稿', markdown: '正文' }], [])
+  assert.doesNotMatch(plain, /## 用户后来补充的话/)
+})

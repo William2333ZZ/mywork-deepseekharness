@@ -2494,6 +2494,10 @@ window.__ModuleLoader__.load({
 /* Collapsed: dsh keeps a 56px rail on the web. Only the mark and the expand control live there. */
 .mws.compact{align-items:center;gap:8px;padding:12px 0 8px}
 .mws.compact .mws-settings{position:absolute;width:0;height:0;overflow:hidden}
+.mws-rail{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;align-items:center;gap:8px;padding:4px 0;scrollbar-width:none}
+.mws-rail-mate{position:relative;padding:3px;border:0;border-radius:14px;background:transparent;cursor:pointer;transition:background .15s}
+.mws-rail-mate:hover,.mws-rail-mate[aria-current=page]{background:var(--surface-2)}
+.mws-rail-dot{position:absolute;top:2px;right:2px;width:8px;height:8px;border-radius:50%;background:var(--primary);box-shadow:0 0 0 2px var(--surface)}
 `;
 		const str = (v) => typeof v === "string" ? v : "";
 		const ms = (iso) => {
@@ -2606,34 +2610,6 @@ window.__ModuleLoader__.load({
 			} catch {
 				return false;
 			}
-		}
-		/** The MyWork mark: an M whose last stroke turns into a check. While something runs it draws itself. */
-		function BrandMark({ live, size = 22, round }) {
-			const box = {
-				width: size,
-				height: size,
-				borderRadius: round === true ? "50%" : void 0
-			};
-			const glyph = Math.round(size * (round === true ? .62 : .72));
-			return /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
-				className: "mws-mark",
-				style: box,
-				"data-live": live ? "true" : void 0,
-				"aria-hidden": "true",
-				children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("svg", {
-					viewBox: "0 0 24 24",
-					width: glyph,
-					height: glyph,
-					fill: "none",
-					children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("path", {
-						d: "M4.5 18.5V7l5.5 6.5L15.5 7M10.5 17l3 3 6-6",
-						stroke: "currentColor",
-						strokeWidth: "3.4",
-						strokeLinecap: "round",
-						strokeLinejoin: "round"
-					})
-				})
-			});
 		}
 		/** Rakazo's bot palette (packages/core bot-avatar-colors): light → dark gradient, eye colour. */
 		const AVATAR_COLORS = [
@@ -3037,7 +3013,7 @@ window.__ModuleLoader__.load({
 				remote
 			]);
 			const ordered = (0, react.useMemo)(() => orderMates(mates), [mates]);
-			const live = mates.some((m) => m.state === "working");
+			mates.some((m) => m.state === "working");
 			const count = activity.needs.length + activity.working.length;
 			const now = /* @__PURE__ */ new Date();
 			/** mywork:open-thread is the contract; if nothing handled it (the tasks client is not loaded yet), its page is selected. */
@@ -3061,20 +3037,64 @@ window.__ModuleLoader__.load({
 				"data-mywork-sidebar": "v2",
 				children: [
 					/* @__PURE__ */ (0, react_jsx_runtime.jsx)("style", { children: stylesheet$5 }),
-					compact ? /* @__PURE__ */ (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(BrandMark, {
-						live,
-						size: 30,
-						round: true
-					}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
-						type: "button",
-						className: "mws-icon",
-						"aria-label": t("sidebar.expand"),
-						onClick: toggleSidebar,
-						children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(PanelLeft, {
-							size: 16,
-							strokeWidth: 1.5
+					compact ? /* @__PURE__ */ (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [
+						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+							type: "button",
+							className: "mws-icon",
+							"aria-label": t("sidebar.expand"),
+							onClick: toggleSidebar,
+							children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(PanelLeft, {
+								size: 16,
+								strokeWidth: 1.5
+							})
+						}),
+						/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+							className: "mws-rail",
+							children: [ordered.map((mate) => {
+								const unread = mate.unread === true && seen[mate.id] !== str(mate.lastAt) && highlighted !== "mate:" + mate.id;
+								return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
+									type: "button",
+									className: "mws-rail-mate",
+									title: mate.name,
+									"aria-label": mate.name,
+									"aria-current": highlighted === "mate:" + mate.id ? "page" : void 0,
+									onClick: () => {
+										open({
+											kind: "mate",
+											id: mate.id
+										});
+									},
+									children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(MateAvatar, {
+										mate,
+										size: 32
+									}), unread && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { className: "mws-rail-dot" })]
+								}, mate.id);
+							}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+								type: "button",
+								className: "mws-icon",
+								"aria-label": t("v2.newMate"),
+								onClick: () => {
+									open({ kind: "new-mate" });
+								},
+								children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(Plus, {
+									size: 16,
+									strokeWidth: 1.5
+								})
+							})]
+						}),
+						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+							type: "button",
+							className: "mws-icon",
+							"aria-label": t("v2.files"),
+							onClick: () => {
+								open({ kind: "files" });
+							},
+							children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(Files, {
+								size: 16,
+								strokeWidth: 1.5
+							})
 						})
-					})] }) : /* @__PURE__ */ (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [
+					] }) : /* @__PURE__ */ (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [
 						/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 							className: "mws-head",
 							ref: headRef,

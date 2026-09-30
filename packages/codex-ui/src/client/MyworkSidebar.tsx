@@ -105,6 +105,10 @@ const stylesheet = `
 /* Collapsed: dsh keeps a 56px rail on the web. Only the mark and the expand control live there. */
 .mws.compact{align-items:center;gap:8px;padding:12px 0 8px}
 .mws.compact .mws-settings{position:absolute;width:0;height:0;overflow:hidden}
+.mws-rail{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;align-items:center;gap:8px;padding:4px 0;scrollbar-width:none}
+.mws-rail-mate{position:relative;padding:3px;border:0;border-radius:14px;background:transparent;cursor:pointer;transition:background .15s}
+.mws-rail-mate:hover,.mws-rail-mate[aria-current=page]{background:var(--surface-2)}
+.mws-rail-dot{position:absolute;top:2px;right:2px;width:8px;height:8px;border-radius:50%;background:var(--primary);box-shadow:0 0 0 2px var(--surface)}
 `
 
 const str = (v: unknown): string => typeof v === 'string' ? v : ''
@@ -354,8 +358,18 @@ export function MyworkSidebar({ selectPanel, usePanelInfo = useLegacyPanelInfo, 
   return <div className={'mws' + (compact ? ' compact' : '')} data-mywork-sidebar="v2">
     <style>{stylesheet}</style>
     {compact ? <>
-      <BrandMark live={live} size={30} round />
+      {/* Collapsed = the same teammates without names: switching, unread and working stay one click away. */}
       <button type="button" className="mws-icon" aria-label={t('sidebar.expand')} onClick={toggleSidebar}><PanelLeft size={16} strokeWidth={1.5} /></button>
+      <div className="mws-rail">
+        {ordered.map(mate => {
+          const unread = mate.unread === true && seen[mate.id] !== str(mate.lastAt) && highlighted !== 'mate:' + mate.id
+          return <button key={mate.id} type="button" className="mws-rail-mate" title={mate.name} aria-label={mate.name} aria-current={highlighted === 'mate:' + mate.id ? 'page' : undefined} onClick={() => { open({ kind: 'mate', id: mate.id }) }}>
+            <MateAvatar mate={mate} size={32} />{unread && <span className="mws-rail-dot" />}
+          </button>
+        })}
+        <button type="button" className="mws-icon" aria-label={t('v2.newMate')} onClick={() => { open({ kind: 'new-mate' }) }}><Plus size={16} strokeWidth={1.5} /></button>
+      </div>
+      <button type="button" className="mws-icon" aria-label={t('v2.files')} onClick={() => { open({ kind: 'files' }) }}><Files size={16} strokeWidth={1.5} /></button>
     </> : <>
       <div className="mws-head" ref={headRef}>
         <label className="mws-search"><Search size={14} strokeWidth={1.5} aria-hidden="true" /><input type="text" value={query} placeholder={t('v2.search')} aria-label={t('v2.search')} autoComplete="off" spellCheck={false} onChange={event => { setQuery(event.target.value) }} onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); setQuery('') } }} /></label>

@@ -14,6 +14,7 @@ const FAMILIES = [
   { css: 'Geist:wght@400;500;600', name: 'Geist' },
   { css: 'Geist+Mono:wght@400;500', name: 'Geist Mono' },
   { css: 'Newsreader:opsz,wght@6..72,400;6..72,500', name: 'Newsreader' },
+  { css: 'Libre+Baskerville:ital,wght@0,400;0,700;1,400', name: 'Libre Baskerville' }, // display serif for headings (the Manus pairing); CJK headings fall back to the system serif
   { css: 'Archivo:wght@400;500;600;800;900', name: 'Archivo' },
   { css: 'JetBrains+Mono:wght@400;500;700', name: 'JetBrains Mono' },
 ]
@@ -47,5 +48,5 @@ for (const fam of FAMILIES) {
   }
 }
 writeFileSync(join(out, 'fonts.css'), css)
-writeFileSync(join(out, 'LICENSES.md'), `# Bundled web fonts\n\nDownloaded by scripts/fetch-fonts.mjs from Google Fonts (latin / latin-ext subsets of the variable fonts). All are licensed under the SIL Open Font License 1.1:\n\n- Plus Jakarta Sans — Tokotype\n- Geist, Geist Mono — Vercel\n- Newsreader — Production Type\n- Archivo — Omnibus-Type\n- JetBrains Mono — JetBrains\n`)
+writeFileSync(join(out, 'LICENSES.md'), `# Bundled web fonts\n\nDownloaded by scripts/fetch-fonts.mjs from Google Fonts (latin / latin-ext subsets of the variable fonts). All are licensed under the SIL Open Font License 1.1:\n\n- Plus Jakarta Sans — Tokotype\n- Geist, Geist Mono — Vercel\n- Newsreader — Production Type\n- Libre Baskerville — Impallari Type\n- Archivo — Omnibus-Type\n- JetBrains Mono — JetBrains\n`)
 console.log('wrote', join(out, 'fonts.css'))

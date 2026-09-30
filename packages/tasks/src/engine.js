@@ -21,7 +21,7 @@ import { randomUUID } from 'node:crypto'
 import { join } from 'node:path'
 import { ACTIVITY_DETAIL_MAX, myworkDir, titleOf } from './store.js'
 import { defaultVerifyPrompt, parseVerdict, stepNameFor } from './scenarios.js'
-import { changedVerdict, routinePrompt } from './routines.js'
+import { changedVerdict, recordDays, routinePrompt, wantsRecord } from './routines.js'
 
 const CANCEL_CONVERGENCE_MS = 15000
 const VERIFY_TIMEOUT_MS = 5 * 60000
@@ -102,7 +102,7 @@ export function reasonError(reason) {
  *   config        { concurrency, timeoutMs, permission, agentPreset, cwd, verify }
  *   log(msg), emit(kind, task, deliverable?), controller() → dsh sessionController (for follow-up turns on finished tasks)
  */
-export function createEngine({ ctx, store, deliverables, scenarios, config, log, emit, controller, capabilities, routines, todaySummary }) {
+export function createEngine({ ctx, store, deliverables, scenarios, config, log, emit, controller, capabilities, routines, todaySummary, workRecord }) {
   const live = new Map()     // taskId → run state
   const verifying = new Map() // taskId → { text }
   let pumping = false
@@ -125,6 +125,10 @@ export function createEngine({ ctx, store, deliverables, scenarios, config, log,
    */
   async function openSession({ sessionId, selection, agentPreset, permission }) {
     const workspace = await resolveWorkspace()
+    // A scenario may name its own preset (the assistant's tool-less one); fall back to the configured preset when the host cannot resolve it.
+    if (agentPreset && agentPreset !== config.agentPreset && typeof ctx.agentPresets.resolve === 'function') {
+      try { await ctx.agentPresets.resolve(agentPreset) } catch (e) { log(`agent preset ${agentPreset} unavailable (${e && e.message}); using ${config.agentPreset || 'default'}`); agentPreset = config.agentPreset }
+    }
     const handle = await ctx.agents.withoutInitiator(() => ctx.agents.create({
       sessionId,
       meta: { cwd: workspace.path, ...(agentPreset ? { agentPreset } : {}) },
@@ -141,6 +145,13 @@ export function createEngine({ ctx, store, deliverables, scenarios, config, log,
     await handle.agent.whenIdle()
     try { await workspace.attachSession(sessionId) } catch (e) { log(`attachSession: ${e && e.message}`) }
     return { agent: handle.agent, handle, workspace }
+  }
+
+  /** A routine run stays quiet when it reports 变化：无. A report routine (日报 / 周报) is never quiet: the report is the point. */
+  function quietFor(task, state) {
+    const routine = routines && task.routineId ? routines.get(task.routineId) : null
+    if (routine && wantsRecord(routine)) return false
+    return changedVerdict(state.text) === false
   }
 
   function rename(agent, title) {
@@ -176,7 +187,8 @@ export function createEngine({ ctx, store, deliverables, scenarios, config, log,
         const routine = routines.get(task.routineId)
         const previousRun = routine ? routine.runs.find((r) => r.taskId && r.taskId !== task.id && r.deliverableId) : null
         const previous = previousRun ? deliverables.get(previousRun.deliverableId) : null
-        if (routine) request = routinePrompt(routine, previous)
+        const record = routine && wantsRecord(routine) && typeof workRecord === 'function' ? workRecord(recordDays(routine)) : ''
+        if (routine) request = routinePrompt(routine, previous, record)
       }
       const prompt = scenario.compose(request, { date: new Date().toISOString().slice(0, 10), cwd: opened.workspace.path, task: { id: task.id, title: task.title }, capabilities: typeof capabilities === 'function' ? capabilities() : {}, today: { summary: typeof todaySummary === 'function' ? todaySummary() : '' } })
       agent.followup(userMessage(prompt, { kind: 'mywork-task', taskId: task.id, scenario: scenario.id }))
@@ -219,12 +231,12 @@ export function createEngine({ ctx, store, deliverables, scenarios, config, log,
     const newDeliverables = state.followup ? store.get(taskId).deliverableIds.length > state.deliverablesBefore : store.get(taskId).deliverableIds.length > 0
     const wantVerify = !error && config.verify && newDeliverables && !(scenario && scenario.verify === false)
     if (wantVerify) {
-      store.setStatus(taskId, 'verifying', { summary: summary || '已完成', ...(t.routineId ? { quiet: changedVerdict(state.text) === false } : {}) })
+      store.setStatus(taskId, 'verifying', { summary: summary || '已完成', ...(t.routineId ? { quiet: quietFor(t, state) } : {}) })
       emit('verifying', store.get(taskId))
       verify(taskId).catch((e) => log(`verify ${taskId} crashed: ${e && e.message}`))
       return
     }
-    store.setStatus(taskId, 'done', { finishedAt: new Date().toISOString(), error, summary: summary || (error ? '' : '已完成'), ...(t.routineId ? { quiet: changedVerdict(state.text) === false } : {}) })
+    store.setStatus(taskId, 'done', { finishedAt: new Date().toISOString(), error, summary: summary || (error ? '' : '已完成'), ...(t.routineId ? { quiet: quietFor(t, state) } : {}) })
     settleRoutine(taskId)
     log(`task ${taskId} ${error ? 'failed: ' + error : 'done'}`)
     emit('done', store.get(taskId))

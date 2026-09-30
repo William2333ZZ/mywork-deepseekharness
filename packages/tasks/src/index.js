@@ -14,7 +14,28 @@ import { join } from 'node:path'
 import { createEngine } from './engine.js'
 import { configSchema, defineRawTool, rejectUntrusted } from './harness.js'
 import { BUILTIN_SCENARIOS, createScenarioRegistry } from './scenarios.js'
-import { DeliverableStore, myworkDir, TaskStore, taskView } from './store.js'
+import { DeliverableStore, myworkDir, TaskStore, taskView, STATUS_LABELS } from './store.js'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+/** Install the package's agent presets into <DSH_HOME>/.agent-presets so sessions can name them (idempotent). */
+function installPresets(log) {
+  const src = join(dirname(fileURLToPath(import.meta.url)), '..', 'presets')
+  const root = join(myworkDir(), '..', '.agent-presets')
+  for (const id of ['mywork-assistant']) {
+    try {
+      const body = readFileSync(join(src, id, 'agent.cordis.yml'), 'utf8')
+      const dir = join(root, id)
+      const file = join(dir, 'agent.cordis.yml')
+      if (existsSync(file) && readFileSync(file, 'utf8') === body) continue
+      mkdirSync(dir, { recursive: true })
+      writeFileSync(file, body)
+      log(`installed agent preset ${id} → ${file}`)
+    } catch (e) { log(`agent preset ${id} not installed: ${e && e.message}`) }
+  }
+}
+
 import { describeSchedule, parseSchedule, RoutineStore, routineView } from './routines.js'
 
 export const name = 'dsh-mywork-tasks'
@@ -25,6 +46,7 @@ export const Config = configSchema({ concurrency: 2, timeoutMinutes: 20, permiss
 
 export function apply(ctx, config = {}) {
   const log = (m) => console.log('[dsh-mywork-tasks] ' + m)
+  installPresets(log)
   const dir = myworkDir()
   const store = new TaskStore(join(dir, 'tasks.json'))
   const deliverables = new DeliverableStore(join(dir, 'deliverables.json'))
@@ -43,7 +65,7 @@ export function apply(ctx, config = {}) {
   const hasTool = (name) => { try { return !!ctx.tools.get(name) } catch { return false } }
   const capabilities = () => ({ browser: hasTool('open_url') || hasTool('browser_navigate'), office: hasTool('univer_new'), im: hasTool('im_send') })
   const engine = createEngine({
-    ctx, store, deliverables, scenarios, log, emit, controller: () => controller, capabilities, routines, todaySummary: () => todaySummary(),
+    ctx, store, deliverables, scenarios, log, emit, controller: () => controller, capabilities, routines, todaySummary: () => todaySummary(), workRecord: (days) => workRecord(days),
     config: { concurrency: Number(config.concurrency) || 2, timeoutMs: Math.max(1, Number(config.timeoutMinutes) || 20) * 60000, permission: String(config.permission || 'workspace-write'), agentPreset: config.agentPreset === '' ? undefined : (config.agentPreset || 'standard'), cwd: String(config.cwd || ''), verify: config.verify !== false },
   })
 
@@ -60,7 +82,9 @@ export function apply(ctx, config = {}) {
   const createRoutine = ({ input, schedule, kind, title }) => {
     let parsed = null
     if (!schedule) { parsed = parseSchedule(input); if (!parsed) throw new Error('没看出时间。写法如「每天 9 点…」「每周一 8:30…」「工作日 18 点…」「明天 8 点提醒我…」「30 分钟后提醒我…」') }
-    const r = routines.create({ kind: kind || (parsed ? parsed.kind : 'task'), title, input: parsed ? parsed.text : input, schedule: schedule || parsed.schedule })
+    const finalKind = kind || (parsed ? parsed.kind : 'task')
+    const finalTitle = finalKind === 'task' ? String(title || '').replace(/(的)?提醒$/, '').trim() : title // 「写周报提醒」 is a report MyWork writes, so the title is the report
+    const r = routines.create({ kind: finalKind, title: finalTitle, input: parsed ? parsed.text : input, schedule: schedule || parsed.schedule })
     log(`routine ${r.id} ${r.kind} ${describeSchedule(r.schedule)}: ${r.title}`)
     emit('routine', null, undefined, { routine: routineView(r) })
     return routineView(r)
@@ -85,6 +109,39 @@ export function apply(ctx, config = {}) {
     const done = store.items.filter((t) => t.status === 'done' && t.scenario !== 'assistant' && String(t.finishedAt).slice(0, 10) === today).map((t) => t.title + (t.error ? '（失败）' : ''))
     const upcoming = routines.items.filter((r) => r.enabled).map((r) => r.title + ' ' + describeSchedule(r.schedule))
     return [running.length ? '在跑：' + running.join('；') : '', done.length ? '今天完成：' + done.join('；') : '', upcoming.length ? '例行：' + upcoming.join('；') : ''].filter(Boolean).join('\n')
+  }
+  /** What happened in the last N calendar days (today counts as one): tasks, deliverables, and the questions asked on
+   *  今日. The material for 日报 / 周报 style routines: a 日报 is written from the day's questions and work, not invented. */
+  const workRecord = (days) => {
+    const start = new Date(); start.setHours(0, 0, 0, 0); start.setDate(start.getDate() - Math.max(0, days - 1))
+    const since = start.getTime()
+    const stamp = (iso) => { const d = new Date(iso); return (d.getMonth() + 1) + '/' + d.getDate() + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') }
+    const clip = (text, n) => { const t = String(text || '').replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n) + '…' : t }
+    const work = []
+    const asked = []
+    for (const t of store.items) {
+      if (t.scenario === 'assistant') {
+        for (const a of t.activity || []) {
+          if (new Date(a.at).getTime() < since) continue
+          if (a.kind === 'user') asked.push(`- ${stamp(a.at)} 问：${clip(a.text, 200)}`)
+          else if (a.kind === 'text') asked.push(`  答：${clip(a.text, 160)}`)
+          else if (a.kind === 'handoff') asked.push(`  → ${a.target === 'routine' ? '安排了例行' : '交给了后台'}：${a.title}${a.schedule ? '（' + a.schedule + '）' : ''}`)
+        }
+        continue
+      }
+      if (t.quiet) continue
+      const at = new Date(t.finishedAt || t.startedAt || t.createdAt).getTime()
+      if (!(at >= since)) continue
+      const state = t.status === 'done' ? (t.error ? '失败：' + clip(t.error, 80) : '完成') : (STATUS_LABELS[t.status] || t.status) + '中'
+      work.push(`- ${stamp(at)} ${t.title}（${state}${t.routineId ? '，例行' : ''}）`)
+      for (const dl of deliverables.forTask(t.id)) {
+        const v = dl.verification
+        work.push(`  交付：${dl.title}${v ? (v.passed ? '，核对通过' : '，核对有问题') : ''}${dl.rating ? '，评价 ' + dl.rating : ''}`)
+        const body = clip(dl.markdown, 240)
+        if (body) work.push('  ' + body)
+      }
+    }
+    return [asked.length ? '用户在「今日」问过 / 说过：\n' + asked.slice(-80).join('\n') : '', work.length ? '后台做过的任务：\n' + work.slice(-60).join('\n') : ''].filter(Boolean).join('\n\n')
   }
   const todaySay = async (text) => {
     const body = String(text || '').trim()
@@ -157,10 +214,10 @@ export function apply(ctx, config = {}) {
     }))
     ctx.tools.register(defineRawTool({
       name: 'mywork_routine_create',
-      description: '给用户安排一件例行的事或一个提醒：「每天 9 点…」「每周一 8:30…」「工作日 18 点…」「每 2 小时…」是例行任务（每次到点后台跑一遍，交付物里先说变化）；带"提醒"字样的是提醒（到点在首页和 IM 提示，不跑 agent）。schedule 用自然语言写在 input 里即可。用户说"每天/每周/到点提醒我"时用它，不要自己去写 cron。',
+      description: '给用户安排一件例行的事或一个提醒：「每天 9 点…」「每周一 8:30…」「工作日 18 点…」「每 2 小时…」是例行任务（每次到点后台跑一遍，交付物里先说变化）；「提醒我喝水 / 开会 / 交周报」这类只有用户自己能做的事是提醒（到点在首页和 IM 提示，不跑 agent）；「提醒我写周报 / 整理 / 汇总…」这类 MyWork 自己能做的事不是提醒，到点 MyWork 自己做完交给用户（周报、日报会拿 MyWork 这段时间的工作记录当素材）。schedule 用自然语言写在 input 里即可，分类由解析器决定，返回值里的 kind 告诉你结果。用户说"每天/每周/到点提醒我"时用它，不要自己去写 cron。',
       parameters: { input: { type: 'string', required: true, description: '含时间的一句话，例如"每天 9 点给我一份 Node 生态简报"或"明天 8 点提醒我交周报"' }, title: { type: 'string', description: '可选标题' } },
       async execute(args, exec) { const r = createRoutine({ input: args.input, title: args.title }); handoff(exec, { kind: 'handoff', target: 'routine', id: r.id, title: r.title, schedule: r.scheduleLabel }); return { id: r.id, kind: r.kind, title: r.title, schedule: r.scheduleLabel, nextRunAt: r.nextRunAt } },
-      render: (_a, v) => [{ type: 'text', text: `已安排${v.kind === 'remind' ? '提醒' : '例行任务'}「${v.title}」：${v.schedule}，下次 ${v.nextRunAt ? new Date(v.nextRunAt).toLocaleString() : '—'}。` }],
+      render: (_a, v) => [{ type: 'text', text: v.kind === 'remind' ? `已安排提醒「${v.title}」：${v.schedule}，下次 ${v.nextRunAt ? new Date(v.nextRunAt).toLocaleString() : '—'}，到点在首页和 IM 提示。` : `已安排例行任务「${v.title}」：${v.schedule}，下次 ${v.nextRunAt ? new Date(v.nextRunAt).toLocaleString() : '—'}。到点 MyWork 自己做完交给用户，不需要再加提醒，直接回话。` }],
     }))
     ctx.tools.register(defineRawTool({
       name: 'mywork_tasks',

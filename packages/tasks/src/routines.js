@@ -7,6 +7,8 @@
  *           Muse Code observer logic); a run that reports 变化：无 is stored but stays quiet.
  *   remind  「明天 8 点提醒我交周报」「30 分钟后提醒我喝水」 → no agent, just a nudge that sits in
  *           等你看 until acknowledged, plus toast / browser notification / IM.
+ *   「提醒我写周报」 is not a nudge: writing the report is something MyWork can do itself, so it becomes
+ *   a task routine that writes it from the week's work record and hands it over at that time.
  *
  * Schedules are deliberately small: once (at), interval (every N minutes), hourly, daily (HH:MM),
  * weekly (weekday + HH:MM), workdays. Times are the server's local time.
@@ -110,12 +112,17 @@ export function parseSchedule(input) {
   return null
 }
 
+/** Work MyWork can do itself. 「提醒我 + one of these」 becomes a task that does it, not a reminder. */
+const DOABLE_START = /^(帮我|给我|替我|为我)?\s*(写|整理|汇总|总结|统计|收集|搜集|查一?下?|检查|生成|准备|起草|翻译|对比|比较|做一份|出一份|列一?下?|更新|复盘|回顾|梳理)/
+const DOABLE_REPORT = /(写|整理|汇总|总结|统计|收集|生成|准备|起草|翻译|梳理|复盘|回顾).{0,16}(日报|周报|月报|报告|总结|简报|纪要|材料|文档|清单|表格?)/
+const doable = (text) => DOABLE_START.test(text) || DOABLE_REPORT.test(text)
+
 function done(schedule, raw, phrase) {
   let text = raw.replace(phrase, ' ')
   text = text.replace(/^(请|帮我|麻烦)?\s*(提醒我|提醒)\s*/, '提醒我 ').replace(/\s{2,}/g, ' ').replace(/^[，,、\s]+|[，,、\s]+$/g, '').trim()
   const remind = /提醒|叫我|remind/i.test(raw)
   if (remind) text = text.replace(/^提醒我\s*/, '').replace(/^(去|要)\s*/, '').trim() || '提醒'
-  return { schedule, text: text || raw, kind: remind ? 'remind' : 'task' }
+  return { schedule, text: text || raw, kind: remind && !doable(text) ? 'remind' : 'task' }
 }
 
 /** Human label for a schedule. */
@@ -184,11 +191,36 @@ export function routineView(r) {
 }
 
 /** The prompt of one routine run: the standing request plus what last time delivered, changes first. */
-export function routinePrompt(routine, previous) {
+/** Does this routine write about a period of work (周报 / 日报 / 总结)? Then the run gets MyWork's record of that period. */
+export function wantsRecord(routine) { return /周报|日报|月报|汇报|总结|回顾|复盘/.test(String(routine.input || '') + String(routine.title || '')) }
+export function recordDays(routine) {
+  const text = String(routine.input || '') + String(routine.title || '')
+  if (/月报/.test(text)) return 30
+  if (/周报/.test(text)) return 7
+  if (/日报/.test(text)) return 1
+  const s = routine.schedule || {}
+  return s.type === 'weekly' ? 7 : s.type === 'daily' || s.type === 'workdays' || s.type === 'interval' || s.type === 'hourly' ? 1 : 7
+}
+
+export function routinePrompt(routine, previous, record) {
+  if (wantsRecord(routine)) {
+    // A report (日报 / 周报 / 总结) is a deliverable every time: no 变化 paragraph, no quiet runs.
+    const lines = [
+      `这是例行任务《${routine.title}》的这一期，要求如下：`, routine.input, '',
+      'MyWork 这段时间替用户做过的事（这就是素材，按实际写，不要编造没做过的事；记录为空就如实说这段时间没有记录）：',
+      '----\n' + (record || '（没有记录）') + '\n----',
+      previous ? '\n上一期（只用来保持体例和接续，不要照抄）：\n----\n' + String(previous.markdown || '').slice(0, 2500) + '\n----' : '',
+      '',
+      '写法：先一句话总结，再按事实写做了什么、结果如何、还没完成什么；这是写给用户本人看的，不要提内部路径、任务 ID 和系统机制。',
+      '交付要求：用 deliver 交付，kind 用 report。不要写「变化」段，也不要在最后输出变化行。',
+    ]
+    return lines.filter((x) => x !== '').join('\n')
+  }
   const lines = [
     `这是例行任务《${routine.title}》的一次运行，要求如下：`, routine.input, '',
     previous ? '上一次的交付物（供对比，不要照抄）：' : '这是第一次运行，没有上一次可对比。',
     previous ? '----\n' + String(previous.markdown || '').slice(0, 4000) + '\n----' : '',
+    record ? '\nMyWork 这段时间替用户做过的事（写周报、日报、总结时以此为素材，按实际写，不要编造没做过的事；记录为空就如实说这段时间没有记录）：\n----\n' + record + '\n----' : '',
     '',
     '交付要求：deliver 的 markdown 第一段先写「变化」：和上一次相比什么变了（新出现、消失、数字变动），没有实质变化就写"变化：无"。然后才是本次内容。',
     '最后单独一行输出 `变化：有` 或 `变化：无`，用于决定要不要打扰用户。',

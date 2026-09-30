@@ -91,11 +91,20 @@ test('verification prompt and verdict parsing', async () => {
 })
 
 test('routines: schedule parsing, next run, store', async () => {
-  const { parseSchedule, nextRun, describeSchedule, RoutineStore, changedVerdict, routinePrompt } = await import('../src/routines.js')
+  const { parseSchedule, nextRun, describeSchedule, RoutineStore, changedVerdict, routinePrompt, wantsRecord, recordDays } = await import('../src/routines.js')
+  const report = { title: '每日日报', input: '根据我一天的问题写日报', schedule: { type: 'daily', time: '19:00' } }
+  assert.equal(wantsRecord(report), true); assert.equal(recordDays(report), 1); assert.equal(recordDays({ input: '写周报', schedule: { type: 'weekly' } }), 7)
+  const rp = routinePrompt(report, null, '- 10:00 问：x'); assert.ok(rp.includes('- 10:00 问：x')); assert.ok(!rp.includes('变化：有'))
+  assert.ok(routinePrompt({ title: '简报', input: '给我一份简报', schedule: { type: 'daily', time: '09:00' } }, null, '').includes('变化：有'))
   const daily = parseSchedule('每天 9 点给我一份 Node 生态简报')
   assert.equal(daily.kind, 'task'); assert.deepEqual(daily.schedule, { type: 'daily', time: '09:00' }); assert.equal(daily.text, '给我一份 Node 生态简报')
   const weekly = parseSchedule('每周一 8:30 汇总上周的交付物'); assert.deepEqual(weekly.schedule, { type: 'weekly', weekday: 1, time: '08:30' })
   const remind = parseSchedule('明天 8 点提醒我交周报'); assert.equal(remind.kind, 'remind'); assert.equal(remind.schedule.type, 'once'); assert.equal(remind.text, '交周报')
+  const doable = parseSchedule('每周五下午 5 点提醒我写周报'); assert.equal(doable.kind, 'task'); assert.equal(doable.text, '写周报'); assert.deepEqual(doable.schedule, { type: 'weekly', weekday: 5, time: '17:00' })
+  assert.equal(parseSchedule('工作日 18 点提醒我整理今天的会议记录').kind, 'task')
+  assert.equal(parseSchedule('每天 8 点提醒我开会').kind, 'remind')
+  const dailyReport = parseSchedule('工作日晚上 7 点提醒我根据今天的问题写日报'); assert.equal(dailyReport.kind, 'task'); assert.deepEqual(dailyReport.schedule, { type: 'workdays', time: '19:00' })
+  assert.equal(parseSchedule('明天 8 点提醒我交周报').kind, 'remind')
   const soon = parseSchedule('30 分钟后提醒我喝水'); assert.ok(new Date(soon.schedule.at) - Date.now() > 29 * 60000)
   assert.equal(parseSchedule('写一份周报'), null)
   assert.equal(describeSchedule({ type: 'workdays', time: '18:00' }), '工作日 18:00')

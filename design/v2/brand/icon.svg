@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- App icon: warm-black rounded square (22% radius), the mark in warm white at 2/3 of the tile. -->
+  <rect width="1024" height="1024" rx="225" fill="#1f1d1a"/>
+  <path d="M4.5 18.5V7l5.5 6.5L15.5 7M10.5 17l3 3 6-6" transform="translate(170.7 170.7) scale(28.444)" fill="none" stroke="#fbfaf8" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

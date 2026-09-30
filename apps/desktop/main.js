@@ -164,7 +164,7 @@ ipcMain.handle('mywork:browser:list', () => [...tabs.values()].map(({ view, targ
 function createWindow() {
   win = new BrowserWindow({
     width: 1440, height: 920, minWidth: 900, minHeight: 600, title: APP_NAME, show: false,
-    backgroundColor: '#111111', autoHideMenuBar: true,
+    backgroundColor: '#111111', autoHideMenuBar: true, icon: join(__dirname, 'icon.png'),
     webPreferences: { contextIsolation: true, sandbox: true, nodeIntegration: false, preload: join(__dirname, 'preload.js') },
   })
   win.once('ready-to-show', () => win.show())

@@ -2533,7 +2533,12 @@ body[data-ds-dark-theme] .mws{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 .mws-brand{appearance:none;border:0;background:transparent;padding:4px 6px 4px 0;border-radius:var(--radius-sm);flex:1;display:flex;align-items:center;gap:8px;font:inherit;font-weight:600;font-size:14px;color:var(--fg);min-width:0;cursor:pointer;text-align:left}
 .mws-brand:hover{color:var(--fg-2)}
 .mws-all span{color:var(--muted)}
-.mws-brand i{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:var(--radius-sm);background:var(--fg-2);color:var(--bg);font-style:normal;font-size:12px;font-weight:600}
+.mws-mark{display:inline-grid;place-items:center;flex:none;width:22px;height:22px;border-radius:5px;background:var(--fg);color:var(--bg)}
+.mws-mark svg{display:block;width:16px;height:16px}
+.mws-mark path{stroke-dasharray:60;stroke-dashoffset:0}
+.mws-mark[data-live=true] path{animation:mws-draw 2.4s var(--ease-standard,ease) infinite}
+@keyframes mws-draw{0%{stroke-dashoffset:60}55%{stroke-dashoffset:0}80%{stroke-dashoffset:0;opacity:1}100%{stroke-dashoffset:0;opacity:.35}}
+@media (prefers-reduced-motion:reduce){.mws-mark[data-live=true] path{animation:none}}
 .mws-icon{appearance:none;display:inline-grid;place-items:center;width:28px;height:28px;border:0;border-radius:var(--radius-sm);background:transparent;color:var(--meta);cursor:pointer}
 .mws-icon:hover{background:var(--surface-2);color:var(--fg)}
 .mws-new{appearance:none;display:flex;align-items:center;gap:8px;margin:6px 10px 12px;height:34px;padding:0 10px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--bg);color:var(--fg);font:inherit;font-weight:500;cursor:pointer}
@@ -2614,6 +2619,25 @@ body[data-ds-dark-theme] .mws-new:hover{background:var(--surface-2)}
 				(day === today ? buckets[0] : day === yesterday ? buckets[1] : buckets[2]).items.push(x);
 			}
 			return buckets.filter((b) => b.items.length > 0);
+		}
+		/** The MyWork mark: an M whose last stroke turns into a check. While something runs it draws itself, Grok style. */
+		function BrandMark({ live }) {
+			return /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+				className: "mws-mark",
+				"data-live": live ? "true" : void 0,
+				"aria-hidden": "true",
+				children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("svg", {
+					viewBox: "0 0 24 24",
+					fill: "none",
+					children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("path", {
+						d: "M4.5 18.5V7l5.5 6.5L15.5 7M10.5 17l3 3 6-6",
+						stroke: "currentColor",
+						strokeWidth: "3.4",
+						strokeLinecap: "round",
+						strokeLinejoin: "round"
+					})
+				})
+			});
 		}
 		function fire(name, detail) {
 			try {
@@ -2704,7 +2728,7 @@ body[data-ds-dark-theme] .mws-new:hover{background:var(--surface-2)}
 							onClick: () => {
 								go(MYWORK_PANELS.today);
 							},
-							children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("i", { children: "M" }), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: "MyWork" })]
+							children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(BrandMark, { live: active.length > 0 }), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: "MyWork" })]
 						}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
 							type: "button",
 							className: "mws-icon",

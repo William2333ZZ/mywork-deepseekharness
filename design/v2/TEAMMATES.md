@@ -350,3 +350,85 @@ bot 名册与自建 bot、灰底回复气泡、彩色头像、深色默认、com
 | 7 | 找人（§2.7；recover 保留 waiting 不收成失败） | 缺信息的任务停在等你答，列行与今日栏显示，卡可答，答后同会话续跑并交付；例行不问 |
 | 8 | 手机（§8.5） | 打开落在列，线程四种同形，390px 无横滚，TestDevice 构建通过 |
 | 9 | 通知三开关与收口：删零引用词条与死样式，README 两张截图（列 + 任务线程 / 右栏在跑） | 关掉「完成」后完成不打扰但「需要你」仍到；安静零通知；正在看的线程无 toast |
+
+## 9. 同事模型（2026-09-30 深夜，替代 §8；用户确认）
+
+用户：「很明显，这个做的产品逻辑都不对」「对，就按这个同事模型来，侧边栏你要有逻辑在的」「可以，开始做吧」。§0 与 §8 都保留了「任务是单位」的骨，Rakazo 的 VISION.md 明说这正是反面：「把 bot 缩成提示词预设或孤立的一次性任务，是在和产品作对」。§9 把单位换成同事。
+
+### 9.1 对象
+
+- **同事**：名字、头衔（一行，可空）、职责（一段话，就是它的指令）、单色字形头像、置顶、通知。一个同事 = 一条永远的对话 + 自己的文件夹（电脑）+ 自己的例行 + 自己的记忆（文件夹里的 AGENTS.md）。默认同事「MyWork」不可删，头像是 M 收成勾。
+- **对话里的东西**：你的话；同事的回复（正文）；文件卡（交付物，下面一行核验与评价）；找你卡；例行到点的居中小字；「已安排」居中小字；提醒卡。
+- **文件**：同事交出来的东西，挂在回复上；文件页汇总所有同事的文件。
+- 任务不再是用户看得见的东西：每一轮干活是一次运行（run），只是对话里的一段。
+
+### 9.2 发一句话之后
+
+- 你发 → 同事干活：左栏头像在动、第二行「在干活 · 步骤」、对话底部一行「在干活 · 步骤 · 40s」；做完回复落在对话里。
+- 它干活时你再发：这句话插进正在做的这件事（steer，Rakazo 同），不另起一件；「停」在 ···。
+- 缺信息时它停下来问（mywork_ask，每轮至多 2 次）：对话里找你卡、左栏「等你答 · 问题」、铃铛计数；你答的话就是下一条消息，同一会话接着做。例行运行不问。
+- 追问就在对话里说，改的就是刚才那份。
+- 核验在后台：文件卡下「核验中 → 已核验 · 核对 n / 核验发现 n 处」，不挡你说话。
+
+### 9.3 例行
+
+- 例行 = 到点替你发给某位同事的一句话。属于这位同事，结果回到这位同事的对话。左栏没有例行，没有例行页。
+- 两种：做事（到点让同事干活）/ 提醒（只有你能做的事；到点只出提醒卡 + 系统通知，不让同事干活）。
+- 建：在对话里说带时间的话（同事调用 mywork_routine_create，归属它自己，对话里出居中小字「已安排 · 每天 19:00 写日报」）；或右栏例行一栏「新例行」。例行运行时不能建例行。
+- 到点：对话里先出居中小字「每日日报 · 19:00」，同事照常干活，结果是普通回复。盯变化的没变化 → 对话里不出任何东西，只在运行记录里记「没有变化」；日报周报永远出；日报读所有同事当天的对话和文件。
+- 管：只在该同事右栏「例行」一栏。行 = 名字 · 计划 · 下次/已暂停；点开原地展开：原话与计划可改、现在跑一次、暂停/恢复、删除、最近 10 次运行。
+- 跳转一条规则：凡是看结果，都跳到那位同事对话里的那一条（滚到并高亮）。右栏运行记录、铃铛、系统通知、搜索结果都遵守；「已安排」小字与搜索到的例行 → 打开对话 + 右栏展开该例行。
+- 迁移：现有例行全部归 MyWork。
+
+### 9.4 侧栏
+
+- 顶：搜索（同事、消息、文件、例行）· 铃铛（计数 = 需要你 + 在干活；下拉三组 需要你 / 在干活 / 刚完成，点 → 那位同事对话那一条）· 「+」新同事。
+- 中：只有同事。顺序一条规则：置顶的在前（MyWork 默认置顶），其余按最近对话时间；状态不改变顺序。行 = 头像（干活时在动）· 名字（未读加粗）· 时间 · 未读点 · 第二行（最近一句 / 在干活 · 步骤 / 等你答 · 问题）。行上无操作。
+- 底：文件 · 设置。
+
+### 9.5 中栏与右栏
+
+- 中栏：头部 = 头像 + 名字（点开右栏）+ 头衔 + ···（停、清空对话不做）；对话按时间，向上翻加载更早；dock「给 {名字} 发消息」。空对话只有 dock。
+- 右栏（点名字打开，只讲这一位同事）：电脑（它在用浏览器时画面，否则文件夹里最近的文件）· 例行 · 设置（名字、头衔、职责、置顶、通知、删除）。
+- 新同事：「+」→ 右栏「新同事」：一句「它负责什么」（必填）+ 名字（可空）。建好后进它的对话；名字空时它第一轮给自己起名（mywork_mate_update）并自我介绍；那句话带时间就顺手建好例行。
+
+### 9.6 手机
+
+首页 = 同事列表 + 铃铛 + 搜索 + 「+」，底部文件；点进对话；右上角进同事页（例行、设置、文件；不做电脑画面）。
+
+### 9.7 引擎（dsh 0.1.6-alpha.2 上怎么做）
+
+- 一个同事一条 dsh 会话 `mywork-mate-<id>`：第一次用 agents.create 建（cwd = `$DSH_HOME/mywork/mates/<id>/`，注册为工作区；preset = 每个同事一份 `$DSH_HOME/.agent-presets/mate-<id>/agent.cordis.yml`，以 standard 的行为基础（含压缩、fs、bash、present），persona 前缀写名字、头衔、职责）；之后每条消息走 sessionController.prompt（空闲 mode 'queue'，干活中 mode 'steer'）。
+- 运行记录由会话事件驱动：全局监听 session/event，前缀 `mywork-mate-`；turn/start…turn/end = 一次运行；user/message 进运行；tool/call、assistant/message 照旧；deliver 找当前运行。取消用 controller.cancel（保留收件箱）。
+- 核验不再阻塞：运行结束立即 done，有交付物就后台起核验会话，结果盖在交付物上。
+- 记忆：同事文件夹里的 AGENTS.md（agent-instructions 自动载入）；工具 mywork_remember 追加。
+- 移除：今日助理与 mywork-assistant preset、dayKey、mywork_task_create / mywork_task_say / mywork_tasks、交办行、feed.js 的今日线、「交给后台」的系统提示段、新任务页、任务页、任务列表、今日页、等你看条、交付物页（换成文件页）。
+- 重启：恢复有待处理收件箱的同事会话并唤醒。
+
+### 9.8 API 契约（/mywork-tasks/api）
+
+```
+GET  /mates                         → { items: Mate[] }
+     Mate = { id, name, title, description, glyph, pinned, isDefault, notify, createdAt,
+              lastAt, preview, unread, state: 'idle'|'working'|'waiting', step, since, ask|null, routineCount }
+POST /mates/create  { description, name? , title? }        → { mate }
+POST /mates/update  { id, name?, title?, description?, pinned?, notify? } → { mate }
+POST /mates/remove  { id }                                  → { removed }   (default mate refuses)
+GET  /mates/thread?id=&before=&limit=                        → { runs: Run[], nextBefore|null }
+     Run = { id, mateId, trigger: 'user'|'routine'|'system', routineId?, routineTitle?, status: 'running'|'waiting'|'done',
+             input, activity[], deliverables: Deliverable[], verification|null, ask|null, error, quiet, step, createdAt, startedAt, finishedAt }
+     (runs ascending by createdAt; quiet routine runs are omitted; migrated old tasks are runs of the default mate)
+POST /mates/say     { id, text }   → { mate, runId }   idle: new run · working: steer · waiting: answers the pending ask
+POST /mates/stop    { id }         → { mate }
+POST /answer        { id: runId, askId, answer } → { run }            (ask cards' buttons)
+GET  /routines?mate=               → { items: Routine[] }  Routine += { mateId }
+POST /routines/create { mateId, input } · /routines/update { id, input } · /routines/run { id } · /routines/enable { id, enabled } · /routines/remove { id } · /routines/ack { id, at }
+GET  /activity                     → { needs: Item[], working: Item[], recent: Item[] }
+     Item = { mateId, mateName, runId, at, text, kind: 'ask'|'failed'|'working'|'done'|'remind' }
+GET  /files?mate=&q=&since=        → { items: Deliverable[] }   Deliverable += { mateId, runId }
+GET  /deliverable?id= · POST /rate { id, rating }
+POST /seen          { id: mateId }
+GET  /search?q=                    → { mates: Mate[], messages: [{ mateId, runId, at, text }], files: Deliverable[], routines: Routine[] }
+```
+
+客户端跳转事件：`mywork:open-thread` { kind: 'mate', id, runId? }（runId 有值时滚到并高亮）/ { kind: 'new-mate' } / { kind: 'files' } / { kind: 'routine', id }（打开所属同事 + 右栏展开）；`mywork:thread-opened` { kind: 'mate', id }。

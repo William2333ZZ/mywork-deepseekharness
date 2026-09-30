@@ -196,6 +196,7 @@ export function apply(ctx, config = {}) {
         markdown: { type: 'string', required: true, description: '交付物正文（Markdown）' },
         kind: { type: 'string', description: '交付物类型：markdown（默认）| report | table | summary' },
         data: { type: 'object', description: '可选的结构化数据' },
+        summary: { type: 'array', items: { type: 'object', properties: { label: { type: 'string' }, value: { type: 'string' } }, required: ['label', 'value'] }, description: '结果的可数摘要，2 到 6 行 { label, value }（各 ≤60 字），例如 { label: "包", value: "8 个" }、{ label: "源文件", value: "57 个 · 18,420 行" }。正文里有数字、清单、表格时必须给；纯说明文才省略。' },
       },
       async execute(args, exec) {
         const sessionId = exec && exec.agent && exec.agent.session ? exec.agent.session.id : ''
@@ -236,7 +237,7 @@ export function apply(ctx, config = {}) {
     const query = (req) => new URL(req.url || '/', 'http://localhost').searchParams
     const route = (path, handler) => wctx.webServer.register({ kind: 'exact', path: '/mywork-tasks/api' + path, handler: (req, res) => rejectUntrusted(ctx, req, res, json) || Promise.resolve(handler(req, res)).catch((e) => json(res, { error: e instanceof Error ? e.message : String(e) }, 500)) })
     const post = (path, handler) => route(path, async (req, res) => { if (req.method !== 'POST') return json(res, { error: 'POST only' }, 405); return handler(await readBody(req), res, req) })
-    const deliverableSummary = (d) => ({ id: d.id, taskId: d.taskId, title: d.title, kind: d.kind, scenario: d.scenario, createdAt: d.createdAt, rating: d.rating, verification: d.verification })
+    const deliverableSummary = (d) => ({ id: d.id, taskId: d.taskId, title: d.title, kind: d.kind, scenario: d.scenario, createdAt: d.createdAt, rating: d.rating, verification: d.verification, summary: d.summary || null })
     // One payload feeds 今日, the sidebar and the lists: tasks without their activity, recent deliverables, packs, capabilities.
     route('/tasks', async (_req, res) => json(res, { items: api.list().map(({ activity: _a, ...t }) => t), deliverables: deliverables.list().slice(0, 60).map(deliverableSummary), reminders: routines.pending(), routines: api.routines().map((r) => ({ id: r.id, kind: r.kind, title: r.title, scheduleLabel: r.scheduleLabel, enabled: r.enabled, nextRunAt: r.nextRunAt, once: r.schedule && r.schedule.type === 'once', lastTaskId: ((r.runs || []).find((x) => x.taskId) || {}).taskId || '' })), scenarios: scenarios.list(), capabilities: capabilities() }))
     route('/task', async (req, res) => { const t = api.get(query(req).get('id') || ''); if (!t) return json(res, { error: 'task not found' }, 404); json(res, { task: t, deliverables: deliverables.forTask(t.id) }) })

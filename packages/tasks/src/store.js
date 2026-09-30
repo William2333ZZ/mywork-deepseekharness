@@ -108,12 +108,14 @@ export class TaskStore extends JsonList {
 
 export class DeliverableStore extends JsonList {
   constructor(file) { super(file, MAX_DELIVERABLES) }
-  create({ taskId, title, kind, scenario, markdown, data }) {
+  create({ taskId, title, kind, scenario, markdown, data, summary }) {
     const body = String(markdown || '').trim()
     if (!body) throw new Error('markdown is required')
+    // ✓ rows: at most six short label → value pairs; anything else is dropped rather than rendered badly.
+    const rows = Array.isArray(summary) ? summary.filter((r) => r && typeof r === 'object' && String(r.label || '').trim()).slice(0, 6).map((r) => ({ label: String(r.label).trim().slice(0, 60), value: String(r.value === undefined || r.value === null ? '' : r.value).trim().slice(0, 60) })) : []
     return this.add({
       id: newId('dlv'), taskId: taskId || '', title: String(title || '').trim() || titleOf(body), kind: kind || 'markdown', scenario: scenario || 'general',
-      markdown: body, data: data === undefined ? null : data, createdAt: new Date().toISOString(), rating: null, verification: null,
+      markdown: body, data: data === undefined ? null : data, summary: rows.length ? rows : null, createdAt: new Date().toISOString(), rating: null, verification: null,
     })
   }
   forTask(taskId) { return this.items.filter((d) => d.taskId === taskId) }

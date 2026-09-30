@@ -215,8 +215,8 @@ const zh = {
   attention: '等你看', attentionEmpty: '没有等你处理的事。', failedCard: '失败，可以再来一次', issuesCard: '核验发现问题', rateCard: '交付了，看一眼给个评价', running1: '个在跑', waiting1: '份等你看', quiet: '今天还很安静', greetMorning: '早上好', greetDay: '下午好', greetNight: '晚上好', todayDone: '今天完成', examplesTitle: '可以试试',
   notesMore: '点开看核验员的完整说明', conversation: '对话', handedOff: '已交给后台', thinking: '在想', paused: '已暂停', ended: '已结束', endedN: '已结束的 {n} 项', runs: '运行记录', todayAt: '今天', allTasks: '全部', delivered: '已交付', answered: '已回答', quietDay: '今天没有等你的事。说一句，交给它。', moreRows: '还有 {n} 项', more: '更多', rawProcess: '原始对话', loadFailed: '没连上服务，稍后再试。', retry: '重试', moreRate: '还有 {n} 份交付了没评价',
   routines: '例行', routinesLead: '还没有例行的事。说一句带时间的话，比如「每天 9 点给我一份简报」。',
-  routinesEmpty: '还没有例行的事。', remindCard: '提醒', gotIt: '知道了', runNow: '现在跑一次', pause: '暂停', resume: '恢复', remove: '删除', nextRun: '下次', lastRun: '上次', neverRan: '还没跑过', noChange: '没有变化', changed: '有变化', briefs: '今天的例行', scheduled: '已安排', scheduledHint: '到点会自动做，结果在「例行」和「等你看」里。', kindTask: '例行任务', kindRemind: '提醒', quietTag: '安静',
-  say: '回复', sayHint: '', sayBusy: '', conversational: '这次是回答，没有生成文档；要保存时说“整理成一份…”。',
+  routinesEmpty: '还没有例行的事。', remindCard: '提醒', gotIt: '知道了', runNow: '现在跑一次', pause: '暂停', resume: '恢复', remove: '删除', nextRun: '下次', lastRun: '上次', neverRan: '还没跑过', noChange: '没有变化', changed: '有变化', briefs: '今天的例行', scheduled: '已安排', kindTask: '例行任务', kindRemind: '提醒', quietTag: '安静',
+  say: '回复', conversational: '这次是回答，没有生成文档；要保存时说“整理成一份…”。',
 }
 const en = {
   today: 'Today', tasks: 'Tasks', deliverables: 'Deliverables', scenarios: 'Domains', packs: 'Domains', builtin: 'built in', scenarioClear: 'Let the system decide',
@@ -234,8 +234,8 @@ const en = {
   attention: 'For you', attentionEmpty: 'Nothing waiting for you.', failedCard: 'Failed, can run again', issuesCard: 'Verification found issues', rateCard: 'Delivered, take a look and rate', running1: 'running', waiting1: 'waiting for you', quiet: 'A quiet day so far', greetMorning: 'Good morning', greetDay: 'Good afternoon', greetNight: 'Good evening', todayDone: 'Finished today', examplesTitle: 'Try',
   notesMore: 'Tap for the verifier’s full notes', conversation: 'Conversation', handedOff: 'Handed to the background', thinking: 'Thinking', paused: 'Paused', ended: 'Ended', endedN: '{n} ended', runs: 'Runs', todayAt: 'today', allTasks: 'All', delivered: 'Delivered', answered: 'Answered', quietDay: 'Nothing waiting for you today. Say something and hand it over.', moreRows: '{n} more', more: 'More', rawProcess: 'Raw conversation', loadFailed: 'Could not reach the service, try again shortly.', retry: 'Retry', moreRate: '{n} more deliveries waiting for a rating',
   routines: 'Routines', routinesLead: 'No routines yet. Say a sentence with a time: “every day at 9…”, “remind me at 6 on weekdays…”.',
-  routinesEmpty: 'No routines yet.', remindCard: 'Reminder', gotIt: 'Got it', runNow: 'Run now', pause: 'Pause', resume: 'Resume', remove: 'Remove', nextRun: 'Next', lastRun: 'Last', neverRan: 'Never ran', noChange: 'No change', changed: 'Changed', briefs: 'Today’s routines', scheduled: 'Scheduled', scheduledHint: 'It runs on time; results land in Routines and For you.', kindTask: 'Routine', kindRemind: 'Reminder', quietTag: 'quiet',
-  say: 'Reply', sayHint: '', sayBusy: '', conversational: 'This was an answer, no document was produced; ask for one when you want it saved.',
+  routinesEmpty: 'No routines yet.', remindCard: 'Reminder', gotIt: 'Got it', runNow: 'Run now', pause: 'Pause', resume: 'Resume', remove: 'Remove', nextRun: 'Next', lastRun: 'Last', neverRan: 'Never ran', noChange: 'No change', changed: 'Changed', briefs: 'Today’s routines', scheduled: 'Scheduled', kindTask: 'Routine', kindRemind: 'Reminder', quietTag: 'quiet',
+  say: 'Reply', conversational: 'This was an answer, no document was produced; ask for one when you want it saved.',
 }
 
 const STYLE = `
@@ -380,6 +380,24 @@ body[data-ds-dark-theme] .mwt{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 @keyframes mwt-shimmer{to{background-position:-200% 0}}
 @media (prefers-reduced-motion:reduce){.mwt-thinking span{animation:none;background:none;-webkit-text-fill-color:currentColor}}
 .mwt-handoff{appearance:none;display:inline-flex;align-items:center;gap:6px;margin:0 0 14px;padding:5px 10px 5px 8px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--bg);color:var(--fg-2);font:inherit;font-size:13px;cursor:pointer}
+/* A hand-off in the thread: one row per task that updates in place — running step · time, ✓ 已交付 · 已核验, 已回答, or 失败 with the one allowed button. */
+.mwt-handoff-row{display:flex;align-items:center;gap:8px;max-width:560px}
+.mwt-handoff-row .main{appearance:none;flex:1;min-width:0;display:grid;grid-template-columns:20px minmax(0,1fr) auto;column-gap:12px;align-items:center;min-height:44px;padding:7px 12px 7px 14px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface);color:var(--fg);font:inherit;text-align:left;cursor:pointer}
+.mwt-handoff-row .main:hover{background:var(--surface-2)}
+.mwt-handoff-row .ic{display:flex;align-items:center;justify-content:center;color:var(--meta)}
+.mwt-handoff-row[data-tone=success] .ic{color:var(--success)}
+.mwt-handoff-row[data-tone=danger] .ic{color:var(--danger)}
+.mwt-handoff-row[data-tone=live] .ic{color:var(--fg-2)}
+.mwt-handoff-row .ic .spin{animation:mwt-spin 1.6s linear infinite}
+.mwt-handoff-row .body{min-width:0;display:grid}
+.mwt-handoff-row .title{font-size:14px;line-height:20px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mwt-handoff-row .sub{font-size:12.5px;line-height:18px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:tabular-nums}
+/* ✓ result card: the countable outcome of a delivery, above the document. */
+.mwt-result{display:grid;gap:2px;margin:0 0 18px;padding:10px 14px;border-radius:var(--radius-lg);background:var(--surface)}
+.mwt-result-row{display:grid;grid-template-columns:16px auto minmax(0,1fr);column-gap:10px;align-items:baseline;min-height:26px;font-size:15px;line-height:24px}
+.mwt-result-row svg{color:var(--success);align-self:center}
+.mwt-result-row .label{font-weight:500;color:var(--fg)}
+.mwt-result-row .value{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mwt-handoff:hover{background:var(--surface)}
 .mwt-handoff[disabled]{cursor:default}
 .mwt-row-static{cursor:default}
@@ -413,13 +431,9 @@ body[data-ds-dark-theme] .mwt{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 .mwt-meta{display:flex;flex-wrap:wrap;gap:4px 16px;color:var(--meta);font-size:12.5px;margin:0 0 24px;padding-left:32px;font-variant-numeric:tabular-nums}
 .mwt-actions{display:flex;gap:2px;flex-wrap:wrap}
 .mwt-error{border:1px solid color-mix(in srgb,var(--danger) 30%,transparent);border-radius:var(--radius-lg);padding:10px 14px;color:var(--danger);font-size:13px;line-height:1.6;margin:0 0 20px;white-space:pre-wrap}
-.mwt-cols{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:32px;align-items:start}
-@media (max-width:980px){.mwt-cols{grid-template-columns:minmax(0,1fr)}}
-.mwt-col.sticky{position:sticky;top:0}
 .mwt-steps{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
 .mwt-step{display:inline-flex;align-items:center;gap:6px;padding:2px 8px;border-radius:9999px;background:var(--surface);font-size:12px;line-height:16px;color:var(--muted);font-variant-numeric:tabular-nums}
 .mwt-step[data-live=true]{color:var(--fg-2);border:1px solid var(--border);padding:1px 7px}
-.mwt-stream{position:relative;padding:2px 0;max-height:72vh;overflow:auto}
 .mwt-phases{padding:0 0 10px}
 .mwt-phase-head{appearance:none;display:grid;grid-template-columns:18px auto auto minmax(0,1fr);column-gap:10px;align-items:center;width:100%;min-height:30px;padding:3px 0;border:0;background:transparent;color:var(--fg);font:inherit;font-size:13px;line-height:20px;text-align:left;cursor:default}
 button.mwt-phase-head{cursor:pointer}
@@ -509,9 +523,7 @@ button.mwt-phase-head:hover .verb,button.mwt-phase-head:hover .obj{color:var(--f
   .mwt-rt{grid-template-columns:20px minmax(0,1fr)}.mwt-rt .mwt-actions{grid-column:2;margin-top:4px}
   .mwt-toolbar{flex-wrap:wrap}
   .mwt-meta{padding-left:0}
-  .mwt-cols{gap:24px}
   .mwt-col.sticky{position:static;order:-1}
-  .mwt-stream{max-height:none}
   .mwt-doc-body{padding:14px 14px 4px}
   .mwt-doc-actions{padding:6px 6px 8px}
   .mwt-md{font-size:15px}
@@ -766,11 +778,21 @@ function makeComponents(ctx, t) {
     React.useEffect(() => { if (pending && entries.some((e) => e.kind === 'user' && e.text === pending)) setPending('') }, [pending, entries.length])
     if (!entries.length && !live && !pending) return null
     const shown = entries.slice(-12).concat(pending ? [{ kind: 'user', text: pending }] : [])
-    return h(Turns, { entries: shown, live: live || (pending ? { currentStep: '' } : null) })
+    return h(Turns, { entries: shown, live: live || (pending ? { currentStep: '' } : null), items })
   }
 
   /** A conversation the Grok way: your words in a bubble on the right, the reply as plain text on the left, nothing else. */
-  function Turns({ entries, live }) {
+  /** What a hand-off line says about its task right now: running step · time, ✓ delivered · verified, answered, or failed. */
+  function handoffState(task) {
+    if (!task) return null
+    if (task.status !== 'done') return { glyph: 'loader', spin: true, tone: 'live', sub: (task.currentStep || task.statusLabel) + ' · ' + elapsedOf(task) }
+    if (task.error) return { glyph: 'circle-x', tone: 'danger', sub: t('failedTitle') + ' · ' + String(task.error).slice(0, 80), failed: true }
+    const v = task.verification
+    if (task.deliverables && task.deliverables.length) return { glyph: 'check', tone: 'success', sub: t('delivered') + (v ? (v.passed === true ? ' · ' + t('verified') : v.passed === false ? ' · ' + t('verifyIssues') : '') : '') }
+    return { glyph: 'check', tone: 'success', sub: t('answered') }
+  }
+
+  function Turns({ entries, live, items }) {
     const endRef = React.useRef(null)
     const n = entries.length
     React.useEffect(() => { if (endRef.current && typeof endRef.current.scrollIntoView === 'function') endRef.current.scrollIntoView({ block: 'nearest' }) }, [n, !!live])
@@ -780,7 +802,17 @@ function makeComponents(ctx, t) {
         if (e.kind === 'text') return h('div', { key: i, className: 'mwt-turn ai' }, h(Markdown, { text: e.text }))
         if (e.kind === 'handoff') {
           const isTask = e.target === 'task'
-          return h('div', { key: i, className: 'mwt-turn ai' }, h('button', { type: 'button', className: 'mwt-handoff', onClick: () => { if (isTask) openTask(e.id); else openRoutine(e.id) } }, icon(isTask ? 'list-checks' : 'history', { size: 13 }), (isTask ? t('handedOff') : t('scheduled')) + '：' + e.title + (e.schedule ? ' · ' + e.schedule : ''), icon('arrow-left', { size: 12, style: { transform: 'rotate(180deg)' } })))
+          const task = isTask && Array.isArray(items) ? items.find((x) => x.id === e.id) : null
+          const st = isTask ? handoffState(task) : null
+          const glyph = st ? st.glyph : isTask ? 'list-checks' : 'history'
+          const sub = st ? st.sub : isTask ? t('handedOff') : (t('scheduled') + (e.schedule ? ' · ' + e.schedule : ''))
+          return h('div', { key: i, className: 'mwt-turn ai' },
+            h('div', { className: 'mwt-handoff-row', 'data-tone': st ? st.tone : undefined },
+              h('button', { type: 'button', className: 'main', onClick: () => { if (isTask) openTask(e.id); else openRoutine(e.id) } },
+                h('span', { className: 'ic' }, icon(glyph, { size: 15, className: st && st.spin ? 'spin' : undefined })),
+                h('span', { className: 'body' }, h('span', { className: 'title' }, e.title), h('span', { className: 'sub' }, sub)),
+                icon('arrow-left', { size: 13, style: { transform: 'rotate(180deg)', color: 'var(--meta)' } })),
+              st && st.failed ? h('button', { type: 'button', className: 'mwt-btn ghost', onClick: () => api('/rerun', { id: e.id }).then((d) => { refresh().then(schedulePoll); if (d.task) openTask(d.task.id) }) }, t('rerun')) : null))
         }
         return null
       }),
@@ -864,6 +896,7 @@ function makeComponents(ctx, t) {
   function Doc({ d, status, onRate, onOpenTask }) {
     return h('article', { className: 'mwt-doc' },
       d.verification && d.verification.notes ? h(Notes, { text: d.verification.notes }) : null,
+      Array.isArray(d.summary) && d.summary.length ? h('div', { className: 'mwt-result' }, d.summary.map((r, i) => h('div', { key: i, className: 'mwt-result-row' }, icon('check', { size: 14 }), h('span', { className: 'label' }, r.label), h('span', { className: 'value' }, r.value)))) : null,
       h(Markdown, { text: d.markdown }),
       h('div', { className: 'mwt-doc-actions' },
         h('button', { type: 'button', className: 'mwt-btn ghost', 'aria-pressed': d.rating === 1, onClick: () => onRate(d, 1) }, icon('check', { size: 13 }), t('ratingGood')),

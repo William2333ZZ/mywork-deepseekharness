@@ -345,7 +345,7 @@ export function createEngine({ ctx, store, deliverables, scenarios, config, log,
   function deliver(sessionId, args) {
     const t = store.bySession(String(sessionId || ''))
     if (!t) throw new Error('deliver 只能在后台任务会话里调用（这个会话不属于任何任务）。')
-    const d = deliverables.create({ taskId: t.id, title: args.title, kind: args.kind, scenario: t.scenario, markdown: args.markdown, data: args.data })
+    const d = deliverables.create({ taskId: t.id, title: args.title, kind: args.kind, scenario: t.scenario, markdown: args.markdown, data: args.data, summary: args.summary })
     // The tool/call event already recorded the 交付 step; only the status and the link change here.
     store.update(t.id, (x) => { x.deliverableIds.push(d.id); if (x.status === 'running') x.status = 'delivering' })
     emit('deliverable', store.get(t.id), d)

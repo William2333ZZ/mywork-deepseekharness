@@ -11,7 +11,7 @@ import * as SecureStore from 'expo-secure-store'
 
 export type Connection = { base: string; token: string; pairedAt: string }
 
-export type Deliverable = { id: string; title: string; kind: string; createdAt: string; rating: number | null; markdown?: string; verification?: Verification | null }
+export type Deliverable = { id: string; title: string; kind: string; createdAt: string; rating: number | null; markdown?: string; verification?: Verification | null; summary?: { label: string; value: string }[] | null }
 export type Verification = { passed: boolean | null; checked: number; issues: number; notes: string; at: string }
 export type Step = { name: string; tool?: string; count?: number; startedAt?: string; endedAt?: string }
 export type Activity =

@@ -130,6 +130,17 @@ function TaskBody({ id }: { id: string }) {
           {docs.length ? docs.map((d) => (
             <View key={d.id} style={styles.doc}>
               {d.verification && d.verification.notes ? <View style={styles.notes}><Folded text={d.verification.notes} /></View> : null}
+              {Array.isArray(d.summary) && d.summary.length ? (
+                <View style={styles.result}>
+                  {d.summary.map((r, i) => (
+                    <View key={i} style={styles.resultRow}>
+                      <Ionicons name="checkmark-outline" size={16} color={color.success} />
+                      <Text style={styles.resultLabel}>{r.label}</Text>
+                      <Text style={styles.resultValue} numberOfLines={1}>{r.value}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
               <Prose markdown={d.markdown || ''} />
               <View style={styles.docActions}>
                 <RateBtn icon="checkmark-outline" label="有用" on={d.rating === 1} onPress={() => rate(d, 1)} />
@@ -329,6 +340,10 @@ function parseArgs(raw?: string): Record<string, unknown> {
 }
 
 const styles = StyleSheet.create({
+  result: { gap: 2, marginBottom: 16, paddingVertical: 10, paddingHorizontal: 14, borderRadius: radius.lg, backgroundColor: color.surface },
+  resultRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 26 },
+  resultLabel: { fontSize: 15, fontWeight: '500', color: color.fg },
+  resultValue: { flex: 1, fontSize: 15, color: color.muted },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   body: { paddingHorizontal: space.lg, paddingTop: space.xs, paddingBottom: space.xxl },
   meta: { marginTop: space.sm, marginBottom: space.lg },

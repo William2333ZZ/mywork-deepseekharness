@@ -14,7 +14,7 @@ const FAMILIES = [
   { css: 'Geist:wght@400;500;600', name: 'Geist' },
   { css: 'Geist+Mono:wght@400;500', name: 'Geist Mono' },
   { css: 'Newsreader:opsz,wght@6..72,400;6..72,500', name: 'Newsreader' },
-  { css: 'Libre+Baskerville:ital,wght@0,400;0,700;1,400', name: 'Libre Baskerville' }, // display serif for headings (the Manus pairing); CJK headings fall back to the system serif
+  { css: 'Libre+Baskerville:wght@400;700', name: 'Libre Baskerville' }, // display serif for headings (the Manus pairing); CJK headings fall back to the system serif
   { css: 'Archivo:wght@400;500;600;800;900', name: 'Archivo' },
   { css: 'JetBrains+Mono:wght@400;500;700', name: 'JetBrains Mono' },
 ]

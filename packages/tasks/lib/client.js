@@ -397,7 +397,7 @@ body[data-ds-dark-theme] .mwt{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 .mwt-result-row{display:grid;grid-template-columns:16px auto minmax(0,1fr);column-gap:10px;align-items:baseline;min-height:26px;font-size:15px;line-height:24px}
 .mwt-result-row svg{color:var(--success);align-self:center}
 .mwt-result-row .label{font-weight:500;color:var(--fg)}
-.mwt-result-row .value{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mwt-result-row .value{color:var(--muted);min-width:0;overflow-wrap:anywhere}
 .mwt-handoff:hover{background:var(--surface)}
 .mwt-handoff[disabled]{cursor:default}
 .mwt-row-static{cursor:default}

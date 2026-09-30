@@ -196,7 +196,7 @@ export function apply(ctx, config = {}) {
         markdown: { type: 'string', required: true, description: '交付物正文（Markdown）' },
         kind: { type: 'string', description: '交付物类型：markdown（默认）| report | table | summary' },
         data: { type: 'object', description: '可选的结构化数据' },
-        summary: { type: 'array', items: { type: 'object', properties: { label: { type: 'string' }, value: { type: 'string' } }, required: ['label', 'value'] }, description: '结果的可数摘要，2 到 6 行 { label, value }（各 ≤60 字），例如 { label: "包", value: "8 个" }、{ label: "源文件", value: "57 个 · 18,420 行" }。正文里有数字、清单、表格时必须给；纯说明文才省略。' },
+        summary: { type: 'array', items: { type: 'object', properties: { label: { type: 'string' }, value: { type: 'string' } }, required: ['label', 'value'] }, description: '结果的可数摘要，2 到 6 行 { label, value }。label 是名目（≤10 字），value 只放数字、单位和最短的限定词（≤20 字，不带括号说明，口径和依据写进正文），例如 { label: "包", value: "8 个" }、{ label: "源文件", value: "57 个 · 18,420 行" }。正文里有数字、清单、表格时必须给；纯说明文才省略。' },
       },
       async execute(args, exec) {
         const sessionId = exec && exec.agent && exec.agent.session ? exec.agent.session.id : ''

@@ -13,12 +13,14 @@
  * dsh's session cookie to the gateway authority and sends it back on every request; dsh sees the
  * rewritten loopback Host it signed the cookie for. WebSocket upgrades (the RPC mux) are piped raw.
  *
- * Login stays dsh's own: the QR carries the process launch token on `GET /?token=…`, exactly like
- * the URL the desktop opens. A native app may instead present that same token as
- * `Authorization: Bearer <token>`; the gateway then attaches its own dsh session cookie (obtained once
- * with the token) to the forwarded request, so the phone never depends on the platform's cookie jar
- * (Android's store drops dsh's SameSite=Strict cookie between requests). Turning the switch off closes
- * the listener; nothing else changes.
+ * The phone never sees dsh's launch token (it changes on every start). The QR carries a separate
+ * *phone token* that the kit keeps in $DSH_HOME/mywork/lan.json across restarts. A phone browser opens
+ * `GET /?token=<phone token>` and the gateway swaps the query for the current launch token before
+ * forwarding, so dsh's own login flow runs unchanged. A native app presents the phone token as
+ * `Authorization: Bearer <phone token>`; the gateway then attaches its own dsh session cookie
+ * (obtained once with the launch token, redone on 401) to the forwarded request, so the phone never
+ * depends on the platform's cookie jar (Android's store drops dsh's SameSite=Strict cookie between
+ * requests). Turning the switch off closes the listener; nothing else changes.
  */
 import http from 'node:http'
 import net from 'node:net'
@@ -30,9 +32,11 @@ const originHost = (origin) => { try { return new URL(origin).host } catch { ret
 
 /**
  * Start the gateway. Returns the server; `close()` stops it.
- * @param {{ targetPort: number, listenPort: number, log?: (m: string) => void }} opts
+ * @param {{ targetPort: number, listenPort: number, log?: (m: string) => void, launchToken?: () => string, phoneToken?: () => string }} opts
+ *   launchToken — dsh's current launch token (loopback only; used for the gateway's own session and the query swap)
+ *   phoneToken — the persistent token the QR carries; the only secret a phone may present
  */
-export function startLanGateway({ targetPort, listenPort, log = () => {}, launchToken = () => '' }) {
+export function startLanGateway({ targetPort, listenPort, log = () => {}, launchToken = () => '', phoneToken = () => '' }) {
   const targetHost = '127.0.0.1'
   const targetAuthority = `${targetHost}:${targetPort}`
   const targetOrigin = `http://${targetAuthority}`
@@ -66,9 +70,20 @@ export function startLanGateway({ targetPort, listenPort, log = () => {}, launch
   const sessionFor = async (req) => {
     const bearer = bearerOf(req)
     if (!bearer) return { ok: true, cookie: '' }
-    if (!sameSecret(bearer, launchToken())) { const want = launchToken(); log(`bearer mismatch: got ${bearer.length} chars starting ${JSON.stringify(bearer.slice(0, 6))} ending ${JSON.stringify(bearer.slice(-4))}, want ${want.length} chars starting ${JSON.stringify(want.slice(0, 6))} ending ${JSON.stringify(want.slice(-4))}`); return { ok: false, cookie: '' } }
+    if (!sameSecret(bearer, phoneToken())) { log(`bearer mismatch: got ${bearer.length} chars ending ${JSON.stringify(bearer.slice(-4))}`); return { ok: false, cookie: '' } }
     if (!session) session = await obtainSession()
     return { ok: !!session, cookie: session }
+  }
+  // A phone browser logs in with the QR's phone token; dsh only knows the launch token, so swap the query here.
+  const forwardPath = (url) => {
+    let u
+    try { u = new URL(url, 'http://gateway') } catch { return url }
+    const t = u.searchParams.get('token')
+    if (t === null || !sameSecret(t, phoneToken())) return url
+    const launch = launchToken()
+    if (!launch) return url
+    u.searchParams.set('token', launch)
+    return u.pathname + u.search
   }
   const crossSite = (req) => {
     const origin = req.headers.origin
@@ -81,7 +96,7 @@ export function startLanGateway({ targetPort, listenPort, log = () => {}, launch
     const auth = await sessionFor(req)
     if (!auth.ok) { res.writeHead(401, { 'content-type': 'text/plain' }); res.end('bad token'); return }
     const send = (cookie, body, retry) => {
-      const up = http.request({ host: targetHost, port: targetPort, method: req.method, path: req.url, headers: rewrite(req.headers, cookie) }, (ur) => {
+      const up = http.request({ host: targetHost, port: targetPort, method: req.method, path: forwardPath(req.url), headers: rewrite(req.headers, cookie) }, (ur) => {
         if (cookie && ur.statusCode === 401 && retry) { ur.resume(); session = ''; obtainSession().then((c) => { session = c; send(c, body, false) }); return }
         res.writeHead(ur.statusCode || 502, ur.headers)
         ur.pipe(res)

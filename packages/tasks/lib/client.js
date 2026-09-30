@@ -973,6 +973,7 @@ function makeComponents(ctx, t) {
     useTick(live)
     const key = task ? task.status + ':' + task.deliverableIds.length + ':' + (live ? Math.floor(Date.now() / FAST_MS) : 0) : ''
     const [detail, setDetail] = useTaskDetail(id, key)
+    React.useEffect(() => { const el = document.querySelector('.mwt'); if (el) el.scrollTop = 0 }, [id]) // a task opens at its title, not where the last page was scrolled
     const [renaming, setRenaming] = React.useState(false)
     const [confirm, setConfirm] = React.useState(false)
     const [busy, setBusy] = React.useState(false)

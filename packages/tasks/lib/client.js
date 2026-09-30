@@ -477,7 +477,7 @@ const HIGHLIGHT_MS = 1200
 const zh = {
   mate: '同事', files: '文件',
   sayTo: '给 {name} 发消息', answerPh: '回答', send: '发送', more: '更多', stop: '停止', settings: '设置', close: '关闭', back: '返回',
-  working: '在干活', loadEarlier: '加载更早', process: '过程', phases: '步', times: '次', toolFailed: '失败', none2: '无',
+  working: '在干活', workingAria: '{name} 正在工作', file: '文件', loadEarlier: '加载更早', process: '过程', phases: '步', times: '次', toolFailed: '失败', none2: '无',
   verified: '已核验', verifyIssues: '核验发现问题', verifyFound: '核验发现 {n} 处', verifyNone: '未能核验', verifying: '核验中', checked: '核对', issues: '问题', verifyLabel: '核验', passed: '通过',
   ratingGood: '有用', ratingBad: '没用', failedTitle: '失败', stopped: '已停止', queued: '排队',
   scheduled: '已安排', remindCard: '提醒', gotIt: '知道了', acked: '已知道',
@@ -497,7 +497,7 @@ const zh = {
 const en = {
   mate: 'Teammate', files: 'Files',
   sayTo: 'Message {name}', answerPh: 'Answer', send: 'Send', more: 'More', stop: 'Stop', settings: 'Settings', close: 'Close', back: 'Back',
-  working: 'Working', loadEarlier: 'Load earlier', process: 'Process', phases: 'steps', times: 'calls', toolFailed: 'failed', none2: 'none',
+  working: 'Working', workingAria: '{name} is working', file: 'File', loadEarlier: 'Load earlier', process: 'Process', phases: 'steps', times: 'calls', toolFailed: 'failed', none2: 'none',
   verified: 'Verified', verifyIssues: 'Issues found', verifyFound: 'Verification found {n}', verifyNone: 'Not verified', verifying: 'Verifying', checked: 'checked', issues: 'issues', verifyLabel: 'Verification', passed: 'passed',
   ratingGood: 'Useful', ratingBad: 'Not useful', failedTitle: 'Failed', stopped: 'Stopped', queued: 'Queued',
   scheduled: 'Scheduled', remindCard: 'Reminder', gotIt: 'Got it', acked: 'Seen',
@@ -516,9 +516,9 @@ const en = {
 }
 
 const STYLE = `
-/* Tokens: design/v2/DESIGN.md §2 (Open Design schema names). Light default, dark twin. */
-.mwt{--bg:#ffffff;--surface:#f6f5f4;--surface-2:#efedeb;--fg:rgba(0,0,0,.92);--fg-2:#31302e;--muted:#615d59;--meta:#75706a;--border:rgba(0,0,0,.1);--border-soft:rgba(0,0,0,.06);--border-strong:rgba(0,0,0,.22);--accent:#0075de;--accent-on:#ffffff;--accent-hover:#005bab;--accent-soft:#eef6fd;--success:#127e28;--warn:#b5480a;--danger:#c0392b;--font-body:Geist,-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei UI",sans-serif;--font-mono:"Geist Mono",ui-monospace,"SF Mono",Menlo,monospace;--font-display:"Libre Baskerville","Noto Serif SC",Baskerville,"Songti SC",STSong,"Source Han Serif SC","Noto Serif CJK SC",SimSun,Georgia,serif;--radius-sm:6px;--radius-md:8px;--radius-lg:12px;--elev-raised:rgba(0,0,0,.04) 0 4px 18px,rgba(0,0,0,.027) 0 2px 7.85px,rgba(0,0,0,.02) 0 .8px 2.93px,rgba(0,0,0,.01) 0 .175px 1.04px;--focus-ring:0 0 0 3px rgba(0,117,222,.25);--motion-fast:150ms;--ease-standard:cubic-bezier(.2,0,0,1);height:100%;overflow:auto;background:var(--bg);color:var(--fg);font:15px/1.6 var(--font-body);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
-body[data-ds-dark-theme] .mwt{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a;--fg:rgba(255,255,255,.9);--fg-2:#e6e4e0;--muted:#9b9893;--meta:#8a867f;--border:rgba(255,255,255,.1);--border-soft:rgba(255,255,255,.06);--border-strong:rgba(255,255,255,.24);--accent:#529cca;--accent-on:#111111;--accent-hover:#6cb0dd;--accent-soft:rgba(82,156,202,.16);--success:#4dab7a;--warn:#e08a3c;--danger:#e26e63;--elev-raised:rgba(0,0,0,.35) 0 4px 18px,rgba(0,0,0,.25) 0 2px 8px;--focus-ring:0 0 0 3px rgba(82,156,202,.35)}
+/* Tokens: Rakazo's (packages/ui-tokens). Dark by default; a light twin only when dsh itself is light and the OS asks for light. */
+.mwt{--bg:#0b0c0e;--surface:#141518;--surface-2:#1b1c21;--input:#18191e;--bubble:#22242b;--fg:#ececee;--fg-2:#d4d4d8;--muted:#85858a;--meta:#85858a;--border:#1e2026;--border-soft:#1e2026;--border-strong:#2c2e36;--primary:#f1f1ef;--primary-on:#0b0c0e;--accent:#f1f1ef;--accent-on:#0b0c0e;--accent-hover:#ffffff;--accent-soft:rgba(241,241,239,.06);--success:#4ade80;--warn:#f0a35e;--danger:#f87171;--font-body:Geist,-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei UI",sans-serif;--font-mono:"Geist Mono",ui-monospace,"SF Mono",Menlo,monospace;--font-display:var(--font-body);--radius-sm:12px;--radius-md:12px;--radius-lg:18px;--elev-raised:0 10px 30px rgba(0,0,0,.5),0 2px 8px rgba(0,0,0,.4);--focus-ring:0 0 0 2px rgba(241,241,239,.35);--motion-fast:150ms;--ease-standard:cubic-bezier(.2,0,0,1);height:100%;overflow:auto;background:var(--bg);color:var(--fg);font:15.5px/1.6 var(--font-body);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+@media all{html[data-mywork-theme="light"] .mwt{--bg:#ffffff;--surface:#f2f2f3;--surface-2:#e9e9eb;--input:#f4f4f5;--bubble:#ebebed;--fg:#111113;--fg-2:#2a2a2e;--muted:#6b6b70;--meta:#6b6b70;--border:#e6e6e9;--border-soft:#ececee;--border-strong:#d4d4d8;--primary:#111113;--primary-on:#ffffff;--accent:#111113;--accent-on:#ffffff;--accent-hover:#2a2a2e;--accent-soft:rgba(17,17,19,.05);--success:#127e28;--warn:#b5480a;--danger:#c0392b;--elev-raised:0 10px 30px rgba(0,0,0,.08),0 2px 8px rgba(0,0,0,.05);--focus-ring:0 0 0 2px rgba(17,17,19,.25)}}
 .mwt *{box-sizing:border-box}
 .mwt :focus-visible{outline:none;box-shadow:var(--focus-ring);border-radius:var(--radius-sm)}
 .mwt textarea:focus,.mwt textarea:focus-visible,.mwt input:focus,.mwt input:focus-visible{outline:none!important;box-shadow:none!important}
@@ -535,57 +535,66 @@ body[data-ds-dark-theme] .mwt{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 /* Page */
 .mwt-page{max-width:808px;margin:0 auto;padding:40px 28px 80px}
 .mwt-title{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}
-.mwt-title h1{margin:0;font-family:var(--font-display);font-size:26px;line-height:1.35;font-weight:400}
+.mwt-title h1{margin:0;font-size:24px;line-height:1.35;font-weight:600;letter-spacing:-.01em}
 .mwt-title span{color:var(--meta);font-size:12.5px;font-family:var(--font-mono)}
 /* Buttons */
 .mwt-btn{appearance:none;display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border:0;border-radius:var(--radius-sm);background:var(--surface);color:var(--fg);font:inherit;font-size:14px;font-weight:500;letter-spacing:.01em;cursor:pointer;white-space:nowrap}
 .mwt-btn:hover{background:var(--surface-2)}
 .mwt-btn[disabled]{opacity:.4;cursor:default;transform:none}
-.mwt-btn.send{background:var(--fg);color:var(--bg)}
-.mwt-btn.send:hover{background:var(--fg-2)}
-.mwt-btn.send[disabled]{background:var(--surface-2);color:var(--meta);opacity:1}
+.mwt-btn.send{background:var(--primary);color:var(--primary-on)}
+.mwt-btn.send:hover{background:var(--accent-hover)}
+.mwt-btn.send[disabled]{background:var(--primary);color:var(--primary-on);opacity:.35}
+.mwt-btn.stop{background:transparent;color:var(--fg);box-shadow:inset 0 0 0 1.5px var(--border-strong)}
+.mwt-btn.stop:hover{background:var(--surface-2)}
 .mwt-btn.primary{background:var(--accent);color:var(--accent-on)}
 .mwt-btn.primary:hover{background:var(--accent-hover)}
 .mwt-btn.primary[disabled]{opacity:.45}
-.mwt-btn.round{width:32px;height:32px;padding:0;border-radius:50%;justify-content:center}
+.mwt-btn.round{width:34px;height:34px;padding:0;border-radius:50%;justify-content:center}
 .mwt-btn.ghost{background:transparent;color:var(--muted)}
-.mwt-btn.ghost:hover{background:var(--surface);color:var(--fg)}
+.mwt-btn.ghost:hover,.mwt-btn.ghost[aria-pressed=true]{background:var(--surface);color:var(--fg)}
 .mwt-btn.outline{background:transparent;box-shadow:inset 0 0 0 1px var(--border-strong)}
 .mwt-btn.outline:hover{background:var(--surface-2)}
 .mwt-btn.danger{color:var(--danger)}
 .mwt-btn.small{height:28px;padding:0 10px;font-size:13px;font-weight:400}
 .mwt-chips{display:flex;flex-wrap:wrap;gap:6px}
-.mwt-chip{appearance:none;border:1px solid transparent;border-radius:var(--radius-md);background:var(--surface);color:var(--muted);padding:5px 12px;font:inherit;font-size:13.5px;line-height:20px;cursor:pointer;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mwt-chip{appearance:none;border:1px solid transparent;border-radius:999px;background:var(--surface);color:var(--muted);padding:5px 12px;font:inherit;font-size:13.5px;line-height:20px;cursor:pointer;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mwt-chip:hover{color:var(--fg);background:var(--surface-2)}
 .mwt-chip[data-on=true]{color:var(--fg-2);background:var(--bg);border-color:var(--border)}
-/* Avatar: a round monochrome glyph (the first character); MyWork wears the mark. Working: a 1.5px ring whose dash turns. */
-.mwt-av{position:relative;display:inline-grid;place-items:center;flex:none;border-radius:50%;background:var(--surface-2);color:var(--fg-2);font-weight:500;line-height:1;user-select:none}
-.mwt-av.mark{background:var(--fg);color:var(--bg)}
-.mwt-av svg.glyph{display:block}
-.mwt-av-ring{position:absolute;inset:-3px;width:calc(100% + 6px);height:calc(100% + 6px);color:var(--fg-2);pointer-events:none;animation:mwt-spin 1.6s linear infinite}
-@media (prefers-reduced-motion:reduce){.mwt-av-ring circle{stroke-dasharray:none}}
+/* Avatar (Rakazo's bot avatar): a coloured shape with two eyes; working, it pulses at scale 1.04 with a glow. */
+.mwt-av{position:relative;display:inline-block;flex:none;line-height:0;user-select:none}
+.mwt-av svg{display:block;overflow:visible;transition:transform .3s;filter:drop-shadow(0 2px 4px rgba(0,0,0,.45))}
+.mwt-av[data-working=true] svg{transform:scale(1.04);filter:drop-shadow(0 0 8px var(--glow)) drop-shadow(0 0 2px #fff);animation:mwt-pulse 2s cubic-bezier(.4,0,.6,1) infinite}
+@keyframes mwt-pulse{50%{opacity:.55}}
+@media (prefers-reduced-motion:reduce){.mwt-av[data-working=true] svg{animation:none}}
 /* The mate page: header, thread, dock in one column that fills the height. */
 .mwt-page.mate{display:flex;min-height:100%;padding:0 28px}
 .mwt-page.mate>.mwt-col{flex:1}
 .mwt-col{min-width:0;display:flex;flex-direction:column;min-height:100%}
 .mwt-page.mate.split{display:grid;max-width:${SPLIT_MAX}px;grid-template-columns:minmax(${COL_MIN}px,752px) ${ASIDE_W}px;column-gap:${SPLIT_GAP}px;align-items:stretch}
-.mwt-head{position:sticky;top:0;z-index:4;display:flex;align-items:center;gap:8px;padding:14px 0 10px;background:var(--bg)}
+.mwt-head{position:sticky;top:0;z-index:4;display:flex;align-items:center;gap:4px;height:56px;padding:0;background:var(--bg)}
 .mwt-head .grow{flex:1}
-.mwt-who{appearance:none;display:flex;align-items:center;gap:10px;min-width:0;padding:4px 10px 4px 4px;border:0;border-radius:var(--radius-md);background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
+.mwt-who{appearance:none;display:flex;align-items:center;gap:10px;min-width:0;padding:4px 10px 4px 4px;border:0;border-radius:12px;background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
 .mwt-who:hover{background:var(--surface)}
 .mwt-who[aria-expanded=true]{background:var(--surface)}
-.mwt-who .name{font-family:var(--font-display);font-size:20px;line-height:28px;font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mwt-who .name{font-size:16px;line-height:24px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mwt-who .ttl{color:var(--muted);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 /* Conversation: your words in a bubble on the right, the reply as plain text. One block per run. */
-.mwt-thread{display:flex;flex-direction:column;gap:26px;padding:20px 0 8px;overflow-anchor:none}
-.mwt-run{display:flex;flex-direction:column;gap:26px;min-width:0;border-radius:var(--radius-lg);transition:background-color var(--motion-fast) var(--ease-standard),box-shadow var(--motion-fast) var(--ease-standard)}
+.mwt-thread{display:flex;flex-direction:column;gap:18px;padding:20px 0 8px;overflow-anchor:none}
+.mwt-run{display:flex;flex-direction:column;gap:14px;min-width:0;border-radius:20px;transition:background-color var(--motion-fast) var(--ease-standard),box-shadow var(--motion-fast) var(--ease-standard)}
 .mwt-run.folded{gap:10px}
-.mwt-fold{border:1px solid var(--border-soft);min-height:36px}
+.mwt-fold{border:1px solid var(--border);min-height:56px;border-radius:18px!important;background:var(--surface)}
 .mwt-run.hl{background:var(--accent-soft);box-shadow:0 0 0 12px var(--accent-soft)}
 .mwt-turn{min-width:0}
 .mwt-turn.user{display:flex;justify-content:flex-end}
-.mwt-bubble{max-width:78%;padding:11px 18px;border-radius:22px;background:var(--surface);color:var(--fg);font-size:16px;line-height:1.6;white-space:pre-wrap;word-break:break-word}
-.mwt-turn.ai{font-size:16px;line-height:1.75}
+.mwt-bubble{max-width:78%;padding:10px 16px;border-radius:20px;background:var(--bubble);color:var(--fg);font-size:15.5px;line-height:1.6;white-space:pre-wrap;word-break:break-word}
+.mwt-turn.ai{font-size:15.5px;line-height:1.65}
+/* A teammate's reply: a grey bubble on the left (Rakazo). */
+.mwt-turn.ai.bubble{align-self:flex-start;max-width:88%;padding:12px 18px;border-radius:20px;background:var(--surface)}
+.mwt-turn.ai.bubble>.mwt-deliver-meta,.mwt-turn.ai.bubble+.mwt-deliver-meta{margin-top:8px}
+.mwt-after{margin:-8px 0 0 6px}
+/* Working: the teammate's avatar pulsing at the end of the transcript, the step beside it. */
+.mwt-working{display:flex;align-items:center;gap:10px;min-height:32px;padding:2px 2px}
+.mwt-working .step{min-width:0;color:var(--muted);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:tabular-nums}
 .mwt-turn.ai .mwt-md>:first-child{margin-top:0}
 .mwt-turn.ai .mwt-md>:last-child{margin-bottom:0}
 .mwt-older{appearance:none;align-self:center;padding:4px 10px;border:0;border-radius:var(--radius-sm);background:transparent;color:var(--muted);font:inherit;font-size:13px;cursor:pointer}
@@ -601,16 +610,19 @@ button.mwt-center:hover{color:var(--fg);background:var(--surface)}
 .mwt-queued{color:var(--meta);font-size:14px;line-height:1.6}
 /* A delivery (文件卡): its title (opens the file), ✓ summary rows, the document as text, one meta line under it. No box. */
 .mwt-deliver{min-width:0}
-.mwt-file-title{appearance:none;display:inline-flex;align-items:center;gap:8px;max-width:100%;margin:0 0 12px;padding:0;border:0;background:transparent;color:var(--fg);font-family:var(--font-display);font-size:17px;line-height:1.45;font-weight:400;text-align:left;cursor:pointer}
-.mwt-file-title svg{flex:none;color:var(--meta)}
-.mwt-file-title span{min-width:0;text-decoration:underline;text-underline-offset:4px;text-decoration-color:transparent;transition:text-decoration-color var(--motion-fast) var(--ease-standard)}
-.mwt-file-title:hover span{text-decoration-color:var(--border-strong)}
+/* File card (Rakazo): 40 icon tile · name · meta, radius 18. */
+.mwt-file-title{appearance:none;display:grid;grid-template-columns:40px minmax(0,1fr);column-gap:12px;align-items:center;width:100%;max-width:420px;margin:0 0 12px;padding:10px 14px 10px 10px;border:1px solid var(--border);border-radius:18px;background:var(--bg);color:var(--fg);font:inherit;text-align:left;cursor:pointer}
+.mwt-file-title:hover{border-color:var(--border-strong)}
+.mwt-file-title .tile{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:var(--surface-2);color:var(--fg-2)}
+.mwt-file-title .nm{display:grid;min-width:0}
+.mwt-file-title .nm b{font-size:14px;line-height:20px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mwt-file-title .nm small{color:var(--muted);font-size:12px;line-height:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mwt-sum{display:grid;gap:2px;margin:0 0 16px}
-.mwt-sum-row{display:grid;grid-template-columns:16px auto minmax(0,1fr);column-gap:10px;align-items:baseline;min-height:26px;font-size:15px;line-height:24px}
+.mwt-sum-row{display:grid;grid-template-columns:16px auto minmax(0,1fr);column-gap:10px;align-items:baseline;min-height:26px;font-size:14.5px;line-height:24px}
 .mwt-sum-row svg{color:var(--success);align-self:center}
 .mwt-sum-row .label{font-weight:500;color:var(--fg)}
 .mwt-sum-row .value{color:var(--muted);min-width:0;overflow-wrap:anywhere}
-.mwt-deliver-meta{display:flex;align-items:center;flex-wrap:wrap;gap:2px 6px;margin:14px 0 0;color:var(--muted);font-size:13px;line-height:20px;font-variant-numeric:tabular-nums}
+.mwt-deliver-meta{display:flex;align-items:center;flex-wrap:wrap;gap:2px 6px;margin:6px 0 0 6px;color:var(--muted);font-size:13px;line-height:20px;font-variant-numeric:tabular-nums}
 .mwt-deliver-meta .verdict{appearance:none;display:inline-flex;align-items:center;gap:6px;padding:0;border:0;background:transparent;color:inherit;font:inherit;cursor:default;text-align:left}
 .mwt-deliver-meta .verdict[data-notes=true]{cursor:pointer}
 .mwt-deliver-meta .verdict[data-notes=true]:hover{color:var(--fg)}
@@ -623,8 +635,8 @@ button.mwt-center:hover{color:var(--fg);background:var(--surface)}
 .mwt-deliver-meta .mwt-btn[aria-pressed=true]{color:var(--fg);background:var(--surface)}
 .mwt-notes{margin:10px 0 0;font-size:13px;line-height:1.7;color:var(--muted);border-left:2px solid var(--border);padding:2px 12px;white-space:pre-wrap;word-break:break-word}
 /* 找你卡: the question a run stopped on; settled, it is one line. */
-.mwt-askcard{max-width:560px;padding:16px 16px 14px;border:1px solid var(--border-strong);border-radius:var(--radius-lg);background:var(--surface)}
-.mwt-askcard .q{font-size:15px;line-height:1.6;color:var(--fg);word-break:break-word}
+.mwt-askcard{max-width:560px;padding:16px 18px 14px;border:1px solid var(--border-strong);border-radius:20px;background:var(--surface)}
+.mwt-askcard .q{font-size:15.5px;line-height:1.6;color:var(--fg);word-break:break-word}
 .mwt-askcard .q code{font-family:var(--font-mono);font-size:12.5px;background:var(--surface-2);padding:1px 5px;border-radius:4px}
 .mwt-askcard .q a{color:var(--fg);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--border)}
 .mwt-askcard .detail{margin:10px 0 0;max-height:240px;overflow:auto;padding:10px 12px;border-radius:var(--radius-md);background:var(--surface-2);color:var(--fg-2);font:12.5px/1.6 var(--font-mono);white-space:pre-wrap;word-break:break-word}
@@ -644,7 +656,7 @@ button.mwt-center:hover{color:var(--fg);background:var(--surface)}
 .mwt-askline[data-tone=success]{color:var(--success)}
 .mwt-askline span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* 提醒卡: only you can do it; one 知道了. */
-.mwt-remind{display:flex;align-items:center;gap:10px;max-width:560px;min-height:52px;padding:10px 10px 10px 16px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface)}
+.mwt-remind{display:flex;align-items:center;gap:10px;max-width:560px;min-height:52px;padding:10px 10px 10px 16px;border:1px solid var(--border);border-radius:20px;background:var(--surface)}
 .mwt-remind .ic{display:flex;color:var(--fg-2)}
 .mwt-remind .txt{flex:1;min-width:0;font-size:15px;line-height:22px;word-break:break-word}
 /* 过程: folded per run. */
@@ -678,35 +690,38 @@ button.mwt-phase-head:hover .verb,button.mwt-phase-head:hover .obj{color:var(--f
 .mwt-ev .verb{font-weight:500;color:var(--fg-2)}
 .mwt-ev .obj{color:var(--muted);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
 .mwt-ev .result{color:var(--danger);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-/* Dock: a raised pill holding the field. It never changes colour. */
+/* Composer (Rakazo): a rounded-full pill; a cream circular send; Stop beside it while working. */
 .mwt-dock{position:sticky;bottom:0;z-index:3;margin-top:auto;padding:12px 0 20px;background:linear-gradient(to top,var(--bg) 70%,transparent)}
-.mwt-say{display:flex;align-items:flex-end;gap:8px;border:1px solid var(--border);border-radius:24px;background:var(--bg);padding:8px 8px 8px 20px;box-shadow:0 1px 2px color-mix(in srgb,var(--fg) 4%,transparent),0 6px 20px color-mix(in srgb,var(--fg) 5%,transparent)}
-.mwt-say textarea{flex:1 1 0;min-width:0;display:block;min-height:36px;max-height:200px;resize:none;border:0;outline:0;background:transparent;color:inherit;font:inherit;font-size:16px;line-height:26px;padding:5px 0}
-.mwt-say textarea::placeholder{color:var(--meta)}
-.mwt-say .mwt-btn.send{flex:none}
+.mwt-say{display:flex;align-items:flex-end;gap:6px;border:1px solid var(--border);border-radius:999px;background:var(--input);padding:6px 6px 6px 20px}
+.mwt-say:focus-within{border-color:var(--border-strong)}
+.mwt-say textarea{flex:1 1 0;min-width:0;display:block;min-height:34px;max-height:200px;resize:none;border:0;outline:0;background:transparent;color:inherit;font:inherit;font-size:15.5px;line-height:24px;padding:5px 0}
+.mwt-say textarea::placeholder{color:var(--muted)}
+.mwt-say .mwt-btn.round{flex:none}
 .mwt-say-err{display:block;color:var(--danger);font-size:12.5px;padding:6px 2px 0}
 /* Menu (the header's ···). */
 .mwt-menu{position:relative}
-.mwt-menu-pop{position:absolute;right:0;top:36px;min-width:160px;padding:4px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--bg);box-shadow:var(--elev-raised);z-index:6;display:grid}
+.mwt-menu-pop{position:absolute;right:0;top:38px;min-width:160px;padding:4px;border:1px solid var(--border);border-radius:16px;background:var(--surface);box-shadow:var(--elev-raised);z-index:6;display:grid}
 .mwt-menu-pop button{appearance:none;display:flex;align-items:center;gap:8px;height:32px;padding:0 10px;border:0;border-radius:var(--radius-sm);background:transparent;color:var(--fg);font:inherit;font-size:13px;text-align:left;cursor:pointer}
-.mwt-menu-pop button:hover{background:var(--surface)}
+.mwt-menu-pop button:hover{background:var(--surface-2)}
 /* Right panel: beside the thread as a grid column when the page has room, else a slide-over at its right edge (no mask). */
-.mwt-aside{display:flex;flex-direction:column;min-height:0;background:var(--bg)}
-.mwt-aside.col{position:sticky;top:16px;align-self:start;margin-top:16px;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
-.mwt-aside-head{display:flex;align-items:center;gap:8px;flex:none;height:44px;padding:0 8px 0 14px;border-bottom:1px solid var(--border-soft)}
-.mwt-aside-head .title{flex:1;min-width:0;color:var(--muted);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mwt-aside{display:flex;flex-direction:column;min-height:0;background:var(--surface)}
+.mwt-aside.col{position:sticky;top:12px;align-self:start;margin-top:12px;border:1px solid var(--border);border-radius:20px;overflow:hidden}
+.mwt-aside-head{display:flex;align-items:center;gap:8px;flex:none;height:48px;padding:0 8px 0 16px;border-bottom:1px solid var(--border)}
+.mwt-aside-head .title{flex:1;min-width:0;color:var(--fg);font-size:14px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mwt-aside-head .mwt-btn.round{width:28px;height:28px}
-.mwt-aside-body{flex:1;min-height:0;overflow:auto;padding:10px 14px 16px}
+.mwt-aside-body{flex:1;min-height:0;overflow:auto;padding:12px 14px 16px}
 .mwt-aside-dock{position:sticky;top:0;height:0;z-index:6}
 .mwt-aside-clip{position:absolute;top:0;right:0;display:flex;justify-content:flex-end;width:min(${ASIDE_W + 24}px,100%);overflow:hidden;pointer-events:none}
 .mwt-aside.over{width:min(${ASIDE_W}px,100%);height:100%;border-left:1px solid var(--border);box-shadow:var(--elev-raised);pointer-events:auto;transform:translateX(100%);visibility:hidden;transition:transform var(--motion-fast) var(--ease-standard),visibility 0s linear var(--motion-fast)}
 .mwt-aside.over[data-open=true]{transform:none;visibility:visible;transition:transform var(--motion-fast) var(--ease-standard),visibility 0s}
 .mwt-sec{padding:6px 0 14px}
 .mwt-sec+.mwt-sec{border-top:1px solid var(--border-soft);padding-top:14px}
+.mwt-sec h2 .grow{flex:1}
+.mwt-sec h2 .mwt-btn.round{width:26px;height:26px}
 .mwt-sec h2{display:flex;align-items:center;gap:6px;margin:0 0 6px 2px;font-size:12.5px;line-height:18px;font-weight:500;letter-spacing:.02em;color:var(--muted)}
 .mwt-alist{display:grid}
-.mwt-arow{appearance:none;display:grid;grid-template-columns:18px minmax(0,1fr) auto;column-gap:10px;align-items:center;width:100%;min-height:40px;padding:7px 8px;border:0;border-radius:var(--radius-md);background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
-.mwt-arow:hover,.mwt-arow[aria-expanded=true]{background:var(--surface)}
+.mwt-arow{appearance:none;display:grid;grid-template-columns:18px minmax(0,1fr) auto;column-gap:10px;align-items:center;width:100%;min-height:40px;padding:7px 10px;border:0;border-radius:16px;background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
+.mwt-arow:hover,.mwt-arow[aria-expanded=true]{background:var(--surface-2)}
 .mwt-arow.static{cursor:default}
 .mwt-arow.static:hover{background:transparent}
 .mwt-arow .ic{display:flex;align-items:center;justify-content:center;color:var(--meta)}
@@ -716,7 +731,7 @@ button.mwt-phase-head:hover .verb,button.mwt-phase-head:hover .obj{color:var(--f
 .mwt-arow .s{font-size:12.5px;line-height:18px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mwt-arow .m{font-size:12px;color:var(--meta);white-space:nowrap;font-variant-numeric:tabular-nums}
 .mwt-arow[data-off=true] .t{color:var(--meta)}
-.mwt-rdetail{margin:2px 0 8px;padding:10px 10px 8px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--bg)}
+.mwt-rdetail{margin:2px 0 8px;padding:10px 10px 8px;border:1px solid var(--border);border-radius:18px;background:var(--bg)}
 .mwt-rdetail .acts{display:flex;flex-wrap:wrap;gap:4px;margin:8px 0 4px}
 .mwt-rdetail .runs{margin:6px 0 0;border-top:1px solid var(--border-soft);padding-top:6px}
 .mwt-confirm{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:6px 0;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface);font-size:13px}
@@ -724,26 +739,26 @@ button.mwt-phase-head:hover .verb,button.mwt-phase-head:hover .obj{color:var(--f
 /* Fields */
 .mwt-field{display:grid;gap:4px;margin:0 0 12px}
 .mwt-field>span{font-size:12.5px;line-height:18px;color:var(--muted)}
-.mwt-input{display:block;width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--bg);color:var(--fg);font:inherit;font-size:14px;line-height:20px;transition:border-color var(--motion-fast) var(--ease-standard)}
+.mwt-input{display:block;width:100%;padding:8px 14px;border:1px solid var(--border);border-radius:999px;background:var(--input);color:var(--fg);font:inherit;font-size:14px;line-height:20px;transition:border-color var(--motion-fast) var(--ease-standard)}
 .mwt-input:focus{border-color:var(--border-strong)}
 .mwt-input::placeholder{color:var(--meta)}
-textarea.mwt-input{resize:vertical;min-height:72px;line-height:1.6}
+textarea.mwt-input{resize:vertical;min-height:72px;line-height:1.6;border-radius:16px}
 .mwt-switch-row{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:36px;font-size:14px}
 .mwt-switch{appearance:none;position:relative;flex:none;width:32px;height:18px;padding:0;border:0;border-radius:9px;background:var(--border-strong);cursor:pointer}
-.mwt-switch::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--bg);transition:transform var(--motion-fast) var(--ease-standard)}
-.mwt-switch[aria-checked=true]{background:var(--fg)}
+.mwt-switch::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--primary-on);transition:transform var(--motion-fast) var(--ease-standard)}
+.mwt-switch[aria-checked=true]{background:var(--primary)}
 .mwt-switch[aria-checked=true]::after{transform:translateX(14px)}
 .mwt-field-err{color:var(--danger);font-size:12.5px;margin:-6px 0 10px}
 /* Lists on the files page: one row recipe. */
 .mwt-filters{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 14px}
-.mwt-search{display:flex;align-items:center;gap:6px;flex:1 1 180px;min-width:0;max-width:320px;height:32px;padding:0 10px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--bg);color:var(--meta)}
+.mwt-search{display:flex;align-items:center;gap:6px;flex:1 1 180px;min-width:0;max-width:320px;height:34px;padding:0 12px;border:1px solid var(--border);border-radius:999px;background:var(--input);color:var(--meta)}
 .mwt-search:focus-within{border-color:var(--border-strong)}
 .mwt-search input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:var(--fg);font:inherit;font-size:13.5px}
 .mwt-search input::-webkit-search-cancel-button{-webkit-appearance:none}
-.mwt-list{display:grid;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;background:var(--bg)}
+.mwt-list{display:grid;border:1px solid var(--border);border-radius:18px;overflow:hidden;background:var(--surface)}
 .mwt-row{appearance:none;display:grid;grid-template-columns:20px minmax(0,1fr) auto;align-items:center;column-gap:12px;min-height:48px;padding:12px 16px;border:0;border-top:1px solid var(--border-soft);background:transparent;color:inherit;font:inherit;text-align:left;width:100%;cursor:pointer}
 .mwt-row:first-child{border-top:0}
-.mwt-row:hover{background:var(--surface)}
+.mwt-row:hover{background:var(--surface-2)}
 .mwt-row:focus-visible{box-shadow:inset var(--focus-ring);border-radius:0}
 .mwt-row .ic{display:flex;align-items:center;justify-content:center;color:var(--meta)}
 .mwt-row .ic[data-tone=success]{color:var(--success)}
@@ -751,27 +766,26 @@ textarea.mwt-input{resize:vertical;min-height:72px;line-height:1.6}
 .mwt-row .m{color:var(--meta);font-size:13px;white-space:nowrap;font-variant-numeric:tabular-nums}
 .mwt-toolbar{display:flex;align-items:center;gap:4px;margin:0 0 12px}
 .mwt-toolbar .grow{flex:1}
-.mwt-doc-title{margin:4px 0 6px;font-family:var(--font-display);font-size:26px;line-height:1.35;font-weight:400}
+.mwt-doc-title{margin:4px 0 6px;font-size:24px;line-height:1.35;font-weight:600;letter-spacing:-.01em}
 .mwt-doc-meta{margin:0 0 22px;color:var(--meta);font-size:13px;font-variant-numeric:tabular-nums}
 /* Markdown */
-.mwt-md{font-size:16px;line-height:1.75;color:var(--fg)}
+.mwt-md{font-size:15.5px;line-height:1.65;color:var(--fg)}
 .mwt-md>:first-child{margin-top:0}
 .mwt-md h2,.mwt-md h3,.mwt-md h4{margin:22px 0 8px;font-weight:600;line-height:1.4}
-.mwt-md h1,.mwt-md h2{font-family:var(--font-display);font-weight:400}
-.mwt-md h2{font-size:20px}.mwt-md h3{font-size:16px}.mwt-md h4{font-size:15px}
+.mwt-md h2{font-size:18px}.mwt-md h3{font-size:16px}.mwt-md h4{font-size:15px}
 .mwt-md p{margin:0 0 12px;max-width:65ch}.mwt-md ul,.mwt-md ol{margin:0 0 12px;padding-left:22px}.mwt-md li{margin:2px 0}
-.mwt-md code{font-family:var(--font-mono);font-size:12.5px;background:var(--surface);padding:1px 5px;border-radius:4px}
-.mwt-md pre{background:var(--surface);border-radius:var(--radius-md);padding:12px 14px;overflow:auto;margin:0 0 12px}.mwt-md pre code{background:transparent;padding:0}
+.mwt-md code{font-family:var(--font-mono);font-size:12.5px;background:var(--surface-2);padding:1px 5px;border-radius:4px}
+.mwt-md pre{background:var(--bg);border-radius:var(--radius-md);padding:12px 14px;overflow:auto;margin:0 0 12px}.mwt-md pre code{background:transparent;padding:0}
 .mwt-md table{border-collapse:collapse;margin:0 0 16px;font-size:14px;font-variant-numeric:tabular-nums}
 .mwt-md th,.mwt-md td{padding:6px 12px;text-align:left;border-bottom:1px solid var(--border-soft)}
-.mwt-md th{font-weight:500;color:var(--muted);font-size:12.5px;letter-spacing:.02em;background:var(--surface)}
+.mwt-md th{font-weight:500;color:var(--muted);font-size:12.5px;letter-spacing:.02em;background:var(--surface-2)}
 .mwt-md blockquote{margin:0 0 12px;padding:2px 14px;border-left:2px solid var(--border);color:var(--muted)}
 .mwt-md hr{border:0;border-top:1px solid var(--border-soft);margin:18px 0}
 .mwt-md a{color:var(--fg);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--border)}
 .mwt-md strong{font-weight:600}
 /* Toasts */
 .mwt-toasts{position:fixed;right:16px;bottom:16px;z-index:10050;display:grid;gap:8px;max-width:380px;padding:0!important;height:auto!important;overflow:visible!important;background:transparent!important}
-.mwt-toast{display:grid;grid-template-columns:28px minmax(0,1fr) auto;column-gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--bg);color:var(--fg);box-shadow:var(--elev-raised);font-size:13px;line-height:18px;animation:mwt-in var(--motion-fast) var(--ease-standard)}
+.mwt-toast{display:grid;grid-template-columns:28px minmax(0,1fr) auto;column-gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--border);border-radius:18px;background:var(--surface);color:var(--fg);box-shadow:var(--elev-raised);font-size:13px;line-height:18px;animation:mwt-in var(--motion-fast) var(--ease-standard)}
 @keyframes mwt-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .mwt-toast b{display:block;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mwt-toast span.sub{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
@@ -1000,18 +1014,36 @@ function safeName(s) { return String(s || 'deliverable').replace(/[\\/:*?"<>|]+/
 const defaultMateOf = (mates) => (mates || []).find((m) => m.isDefault) || mateOrder(mates)[0] || null
 const fileGlyph = (d) => (d && (d.kind === 'sheet' || d.kind === 'table') ? 'sheet' : d && d.kind === 'report' ? 'file-text' : 'file')
 
-/** The MyWork mark: an M whose last stroke turns into a check. */
-function markSvg(size) {
-  return h('svg', { className: 'glyph', viewBox: '0 0 24 24', width: size, height: size, fill: 'none', 'aria-hidden': 'true' },
-    h('path', { d: 'M4.5 18.5V7l5.5 6.5L15.5 7M10.5 17l3 3 6-6', stroke: 'currentColor', strokeWidth: 3.4, strokeLinecap: 'round', strokeLinejoin: 'round' }))
-}
-/** A teammate's round glyph; `working` draws the turning ring (static under reduced motion). */
+/** Rakazo's bot palette (packages/core bot-avatar-colors): light → dark gradient, eye colour. */
+const AVATAR_COLORS = [['#A97EFE', '#7C3AED', '#FFFFFF'], ['#00C972', '#059669', '#FFFFFF'], ['#FF781C', '#EA580C', '#FFFFFF'], ['#1CC3B0', '#0284C7', '#FFFFFF'], ['#2A92FE', '#1D4ED8', '#FFFFFF'], ['#FFAF38', '#D97706', '#141414'], ['#A27952', '#78350F', '#FFFFFF'], ['#FF3E51', '#BE123C', '#FFFFFF'], ['#FF5EB1', '#BE185D', '#FFFFFF'], ['#94A3B8', '#475569', '#FFFFFF']]
+/** Rakazo's shippedHash (FNV-1a). */
+function avatarHash(v) { let x = 2166136261; for (let i = 0; i < v.length; i++) x = Math.imul(x ^ v.charCodeAt(i), 16777619); return x >>> 0 }
+/** Simple stand-ins for Rakazo's shapes, in a 100 box: blob, squircle, pebble. */
+const AVATAR_SHAPES = ['M50 4a46 46 0 1 1 0 92a46 46 0 1 1 0-92Z', 'M34 4h32c20 0 30 10 30 30v32c0 20-10 30-30 30H34C14 96 4 86 4 66V34C4 14 14 4 34 4Z', 'M50 8c28 0 46 14 46 40s-18 44-46 44S4 74 4 48 22 8 50 8Z']
+let avatarSeq = 0
+/**
+ * A teammate's avatar (Rakazo's bot avatar): a coloured shape picked from its id with two eyes; MyWork keeps its mark in
+ * the same frame. `working` pulses it at scale 1.04 with a glow (static under reduced motion).
+ */
 function Avatar({ mate, size, working }) {
   const s = size || 28
   const m = mate || {}
-  return h('span', { className: 'mwt-av' + (m.isDefault ? ' mark' : ''), style: { width: s, height: s, fontSize: Math.round(s * 0.46) }, 'aria-hidden': 'true' },
-    m.isDefault ? markSvg(Math.round(s * 0.62)) : initialOf(m.name),
-    working ? h('svg', { className: 'mwt-av-ring', viewBox: '0 0 34 34', fill: 'none' }, h('circle', { cx: 17, cy: 17, r: 16, stroke: 'currentColor', strokeWidth: 1.5, strokeDasharray: '22 9', strokeLinecap: 'round' })) : null)
+  const [gid] = React.useState(() => 'mwtav' + String(++avatarSeq))
+  if (m.isDefault) {
+    return h('span', { className: 'mwt-av', 'data-working': working ? 'true' : undefined, style: { '--glow': '#f1f1ef' }, 'aria-hidden': 'true' },
+      h('svg', { viewBox: '0 0 100 100', width: s, height: s },
+        h('circle', { cx: 50, cy: 50, r: 46, fill: 'var(--primary)' }),
+        h('svg', { x: 20, y: 20, width: 60, height: 60, viewBox: '0 0 24 24', fill: 'none' },
+          h('path', { d: 'M4.5 18.5V7l5.5 6.5L15.5 7M10.5 17l3 3 6-6', stroke: 'var(--primary-on)', strokeWidth: 3.2, strokeLinecap: 'round', strokeLinejoin: 'round' }))))
+  }
+  const hash = avatarHash(String(m.id || m.name || 'mate'))
+  const [light, dark, eye] = AVATAR_COLORS[hash % AVATAR_COLORS.length]
+  const shape = AVATAR_SHAPES[(Math.imul(hash ^ (hash >>> 16), 73244475) >>> 0) % AVATAR_SHAPES.length]
+  return h('span', { className: 'mwt-av', 'data-working': working ? 'true' : undefined, style: { '--glow': light }, 'aria-hidden': 'true' },
+    h('svg', { viewBox: '0 0 100 100', width: s, height: s },
+      h('defs', null, h('linearGradient', { id: gid, x1: 0, y1: 0, x2: 1, y2: 1 }, h('stop', { offset: '0%', stopColor: light }), h('stop', { offset: '100%', stopColor: dark }))),
+      h('path', { d: shape, fill: 'url(#' + gid + ')' }),
+      h('g', { fill: eye }, h('ellipse', { cx: 37.3, cy: 46.5, rx: 4.4, ry: 3.1 }), h('ellipse', { cx: 62.7, cy: 46.5, rx: 4.4, ry: 3.1 }))))
 }
 
 // ---- components -------------------------------------------------------------
@@ -1047,7 +1079,7 @@ function makeComponents(ctx, t) {
    */
   function Doc({ d, titled }) {
     return h('div', { className: 'mwt-deliver' },
-      titled ? h('button', { type: 'button', className: 'mwt-file-title', onClick: () => openFiles(d.id) }, icon(fileGlyph(d), { size: 16 }), h('span', null, d.title || d.id)) : null,
+      titled ? h('button', { type: 'button', className: 'mwt-file-title', onClick: () => openFiles(d.id) }, h('span', { className: 'tile' }, icon(fileGlyph(d), { size: 18 })), h('span', { className: 'nm' }, h('b', null, d.title || d.id), h('small', null, [t('file'), fmtWhen(d.createdAt)].filter(Boolean).join(' · ')))) : null,
       Array.isArray(d.summary) && d.summary.length ? h('div', { className: 'mwt-sum' }, d.summary.map((r, i) => h('div', { key: i, className: 'mwt-sum-row' }, icon('check', { size: 14 }), h('span', { className: 'label' }, r.label), h('span', { className: 'value' }, r.value)))) : null,
       h(Markdown, { text: d.markdown || '' }))
   }
@@ -1413,18 +1445,22 @@ function makeComponents(ctx, t) {
       if (e.kind === 'scheduled') return h('button', { key: e.key, type: 'button', className: 'mwt-center', onClick: () => showAside(true, { mode: 'mate', section: 'routines', routineId: e.routineId }) }, t('scheduled') + ' · ' + [e.scheduleLabel, e.title].filter(Boolean).join(' '))
       if (e.kind === 'remind') return h('div', { key: e.key, className: 'mwt-turn ai' }, h(RemindCard, { e, onAck: ack }))
       if (e.kind === 'user') return h('div', { key: e.key, className: 'mwt-turn user' }, h('div', { className: 'mwt-bubble' }, e.text))
-      if (e.kind === 'deliver') return h('div', { key: e.key, className: 'mwt-turn ai' }, h(DeliverBody, { d: e.d, titled: true }), h(DeliverMeta, { d: e.d, verify: e.verify, onRate: rate }))
-      if (e.kind === 'text') return h('div', { key: e.key, className: 'mwt-turn ai' }, h(Markdown, { text: e.text }))
+      if (e.kind === 'deliver') return h(React.Fragment, { key: e.key }, h('div', { className: 'mwt-turn ai bubble' }, h(DeliverBody, { d: e.d, titled: true })), h('div', { className: 'mwt-after' }, h(DeliverMeta, { d: e.d, verify: e.verify, onRate: rate })))
+      if (e.kind === 'text') return h('div', { key: e.key, className: 'mwt-turn ai bubble' }, h(Markdown, { text: e.text }))
       if (e.kind === 'ask') return h('div', { key: e.key, className: 'mwt-turn ai' }, h(AskCard, { e, onAnswer: answer(run.id), onTakeover: takeover }))
       if (e.kind === 'auto') return h('div', { key: e.key, className: 'mwt-turn ai' }, h('div', { className: 'mwt-askline' }, h('span', null, t('askAuto'))))
-      if (e.kind === 'thinking') return h('div', { key: e.key, className: 'mwt-turn ai mwt-thinking' }, h('span', null, [t('working'), e.step, elapsedOf(run)].filter(Boolean).join(' · ')))
+      if (e.kind === 'thinking') return h('div', { key: e.key, className: 'mwt-turn ai mwt-working', role: 'status', 'aria-label': t('workingAria').replace('{name}', mate.name || '') }, h(Avatar, { mate, size: 28, working: true }), h('span', { className: 'step mwt-thinking' }, h('span', null, [e.step, elapsedOf(run)].filter(Boolean).join(' · '))))
       if (e.kind === 'queued') return h('div', { key: e.key, className: 'mwt-turn ai mwt-queued' }, t('queued'))
       if (e.kind === 'stopped') return h('div', { key: e.key, className: 'mwt-center' }, t('stopped'))
       if (e.kind === 'failed') return h('div', { key: e.key, className: 'mwt-turn ai mwt-failed' }, t('failedTitle') + ' · ' + e.reason)
       return null
     }
 
-    const title = aside.mode === 'new-mate' ? t('newMate') : mate.name
+    // Two modes (Rakazo): 设置 through the name, 电脑 (screen or folder + 例行) through the monitor button.
+    const panelMode = aside.mode === 'new-mate' ? 'new-mate' : aside.section === 'settings' ? 'settings' : 'computer'
+    const settingsOpen = shown && panelMode === 'settings'
+    const computerOpen = shown && panelMode === 'computer'
+    const title = panelMode === 'new-mate' ? t('newMate') : panelMode === 'settings' ? t('settings') : [t('computer'), running ? t('working') : ''].filter(Boolean).join(' · ')
     const asideBody = () => aside.mode === 'new-mate'
       ? h(NewMateForm, { onCreated: (m) => { setAside((a) => ({ ...a, open: false, mode: 'mate', seq: a.seq + 1 })); if (getNav().mateId !== m.id) openMate(m.id) } })
       : h(MatePanel, { mate, live, screen, renderSlot, section: aside.section, routineId: aside.routineId, seq: aside.seq, onJump: (runId) => { jump.current = { id: runId, tries: 0 }; setJumpSeq((x) => x + 1) } })
@@ -1444,11 +1480,11 @@ function makeComponents(ctx, t) {
       h('div', { className: 'mwt-page mate' + (shown && split ? ' split' : '') },
         h('div', { className: 'mwt-col' },
           h('header', { className: 'mwt-head' },
-            h('button', { type: 'button', className: 'mwt-who', 'aria-expanded': shown && aside.mode === 'mate', onClick: () => showAside(!(shown && aside.mode === 'mate'), { mode: 'mate', section: '', routineId: '' }) },
-              h(Avatar, { mate, size: 28, working: running }),
-              h('span', { className: 'name' }, mate.name),
-              mate.title ? h('span', { className: 'ttl' }, mate.title) : null),
+            h('button', { type: 'button', className: 'mwt-who', 'aria-expanded': settingsOpen, title: mate.title || undefined, onClick: () => showAside(!settingsOpen, { mode: 'mate', section: 'settings', routineId: '' }) },
+              h(Avatar, { mate, size: 26, working: running }),
+              h('span', { className: 'name' }, mate.name)),
             h('span', { className: 'grow' }),
+            h('button', { type: 'button', className: 'mwt-btn ghost round', 'aria-label': t('computer'), 'aria-pressed': computerOpen, title: t('computer'), onClick: () => showAside(!computerOpen, { mode: 'mate', section: 'computer', routineId: '' }) }, icon('monitor', { size: 16 })),
             h(Menu, { items: menu })),
           !th.loaded ? h(Skeleton, { rows: 3 })
             : th.error ? h('div', { className: 'mwt-retry' }, h('span', null, t('loadFailed')), h('button', { type: 'button', className: 'mwt-btn', onClick: th.reload }, t('retry')))
@@ -1465,7 +1501,7 @@ function makeComponents(ctx, t) {
                       const open = opened.has(e.d.id)
                       return h('div', { key: e.key, className: 'mwt-turn ai' },
                         h(FoldRow, { d: e.d, verify: e.verify, open, onToggle: () => toggleOpen(e.d.id) }),
-                        open ? h(DeliverBody, { d: e.d, titled: false }) : null,
+                        open ? h('div', { className: 'mwt-turn ai bubble', style: { marginTop: 8 } }, h(DeliverBody, { d: e.d, titled: false })) : null,
                         open ? h(DeliverMeta, { d: e.d, verify: e.verify, onRate: rate }) : null)
                     }))
                 }
@@ -1474,7 +1510,7 @@ function makeComponents(ctx, t) {
                   hasProcess(run) ? h(Process, { run, live: isLive(run) }) : null)
               }),
               pending.text ? h('div', { className: 'mwt-turn user' }, h('div', { className: 'mwt-bubble' }, pending.text)) : null),
-          h('div', { className: 'mwt-dock' }, h(Dock, { key: mate.id, mate, targetId: mate.id, textAsk, answering: mate.state === 'waiting' || !!textAsk, onPending: (text) => { atBottom.current = true; setPending({ text, at: text ? Date.now() : 0 }) }, onSent: () => { th.reload(); kick() } }))),
+          h('div', { className: 'mwt-dock' }, h(Dock, { key: mate.id, mate, targetId: mate.id, running, onStop: stop, textAsk, answering: mate.state === 'waiting' || !!textAsk, onPending: (text) => { atBottom.current = true; setPending({ text, at: text ? Date.now() : 0 }) }, onSent: () => { th.reload(); kick() } }))),
         shown && split ? asidePanel('col') : null))
   }
 
@@ -1483,7 +1519,7 @@ function makeComponents(ctx, t) {
    * run; working: steers the run; waiting: answers the question. Enter sends; what you sent shows at once as a bubble,
    * except an answer (`answering`), which lands as the question's 「已回答」 line when the thread comes back.
    */
-  function Dock({ mate, targetId, textAsk, answering, onPending, onSent }) {
+  function Dock({ mate, targetId, textAsk, answering, running, onStop, onPending, onSent }) {
     const [text, setText] = React.useState('')
     const [busy, setBusy] = React.useState(false)
     const [err, setErr] = React.useState('')
@@ -1502,7 +1538,8 @@ function makeComponents(ctx, t) {
     return h('div', null,
       h('div', { className: 'mwt-say' },
         h('textarea', { ref, value: text, rows: 1, placeholder: textAsk ? t('answerPh') : t('sayTo').replace('{name}', mate.name || ''), 'aria-label': textAsk ? t('answerPh') : t('sayTo').replace('{name}', mate.name || ''), onChange: (e) => setText(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); submit() } } }),
-        h('button', { type: 'button', className: 'mwt-btn send round', 'aria-label': t('send'), disabled: busy || !text.trim(), onClick: submit }, icon(busy ? 'loader' : 'arrow-up', { size: 15 }))),
+        running && onStop ? h('button', { type: 'button', className: 'mwt-btn stop round', 'aria-label': t('stop'), title: t('stop'), onClick: onStop }, icon('square', { size: 13 })) : null,
+        h('button', { type: 'button', className: 'mwt-btn send round', 'aria-label': t('send'), disabled: busy || !text.trim(), onClick: submit }, icon(busy ? 'loader' : 'arrow-up', { size: 16, strokeWidth: 2 }))),
       err ? h('small', { className: 'mwt-say-err' }, err) : null)
   }
 
@@ -1515,11 +1552,14 @@ function makeComponents(ctx, t) {
       const el = ref.current.querySelector('[data-sec="' + section + '"]')
       if (el && typeof el.scrollIntoView === 'function') { try { el.scrollIntoView({ block: 'start' }) } catch {} }
     }, [seq])
+    const addRef = React.useRef(null)
+    if (section === 'settings') return h('div', { ref }, h('section', { className: 'mwt-sec', 'data-sec': 'settings' }, h(MateSettings, { key: mate.id, mate })))
     return h('div', { ref },
-      h('section', { className: 'mwt-sec', 'data-sec': 'computer' }, h('h2', null, t('computer')),
+      h('section', { className: 'mwt-sec', 'data-sec': 'computer' },
         screen ? renderSlot(ASIDE_SLOT, { task: live, deliverables: (live && live.deliverables) || [], live: isLive(live) }, { only: screen.id }) : h(MateFiles, { mate })),
-      h('section', { className: 'mwt-sec', 'data-sec': 'routines' }, h('h2', null, t('routines')), h(MateRoutines, { mate, expand: routineId, seq, onJump })),
-      h('section', { className: 'mwt-sec', 'data-sec': 'settings' }, h('h2', null, t('settings')), h(MateSettings, { key: mate.id, mate })))
+      h('section', { className: 'mwt-sec', 'data-sec': 'routines' },
+        h('h2', null, t('routines'), h('span', { className: 'grow' }), h('button', { type: 'button', className: 'mwt-btn ghost round', 'aria-label': t('newRoutine'), title: t('newRoutine'), onClick: () => { if (addRef.current) addRef.current.focus() } }, icon('plus', { size: 14 }))),
+        h(MateRoutines, { mate, expand: routineId, seq, onJump, addRef })))
   }
 
   /**
@@ -1545,7 +1585,7 @@ function makeComponents(ctx, t) {
    * 例行: rows (glyph · title · schedule · 下次 / 已暂停). A row opens in place: the sentence (saved on blur), 现在跑一次,
    * 暂停 / 恢复, 删除 (with a confirm line), the last ten runs (a run with a result jumps to it in the thread). 新例行 below.
    */
-  function MateRoutines({ mate, expand, seq, onJump }) {
+  function MateRoutines({ mate, expand, seq, onJump, addRef }) {
     const [items, setItems] = React.useState(null)
     const [open, setOpen] = React.useState(expand || '')
     const [draft, setDraft] = React.useState('')
@@ -1577,7 +1617,7 @@ function makeComponents(ctx, t) {
           open === r.id ? h(RoutineDetail, { r, reload: () => { load(); kick() }, onRemoved: () => { setOpen(''); load(); kick() }, onJump }) : null)))
         : h('div', { className: 'mwt-empty' }, t('noRoutines')),
       h('div', { style: { marginTop: 10 } },
-        h('input', { className: 'mwt-input', value: draft, placeholder: t('newRoutinePh'), 'aria-label': t('newRoutine'), disabled: busy, onChange: (e) => setDraft(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); create() } } }),
+        h('input', { ref: addRef, className: 'mwt-input', value: draft, placeholder: t('newRoutinePh'), 'aria-label': t('newRoutine'), disabled: busy, onChange: (e) => setDraft(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); create() } } }),
         err ? h('div', { className: 'mwt-field-err', style: { margin: '6px 0 0' } }, err) : null))
   }
 
@@ -1774,8 +1814,6 @@ exports.inject = ['slots', 'locale', 'layout']
 exports.apply = function apply(ctx) {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), PLUGIN + ': dictionaries')
   ctx.effect(() => { if (document.querySelector('link[data-mywork-fonts]')) return () => {}; const link = document.createElement('link'); link.rel = 'stylesheet'; link.href = '/mywork-shell/fonts.css'; link.setAttribute('data-mywork-fonts', ''); document.head.appendChild(link); return () => { link.remove() } }, PLUGIN + ': fonts')
-  // CJK display serif for titles; offline it falls back to the system serif named in --font-display.
-  ctx.effect(() => { if (document.querySelector('link[data-mywork-display-cjk]')) return () => {}; const link = document.createElement('link'); link.rel = 'stylesheet'; link.href = 'https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500&display=swap'; link.setAttribute('data-mywork-display-cjk', ''); document.head.appendChild(link); return () => { link.remove() } }, PLUGIN + ': display serif')
   const t = ctx.locale.bind(NS)
   const c = makeComponents(ctx, t)
   // `children` declares child slots on the page entry; dsh then hands the page a bound `renderSlot` for them.

@@ -40,67 +40,68 @@ const useLegacyPanelInfo = <T,>(selector: (info: { activePanelId: string | null 
 const EMPTY_ACTIVITY: Activity = { needs: [], working: [], recent: [] }
 
 const stylesheet = `
-/* Tokens: design/v2/DESIGN.md §2. The column is --surface beside a --bg page; rows step to --surface-2. */
-.mws{--bg:#ffffff;--surface:#f6f5f4;--surface-2:#efedeb;--fg:rgba(0,0,0,.92);--fg-2:#31302e;--muted:#615d59;--meta:#75706a;--border:rgba(0,0,0,.1);--border-soft:rgba(0,0,0,.06);--border-strong:rgba(0,0,0,.22);--warn:#b5480a;--focus-ring:0 0 0 3px rgba(0,117,222,.25);--elev-raised:rgba(0,0,0,.04) 0 4px 18px,rgba(0,0,0,.027) 0 2px 7.85px,rgba(0,0,0,.02) 0 .8px 2.93px;--motion-fast:150ms;--ease-standard:cubic-bezier(.2,0,0,1);position:relative;width:100%;height:100%;min-width:0;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;background:var(--surface);color:var(--fg);box-shadow:inset -1px 0 var(--border-soft);font:14px/20px -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei UI",sans-serif;-webkit-font-smoothing:antialiased}
-body[data-ds-dark-theme] .mws{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a;--fg:rgba(255,255,255,.9);--fg-2:#e6e4e0;--muted:#9b9893;--meta:#8a867f;--border:rgba(255,255,255,.1);--border-soft:rgba(255,255,255,.06);--border-strong:rgba(255,255,255,.22);--warn:#e08a3c;--focus-ring:0 0 0 3px rgba(82,156,202,.35);--elev-raised:rgba(0,0,0,.35) 0 4px 18px,rgba(0,0,0,.25) 0 2px 8px}
+/* Tokens: Rakazo's (packages/ui-tokens): dark by default; a light twin only when dsh itself is light and the OS asks for light. */
+.mws{--bg:#0b0c0e;--surface:#111215;--surface-2:#18191e;--card:#141518;--fg:#ececee;--fg-2:#d4d4d8;--muted:#85858a;--meta:#85858a;--border:#1e2026;--border-soft:#1e2026;--border-strong:#2c2e36;--primary:#f1f1ef;--primary-on:#0b0c0e;--warn:#f0a35e;--focus-ring:0 0 0 2px rgba(241,241,239,.35);--elev-raised:0 10px 30px rgba(0,0,0,.5),0 2px 8px rgba(0,0,0,.4);--motion-fast:150ms;--ease-standard:cubic-bezier(.2,0,0,1);position:relative;width:100%;height:100%;min-width:0;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;background:var(--surface);color:var(--fg);box-shadow:inset -1px 0 var(--border);font:14px/20px Geist,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei UI",sans-serif;-webkit-font-smoothing:antialiased}
+@media all{html[data-mywork-theme="light"] .mws{--bg:#ffffff;--surface:#f7f7f8;--surface-2:#ececee;--card:#f2f2f3;--fg:#111113;--fg-2:#2a2a2e;--muted:#6b6b70;--meta:#6b6b70;--border:#e6e6e9;--border-soft:#ececee;--border-strong:#d4d4d8;--primary:#111113;--primary-on:#ffffff;--warn:#b5480a;--focus-ring:0 0 0 2px rgba(17,17,19,.25);--elev-raised:0 10px 30px rgba(0,0,0,.08),0 2px 8px rgba(0,0,0,.05)}}
 .mws *{box-sizing:border-box}
 .mws button{font-family:inherit;transition:background-color var(--motion-fast) var(--ease-standard),color var(--motion-fast) var(--ease-standard),transform var(--motion-fast) var(--ease-standard)}
 .mws button:active{transform:scale(.98)}
 .mws :focus-visible{outline:none;box-shadow:var(--focus-ring)}
 @media (prefers-reduced-motion:reduce){.mws *{transition:none!important;animation:none!important}}
-.mws-head{position:relative;display:flex;align-items:center;gap:2px;flex:none;padding:12px 8px 8px}
-.mws-search{flex:1;min-width:0;display:flex;align-items:center;gap:8px;height:32px;margin-right:4px;padding:0 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--meta);transition:border-color var(--motion-fast) var(--ease-standard)}
+.mws-head{position:relative;display:flex;align-items:center;gap:2px;flex:none;padding:12px 10px 10px}
+.mws-search{flex:1;min-width:0;display:flex;align-items:center;gap:8px;height:34px;margin-right:4px;padding:0 12px;border:1px solid var(--border);border-radius:999px;background:var(--card);color:var(--muted);transition:border-color var(--motion-fast) var(--ease-standard)}
 .mws-search:focus-within{border-color:var(--border-strong)}
 .mws-search svg{flex:none}
-.mws-search input{flex:1;min-width:0;height:100%;margin:0;padding:0;border:0;background:transparent;color:var(--fg);font:inherit;font-size:13px;outline:none}
-.mws-search input::placeholder{color:var(--meta)}
+.mws-search input{flex:1;min-width:0;height:100%;margin:0;padding:0;border:0;background:transparent;color:var(--fg);font:inherit;font-size:13.5px;outline:none}
+.mws-search input::placeholder{color:var(--muted)}
 .mws-search input:focus-visible{box-shadow:none}
-.mws-icon{appearance:none;position:relative;display:inline-grid;place-items:center;flex:none;width:32px;height:32px;border:0;border-radius:6px;background:transparent;color:var(--muted);cursor:pointer}
+.mws-icon{appearance:none;position:relative;display:inline-grid;place-items:center;flex:none;width:32px;height:32px;border:0;border-radius:12px;background:transparent;color:var(--muted);cursor:pointer}
 .mws-icon:hover,.mws-icon[aria-expanded=true]{background:var(--surface-2);color:var(--fg)}
-.mws-count{position:absolute;top:3px;right:2px;min-width:15px;height:15px;padding:0 4px;border-radius:8px;background:var(--fg);color:var(--bg);font-size:10px;line-height:15px;font-weight:600;font-variant-numeric:tabular-nums;text-align:center;pointer-events:none}
+.mws-count{position:absolute;top:2px;right:1px;min-width:15px;height:15px;padding:0 4px;border-radius:8px;background:var(--primary);color:var(--primary-on);font-size:10px;line-height:15px;font-weight:600;font-variant-numeric:tabular-nums;text-align:center;pointer-events:none}
 /* The bell's panel: under the header, over the list. */
-.mws-drop{position:absolute;top:calc(100% - 2px);left:8px;right:8px;z-index:20;max-height:min(420px,calc(100vh - 120px));overflow:auto;padding:6px;border:1px solid var(--border);border-radius:12px;background:var(--bg);box-shadow:var(--elev-raised)}
-.mws-drop h3{margin:6px 8px 2px;font-size:12px;line-height:16px;font-weight:500;color:var(--muted)}
-.mws-drop .mws-row{min-height:44px;border-radius:8px}
-.mws-drop .mws-row:hover{background:var(--surface)}
+.mws-drop{position:absolute;top:calc(100% - 2px);left:8px;right:8px;z-index:20;max-height:min(420px,calc(100vh - 120px));overflow:auto;padding:6px;border:1px solid var(--border);border-radius:18px;background:var(--card);box-shadow:var(--elev-raised)}
+.mws-drop h3{margin:6px 10px 2px;font-size:12px;line-height:16px;font-weight:500;color:var(--muted)}
+.mws-drop .mws-row{min-height:48px;border-radius:14px}
+.mws-drop .mws-row:hover{background:var(--surface-2)}
 .mws-list{flex:1;min-height:0;overflow:auto;padding:0 8px 8px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
-.mws-row{appearance:none;display:grid;grid-template-columns:28px minmax(0,1fr);column-gap:10px;align-items:center;width:100%;min-height:52px;padding:6px 10px;border:0;border-radius:12px;background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
-.mws-row-flat{grid-template-columns:20px minmax(0,1fr);min-height:44px;padding:12px 10px}
+/* Rows (Rakazo's chat list): 38 avatar · name + time + dot · title chip · two-line preview. */
+.mws-row{appearance:none;display:grid;grid-template-columns:38px minmax(0,1fr);column-gap:12px;align-items:start;width:100%;min-height:60px;padding:10px 10px;border:0;border-radius:16px;background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
+.mws-row-flat{grid-template-columns:20px minmax(0,1fr);align-items:center;min-height:44px;padding:12px 10px}
 .mws-row:hover,.mws-row[aria-current=page]{background:var(--surface-2)}
-.mws-glyph{display:inline-grid;place-items:center;width:20px;height:20px;color:var(--meta)}
-.mws-glyph.wide{width:28px;height:28px}
+.mws-glyph{display:inline-grid;place-items:center;width:20px;height:20px;color:var(--muted)}
+.mws-glyph.wide{width:38px;height:38px;border-radius:50%;background:var(--card)}
 .mws-glyph svg{display:block}
-.mws-av{position:relative;display:inline-grid;place-items:center;flex:none;width:28px;height:28px;border-radius:50%;background:var(--surface-2);color:var(--fg-2);font-size:13px;line-height:1;font-weight:500;user-select:none}
-.mws-row:hover .mws-av,.mws-row[aria-current=page] .mws-av{background:var(--bg)}
-.mws-av.small{width:22px;height:22px;font-size:11px}
-.mws-av .mws-mark{width:100%;height:100%;border-radius:50%}
-.mws-ring{position:absolute;inset:-3px;width:calc(100% + 6px);height:calc(100% + 6px);color:var(--fg-2);pointer-events:none;animation:mws-spin 1.6s linear infinite}
-@media (prefers-reduced-motion:reduce){.mws-ring circle{stroke-dasharray:none}}
-@keyframes mws-spin{to{transform:rotate(360deg)}}
-.mws-main{min-width:0}
+/* Avatar (Rakazo's bot avatar): a coloured shape with two eyes; working, it pulses at scale 1.04 with a glow. */
+.mws-av{position:relative;display:inline-block;flex:none;line-height:0;user-select:none}
+.mws-av svg{display:block;overflow:visible;transition:transform .3s;filter:drop-shadow(0 2px 4px rgba(0,0,0,.45))}
+.mws-av[data-working=true] svg{transform:scale(1.04);filter:drop-shadow(0 0 8px var(--glow)) drop-shadow(0 0 2px #fff);animation:mws-pulse 2s cubic-bezier(.4,0,.6,1) infinite}
+@keyframes mws-pulse{50%{opacity:.55}}
+@media (prefers-reduced-motion:reduce){.mws-av[data-working=true] svg{animation:none}}
+.mws-main{min-width:0;display:grid;gap:3px}
 .mws-line{display:flex;align-items:center;min-width:0}
-.mws-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;line-height:20px;font-weight:400}
-.mws-row[data-unread=true] .mws-title{font-weight:500}
-.mws-time{flex:none;margin-left:8px;color:var(--meta);font-size:11.5px;line-height:20px;font-variant-numeric:tabular-nums;text-align:right}
-.mws-unread{flex:none;width:6px;height:6px;margin-left:6px;border-radius:50%;background:var(--fg)}
-.mws-sub{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:12.5px;line-height:18px}
+.mws-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;line-height:20px;font-weight:500}
+.mws-row[data-unread=true] .mws-title{font-weight:600}
+.mws-time{flex:none;margin-left:8px;color:var(--muted);font-size:11.5px;line-height:20px;font-variant-numeric:tabular-nums;text-align:right}
+.mws-unread{flex:none;width:8px;height:8px;margin-left:6px;border-radius:50%;background:var(--primary)}
+.mws-chip{justify-self:start;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 7px;border:1px solid var(--border-strong);border-radius:999px;color:var(--muted);font-size:11px;line-height:17px}
+.mws-sub{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:var(--muted);font-size:12.5px;line-height:17px;word-break:break-word}
 .mws-sub[data-tone=warn]{color:var(--warn)}
 .mws-empty{padding:12px 10px;color:var(--muted);font-size:12.5px;line-height:18px}
-.mws-mark{display:inline-grid;place-items:center;flex:none;border-radius:5px;background:var(--fg);color:var(--bg)}
+.mws-mark{display:inline-grid;place-items:center;flex:none;border-radius:50%;background:var(--primary);color:var(--primary-on)}
 .mws-mark svg{display:block}
 .mws-mark path{stroke-dasharray:60;stroke-dashoffset:0}
 .mws-mark[data-live=true] path{animation:mws-draw 2.4s var(--ease-standard) infinite}
 @keyframes mws-draw{0%{stroke-dashoffset:60}55%{stroke-dashoffset:0}80%{stroke-dashoffset:0;opacity:1}100%{stroke-dashoffset:0;opacity:.35}}
 @media (prefers-reduced-motion:reduce){.mws-mark[data-live=true] path{animation:none}}
-.mws-foot{flex:none;padding:8px 8px 0;border-top:1px solid var(--border-soft)}
+.mws-foot{flex:none;padding:8px 8px 0;border-top:1px solid var(--border)}
 /* The settings entry is dsh's own trigger, kept outside the footer so it stays mounted across collapse; it wears the same row recipe as 文件 above it. */
 .mws-settings{flex:none;padding:0 8px 12px}
-.mws-settings .dcu-settings-trigger{height:44px;min-height:44px;padding:0 10px;border-radius:12px;color:var(--fg);font-family:inherit;font-size:14px;line-height:20px;transition:background-color var(--motion-fast) var(--ease-standard),color var(--motion-fast) var(--ease-standard),transform var(--motion-fast) var(--ease-standard)}
+.mws-settings .dcu-settings-trigger{height:44px;min-height:44px;padding:0 10px;border-radius:16px;color:var(--fg);font-family:inherit;font-size:14px;line-height:20px;transition:background-color var(--motion-fast) var(--ease-standard),color var(--motion-fast) var(--ease-standard),transform var(--motion-fast) var(--ease-standard)}
 .mws-settings .dcu-settings-trigger:hover{background:var(--surface-2);color:var(--fg)}
 .mws-settings .dcu-settings-trigger:hover svg{transform:none}
 .mws-settings .dcu-settings-trigger:focus-visible{outline:none;box-shadow:var(--focus-ring)}
 .mws-settings .dcu-settings-trigger-content{column-gap:10px}
-.mws-settings .dcu-settings-trigger-content svg{justify-self:center;color:var(--meta)}
+.mws-settings .dcu-settings-trigger-content svg{justify-self:center;color:var(--muted)}
 /* Collapsed: dsh keeps a 56px rail on the web. Only the mark and the expand control live there. */
 .mws.compact{align-items:center;gap:8px;padding:12px 0 8px}
 .mws.compact .mws-settings{position:absolute;width:0;height:0;overflow:hidden}
@@ -126,7 +127,6 @@ export function orderMates(mates: Mate[]): Mate[] {
     || ms(str(b.lastAt) || str(b.createdAt)) - ms(str(a.lastAt) || str(a.createdAt))
     || (a.id < b.id ? -1 : 1))
 }
-function initialOf(name: string): string { const s = name.trim(); return s === '' ? '·' : Array.from(s)[0].toUpperCase() }
 function asMates(v: unknown): Mate[] { return Array.isArray(v) ? v.filter((x): x is Mate => x !== null && typeof x === 'object' && str((x as Mate).id) !== '') : [] }
 function asItems(v: unknown): ActivityItem[] { return Array.isArray(v) ? v.filter((x): x is ActivityItem => x !== null && typeof x === 'object' && str((x as ActivityItem).mateId) !== '') : [] }
 function asActivity(v: unknown): Activity | undefined {
@@ -172,12 +172,31 @@ export function BrandMark({ live, size = 22, round }: { live?: boolean; size?: n
   </span>
 }
 
-/** A teammate's round glyph: the first character of its name (MyWork wears the mark); working draws a turning ring. */
-function MateAvatar({ mate, small }: { mate: Mate; small?: boolean }): ReactElement {
+/** Rakazo's bot palette (packages/core bot-avatar-colors): light → dark gradient, eye colour. */
+const AVATAR_COLORS: Array<[string, string, string]> = [['#A97EFE', '#7C3AED', '#FFFFFF'], ['#00C972', '#059669', '#FFFFFF'], ['#FF781C', '#EA580C', '#FFFFFF'], ['#1CC3B0', '#0284C7', '#FFFFFF'], ['#2A92FE', '#1D4ED8', '#FFFFFF'], ['#FFAF38', '#D97706', '#141414'], ['#A27952', '#78350F', '#FFFFFF'], ['#FF3E51', '#BE123C', '#FFFFFF'], ['#FF5EB1', '#BE185D', '#FFFFFF'], ['#94A3B8', '#475569', '#FFFFFF']]
+/** Rakazo's shippedHash (FNV-1a). */
+function avatarHash(v: string): number { let x = 2166136261; for (let i = 0; i < v.length; i++) x = Math.imul(x ^ v.charCodeAt(i), 16777619); return x >>> 0 }
+/** Simple stand-ins for Rakazo's shapes, in a 100 box: blob, squircle, pebble. */
+const AVATAR_SHAPES = ['M50 4a46 46 0 1 1 0 92a46 46 0 1 1 0-92Z', 'M34 4h32c20 0 30 10 30 30v32c0 20-10 30-30 30H34C14 96 4 86 4 66V34C4 14 14 4 34 4Z', 'M50 8c28 0 46 14 46 40s-18 44-46 44S4 74 4 48 22 8 50 8Z']
+let avatarSeq = 0
+/** A teammate's avatar (Rakazo's): a coloured shape from its id with two eyes; MyWork keeps its mark in the same frame. Working pulses. */
+export function MateAvatar({ mate, size = 38 }: { mate: Mate; size?: number }): ReactElement {
   const working = mate.state === 'working'
-  return <span className={'mws-av' + (small === true ? ' small' : '')} aria-hidden="true">
-    {mate.isDefault === true ? <BrandMark size={small === true ? 22 : 28} round /> : initialOf(str(mate.name))}
-    {working && <svg className="mws-ring" viewBox="0 0 34 34" fill="none"><circle cx="17" cy="17" r="16" stroke="currentColor" strokeWidth="1.5" strokeDasharray="22 9" strokeLinecap="round" /></svg>}
+  const [gid] = useState(() => 'mwsav' + String(++avatarSeq))
+  if (mate.isDefault === true) {
+    return <span className="mws-av" data-working={working ? 'true' : undefined} style={{ '--glow': '#f1f1ef' } as CSSProperties} aria-hidden="true">
+      <svg viewBox="0 0 100 100" width={size} height={size}><circle cx="50" cy="50" r="46" fill="var(--primary)" /><svg x="20" y="20" width="60" height="60" viewBox="0 0 24 24" fill="none"><path d="M4.5 18.5V7l5.5 6.5L15.5 7M10.5 17l3 3 6-6" stroke="var(--primary-on)" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" /></svg></svg>
+    </span>
+  }
+  const hash = avatarHash(str(mate.id) || str(mate.name) || 'mate')
+  const [light, dark, eye] = AVATAR_COLORS[hash % AVATAR_COLORS.length]
+  const shape = AVATAR_SHAPES[(Math.imul(hash ^ (hash >>> 16), 73244475) >>> 0) % AVATAR_SHAPES.length]
+  return <span className="mws-av" data-working={working ? 'true' : undefined} style={{ '--glow': light } as CSSProperties} aria-hidden="true">
+    <svg viewBox="0 0 100 100" width={size} height={size}>
+      <defs><linearGradient id={gid} x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor={light} /><stop offset="100%" stopColor={dark} /></linearGradient></defs>
+      <path d={shape} fill={`url(#${gid})`} />
+      <g fill={eye}><ellipse cx="37.3" cy="46.5" rx="4.4" ry="3.1" /><ellipse cx="62.7" cy="46.5" rx="4.4" ry="3.1" /></g>
+    </svg>
   </span>
 }
 
@@ -194,7 +213,8 @@ function MateRow({ mate, time, current, unread, t, onOpen }: { mate: Mate; time:
     <MateAvatar mate={mate} />
     <span className="mws-main">
       <span className="mws-line"><span className="mws-title">{mate.name}</span>{time !== '' && <span className="mws-time">{time}</span>}{unread && <i className="mws-unread" aria-hidden="true" />}</span>
-      <span className="mws-sub" data-tone={sub.tone}>{sub.text}</span>
+      {str(mate.title) !== '' && <span className="mws-chip">{mate.title}</span>}
+      {sub.text !== '' && sub.text !== str(mate.title) && <span className="mws-sub" data-tone={sub.tone}>{sub.text}</span>}
     </span>
   </button>
 }
@@ -334,7 +354,7 @@ export function MyworkSidebar({ selectPanel, usePanelInfo = useLegacyPanelInfo, 
   return <div className={'mws' + (compact ? ' compact' : '')} data-mywork-sidebar="v2">
     <style>{stylesheet}</style>
     {compact ? <>
-      <BrandMark live={live} />
+      <BrandMark live={live} size={30} round />
       <button type="button" className="mws-icon" aria-label={t('sidebar.expand')} onClick={toggleSidebar}><PanelLeft size={16} strokeWidth={1.5} /></button>
     </> : <>
       <div className="mws-head" ref={headRef}>
@@ -342,8 +362,8 @@ export function MyworkSidebar({ selectPanel, usePanelInfo = useLegacyPanelInfo, 
         <button type="button" className="mws-icon" aria-label={t('v2.bell')} aria-haspopup="true" aria-expanded={bellOpen} onClick={() => { setBellOpen(!bellOpen) }}>
           <Bell size={16} strokeWidth={1.5} />{count > 0 && <span className="mws-count">{count > 99 ? '99' : count}</span>}
         </button>
-        <button type="button" className="mws-icon" aria-label={t('v2.newMate')} onClick={() => { open({ kind: 'new-mate' }) }}><Plus size={16} strokeWidth={1.5} /></button>
         <button type="button" className="mws-icon" aria-label={t('sidebar.collapse')} onClick={toggleSidebar}><PanelLeft size={16} strokeWidth={1.5} /></button>
+        <button type="button" className="mws-icon" aria-label={t('v2.newMate')} onClick={() => { open({ kind: 'new-mate' }) }}><Plus size={16} strokeWidth={1.5} /></button>
         {bellOpen && <div className="mws-drop" role="dialog" aria-label={t('v2.bell')}>
           {groups.every(([, items]) => items.length === 0) && <div className="mws-empty">{t('v2.quiet')}</div>}
           {groups.map(([label, items]) => items.length === 0 ? null : <div key={label}>

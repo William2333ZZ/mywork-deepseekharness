@@ -203,3 +203,13 @@ M2 的触发条件（任一成立即开工）：交付物不再是能读的文�
 - **实现**：dsh 的命令行明确拒绝 `--host 0.0.0.0`（它把网页当作这台机器的 shell 入口），我们不绕它。`packages/kit/src/lan-gateway.js` 在本机所有网口上监听一个网关端口（dsh 端口 + 1），把请求转给 127.0.0.1 上的 dsh，改写 Host 和 Origin 为本机地址；跨站的 Origin 在网关这一跳就被拒（403）。登录仍是 dsh 自己的 `?token=` 换 cookie；cookie 是 host-only，浏览器把它记在网关地址下。WebSocket 升级原样透传。
 - **验证过**（用 curl 模拟手机走 192.168.1.4:3092）：换令牌 303 → `/`；带 cookie 取页面 200；`/mywork-tasks/api/tasks` 200；伪造 Origin 403；无 cookie 401；`/api/remote.mux` WebSocket 升级 101。
 - **边界**：只在同一个局域网；出了家门要另做中继（依赖表 §6「到达」）。二维码上的登录链接只在电脑本机的页面上显示，手机上打开这一页看不到。网关监听全部网口，包括 VPN 隧道，二维码只列私网地址。推送仍未做：手机上只有前台轮询和 toast，后台靠飞书。
+
+## 10. App（2026-09-30 起）
+
+用户定下：手机端是一个新的 App，不是网页套壳；App 连电脑，不上云。第一版在 `apps/mobile`：
+
+- **栈**：Expo SDK 53 / React Native 0.79 / TypeScript，原生控件，不用 WebView；不用路由库，`src/store.tsx` 里一个栈；关掉新架构（`newArchEnabled: false`，少一层原生编译）。同一份代码出 Android 和 iOS。
+- **连接**：扫 设置 → MyWork → 手机 的二维码（`http://<ip>:<网关端口>/?token=…`），App 用 dsh 自己的令牌换 cookie（平台的 HTTP 栈保管），之后只走 `/mywork-tasks/api/*`，在跑时 5 秒、闲时 30 秒轮询。配对信息存在系统安全存储里。
+- **屏幕**：§2 的 S0 连接、S1 会话 + 等你看 sheet、S2 新任务、S3 任务页（正文 + ··· sheet + 过程时间线 + 追问）、S4 MyWork 页、S5 例行页、S6 任务列表、S7 设置。契约文件 `src/api.ts`、`src/store.tsx`、`src/components.tsx`、`src/theme.ts`；每个屏幕只从这四个文件和已装依赖 import。
+- **这台 Mac 上能编什么**：Android 能（SDK 34/35、JDK 17、模拟器 TestDevice）；iOS 不能，没有 Xcode。系统盘只剩几个 G，NDK 和 CMake 装在外置盘 `android-sdk-ext` 里软链进 SDK。iOS 的路：Xcode 装外盘 + 真机免费签名（模拟器镜像必须在系统盘，装不下），或 EAS 云端构建。
+- **没做的**：推送（前台轮询，后台仍靠飞书）、出局域网的中继、扫码创建 agent 之类的 Cue 特性。

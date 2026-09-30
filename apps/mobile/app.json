@@ -1,0 +1,51 @@
+{
+  "expo": {
+    "name": "MyWork",
+    "slug": "mywork",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "mywork",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#fbfaf8"
+    },
+    "android": {
+      "package": "com.mywork.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1f1d1a"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "com.mywork.app",
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsLocalNetworking": true,
+          "NSAllowsArbitraryLoads": true
+        }
+      }
+    },
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "用相机扫电脑上的二维码，把手机连到 MyWork。"
+        }
+      ],
+      "expo-secure-store"
+    ],
+    "newArchEnabled": false
+  }
+}

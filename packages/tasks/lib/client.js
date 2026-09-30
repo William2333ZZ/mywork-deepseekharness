@@ -443,6 +443,7 @@ const EXTRA_ICONS = {
   monitor: ['M4 3h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z', 'M8 21h8', 'M12 17v4'],
   repeat: ['m17 2 4 4-4 4', 'M3 11v-1a4 4 0 0 1 4-4h14', 'm7 22-4-4 4-4', 'M21 13v1a4 4 0 0 1-4 4H3'],
   square: ['M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z'],
+  download: ['M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4', 'm7 10 5 5 5-5', 'M12 15V3'],
   file: ['M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z', 'M14 2v4a2 2 0 0 0 2 2h4'],
 }
 if (icons.PATHS) for (const k of Object.keys(EXTRA_ICONS)) if (!icons.PATHS[k]) icons.PATHS[k] = EXTRA_ICONS[k]
@@ -457,7 +458,26 @@ const PANELS = { mate: 'mywork-mate', files: 'mywork-files' }
 const FAST_MS = 4000
 const SLOW_MS = 30000
 /** Runs per GET /mates/thread page. */
-const THREAD_PAGE = 30
+const THREAD_PAGE = 8
+/**
+ * Per teammate, the thread as last seen (runs, nextBefore): switching back renders it at once while the newest page
+ * refreshes in the background. Filled by the page and by a prefetch of every teammate's first page after the first poll.
+ */
+const threadCache = new Map()
+let prefetched = false
+function prefetchThreads(mates) {
+  if (prefetched || !Array.isArray(mates) || !mates.length) return
+  prefetched = true
+  const idle = typeof requestIdleCallback === 'function' ? requestIdleCallback : (fn) => setTimeout(fn, 200)
+  idle(() => {
+    for (const m of mates.slice(0, 12)) {
+      if (threadCache.has(m.id)) continue
+      api('/mates/thread?id=' + encodeURIComponent(m.id) + '&limit=' + THREAD_PAGE).then((d) => {
+        if (!threadCache.has(m.id)) threadCache.set(m.id, { runs: d.runs || [], nextBefore: d.nextBefore || null })
+      }).catch(() => {})
+    }
+  })
+}
 const V2_KEY = 'dsh-mywork:v2'
 /** The right panel: the mate page's child slot for 电脑, and where each teammate's open / closed panel is remembered. */
 const ASIDE_SLOT = 'mywork.thread.aside'
@@ -470,7 +490,8 @@ const ASIDE_W = 384
 const COL_MIN = 560
 const SPLIT_GAP = 24
 const SPLIT_MIN = COL_MIN + 56 + SPLIT_GAP + ASIDE_W
-const SPLIT_MAX = 752 + 56 + SPLIT_GAP + ASIDE_W
+/** The panel in 文件 mode: wide enough for a document's tables. */
+const ASIDE_FILE_W = 480
 /** How long a run jumped to stays highlighted. */
 const HIGHLIGHT_MS = 1200
 
@@ -493,6 +514,7 @@ const zh = {
   search: '搜索', all: '全部', noMatch: '没有匹配的', inThread: '在对话里看', exportMd: '导出 Markdown', exportPdf: '导出 PDF',
   doneToast: '做完了', failedToast: '失败了', needsYouToast: '需要你', open: '打开',
   loadFailed: '没连上服务，稍后再试。', retry: '重试', today: '今天',
+  downloadMd: '下载 .md', openInFiles: '在文件页打开',
 }
 const en = {
   mate: 'Teammate', files: 'Files',
@@ -513,12 +535,13 @@ const en = {
   search: 'Search', all: 'All', noMatch: 'Nothing matches', inThread: 'See in conversation', exportMd: 'Export Markdown', exportPdf: 'Export PDF',
   doneToast: 'Done', failedToast: 'Failed', needsYouToast: 'Needs you', open: 'Open',
   loadFailed: 'Could not reach the service, try again shortly.', retry: 'Retry', today: 'today',
+  downloadMd: 'Download .md', openInFiles: 'Open in Files',
 }
 
 const STYLE = `
 /* Tokens: Rakazo's (packages/ui-tokens). Dark by default; a light twin only when dsh itself is light and the OS asks for light. */
-.mwt{--bg:#0b0c0e;--surface:#141518;--surface-2:#1b1c21;--input:#18191e;--bubble:#22242b;--fg:#ececee;--fg-2:#d4d4d8;--muted:#85858a;--meta:#85858a;--border:#1e2026;--border-soft:#1e2026;--border-strong:#2c2e36;--primary:#f1f1ef;--primary-on:#0b0c0e;--accent:#f1f1ef;--accent-on:#0b0c0e;--accent-hover:#ffffff;--accent-soft:rgba(241,241,239,.06);--success:#4ade80;--warn:#f0a35e;--danger:#f87171;--font-body:Geist,-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei UI",sans-serif;--font-mono:"Geist Mono",ui-monospace,"SF Mono",Menlo,monospace;--font-display:var(--font-body);--radius-sm:12px;--radius-md:12px;--radius-lg:18px;--elev-raised:0 10px 30px rgba(0,0,0,.5),0 2px 8px rgba(0,0,0,.4);--focus-ring:0 0 0 2px rgba(241,241,239,.35);--motion-fast:150ms;--ease-standard:cubic-bezier(.2,0,0,1);height:100%;overflow:auto;background:var(--bg);color:var(--fg);font:15.5px/1.6 var(--font-body);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
-@media all{html[data-mywork-theme="light"] .mwt{--bg:#ffffff;--surface:#f2f2f3;--surface-2:#e9e9eb;--input:#f4f4f5;--bubble:#ebebed;--fg:#111113;--fg-2:#2a2a2e;--muted:#6b6b70;--meta:#6b6b70;--border:#e6e6e9;--border-soft:#ececee;--border-strong:#d4d4d8;--primary:#111113;--primary-on:#ffffff;--accent:#111113;--accent-on:#ffffff;--accent-hover:#2a2a2e;--accent-soft:rgba(17,17,19,.05);--success:#127e28;--warn:#b5480a;--danger:#c0392b;--elev-raised:0 10px 30px rgba(0,0,0,.08),0 2px 8px rgba(0,0,0,.05);--focus-ring:0 0 0 2px rgba(17,17,19,.25)}}
+.mwt{--bg:#0b0c0e;--surface:#141518;--surface-2:#1b1c21;--input:#18191e;--bubble:#22242b;--fg:#ececee;--fg-2:#d4d4d8;--muted:#85858a;--meta:#85858a;--border:#1e2026;--border-soft:#1e2026;--border-strong:#2c2e36;--primary:#f1f1ef;--primary-on:#0b0c0e;--accent:#f1f1ef;--accent-on:#0b0c0e;--accent-hover:#ffffff;--accent-soft:rgba(241,241,239,.06);--success:#4ade80;--warn:#f0a35e;--danger:#f87171;--font-body:Geist,-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei UI",sans-serif;--font-mono:"Geist Mono",ui-monospace,"SF Mono",Menlo,monospace;--font-display:var(--font-body);--radius-sm:12px;--radius-md:12px;--radius-lg:18px;--elev-raised:0 10px 30px rgba(0,0,0,.5),0 2px 8px rgba(0,0,0,.4);--focus-ring:0 0 0 2px rgba(241,241,239,.35);--motion-fast:150ms;--ease-standard:cubic-bezier(.2,0,0,1);--av-bg:var(--card,var(--surface-2));--av-fg:#efe8da;height:100%;overflow:auto;background:var(--bg);color:var(--fg);font:15.5px/1.6 var(--font-body);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+@media all{html[data-mywork-theme="light"] .mwt{--bg:#ffffff;--surface:#f2f2f3;--surface-2:#e9e9eb;--input:#f4f4f5;--bubble:#ebebed;--fg:#111113;--fg-2:#2a2a2e;--muted:#6b6b70;--meta:#6b6b70;--border:#e6e6e9;--border-soft:#ececee;--border-strong:#d4d4d8;--primary:#111113;--primary-on:#ffffff;--accent:#111113;--accent-on:#ffffff;--accent-hover:#2a2a2e;--accent-soft:rgba(17,17,19,.05);--success:#127e28;--warn:#b5480a;--danger:#c0392b;--elev-raised:0 10px 30px rgba(0,0,0,.08),0 2px 8px rgba(0,0,0,.05);--focus-ring:0 0 0 2px rgba(17,17,19,.25);--av-bg:#1f1d1a;--av-fg:#faf7f0}}
 .mwt *{box-sizing:border-box}
 .mwt :focus-visible{outline:none;box-shadow:var(--focus-ring);border-radius:var(--radius-sm)}
 .mwt textarea:focus,.mwt textarea:focus-visible,.mwt input:focus,.mwt input:focus-visible{outline:none!important;box-shadow:none!important}
@@ -567,11 +590,13 @@ const STYLE = `
 @keyframes mwt-pulse{50%{opacity:.55}}
 @media (prefers-reduced-motion:reduce){.mwt-av[data-working=true] svg{animation:none}}
 /* The mate page: header, thread, dock in one column that fills the height. */
-.mwt-page.mate{display:flex;min-height:100%;padding:0 28px}
+.mwt-page.mate{display:flex;min-height:100%;max-width:816px;padding:0 28px}
 .mwt-page.mate>.mwt-col{flex:1}
 .mwt-col{min-width:0;display:flex;flex-direction:column;min-height:100%}
-.mwt-page.mate.split{display:grid;max-width:${SPLIT_MAX}px;grid-template-columns:minmax(${COL_MIN}px,752px) ${ASIDE_W}px;column-gap:${SPLIT_GAP}px;align-items:stretch}
-.mwt-head{position:sticky;top:0;z-index:4;display:flex;align-items:center;gap:4px;height:56px;padding:0;background:var(--bg)}
+/* Split: the reading column stays centred (760) in what is left; the panel is flush right, full height, a left border. */
+.mwt-page.mate.split{display:grid;max-width:none;margin:0;padding:0;grid-template-columns:minmax(0,1fr) var(--aside-w,${ASIDE_W}px);column-gap:0;align-items:start}
+.mwt-page.mate.split>.mwt-col{width:100%;max-width:816px;margin:0 auto;padding:0 28px}
+.mwt-head{position:sticky;top:0;z-index:4;display:flex;align-items:center;gap:4px;height:52px;padding:0;background:var(--bg)}
 .mwt-head .grow{flex:1}
 .mwt-who{appearance:none;display:flex;align-items:center;gap:10px;min-width:0;padding:4px 10px 4px 4px;border:0;border-radius:12px;background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
 .mwt-who:hover{background:var(--surface)}
@@ -586,12 +611,24 @@ const STYLE = `
 .mwt-run.hl{background:var(--accent-soft);box-shadow:0 0 0 12px var(--accent-soft)}
 .mwt-turn{min-width:0}
 .mwt-turn.user{display:flex;justify-content:flex-end}
-.mwt-bubble{max-width:78%;padding:10px 16px;border-radius:20px;background:var(--bubble);color:var(--fg);font-size:15.5px;line-height:1.6;white-space:pre-wrap;word-break:break-word}
+.mwt-bubble{max-width:75%;padding:10px 16px;border-radius:20px;background:var(--bubble);color:var(--fg);font-size:15.5px;line-height:1.6;white-space:pre-wrap;word-break:break-word}
 .mwt-turn.ai{font-size:15.5px;line-height:1.65}
 /* A teammate's reply: a grey bubble on the left (Rakazo). */
 .mwt-turn.ai.bubble{align-self:flex-start;max-width:88%;padding:12px 18px;border-radius:20px;background:var(--surface)}
 .mwt-turn.ai.bubble>.mwt-deliver-meta,.mwt-turn.ai.bubble+.mwt-deliver-meta{margin-top:8px}
 .mwt-after{margin:-8px 0 0 6px}
+/* Tables inside any bubble scroll sideways in a subtle frame instead of stretching it. */
+.mwt-turn .mwt-md table{display:block;max-width:100%;overflow-x:auto;border:1px solid var(--border);border-radius:10px;margin:0 0 12px}
+.mwt-turn .mwt-md th,.mwt-turn .mwt-md td{white-space:nowrap}
+.mwt-turn .mwt-md pre{max-width:100%}
+.mwt-excerpt{margin:0 0 10px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
+.mwt-turn.ai.bubble>.mwt-sum{margin:0 0 12px}
+.mwt-turn.ai.bubble>.mwt-file-title{margin:0}
+/* Empty thread: the teammate, its job, three things to ask. */
+.mwt-hello{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:48px 0 24px;text-align:center}
+.mwt-hello .nm{margin-top:8px;font-size:18px;font-weight:600;line-height:26px}
+.mwt-hello .duty{max-width:460px;color:var(--muted);font-size:14px;line-height:22px}
+.mwt-hello .mwt-chips{justify-content:center;margin-top:14px;max-width:560px}
 /* Working: the teammate's avatar pulsing at the end of the transcript, the step beside it. */
 .mwt-working{display:flex;align-items:center;gap:10px;min-height:32px;padding:2px 2px}
 .mwt-working .step{min-width:0;color:var(--muted);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:tabular-nums}
@@ -705,11 +742,17 @@ button.mwt-phase-head:hover .verb,button.mwt-phase-head:hover .obj{color:var(--f
 .mwt-menu-pop button:hover{background:var(--surface-2)}
 /* Right panel: beside the thread as a grid column when the page has room, else a slide-over at its right edge (no mask). */
 .mwt-aside{display:flex;flex-direction:column;min-height:0;background:var(--surface)}
-.mwt-aside.col{position:sticky;top:12px;align-self:start;margin-top:12px;border:1px solid var(--border);border-radius:20px;overflow:hidden}
-.mwt-aside-head{display:flex;align-items:center;gap:8px;flex:none;height:48px;padding:0 8px 0 16px;border-bottom:1px solid var(--border)}
+.mwt-aside.col{position:sticky;top:0;align-self:start;background:var(--bg);border-left:1px solid var(--border);overflow:hidden}
+.mwt-aside-head{display:flex;align-items:center;gap:8px;flex:none;height:52px;padding:0 8px 0 16px;border-bottom:1px solid var(--border)}
 .mwt-aside-head .title{flex:1;min-width:0;color:var(--fg);font-size:14px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mwt-aside-head .mwt-btn.round{width:28px;height:28px}
 .mwt-aside-body{flex:1;min-height:0;overflow:auto;padding:12px 14px 16px}
+.mwt-aside-head .mwt-btn.small{flex:none}
+.mwt-aside-body.doc{padding:18px 22px 28px}
+.mwt-aside-body.doc .mwt-md{font-size:15px}
+.mwt-aside-body.doc .mwt-md p{max-width:none}
+.mwt-aside-body.doc .mwt-md table{display:block;max-width:100%;overflow-x:auto;border:1px solid var(--border);border-radius:10px}
+.mwt-aside-body.doc .mwt-doc-meta{margin:0 0 16px}
 .mwt-aside-dock{position:sticky;top:0;height:0;z-index:6}
 .mwt-aside-clip{position:absolute;top:0;right:0;display:flex;justify-content:flex-end;width:min(${ASIDE_W + 24}px,100%);overflow:hidden;pointer-events:none}
 .mwt-aside.over{width:min(${ASIDE_W}px,100%);height:100%;border-left:1px solid var(--border);box-shadow:var(--elev-raised);pointer-events:auto;transform:translateX(100%);visibility:hidden;transition:transform var(--motion-fast) var(--ease-standard),visibility 0s linear var(--motion-fast)}
@@ -838,6 +881,7 @@ function refresh() {
     // loadedAt is when the snapshot was asked for: a navigation made after it may name a teammate it does not have yet.
     setState({ mates, activity, error: '', loadedAt: started })
     fire('mywork:mates-updated', { items: mates, activity })
+    prefetchThreads(mates)
     const fresh = [...activity.needs, ...activity.recent].filter((x) => x && x.runId)
     if (seenItems) {
       for (const x of fresh) if (!seenItems.has(itemKey(x))) for (const fn of itemListeners) { try { fn(x) } catch {} }
@@ -1030,11 +1074,11 @@ function Avatar({ mate, size, working }) {
   const m = mate || {}
   const [gid] = React.useState(() => 'mwtav' + String(++avatarSeq))
   if (m.isDefault) {
-    return h('span', { className: 'mwt-av', 'data-working': working ? 'true' : undefined, style: { '--glow': '#f1f1ef' }, 'aria-hidden': 'true' },
+    return h('span', { className: 'mwt-av', 'data-working': working ? 'true' : undefined, style: { '--glow': '#efe8da' }, 'aria-hidden': 'true' },
       h('svg', { viewBox: '0 0 100 100', width: s, height: s },
-        h('circle', { cx: 50, cy: 50, r: 46, fill: 'var(--primary)' }),
+        h('circle', { cx: 50, cy: 50, r: 46, fill: 'var(--av-bg, #1f1d1a)' }),
         h('svg', { x: 20, y: 20, width: 60, height: 60, viewBox: '0 0 24 24', fill: 'none' },
-          h('path', { d: 'M4.5 18.5V7l5.5 6.5L15.5 7M10.5 17l3 3 6-6', stroke: 'var(--primary-on)', strokeWidth: 3.2, strokeLinecap: 'round', strokeLinejoin: 'round' }))))
+          h('path', { d: 'M4.5 18.5V7l5.5 6.5L15.5 7M10.5 17l3 3 6-6', stroke: 'var(--av-fg, #faf7f0)', strokeWidth: 3.2, strokeLinecap: 'round', strokeLinejoin: 'round' }))))
   }
   const hash = avatarHash(String(m.id || m.name || 'mate'))
   const [light, dark, eye] = AVATAR_COLORS[hash % AVATAR_COLORS.length]
@@ -1083,12 +1127,38 @@ function makeComponents(ctx, t) {
       Array.isArray(d.summary) && d.summary.length ? h('div', { className: 'mwt-sum' }, d.summary.map((r, i) => h('div', { key: i, className: 'mwt-sum-row' }, icon('check', { size: 14 }), h('span', { className: 'label' }, r.label), h('span', { className: 'value' }, r.value)))) : null,
       h(Markdown, { text: d.markdown || '' }))
   }
-  /** A delivery in the thread: the thread payload may carry only the metadata; the body is fetched once when it does. */
-  function DeliverBody({ d, titled }) {
-    const [full, setFull] = React.useState(null)
-    const need = typeof d.markdown !== 'string' && !!d.id
-    React.useEffect(() => { if (!need) return; let on = true; api('/deliverable?id=' + encodeURIComponent(d.id)).then((x) => { if (on && x && x.deliverable) setFull(x.deliverable) }).catch(() => {}); return () => { on = false } }, [d.id, need])
-    return h(Doc, { titled, d: need ? { ...d, ...(full || {}), markdown: full ? full.markdown : '' } : d })
+  const verifyWord = (v) => (v && v.kind === 'passed' ? t('verified') : v && v.kind === 'issues' ? t('verifyIssues') : v && v.kind === 'none' ? t('verifyNone') : v && v.kind === 'verifying' ? t('verifying') : '')
+  /** 文件卡 (Rakazo ArtifactFileCard): 40 icon tile · title · 「文件 · 核验状态 · time」. Opens the document in the right panel. */
+  function FileCard({ d, verify, onOpen }) {
+    return h('button', { type: 'button', className: 'mwt-file-title', onClick: () => onOpen(d) },
+      h('span', { className: 'tile' }, icon(fileGlyph(d), { size: 18 })),
+      h('span', { className: 'nm' }, h('b', null, d.title || d.id), h('small', null, [t('file'), verifyWord(verify), fmtWhen(d.createdAt)].filter(Boolean).join(' · '))))
+  }
+  /**
+   * A delivery in the thread never carries the document: the reply (or, when the run said nothing after it, the
+   * document's first paragraph, three lines at most), the ✓ summary rows, the file card.
+   */
+  function DeliverBubble({ d, verify, quote, onOpen }) {
+    return h('div', { className: 'mwt-turn ai bubble' },
+      quote && d.excerpt ? h('div', { className: 'mwt-excerpt' }, plainWords(d.excerpt)) : null,
+      Array.isArray(d.summary) && d.summary.length ? h('div', { className: 'mwt-sum' }, d.summary.map((r, i) => h('div', { key: i, className: 'mwt-sum-row' }, icon('check', { size: 14 }), h('span', { className: 'label' }, r.label), h('span', { className: 'value' }, r.value)))) : null,
+      h(FileCard, { d, verify, onOpen }))
+  }
+  /** The right panel's 文件 mode: the whole document, full width, its own header (title · 下载 .md · 在文件页打开 · close). */
+  function FilePanel({ id, onClose }) {
+    const [data, setData] = React.useState(null)
+    React.useEffect(() => { let on = true; setData(null); api('/deliverable?id=' + encodeURIComponent(id)).then((x) => { if (on) setData(x || {}) }).catch(() => { if (on) setData({}) }); return () => { on = false } }, [id])
+    const d = data && data.deliverable
+    return h(React.Fragment, null,
+      h('div', { className: 'mwt-aside-head' },
+        h('span', { className: 'title', title: d ? d.title : undefined }, d ? d.title : t('file')),
+        d ? h('button', { type: 'button', className: 'mwt-btn ghost small', onClick: () => download(safeName(d.title) + '.md', '# ' + d.title + '\n\n' + (d.markdown || '')) }, icon('download', { size: 13 }), t('downloadMd')) : null,
+        d ? h('button', { type: 'button', className: 'mwt-btn ghost small', onClick: () => openFiles(d.id) }, t('openInFiles')) : null,
+        h('button', { type: 'button', className: 'mwt-btn ghost round', 'aria-label': t('close'), onClick: onClose }, icon('x', { size: 14 }))),
+      h('div', { className: 'mwt-aside-body doc' },
+        !data ? h(Skeleton, { rows: 5 })
+          : d ? h(React.Fragment, null, h('p', { className: 'mwt-doc-meta' }, fmtWhen(d.createdAt)), h(Doc, { d }))
+          : h('div', { className: 'mwt-empty' }, t('noMatch'))))
   }
 
   /**
@@ -1127,14 +1197,19 @@ function makeComponents(ctx, t) {
   /** 过程: one line that says what the run did, and a fold that shows how. Folded by default. */
   function Process({ run, live }) {
     const [open, setOpen] = React.useState(false)
-    const rows = React.useMemo(() => phasesOf(run), [run])
-    const n = rows.filter((r) => r.kind === 'phase').length
+    // The thread sends a finished run without its tool calls (run.process.lite): the fold fetches them when opened.
+    const [full, setFull] = React.useState(null)
+    const lite = !!(run.process && run.process.lite)
+    React.useEffect(() => { if (!open || !lite || full) return; let on = true; api('/run?id=' + encodeURIComponent(run.id)).then((x) => { if (on && x && x.run) setFull(x.run) }).catch(() => {}); return () => { on = false } }, [open, lite, run.id])
+    const src = lite ? full : run
+    const rows = React.useMemo(() => (src ? phasesOf(src) : []), [src])
+    const n = src ? rows.filter((r) => r.kind === 'phase').length : run.process.groups
     const summary = [t('process'), n ? n + ' ' + t('phases') : '', elapsedOf(run)].filter(Boolean).join(' · ')
     return h('div', { className: 'mwt-proc' },
       h('button', { type: 'button', className: 'mwt-proc-head', 'aria-expanded': open, onClick: () => setOpen(!open) },
         icon(live ? 'loader' : 'history', { size: 13, className: live ? 'live' : undefined }), h('span', { className: 'grow' }, summary),
         icon('chevron-down', { size: 13, style: { transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 150ms' } })),
-      open ? h(Phases, { run, rows, live }) : null)
+      open ? (src ? h(Phases, { run: src, rows, live }) : h(Skeleton, { rows: 2 })) : null)
   }
 
   /** The run as phases: consecutive tool calls with the same verb fold into one line that opens to its calls. */
@@ -1156,7 +1231,7 @@ function makeComponents(ctx, t) {
     for (let i = 0; i < out.length; i++) if (out[i].kind === 'phase') out[i].ms = new Date((out[i + 1] && out[i + 1].at) || end) - new Date(out[i].at)
     return out
   }
-  const hasProcess = (run) => (Array.isArray(run.activity) ? run.activity : []).some((e) => e && (e.kind === 'tool' || e.kind === 'verify'))
+  const hasProcess = (run) => !!(run.process && run.process.tools) || (Array.isArray(run.activity) ? run.activity : []).some((e) => e && (e.kind === 'tool' || e.kind === 'verify'))
 
   function Phases({ run, rows, live }) {
     const [open, setOpen] = React.useState(-1)
@@ -1255,7 +1330,8 @@ function makeComponents(ctx, t) {
 
   /** The loaded runs of one teammate: the newest page on every change of its state, earlier pages on request. */
   function useThread(mate) {
-    const [th, setTh] = React.useState({ runs: [], nextBefore: null, loaded: false, busy: false, error: '', fetchedFrom: 0 })
+    const [th, setTh] = React.useState(() => { const c = threadCache.get(mate.id); return c ? { runs: c.runs, nextBefore: c.nextBefore, loaded: true, busy: false, error: '', fetchedFrom: 0 } : { runs: [], nextBefore: null, loaded: false, busy: false, error: '', fetchedFrom: 0 } })
+    React.useEffect(() => { if (th.loaded && !th.error) threadCache.set(mate.id, { runs: th.runs, nextBefore: th.nextBefore }) }, [th.runs, th.nextBefore])
     const [bump, setBump] = React.useState(0)
     const working = mate.state === 'working'
     const key = [mate.lastAt || '', mate.state || '', mate.step || '', mate.ask && mate.ask.id ? mate.ask.id : '', working ? Math.floor(Date.now() / FAST_MS) : 0, bump].join('|')
@@ -1319,8 +1395,6 @@ function makeComponents(ctx, t) {
     const runs = React.useMemo(() => th.runs.filter((r) => !(r.quiet && r.trigger === 'routine' && !r.error)), [th.runs])
     // Migrated runs and finished runs older than the newest five fold to the user line + one row per deliverable.
     const folded = React.useMemo(() => foldedRunIds(runs, 5), [runs])
-    const [opened, setOpened] = React.useState(() => new Set())
-    const toggleOpen = (id) => setOpened((prev) => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next })
     const live = activeRun(runs)
     const running = mate.state === 'working' || (!!live && isLive(live))
     useTick(running)
@@ -1336,8 +1410,8 @@ function makeComponents(ctx, t) {
     const [jumpSeq, setJumpSeq] = React.useState(0)
 
     // The right panel: per teammate, mode 'mate' (电脑 · 例行 · 设置) or 'new-mate' (the form).
-    const [aside, setAside] = React.useState(() => ({ open: asideMemory(mate.id) === 'open', mode: 'mate', section: '', routineId: '', seq: 0 }))
-    const showAside = (open, patch) => { setAside((a) => ({ ...a, open, ...(patch || {}), seq: a.seq + 1 })); if (!patch || patch.mode !== 'new-mate') rememberAside(mate.id, open ? 'open' : 'closed') }
+    const [aside, setAside] = React.useState(() => ({ open: asideMemory(mate.id) === 'open', mode: 'mate', section: '', routineId: '', fileId: '', seq: 0 }))
+    const showAside = (open, patch) => { setAside((a) => ({ ...a, open, ...(patch || {}), seq: a.seq + 1 })); if (!patch || patch.mode === 'mate') rememberAside(mate.id, open ? 'open' : 'closed') }
 
     // Navigation requests (the column, toasts, the bell, search): a run to jump to, the panel to open.
     React.useEffect(() => {
@@ -1439,13 +1513,16 @@ function makeComponents(ctx, t) {
     const stop = () => api('/mates/stop', { id: mate.id }).then(() => { th.reload(); kick() }).catch(() => {})
     const takeover = () => showAside(true, { mode: 'mate', section: 'computer' })
     const textAsk = textAskOf(runs)
+    const openDoc = (d) => showAside(true, { mode: 'file', fileId: d.id, section: '', routineId: '' })
+    // The example prompts of an empty thread fill the composer.
+    const fillRef = React.useRef(null)
 
     const renderEntry = (run, e) => {
       if (e.kind === 'routine') return h('div', { key: e.key, className: 'mwt-center' }, [e.title, hhmm(e.at)].filter(Boolean).join(' · '))
       if (e.kind === 'scheduled') return h('button', { key: e.key, type: 'button', className: 'mwt-center', onClick: () => showAside(true, { mode: 'mate', section: 'routines', routineId: e.routineId }) }, t('scheduled') + ' · ' + [e.scheduleLabel, e.title].filter(Boolean).join(' '))
       if (e.kind === 'remind') return h('div', { key: e.key, className: 'mwt-turn ai' }, h(RemindCard, { e, onAck: ack }))
       if (e.kind === 'user') return h('div', { key: e.key, className: 'mwt-turn user' }, h('div', { className: 'mwt-bubble' }, e.text))
-      if (e.kind === 'deliver') return h(React.Fragment, { key: e.key }, h('div', { className: 'mwt-turn ai bubble' }, h(DeliverBody, { d: e.d, titled: true })), h('div', { className: 'mwt-after' }, h(DeliverMeta, { d: e.d, verify: e.verify, onRate: rate })))
+      if (e.kind === 'deliver') return h(React.Fragment, { key: e.key }, h(DeliverBubble, { d: e.d, verify: e.verify, quote: !e.replied, onOpen: openDoc }), h('div', { className: 'mwt-after' }, h(DeliverMeta, { d: e.d, verify: e.verify, onRate: rate })))
       if (e.kind === 'text') return h('div', { key: e.key, className: 'mwt-turn ai bubble' }, h(Markdown, { text: e.text }))
       if (e.kind === 'ask') return h('div', { key: e.key, className: 'mwt-turn ai' }, h(AskCard, { e, onAnswer: answer(run.id), onTakeover: takeover }))
       if (e.kind === 'auto') return h('div', { key: e.key, className: 'mwt-turn ai' }, h('div', { className: 'mwt-askline' }, h('span', null, t('askAuto'))))
@@ -1457,18 +1534,19 @@ function makeComponents(ctx, t) {
     }
 
     // Two modes (Rakazo): 设置 through the name, 电脑 (screen or folder + 例行) through the monitor button.
-    const panelMode = aside.mode === 'new-mate' ? 'new-mate' : aside.section === 'settings' ? 'settings' : 'computer'
+    const panelMode = aside.mode === 'new-mate' ? 'new-mate' : aside.mode === 'file' ? 'file' : aside.section === 'settings' ? 'settings' : 'computer'
     const settingsOpen = shown && panelMode === 'settings'
     const computerOpen = shown && panelMode === 'computer'
     const title = panelMode === 'new-mate' ? t('newMate') : panelMode === 'settings' ? t('settings') : [t('computer'), running ? t('working') : ''].filter(Boolean).join(' · ')
     const asideBody = () => aside.mode === 'new-mate'
       ? h(NewMateForm, { onCreated: (m) => { setAside((a) => ({ ...a, open: false, mode: 'mate', seq: a.seq + 1 })); if (getNav().mateId !== m.id) openMate(m.id) } })
       : h(MatePanel, { mate, live, screen, renderSlot, section: aside.section, routineId: aside.routineId, seq: aside.seq, onJump: (runId) => { jump.current = { id: runId, tries: 0 }; setJumpSeq((x) => x + 1) } })
-    const asidePanel = (mode) => h('aside', { className: 'mwt-aside ' + mode, 'data-open': mode === 'over' ? shown : undefined, 'aria-label': title, 'aria-hidden': mode === 'over' && !shown ? 'true' : undefined, style: mode === 'col' && box.h ? { maxHeight: Math.max(240, box.h - 32) } : undefined },
+    const asidePanel = (mode) => h('aside', { className: 'mwt-aside ' + mode, 'data-open': mode === 'over' ? shown : undefined, 'aria-label': title, 'aria-hidden': mode === 'over' && !shown ? 'true' : undefined, style: mode === 'col' && box.h ? { height: box.h } : undefined },
+      panelMode === 'file' ? (shown && aside.fileId ? h(FilePanel, { id: aside.fileId, onClose: () => showAside(false) }) : null) : h(React.Fragment, null,
       h('div', { className: 'mwt-aside-head' },
         h('span', { className: 'title' }, title),
         h('button', { type: 'button', className: 'mwt-btn ghost round', 'aria-label': t('close'), onClick: () => showAside(false) }, icon('x', { size: 14 }))),
-      shown ? h('div', { className: 'mwt-aside-body' }, asideBody()) : null)
+      shown ? h('div', { className: 'mwt-aside-body' }, asideBody()) : null))
     const menu = [
       running || mate.state === 'waiting' ? { icon: 'square', label: t('stop'), run: stop } : null,
       { icon: 'settings', label: t('settings'), run: () => showAside(true, { mode: 'mate', section: 'settings' }) },
@@ -1477,7 +1555,7 @@ function makeComponents(ctx, t) {
     return h('div', { ref: rootRef, className: 'mwt mwt-mate', 'data-mwt-mate': mate.id, onScroll },
       h('style', null, STYLE),
       !split ? h('div', { className: 'mwt-aside-dock' }, h('div', { className: 'mwt-aside-clip', style: box.h ? { height: box.h } : undefined }, asidePanel('over'))) : null,
-      h('div', { className: 'mwt-page mate' + (shown && split ? ' split' : '') },
+      h('div', { className: 'mwt-page mate' + (shown && split ? ' split' : ''), style: shown && split && panelMode === 'file' ? { '--aside-w': ASIDE_FILE_W + 'px' } : undefined },
         h('div', { className: 'mwt-col' },
           h('header', { className: 'mwt-head' },
             h('button', { type: 'button', className: 'mwt-who', 'aria-expanded': settingsOpen, title: mate.title || undefined, onClick: () => showAside(!settingsOpen, { mode: 'mate', section: 'settings', routineId: '' }) },
@@ -1488,21 +1566,20 @@ function makeComponents(ctx, t) {
             h(Menu, { items: menu })),
           !th.loaded ? h(Skeleton, { rows: 3 })
             : th.error ? h('div', { className: 'mwt-retry' }, h('span', null, t('loadFailed')), h('button', { type: 'button', className: 'mwt-btn', onClick: th.reload }, t('retry')))
-            : empty ? null
+            : empty ? h(Hello, { mate, onPick: (text) => { if (fillRef.current) fillRef.current(text) } })
             : h('section', { className: 'mwt-thread' },
               th.nextBefore ? h('button', { type: 'button', className: 'mwt-older', disabled: th.busy, onClick: loadEarlier }, t('loadEarlier')) : null,
               runs.map((run) => {
                 const list = threadOf(run)
+                // A delivery quotes its document only when no reply text follows it in the run.
+                list.forEach((e, i) => { if (e.kind === 'deliver') e.replied = list.slice(i + 1).some((x) => x.kind === 'text') })
                 if (folded.has(run.id) && list.some((e) => e.kind === 'deliver')) {
                   return h('div', { key: run.id, className: 'mwt-run folded' + (hl === run.id ? ' hl' : ''), 'data-run': run.id },
                     list.map((e) => {
                       if (e.kind === 'user' || e.kind === 'routine') return renderEntry(run, e)
                       if (e.kind !== 'deliver') return null
-                      const open = opened.has(e.d.id)
                       return h('div', { key: e.key, className: 'mwt-turn ai' },
-                        h(FoldRow, { d: e.d, verify: e.verify, open, onToggle: () => toggleOpen(e.d.id) }),
-                        open ? h('div', { className: 'mwt-turn ai bubble', style: { marginTop: 8 } }, h(DeliverBody, { d: e.d, titled: false })) : null,
-                        open ? h(DeliverMeta, { d: e.d, verify: e.verify, onRate: rate }) : null)
+                        h(FoldRow, { d: e.d, verify: e.verify, open: shown && aside.mode === 'file' && aside.fileId === e.d.id, onToggle: () => openDoc(e.d) }))
                     }))
                 }
                 return h('div', { key: run.id, className: 'mwt-run' + (hl === run.id ? ' hl' : ''), 'data-run': run.id },
@@ -1510,8 +1587,24 @@ function makeComponents(ctx, t) {
                   hasProcess(run) ? h(Process, { run, live: isLive(run) }) : null)
               }),
               pending.text ? h('div', { className: 'mwt-turn user' }, h('div', { className: 'mwt-bubble' }, pending.text)) : null),
-          h('div', { className: 'mwt-dock' }, h(Dock, { key: mate.id, mate, targetId: mate.id, running, onStop: stop, textAsk, answering: mate.state === 'waiting' || !!textAsk, onPending: (text) => { atBottom.current = true; setPending({ text, at: text ? Date.now() : 0 }) }, onSent: () => { th.reload(); kick() } }))),
+          h('div', { className: 'mwt-dock' }, h(Dock, { key: mate.id, mate, fillRef, targetId: mate.id, running, onStop: stop, textAsk, answering: mate.state === 'waiting' || !!textAsk, onPending: (text) => { atBottom.current = true; setPending({ text, at: text ? Date.now() : 0 }) }, onSent: () => { th.reload(); kick() } }))),
         shown && split ? asidePanel('col') : null))
+  }
+
+  /** Example prompts from a teammate's job: its first clauses as asks, else three general ones. */
+  function examplesOf(mate) {
+    const parts = String(mate.description || '').split(/[，,。；;、\n]+/).map((x) => x.replace(/^(每天|负责|帮我|请)/, '').trim()).filter((x) => x.length >= 2 && x.length <= 30)
+    const topic = parts[0] || ''
+    if (!topic) return ['你能帮我做什么？', '先了解一下我的工作', '给我一个今天的建议']
+    return [topic, '关于「' + topic.slice(0, 14) + '」，先给我一份简报', parts[1] ? parts[1] : '你打算怎么做「' + topic.slice(0, 14) + '」？'].slice(0, 3)
+  }
+  /** An empty thread: the avatar (56), the name, the job muted, three pills that fill the composer. */
+  function Hello({ mate, onPick }) {
+    return h('div', { className: 'mwt-hello' },
+      h(Avatar, { mate, size: 56 }),
+      h('div', { className: 'nm' }, mate.name),
+      mate.description ? h('div', { className: 'duty' }, mate.description) : null,
+      h('div', { className: 'mwt-chips' }, examplesOf(mate).map((x) => h('button', { key: x, type: 'button', className: 'mwt-chip', onClick: () => onPick(x) }, x))))
   }
 
   /**
@@ -1519,11 +1612,12 @@ function makeComponents(ctx, t) {
    * run; working: steers the run; waiting: answers the question. Enter sends; what you sent shows at once as a bubble,
    * except an answer (`answering`), which lands as the question's 「已回答」 line when the thread comes back.
    */
-  function Dock({ mate, targetId, textAsk, answering, running, onStop, onPending, onSent }) {
+  function Dock({ mate, fillRef, targetId, textAsk, answering, running, onStop, onPending, onSent }) {
     const [text, setText] = React.useState('')
     const [busy, setBusy] = React.useState(false)
     const [err, setErr] = React.useState('')
     const ref = React.useRef(null)
+    if (fillRef) fillRef.current = (v) => { setText(v); setTimeout(() => { const el = ref.current; if (el) { el.focus(); el.setSelectionRange(v.length, v.length) } }, 0) }
     const submit = async () => {
       const body = text.trim()
       if (!body || busy) return

@@ -36,7 +36,7 @@ export const Config = configSchema({ concurrency: 2, timeoutMinutes: 20, permiss
 const PACKAGE_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const MEMORY_FILE = 'AGENTS.md'
 export const REMEMBER_MAX = 300
-const THREAD_LIMIT = 20
+const THREAD_LIMIT = 8
 const THREAD_LIMIT_MAX = 100
 
 // ── the teammate's generated preset ─────────────────────────────────────────
@@ -131,6 +131,16 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
   /** A synthetic reminder run's card: { routineId, title, at, acked } (the same fields as its one activity entry). */
   const remindOfRun = (t) => { const e = (t.activity || []).find((a) => a && a.kind === 'remind') || {}; return { routineId: t.routineId || '', title: e.title || t.routineTitle || '', at: e.at || t.createdAt, acked: !!e.acked } }
 
+  /** A document's first paragraph (no heading, table, list or code), at most 180 characters: what a reply bubble quotes. */
+  const excerptOf = (text) => {
+    for (const block of String(text || '').split(/\n\s*\n/)) {
+      const b = block.trim()
+      if (!b || /^(#|\||```|>|[-*+] |\d+\. |---)/.test(b)) continue
+      const line = b.replace(/\s*\n\s*/g, ' ')
+      return line.length > 180 ? line.slice(0, 179) + '…' : line
+    }
+    return ''
+  }
   function runView(t, docs) {
     const list = docs || deliverables.forTask(t.id)
     const ask = t.status === 'waiting' ? pendingAsk(t) : null
@@ -139,7 +149,7 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
       status: t.status === 'queued' ? 'running' : t.status, queued: t.status === 'queued',
       input: t.trigger === 'system' ? '' : t.input, title: t.title || '', summary: t.summary || '',
       activity: (Array.isArray(t.activity) ? t.activity : []).map(({ requestId: _r, ...a }) => a),
-      deliverables: list.map(deliverableSummary),
+      deliverables: list.map((d) => ({ ...deliverableSummary(d), excerpt: excerptOf(d.markdown) })),
       verification: t.verification || null, verifying: !!t.verifying,
       ask: ask ? askView(ask) : null, error: t.error || '', quiet: !!t.quiet, migrated: !!t.migrated, remind: t.remind ? remindOfRun(t) : null,
       step: t.status === 'running' ? currentStepOf(t) : '',
@@ -383,8 +393,21 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     let start = Math.max(0, eligible.length - n)
     while (start > 0 && ts(eligible[start - 1].createdAt) === ts(eligible[start].createdAt)) start -= 1
     const page = eligible.slice(start)
-    return { runs: page.map((r) => runView(r, index.get(r.id) || [])), nextBefore: start > 0 && page.length ? page[0].createdAt : null }
+    return { runs: page.map((r) => liteRun(runView(r, index.get(r.id) || []))), nextBefore: start > 0 && page.length ? page[0].createdAt : null }
   }
+  /**
+   * The thread's copy of a run: tool calls leave the activity of a run that is not live (the 过程 fold fetches them from
+   * GET /run when opened); `process` keeps what its one-line summary needs: { tools, groups, verify }.
+   */
+  function liteRun(v) {
+    if (v.status === 'running' || v.status === 'waiting') return v
+    const all = v.activity || []
+    let tools = 0; let groups = 0; let prev = ''
+    for (const a of all) { if (a && a.kind === 'tool') { tools += 1; if (a.name !== prev) groups += 1; prev = a.name } else if (a && a.kind === 'text') prev = '' }
+    if (!tools) return v
+    return { ...v, activity: all.filter((a) => a && a.kind !== 'tool'), process: { tools, groups, lite: true } }
+  }
+  function runById(id) { const t = store.get(String(id || '')); if (!t) throw notFound('run not found'); return { run: runView(t) } }
 
   /** The newest files in the teammate's folder (its 电脑 when no browser is in use). */
   function folder(id) {
@@ -658,6 +681,7 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     '/mates/update': { POST: (_q, b) => ({ mate: updateMate(b) }) },
     '/mates/remove': { POST: (_q, b) => ({ removed: removeMate(idOf(b)) }) },
     '/mates/thread': { GET: (q) => thread(q.get('id'), q.get('before'), q.get('limit')) },
+    '/run': { GET: (q) => runById(q.get('id')) },
     '/mates/folder': { GET: (q) => folder(q.get('id')) },
     '/mates/say': {
       POST: async (_q, b) => {

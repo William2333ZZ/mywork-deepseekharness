@@ -41,15 +41,15 @@ const EMPTY_ACTIVITY: Activity = { needs: [], working: [], recent: [] }
 
 const stylesheet = `
 /* Tokens: Rakazo's (packages/ui-tokens): dark by default; a light twin only when dsh itself is light and the OS asks for light. */
-.mws{--bg:#0b0c0e;--surface:#111215;--surface-2:#18191e;--card:#141518;--fg:#ececee;--fg-2:#d4d4d8;--muted:#85858a;--meta:#85858a;--border:#1e2026;--border-soft:#1e2026;--border-strong:#2c2e36;--primary:#f1f1ef;--primary-on:#0b0c0e;--warn:#f0a35e;--focus-ring:0 0 0 2px rgba(241,241,239,.35);--elev-raised:0 10px 30px rgba(0,0,0,.5),0 2px 8px rgba(0,0,0,.4);--motion-fast:150ms;--ease-standard:cubic-bezier(.2,0,0,1);position:relative;width:100%;height:100%;min-width:0;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;background:var(--surface);color:var(--fg);box-shadow:inset -1px 0 var(--border);font:14px/20px Geist,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei UI",sans-serif;-webkit-font-smoothing:antialiased}
-@media all{html[data-mywork-theme="light"] .mws{--bg:#ffffff;--surface:#f7f7f8;--surface-2:#ececee;--card:#f2f2f3;--fg:#111113;--fg-2:#2a2a2e;--muted:#6b6b70;--meta:#6b6b70;--border:#e6e6e9;--border-soft:#ececee;--border-strong:#d4d4d8;--primary:#111113;--primary-on:#ffffff;--warn:#b5480a;--focus-ring:0 0 0 2px rgba(17,17,19,.25);--elev-raised:0 10px 30px rgba(0,0,0,.08),0 2px 8px rgba(0,0,0,.05)}}
+.mws{--bg:#0b0c0e;--surface:#111215;--surface-2:#18191e;--card:#141518;--fg:#ececee;--fg-2:#d4d4d8;--muted:#85858a;--meta:#85858a;--border:#1e2026;--border-soft:#1e2026;--border-strong:#2c2e36;--primary:#f1f1ef;--primary-on:#0b0c0e;--warn:#f0a35e;--focus-ring:0 0 0 2px rgba(241,241,239,.35);--elev-raised:0 10px 30px rgba(0,0,0,.5),0 2px 8px rgba(0,0,0,.4);--motion-fast:150ms;--ease-standard:cubic-bezier(.2,0,0,1);--av-bg:var(--card);--av-fg:#efe8da;position:relative;width:100%;height:100%;min-width:0;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;background:var(--surface);color:var(--fg);box-shadow:inset -1px 0 var(--border);font:14px/20px Geist,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei UI",sans-serif;-webkit-font-smoothing:antialiased}
+@media all{html[data-mywork-theme="light"] .mws{--bg:#ffffff;--surface:#f7f7f8;--surface-2:#ececee;--card:#f2f2f3;--fg:#111113;--fg-2:#2a2a2e;--muted:#6b6b70;--meta:#6b6b70;--border:#e6e6e9;--border-soft:#ececee;--border-strong:#d4d4d8;--primary:#111113;--primary-on:#ffffff;--warn:#b5480a;--focus-ring:0 0 0 2px rgba(17,17,19,.25);--elev-raised:0 10px 30px rgba(0,0,0,.08),0 2px 8px rgba(0,0,0,.05);--av-bg:#1f1d1a;--av-fg:#faf7f0}}
 .mws *{box-sizing:border-box}
 .mws button{font-family:inherit;transition:background-color var(--motion-fast) var(--ease-standard),color var(--motion-fast) var(--ease-standard),transform var(--motion-fast) var(--ease-standard)}
 .mws button:active{transform:scale(.98)}
 .mws :focus-visible{outline:none;box-shadow:var(--focus-ring)}
 @media (prefers-reduced-motion:reduce){.mws *{transition:none!important;animation:none!important}}
 .mws-head{position:relative;display:flex;align-items:center;gap:2px;flex:none;padding:12px 10px 10px}
-.mws-search{flex:1;min-width:0;display:flex;align-items:center;gap:8px;height:34px;margin-right:4px;padding:0 12px;border:1px solid var(--border);border-radius:999px;background:var(--card);color:var(--muted);transition:border-color var(--motion-fast) var(--ease-standard)}
+.mws-search{flex:1;min-width:0;display:flex;align-items:center;gap:8px;height:34px;margin:0 4px;padding:0 12px;border:1px solid var(--border);border-radius:999px;background:var(--card);color:var(--muted);transition:border-color var(--motion-fast) var(--ease-standard)}
 .mws-search:focus-within{border-color:var(--border-strong)}
 .mws-search svg{flex:none}
 .mws-search input{flex:1;min-width:0;height:100%;margin:0;padding:0;border:0;background:transparent;color:var(--fg);font:inherit;font-size:13.5px;outline:none}
@@ -64,8 +64,8 @@ const stylesheet = `
 .mws-drop .mws-row{min-height:48px;border-radius:14px}
 .mws-drop .mws-row:hover{background:var(--surface-2)}
 .mws-list{flex:1;min-height:0;overflow:auto;padding:0 8px 8px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
-/* Rows (Rakazo's chat list): 38 avatar · name + time + dot · title chip · two-line preview. */
-.mws-row{appearance:none;display:grid;grid-template-columns:38px minmax(0,1fr);column-gap:12px;align-items:start;width:100%;min-height:60px;padding:10px 10px;border:0;border-radius:16px;background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
+/* Rows (Rakazo's chat list): 38 avatar · name + time + dot · two-line preview. */
+.mws-row{appearance:none;display:grid;grid-template-columns:38px minmax(0,1fr);column-gap:12px;align-items:start;width:100%;min-height:64px;padding:11px 10px;border:0;border-radius:16px;background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
 .mws-row-flat{grid-template-columns:20px minmax(0,1fr);align-items:center;min-height:44px;padding:12px 10px}
 .mws-row:hover,.mws-row[aria-current=page]{background:var(--surface-2)}
 .mws-glyph{display:inline-grid;place-items:center;width:20px;height:20px;color:var(--muted)}
@@ -189,7 +189,7 @@ export function MateAvatar({ mate, size = 38 }: { mate: Mate; size?: number }): 
   const [gid] = useState(() => 'mwsav' + String(++avatarSeq))
   if (mate.isDefault === true) {
     return <span className="mws-av" data-working={working ? 'true' : undefined} style={{ '--glow': '#f1f1ef' } as CSSProperties} aria-hidden="true">
-      <svg viewBox="0 0 100 100" width={size} height={size}><circle cx="50" cy="50" r="46" fill="var(--primary)" /><svg x="20" y="20" width="60" height="60" viewBox="0 0 24 24" fill="none"><path d="M4.5 18.5V7l5.5 6.5L15.5 7M10.5 17l3 3 6-6" stroke="var(--primary-on)" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" /></svg></svg>
+      <svg viewBox="0 0 100 100" width={size} height={size}><circle cx="50" cy="50" r="46" fill="var(--av-bg)" /><svg x="20" y="20" width="60" height="60" viewBox="0 0 24 24" fill="none"><path d="M4.5 18.5V7l5.5 6.5L15.5 7M10.5 17l3 3 6-6" stroke="var(--av-fg)" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" /></svg></svg>
     </span>
   }
   const hash = avatarHash(str(mate.id) || str(mate.name) || 'mate')
@@ -208,7 +208,7 @@ export function MateAvatar({ mate, size = 38 }: { mate: Mate; size?: number }): 
 function secondLine(mate: Mate, t: SidebarProps['t']): { text: string; tone?: 'warn' } {
   if (mate.state === 'waiting') { const q = str(mate.ask?.question).replace(/\*\*|__|`/g, ''); return { text: [t('v2.waitingAsk'), q].filter(s => s !== '').join(' · '), tone: 'warn' } }
   if (mate.state === 'working') return { text: [t('v2.working'), str(mate.step)].filter(s => s !== '').join(' · ') }
-  return { text: str(mate.preview) || str(mate.title) }
+  return { text: str(mate.preview) }
 }
 
 function MateRow({ mate, time, current, unread, t, onOpen }: { mate: Mate; time: string; current: boolean; unread: boolean; t: SidebarProps['t']; onOpen: () => void }): ReactElement {
@@ -217,8 +217,7 @@ function MateRow({ mate, time, current, unread, t, onOpen }: { mate: Mate; time:
     <MateAvatar mate={mate} />
     <span className="mws-main">
       <span className="mws-line"><span className="mws-title">{mate.name}</span>{time !== '' && <span className="mws-time">{time}</span>}{unread && <i className="mws-unread" aria-hidden="true" />}</span>
-      {str(mate.title) !== '' && <span className="mws-chip">{mate.title}</span>}
-      {sub.text !== '' && sub.text !== str(mate.title) && <span className="mws-sub" data-tone={sub.tone}>{sub.text}</span>}
+      {sub.text !== '' && <span className="mws-sub" data-tone={sub.tone}>{sub.text}</span>}
     </span>
   </button>
 }
@@ -372,11 +371,11 @@ export function MyworkSidebar({ selectPanel, usePanelInfo = useLegacyPanelInfo, 
       <button type="button" className="mws-icon" aria-label={t('v2.files')} onClick={() => { open({ kind: 'files' }) }}><Files size={16} strokeWidth={1.5} /></button>
     </> : <>
       <div className="mws-head" ref={headRef}>
+        <button type="button" className="mws-icon" aria-label={t('sidebar.collapse')} onClick={toggleSidebar}><PanelLeft size={16} strokeWidth={1.5} /></button>
         <label className="mws-search"><Search size={14} strokeWidth={1.5} aria-hidden="true" /><input type="text" value={query} placeholder={t('v2.search')} aria-label={t('v2.search')} autoComplete="off" spellCheck={false} onChange={event => { setQuery(event.target.value) }} onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); setQuery('') } }} /></label>
         <button type="button" className="mws-icon" aria-label={t('v2.bell')} aria-haspopup="true" aria-expanded={bellOpen} onClick={() => { setBellOpen(!bellOpen) }}>
           <Bell size={16} strokeWidth={1.5} />{count > 0 && <span className="mws-count">{count > 99 ? '99' : count}</span>}
         </button>
-        <button type="button" className="mws-icon" aria-label={t('sidebar.collapse')} onClick={toggleSidebar}><PanelLeft size={16} strokeWidth={1.5} /></button>
         <button type="button" className="mws-icon" aria-label={t('v2.newMate')} onClick={() => { open({ kind: 'new-mate' }) }}><Plus size={16} strokeWidth={1.5} /></button>
         {bellOpen && <div className="mws-drop" role="dialog" aria-label={t('v2.bell')}>
           {groups.every(([, items]) => items.length === 0) && <div className="mws-empty">{t('v2.quiet')}</div>}

@@ -2430,15 +2430,15 @@ window.__ModuleLoader__.load({
 		};
 		const stylesheet$5 = `
 /* Tokens: Rakazo's (packages/ui-tokens): dark by default; a light twin only when dsh itself is light and the OS asks for light. */
-.mws{--bg:#0b0c0e;--surface:#111215;--surface-2:#18191e;--card:#141518;--fg:#ececee;--fg-2:#d4d4d8;--muted:#85858a;--meta:#85858a;--border:#1e2026;--border-soft:#1e2026;--border-strong:#2c2e36;--primary:#f1f1ef;--primary-on:#0b0c0e;--warn:#f0a35e;--focus-ring:0 0 0 2px rgba(241,241,239,.35);--elev-raised:0 10px 30px rgba(0,0,0,.5),0 2px 8px rgba(0,0,0,.4);--motion-fast:150ms;--ease-standard:cubic-bezier(.2,0,0,1);position:relative;width:100%;height:100%;min-width:0;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;background:var(--surface);color:var(--fg);box-shadow:inset -1px 0 var(--border);font:14px/20px Geist,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei UI",sans-serif;-webkit-font-smoothing:antialiased}
-@media all{html[data-mywork-theme="light"] .mws{--bg:#ffffff;--surface:#f7f7f8;--surface-2:#ececee;--card:#f2f2f3;--fg:#111113;--fg-2:#2a2a2e;--muted:#6b6b70;--meta:#6b6b70;--border:#e6e6e9;--border-soft:#ececee;--border-strong:#d4d4d8;--primary:#111113;--primary-on:#ffffff;--warn:#b5480a;--focus-ring:0 0 0 2px rgba(17,17,19,.25);--elev-raised:0 10px 30px rgba(0,0,0,.08),0 2px 8px rgba(0,0,0,.05)}}
+.mws{--bg:#0b0c0e;--surface:#111215;--surface-2:#18191e;--card:#141518;--fg:#ececee;--fg-2:#d4d4d8;--muted:#85858a;--meta:#85858a;--border:#1e2026;--border-soft:#1e2026;--border-strong:#2c2e36;--primary:#f1f1ef;--primary-on:#0b0c0e;--warn:#f0a35e;--focus-ring:0 0 0 2px rgba(241,241,239,.35);--elev-raised:0 10px 30px rgba(0,0,0,.5),0 2px 8px rgba(0,0,0,.4);--motion-fast:150ms;--ease-standard:cubic-bezier(.2,0,0,1);--av-bg:var(--card);--av-fg:#efe8da;position:relative;width:100%;height:100%;min-width:0;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;background:var(--surface);color:var(--fg);box-shadow:inset -1px 0 var(--border);font:14px/20px Geist,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei UI",sans-serif;-webkit-font-smoothing:antialiased}
+@media all{html[data-mywork-theme="light"] .mws{--bg:#ffffff;--surface:#f7f7f8;--surface-2:#ececee;--card:#f2f2f3;--fg:#111113;--fg-2:#2a2a2e;--muted:#6b6b70;--meta:#6b6b70;--border:#e6e6e9;--border-soft:#ececee;--border-strong:#d4d4d8;--primary:#111113;--primary-on:#ffffff;--warn:#b5480a;--focus-ring:0 0 0 2px rgba(17,17,19,.25);--elev-raised:0 10px 30px rgba(0,0,0,.08),0 2px 8px rgba(0,0,0,.05);--av-bg:#1f1d1a;--av-fg:#faf7f0}}
 .mws *{box-sizing:border-box}
 .mws button{font-family:inherit;transition:background-color var(--motion-fast) var(--ease-standard),color var(--motion-fast) var(--ease-standard),transform var(--motion-fast) var(--ease-standard)}
 .mws button:active{transform:scale(.98)}
 .mws :focus-visible{outline:none;box-shadow:var(--focus-ring)}
 @media (prefers-reduced-motion:reduce){.mws *{transition:none!important;animation:none!important}}
 .mws-head{position:relative;display:flex;align-items:center;gap:2px;flex:none;padding:12px 10px 10px}
-.mws-search{flex:1;min-width:0;display:flex;align-items:center;gap:8px;height:34px;margin-right:4px;padding:0 12px;border:1px solid var(--border);border-radius:999px;background:var(--card);color:var(--muted);transition:border-color var(--motion-fast) var(--ease-standard)}
+.mws-search{flex:1;min-width:0;display:flex;align-items:center;gap:8px;height:34px;margin:0 4px;padding:0 12px;border:1px solid var(--border);border-radius:999px;background:var(--card);color:var(--muted);transition:border-color var(--motion-fast) var(--ease-standard)}
 .mws-search:focus-within{border-color:var(--border-strong)}
 .mws-search svg{flex:none}
 .mws-search input{flex:1;min-width:0;height:100%;margin:0;padding:0;border:0;background:transparent;color:var(--fg);font:inherit;font-size:13.5px;outline:none}
@@ -2453,8 +2453,8 @@ window.__ModuleLoader__.load({
 .mws-drop .mws-row{min-height:48px;border-radius:14px}
 .mws-drop .mws-row:hover{background:var(--surface-2)}
 .mws-list{flex:1;min-height:0;overflow:auto;padding:0 8px 8px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
-/* Rows (Rakazo's chat list): 38 avatar · name + time + dot · title chip · two-line preview. */
-.mws-row{appearance:none;display:grid;grid-template-columns:38px minmax(0,1fr);column-gap:12px;align-items:start;width:100%;min-height:60px;padding:10px 10px;border:0;border-radius:16px;background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
+/* Rows (Rakazo's chat list): 38 avatar · name + time + dot · two-line preview. */
+.mws-row{appearance:none;display:grid;grid-template-columns:38px minmax(0,1fr);column-gap:12px;align-items:start;width:100%;min-height:64px;padding:11px 10px;border:0;border-radius:16px;background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
 .mws-row-flat{grid-template-columns:20px minmax(0,1fr);align-items:center;min-height:44px;padding:12px 10px}
 .mws-row:hover,.mws-row[aria-current=page]{background:var(--surface-2)}
 .mws-glyph{display:inline-grid;place-items:center;width:20px;height:20px;color:var(--muted)}
@@ -2694,7 +2694,7 @@ window.__ModuleLoader__.load({
 						cx: "50",
 						cy: "50",
 						r: "46",
-						fill: "var(--primary)"
+						fill: "var(--av-bg)"
 					}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("svg", {
 						x: "20",
 						y: "20",
@@ -2704,7 +2704,7 @@ window.__ModuleLoader__.load({
 						fill: "none",
 						children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("path", {
 							d: "M4.5 18.5V7l5.5 6.5L15.5 7M10.5 17l3 3 6-6",
-							stroke: "var(--primary-on)",
+							stroke: "var(--av-fg)",
 							strokeWidth: "3.2",
 							strokeLinecap: "round",
 							strokeLinejoin: "round"
@@ -2771,7 +2771,7 @@ window.__ModuleLoader__.load({
 				};
 			}
 			if (mate.state === "working") return { text: [t("v2.working"), str(mate.step)].filter((s) => s !== "").join(" · ") };
-			return { text: str(mate.preview) || str(mate.title) };
+			return { text: str(mate.preview) };
 		}
 		function MateRow({ mate, time, current, unread, t, onOpen }) {
 			const sub = secondLine(mate, t);
@@ -2783,34 +2783,27 @@ window.__ModuleLoader__.load({
 				onClick: onOpen,
 				children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(MateAvatar, { mate }), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
 					className: "mws-main",
-					children: [
-						/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
-							className: "mws-line",
-							children: [
-								/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
-									className: "mws-title",
-									children: mate.name
-								}),
-								time !== "" && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
-									className: "mws-time",
-									children: time
-								}),
-								unread && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("i", {
-									className: "mws-unread",
-									"aria-hidden": "true"
-								})
-							]
-						}),
-						str(mate.title) !== "" && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
-							className: "mws-chip",
-							children: mate.title
-						}),
-						sub.text !== "" && sub.text !== str(mate.title) && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
-							className: "mws-sub",
-							"data-tone": sub.tone,
-							children: sub.text
-						})
-					]
+					children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
+						className: "mws-line",
+						children: [
+							/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+								className: "mws-title",
+								children: mate.name
+							}),
+							time !== "" && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+								className: "mws-time",
+								children: time
+							}),
+							unread && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("i", {
+								className: "mws-unread",
+								"aria-hidden": "true"
+							})
+						]
+					}), sub.text !== "" && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+						className: "mws-sub",
+						"data-tone": sub.tone,
+						children: sub.text
+					})]
 				})]
 			});
 		}
@@ -3099,6 +3092,16 @@ window.__ModuleLoader__.load({
 							className: "mws-head",
 							ref: headRef,
 							children: [
+								/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+									type: "button",
+									className: "mws-icon",
+									"aria-label": t("sidebar.collapse"),
+									onClick: toggleSidebar,
+									children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(PanelLeft, {
+										size: 16,
+										strokeWidth: 1.5
+									})
+								}),
 								/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("label", {
 									className: "mws-search",
 									children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(Search, {
@@ -3139,16 +3142,6 @@ window.__ModuleLoader__.load({
 										className: "mws-count",
 										children: count > 99 ? "99" : count
 									})]
-								}),
-								/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
-									type: "button",
-									className: "mws-icon",
-									"aria-label": t("sidebar.collapse"),
-									onClick: toggleSidebar,
-									children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(PanelLeft, {
-										size: 16,
-										strokeWidth: 1.5
-									})
 								}),
 								/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
 									type: "button",

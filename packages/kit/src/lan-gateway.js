@@ -66,7 +66,7 @@ export function startLanGateway({ targetPort, listenPort, log = () => {}, launch
   const sessionFor = async (req) => {
     const bearer = bearerOf(req)
     if (!bearer) return { ok: true, cookie: '' }
-    if (!sameSecret(bearer, launchToken())) return { ok: false, cookie: '' }
+    if (!sameSecret(bearer, launchToken())) { const want = launchToken(); log(`bearer mismatch: got ${bearer.length} chars starting ${JSON.stringify(bearer.slice(0, 6))} ending ${JSON.stringify(bearer.slice(-4))}, want ${want.length} chars starting ${JSON.stringify(want.slice(0, 6))} ending ${JSON.stringify(want.slice(-4))}`); return { ok: false, cookie: '' } }
     if (!session) session = await obtainSession()
     return { ok: !!session, cookie: session }
   }

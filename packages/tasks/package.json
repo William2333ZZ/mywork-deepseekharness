@@ -27,5 +27,5 @@
     }
   },
   "peerDependencies": { "@deepseek-ai/cordis": "*" },
-  "mywork": { "clientPrelude": ["src/md.cjs", "../../scripts/client-icons.cjs"] }
+  "mywork": { "clientPrelude": ["src/md.cjs", "src/client/thread.cjs", "../../scripts/client-icons.cjs"] }
 }

@@ -24,9 +24,13 @@ export type Task = {
   id: string; title: string; scenario: string; input: string; status: 'queued' | 'running' | 'delivering' | 'verifying' | 'done'
   statusLabel: string; currentStep: string; error: string; summary?: string; createdAt: string; startedAt?: string; finishedAt?: string
   routineId?: string; quiet?: boolean; report?: boolean; source?: string; sessionId?: string
+  /** Column fields (2026-09-30): the latest sentence for the row's second line, the last meaningful activity, and whether something arrived unasked since the user last opened it. */
+  preview?: string; lastAt?: string; unread?: boolean; attentionAt?: string
   steps: Step[]; activity?: Activity[]; deliverableIds: string[]; deliverables: Deliverable[]; verification?: Verification | null
 }
-export type Routine = { id: string; kind: 'task' | 'remind'; title: string; scheduleLabel: string; enabled: boolean; nextRunAt: string; once?: boolean; lastTaskId?: string; input?: string; runs?: { at: string; taskId?: string; changed?: boolean | null; error?: string; fired?: boolean }[] }
+export type RoutineRun = { at: string; taskId?: string; changed?: boolean | null; error?: string; fired?: boolean; quiet?: boolean; report?: boolean }
+export type Routine = { id: string; kind: 'task' | 'remind'; title: string; scheduleLabel: string; enabled: boolean; nextRunAt: string; once?: boolean; lastTaskId?: string; input?: string; runs?: RoutineRun[]; preview?: string; lastAt?: string; unread?: boolean; lastRunSummary?: RoutineRun | null }
+export type SearchResult = { tasks: Task[]; routines: Routine[]; deliverables: { id: string; taskId: string; title: string; createdAt: string; kind: string }[] }
 export type Reminder = { routineId: string; title: string; input: string; at: string }
 export type TasksPayload = { items: Task[]; deliverables: Deliverable[]; reminders: Reminder[]; routines: Routine[] }
 
@@ -76,7 +80,9 @@ export class Api {
   tasks() { return this.req<TasksPayload>('/tasks') }
   task(id: string) { return this.req<{ task: Task; deliverables: Deliverable[] }>('/task?id=' + encodeURIComponent(id)) }
   create(input: string) { return this.req<{ task?: Task; routine?: Routine }>('/create', { input }) }
-  today() { return this.req<{ thread: Task | null }>('/today') }
+  today(day?: string) { return this.req<{ thread: Task | null }>('/today' + (day ? '?day=' + encodeURIComponent(day) : '')) }
+  seen(id: string) { return this.req<{ id: string; seenAt: string }>('/seen', { id }) }
+  search(q: string) { return this.req<SearchResult>('/search?q=' + encodeURIComponent(q)) }
   todaySay(text: string) { return this.req<{ thread: Task }>('/today/say', { text }) }
   say(id: string, text: string) { return this.req<{ task: Task }>('/say', { id, text }) }
   cancel(id: string) { return this.req<{ task: Task }>('/cancel', { id }) }

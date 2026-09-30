@@ -7,14 +7,18 @@
  *     and can create / list tasks (ctx.provide, so `inject: ['myworkTasks']` works in cordis).
  *   • tools: deliver({ title, markdown, kind?, data? }) inside a task session;
  *            mywork_task_create({ input, scenario? }) and mywork_tasks() from any session.
- *   • HTTP: /mywork-tasks/api/{tasks, task, create, cancel, rerun, verify, say, scenarios, deliverables, deliverable, rate}
+ *   • HTTP: /mywork-tasks/api/{tasks, task, create, cancel, rerun, verify, say, scenarios, deliverables, deliverable, rate,
+ *           today[?day=YYYY-MM-DD], seen, search?q=}
  *   • events: ctx.emit('mywork/task', { kind: started|step|deliverable|done, task, deliverable? })
+ *
+ * Every task and routine view carries what the conversation column shows: lastAt, preview, attentionAt
+ * and unread (read state lives in $DSH_HOME/mywork/seen.json, written by POST /seen).
  */
 import { join } from 'node:path'
 import { createEngine } from './engine.js'
 import { configSchema, defineRawTool, rejectUntrusted } from './harness.js'
 import { BUILTIN_SCENARIOS, createScenarioRegistry } from './scenarios.js'
-import { DeliverableStore, myworkDir, TaskStore, taskView, STATUS_LABELS } from './store.js'
+import { DeliverableStore, myworkDir, searchAll, SeenStore, TaskStore, taskView, STATUS_LABELS } from './store.js'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -36,7 +40,7 @@ function installPresets(log) {
   }
 }
 
-import { describeSchedule, parseSchedule, RoutineStore, routineView } from './routines.js'
+import { describeSchedule, parseSchedule, routineLastAt, RoutineStore, routineView } from './routines.js'
 
 export const name = 'dsh-mywork-tasks'
 export const inject = ['tools', 'agents', 'sessions', 'workspaceRegistry', 'agentDefaultModel', 'agentPresets', 'permissionPresets']
@@ -51,11 +55,15 @@ export function apply(ctx, config = {}) {
   const store = new TaskStore(join(dir, 'tasks.json'))
   const deliverables = new DeliverableStore(join(dir, 'deliverables.json'))
   const routines = new RoutineStore(join(dir, 'routines.json'))
+  const seen = new SeenStore(join(dir, 'seen.json'))
+  // Every task / routine leaves here through one of these, so unread always reflects the current seen.json.
+  const view = (t) => taskView(t, deliverables, seen)
+  const rview = (r) => routineView(r, seen)
   const scenarios = createScenarioRegistry()
   for (const s of BUILTIN_SCENARIOS) scenarios.register(s)
   const listeners = new Set()
   const emit = (kind, task, deliverable, extra) => {
-    const payload = { kind, task: task ? taskView(task, deliverables) : null, ...(deliverable ? { deliverable: { id: deliverable.id, title: deliverable.title, kind: deliverable.kind, taskId: deliverable.taskId } } : {}), ...(extra || {}) }
+    const payload = { kind, task: task ? view(task) : null, ...(deliverable ? { deliverable: { id: deliverable.id, title: deliverable.title, kind: deliverable.kind, taskId: deliverable.taskId } } : {}), ...(extra || {}) }
     for (const fn of listeners) { try { fn(payload) } catch (e) { log('listener error: ' + (e && e.message)) } }
     try { ctx.emit('mywork/task', payload) } catch {}
   }
@@ -76,7 +84,7 @@ export function apply(ctx, config = {}) {
     log(`task ${task.id} queued (${task.scenario}): ${task.title}`)
     emit('queued', task)
     engine.pump()
-    return taskView(task, deliverables)
+    return view(task)
   }
   /** Routines: a sentence with a time becomes a standing thing instead of a one-off task. */
   const createRoutine = ({ input, schedule, kind, title }) => {
@@ -86,16 +94,16 @@ export function apply(ctx, config = {}) {
     const finalTitle = finalKind === 'task' ? String(title || '').replace(/(的)?提醒$/, '').trim() : title // 「写周报提醒」 is a report MyWork writes, so the title is the report
     const r = routines.create({ kind: finalKind, title: finalTitle, input: parsed ? parsed.text : input, schedule: schedule || parsed.schedule })
     log(`routine ${r.id} ${r.kind} ${describeSchedule(r.schedule)}: ${r.title}`)
-    emit('routine', null, undefined, { routine: routineView(r) })
-    return routineView(r)
+    emit('routine', null, undefined, { routine: rview(r) })
+    return rview(r)
   }
   const runRoutine = (id) => {
     const r = routines.get(id)
     if (!r) throw new Error('routine not found')
-    if (r.kind === 'remind') { routines.fire(id); routines.ran(id, { fired: true }); emit('remind', null, undefined, { routine: routineView(routines.get(id)) }); return routineView(routines.get(id)) }
+    if (r.kind === 'remind') { routines.fire(id); routines.ran(id, { fired: true }); emit('remind', null, undefined, { routine: rview(routines.get(id)) }); return rview(routines.get(id)) }
     const task = create({ input: r.input, title: r.title, source: 'routine', routineId: r.id })
     routines.ran(id, { taskId: task.id })
-    return routineView(routines.get(id))
+    return rview(routines.get(id))
   }
   // Scheduler: every 30 s run what is due. A run that fires while the server was down runs once on start.
   ctx.effect(() => { const tick = () => { try { for (const r of routines.due()) runRoutine(r.id) } catch (e) { log('scheduler: ' + (e && e.message)) } }; const id = setInterval(tick, 30000); const first = setTimeout(tick, 5000); return () => { clearInterval(id); clearTimeout(first) } }, 'dsh-mywork-tasks: scheduler')
@@ -103,6 +111,8 @@ export function apply(ctx, config = {}) {
   /** 今日's conversation: one assistant task per day, created on the first message, continued with say(). */
   const dayKey = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') }
   const todayThread = () => store.items.find((t) => t.scenario === 'assistant' && t.dayKey === dayKey()) || null
+  /** An earlier day's thread, to read back: the newest assistant task of that day (a restart can leave two). */
+  const threadFor = (day) => { if (day === dayKey()) return todayThread(); for (let i = store.items.length - 1; i >= 0; i -= 1) { const t = store.items[i]; if (t.scenario === 'assistant' && t.dayKey === day) return t } return null }
   const todaySummary = () => {
     const today = new Date().toISOString().slice(0, 10)
     const running = store.items.filter((t) => t.status !== 'done' && t.scenario !== 'assistant').map((t) => t.title)
@@ -157,25 +167,25 @@ export function apply(ctx, config = {}) {
       store.activity(t.id, { kind: 'user', text: body }) // the first line of the day shows like every later one
       emit('queued', t)
       engine.pump()
-      return taskView(store.get(t.id), deliverables)
+      return view(store.get(t.id))
     }
-    return taskView(await engine.say(t.id, body), deliverables)
+    return view(await engine.say(t.id, body))
   }
   const api = {
     register: (s) => scenarios.register(s),
-    today: () => { const t = todayThread(); return t ? taskView(t, deliverables) : null },
+    today: () => { const t = todayThread(); return t ? view(t) : null },
     todaySay,
-    routines: () => routines.list().map(routineView),
-    routine: (id) => { const r = routines.get(id); return r ? routineView(r) : null },
+    routines: () => routines.list().map(rview),
+    routine: (id) => { const r = routines.get(id); return r ? rview(r) : null },
     createRoutine,
     runRoutine,
     scenarios: () => scenarios.list(),
     create,
-    list: () => store.list().map((t) => taskView(t, deliverables)),
-    get: (id) => { const t = store.get(id); return t ? taskView(t, deliverables) : null },
-    cancel: (id) => taskView(engine.cancel(id), deliverables),
-    verify: (id) => taskView(engine.reverify(id), deliverables),
-    say: async (id, text) => taskView(await engine.say(id, text), deliverables),
+    list: () => store.list().map((t) => view(t)),
+    get: (id) => { const t = store.get(id); return t ? view(t) : null },
+    cancel: (id) => view(engine.cancel(id)),
+    verify: (id) => view(engine.reverify(id)),
+    say: async (id, text) => view(await engine.say(id, text)),
     deliverables: () => deliverables.list(),
     deliverable: (id) => deliverables.get(id),
     on: (fn) => { listeners.add(fn); return () => listeners.delete(fn) },
@@ -239,7 +249,8 @@ export function apply(ctx, config = {}) {
     const post = (path, handler) => route(path, async (req, res) => { if (req.method !== 'POST') return json(res, { error: 'POST only' }, 405); return handler(await readBody(req), res, req) })
     const deliverableSummary = (d) => ({ id: d.id, taskId: d.taskId, title: d.title, kind: d.kind, scenario: d.scenario, createdAt: d.createdAt, rating: d.rating, verification: d.verification, summary: d.summary || null })
     // One payload feeds 今日, the sidebar and the lists: tasks without their activity, recent deliverables, packs, capabilities.
-    route('/tasks', async (_req, res) => json(res, { items: api.list().map(({ activity: _a, ...t }) => t), deliverables: deliverables.list().slice(0, 60).map(deliverableSummary), reminders: routines.pending(), routines: api.routines().map((r) => ({ id: r.id, kind: r.kind, title: r.title, scheduleLabel: r.scheduleLabel, enabled: r.enabled, nextRunAt: r.nextRunAt, once: r.schedule && r.schedule.type === 'once', lastTaskId: ((r.runs || []).find((x) => x.taskId) || {}).taskId || '' })), scenarios: scenarios.list(), capabilities: capabilities() }))
+    const routineRow = (r) => ({ id: r.id, kind: r.kind, title: r.title, scheduleLabel: r.scheduleLabel, enabled: r.enabled, nextRunAt: r.nextRunAt, once: r.schedule && r.schedule.type === 'once', lastTaskId: ((r.runs || []).find((x) => x.taskId) || {}).taskId || '', lastAt: r.lastAt, lastRunSummary: r.lastRunSummary, preview: r.preview, attentionAt: r.attentionAt, unread: r.unread })
+    route('/tasks', async (_req, res) => json(res, { items: api.list().map(({ activity: _a, ...t }) => t), deliverables: deliverables.list().slice(0, 60).map(deliverableSummary), reminders: routines.pending(), routines: api.routines().map(routineRow), scenarios: scenarios.list(), capabilities: capabilities() }))
     route('/task', async (req, res) => { const t = api.get(query(req).get('id') || ''); if (!t) return json(res, { error: 'task not found' }, 404); json(res, { task: t, deliverables: deliverables.forTask(t.id) }) })
     post('/create', async (b, res) => {
       if (!String(b.input || '').trim()) return json(res, { error: 'input is required' }, 400)
@@ -249,22 +260,31 @@ export function apply(ctx, config = {}) {
     route('/routines', async (_req, res) => json(res, { items: api.routines(), pending: routines.pending() }))
     post('/routines/create', async (b, res) => json(res, { routine: createRoutine({ input: b.input, schedule: b.schedule, kind: b.kind, title: b.title }) }))
     post('/routines/run', async (b, res) => json(res, { routine: runRoutine(String(b.id || '')) }))
-    post('/routines/enable', async (b, res) => { const r = routines.setEnabled(String(b.id || ''), b.enabled !== false); if (!r) return json(res, { error: 'routine not found' }, 404); json(res, { routine: routineView(r) }) })
-    post('/routines/remove', async (b, res) => json(res, { removed: routines.remove(String(b.id || '')) }))
-    post('/routines/ack', async (b, res) => { const r = routines.ack(String(b.id || ''), b.at); if (!r) return json(res, { error: 'routine not found' }, 404); json(res, { routine: routineView(r), pending: routines.pending() }) })
+    post('/routines/enable', async (b, res) => { const r = routines.setEnabled(String(b.id || ''), b.enabled !== false); if (!r) return json(res, { error: 'routine not found' }, 404); json(res, { routine: rview(r) }) })
+    post('/routines/remove', async (b, res) => { const id = String(b.id || ''); const removed = routines.remove(id); if (removed) seen.forget(id); json(res, { removed }) })
+    // 知道了 on a reminder is also having seen its row: the dot goes with the card.
+    post('/routines/ack', async (b, res) => { const r = routines.ack(String(b.id || ''), b.at); if (!r) return json(res, { error: 'routine not found' }, 404); seen.mark([r.id]); json(res, { routine: rview(r), pending: routines.pending() }) })
     post('/cancel', async (b, res) => json(res, { task: api.cancel(String(b.id || '')) }))
     post('/verify', async (b, res) => json(res, { task: api.verify(String(b.id || '')) }))
-    route('/today', async (_req, res) => json(res, { thread: api.today() }))
+    // Today's thread, or with ?day=YYYY-MM-DD (local date, the dayKey format) an earlier day's, to read back.
+    route('/today', async (req, res) => {
+      const day = String(query(req).get('day') || '').trim()
+      if (!day) return json(res, { thread: api.today() })
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return json(res, { error: 'day must be YYYY-MM-DD' }, 400)
+      const t = threadFor(day)
+      json(res, { thread: t ? view(t) : null, day, readOnly: day !== dayKey() })
+    })
     post('/today/say', async (b, res) => { if (!String(b.text || '').trim()) return json(res, { error: 'text is required' }, 400); json(res, { thread: await todaySay(b.text) }) })
     post('/say', async (b, res) => { if (!String(b.text || '').trim()) return json(res, { error: 'text is required' }, 400); json(res, { task: await api.say(String(b.id || ''), b.text) }) })
     // History is the user's: rename a task, or delete it with its deliverables (a running one is cancelled first).
-    post('/rename', async (b, res) => { const t = store.get(String(b.id || '')); if (!t) return json(res, { error: 'task not found' }, 404); const title = String(b.title || '').trim().slice(0, 200); if (!title) return json(res, { error: 'title is required' }, 400); store.update(t.id, { title }); json(res, { task: taskView(store.get(t.id), deliverables) }) })
+    post('/rename', async (b, res) => { const t = store.get(String(b.id || '')); if (!t) return json(res, { error: 'task not found' }, 404); const title = String(b.title || '').trim().slice(0, 200); if (!title) return json(res, { error: 'title is required' }, 400); store.update(t.id, { title }); json(res, { task: view(store.get(t.id)) }) })
     post('/remove', async (b, res) => {
       const t = store.get(String(b.id || '')); if (!t) return json(res, { error: 'task not found' }, 404)
       if (t.status !== 'done') { try { engine.cancel(t.id) } catch {} }
       for (const d of deliverables.forTask(t.id)) deliverables.remove(d.id)
       routines.forgetTask(t.id)
       store.remove(t.id)
+      seen.forget(t.id)
       log(`task ${t.id} removed by the user: ${t.title}`)
       json(res, { removed: true })
     })
@@ -273,6 +293,18 @@ export function apply(ctx, config = {}) {
     route('/deliverables', async (_req, res) => json(res, { items: deliverables.list().map(deliverableSummary) }))
     route('/deliverable', async (req, res) => { const d = deliverables.get(query(req).get('id') || ''); if (!d) return json(res, { error: 'deliverable not found' }, 404); json(res, { deliverable: d, task: api.get(d.taskId) }) })
     post('/rate', async (b, res) => { const d = deliverables.update(String(b.id || ''), { rating: b.rating === null ? null : Number(b.rating) || 0 }); if (!d) return json(res, { error: 'deliverable not found' }, 404); json(res, { deliverable: d }) })
+    // Read state of the conversation column: { id } or { ids: [...] } of tasks and / or routines → seenAt = now.
+    post('/seen', async (b, res) => {
+      const ids = [...(Array.isArray(b.ids) ? b.ids : []), ...(b.id !== undefined && b.id !== null ? [b.id] : [])].map((x) => String(x || '').trim().slice(0, 100)).filter(Boolean)
+      if (!ids.length) return json(res, { error: 'id is required' }, 400)
+      const seenAt = seen.mark(ids)
+      json(res, { id: ids[0], ids, seenAt })
+    })
+    // Search across tasks (title / input, or a deliverable body that leads to the task), routines and deliverables; ≤20 each, newest first.
+    route('/search', async (req, res) => {
+      const found = searchAll(query(req).get('q') || '', { tasks: store.items, deliverables: deliverables.items, routines: routines.items }, { routineAt: routineLastAt })
+      json(res, { tasks: found.tasks.map((t) => { const { activity: _a, ...v } = view(t); return v }), routines: found.routines.map(rview), deliverables: found.deliverables })
+    })
   })
 
   ctx.inject(['systemPrompt'], (sctx) => {

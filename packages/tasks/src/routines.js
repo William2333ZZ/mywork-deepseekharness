@@ -14,9 +14,13 @@
  * weekly (weekday + HH:MM), workdays. Times are the server's local time.
  *
  * Routine { id, kind, title, input, schedule, enabled, createdAt, lastRunAt, nextRunAt,
- *           runs: [{ at, taskId, changed }], fired: [{ at, ackAt }] }
+ *           runs: [{ at, taskId, deliverableId, changed, error, settledAt } | { at, fired }], fired: [{ at, ackAt }] }
+ *
+ * A run receipt starts as { at, taskId } when the task is queued and is settled by the engine
+ * (markRun) with what it delivered, whether 变化 was 有 / 无 (changed true / false, null when the run
+ * gave no verdict) and any error; settledAt is when that happened, which is minutes after `at`.
  */
-import { JsonList, newId, titleOf } from './store.js'
+import { clip, JsonList, later, newId, titleOf } from './store.js'
 
 const MAX_ROUTINES = 200
 const KEEP_RUNS = 30
@@ -183,13 +187,56 @@ export class RoutineStore extends JsonList {
   }
   ack(id, at) { return this.update(id, (r) => { for (const f of r.fired) if ((!at || f.at === at) && !f.ackAt) f.ackAt = new Date().toISOString() }) }
   setEnabled(id, enabled) { return this.update(id, (r) => { r.enabled = !!enabled; if (r.enabled && !r.nextRunAt) { const n = nextRun(r.schedule); r.nextRunAt = n ? n.toISOString() : '' } }) }
-  markRun(id, runAt, patch) { return this.update(id, (r) => { const run = r.runs.find((x) => x.at === runAt || x.taskId === patch.taskId); if (run) Object.assign(run, patch) }) }
+  /** Settle a run receipt with its outcome; settledAt is the moment the outcome became known (the unread dot keys off it, not off the start). */
+  markRun(id, runAt, patch) { return this.update(id, (r) => { const run = r.runs.find((x) => x.at === runAt || x.taskId === patch.taskId); if (run) Object.assign(run, patch, { settledAt: new Date().toISOString() }) }) }
   pending() { return this.items.flatMap((r) => r.fired.filter((f) => !f.ackAt).map((f) => ({ routineId: r.id, title: r.title, input: r.input, at: f.at }))) }
 }
 
-export function routineView(r) {
+/** Has the engine written the outcome onto this run receipt? */
+const settled = (run) => !!run && ('changed' in run || !!run.error)
+/** A run a person would want to know about: it failed, found a change, wrote a report, or (reminder) fired. A quiet run is not. */
+const notable = (r, run) => !!run && (!!run.error || run.changed === true || run.fired === true || (r.kind !== 'remind' && wantsRecord(r) && settled(run) && !run.error))
+const runAt = (run) => run.settledAt || run.at
+
+/** The newest run, read for the column: { at, taskId, changed, quiet, error, report, fired, running } or null when it never ran. */
+export function lastRunSummary(r) {
+  const run = (r.runs || [])[0]
+  if (!run) return null
+  return {
+    at: runAt(run), taskId: run.taskId || '',
+    changed: run.changed === true ? true : run.changed === false ? false : null,
+    quiet: run.changed === false, error: run.error || '',
+    report: r.kind !== 'remind' && wantsRecord(r) && settled(run) && !run.error,
+    fired: run.fired === true, running: !!run.taskId && !settled(run),
+  }
+}
+/** When the routine last did something notable (see `notable`); empty when it never did. */
+export function routineAttentionAt(r) {
+  let best = ''
+  for (const run of r.runs || []) if (notable(r, run)) best = later(best, runAt(run))
+  for (const f of r.fired || []) best = later(best, f.at)
+  return best
+}
+/** The column's time for a routine: its last notable run, else the next one, else its creation. Quiet runs leave no trace here. */
+export function routineLastAt(r) { return routineAttentionAt(r) || r.nextRunAt || r.createdAt || '' }
+/** The second line of a routine row: schedule · state, e.g. 每天 19:00 · 没有变化; a reminder reads 每天 8:00 · 提醒. */
+export function routinePreview(r) {
+  const label = describeSchedule(r.schedule)
+  if (r.kind === 'remind') return clip(label + ' · 提醒')
+  const s = lastRunSummary(r)
+  const state = !s ? '还没跑过' : s.error ? '失败' : s.report ? '已出报告' : s.changed === true ? '有变化' : s.quiet ? '没有变化' : s.running ? '在跑' : '已完成'
+  return clip(label + ' · ' + state)
+}
+
+/** Public projection of a routine; `seen` is the SeenStore (unread keys off notable runs and fired reminders, never quiet runs). */
+export function routineView(r, seen) {
   const lastRun = r.runs[0] || null
-  return { ...r, scheduleLabel: describeSchedule(r.schedule), lastRun, pendingFired: r.fired.filter((f) => !f.ackAt).length }
+  const attentionAt = routineAttentionAt(r)
+  return {
+    ...r, scheduleLabel: describeSchedule(r.schedule), lastRun, pendingFired: r.fired.filter((f) => !f.ackAt).length,
+    lastAt: routineLastAt(r), lastRunSummary: lastRunSummary(r), preview: routinePreview(r), attentionAt,
+    unread: seen ? seen.unread(r.id, attentionAt) : !!attentionAt,
+  }
 }
 
 /** The prompt of one routine run: the standing request plus what last time delivered, changes first. */

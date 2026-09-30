@@ -145,7 +145,8 @@ export function apply(ctx: ClientContext): void {
   const connectionService: unknown = ctx.get('connection')
   const connection = connectionService as HostOpenPathConnection
   const openPath = (path: string): Promise<void> => openPathInHost(connection, path)
-  ctx.effect(() => observeSlimSidebar(), 'michengai-codex-ui: slim sidebar')
+  // v2 leaves the column at dsh's own width (280, drag 264–420); only the legacy Codex sidebar forces the slim geometry.
+  if (!v2Active()) ctx.effect(() => observeSlimSidebar(), 'michengai-codex-ui: slim sidebar')
   ctx.effect(() => observeSettingsNavIcons(), 'michengai-codex-ui: settings nav icons')
   ctx.effect(() => observeComposerToolMenus({ search: t('home.projectSearch'), empty: t('home.projectEmpty') }), 'michengai-codex-ui: composer tool menus')
   ctx.effect(() => observeConversationHeader(), 'michengai-codex-ui: conversation header')

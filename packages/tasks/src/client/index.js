@@ -1,25 +1,33 @@
 /**
  * dsh-mywork-tasks — browser half (CommonJS; wrapped by scripts/build-client.mjs with
- * src/md.cjs and client-icons.cjs inlined as preludes).
+ * src/md.cjs, src/client/thread.cjs and client-icons.cjs inlined as preludes).
  *
- * The MyWork v2 shell, shaped like Manus / Muse: one box, tasks in the sidebar, a task
- * page with the run on the left and the deliverable on the right.
+ * 会话即一切: every page is a thread. A task page is the conversation that made it (your line in a
+ * bubble, the deliverable as plain text with one verification line under it, the reply as text, a
+ * working line while it runs, 过程 folded at the end, the composer docked). 今日 is the day's thread
+ * with a sticky 等你看 bar under its title.
  *
  * Pages (main slot):
- *   mywork-today         今日：一个大输入框（场景选择、示例）、进行中、最近
- *   mywork-tasks         任务：列表；任务页 = 进度流（消息与工具调用）| 交付物（核验徽章、评价、导出）
+ *   mywork-today         今日：标题 + 日期 + 状态词；等你看栏（可展开的清单）；今天的对话；dock
+ *   mywork-tasks         任务：列表；任务页 = 线程（threadOf in thread.cjs）
  *   mywork-deliverables  交付物：全部交付物，按场景筛，查看器
- *   mywork-scenarios     场景：已装场景，示例一点即任务
+ *   mywork-routines      例行：列表；例行条目页
+ *   mywork-scenarios     领域：已装领域包
  * Overlay (shell.overlay): completion toasts + browser notifications; keeps polling while any page is hidden.
  *
  * Window events (for the sidebar in dsh-mywork-codex-ui and other members):
- *   mywork:new-task {text?, scenario?}  mywork:open-task {id}  mywork:open-deliverable {id}
- * The dsh conversation behind a task is reachable only through 「过程」 (mywork:open-session).
+ *   in:  mywork:open-thread {kind: 'today'|'task'|'routine'|'new'|'deliverables', id?}   the one navigation contract
+ *        mywork:new-task {text?, scenario?}  mywork:open-task {id}  mywork:open-deliverable {id}  mywork:open-routine {id}
+ *        mywork:panel-home {id}  (the active nav item tapped again: back to that page's list)
+ *   out: mywork:thread-opened {kind, id}  when 今日, a task page or a routine page mounts or changes item (+ POST /seen {id})
+ *        mywork:tasks-updated {items}     every poll, so the sidebar shares the snapshot
+ * The dsh conversation behind a task is reachable only through 「原始对话」 (mywork:open-session).
  */
 'use strict'
 
 const React = require('react')
 const md = require('./md.cjs')
+const { threadOf, verifyState } = require('./thread.cjs')
 const icons = require('./client-icons.cjs')
 const icon = (name, opts) => icons.icon(name, { strokeWidth: 1.5, ...(opts || {}) })
 
@@ -35,42 +43,40 @@ const SLOW_MS = 20000
 const V2_KEY = 'dsh-mywork:v2'
 
 const zh = {
-  today: '今日', tasks: '任务', deliverables: '交付物', scenarios: '领域', packs: '领域', builtin: '内置', scenarioClear: '不指定，让系统判断',
+  today: '今日', tasks: '任务', deliverables: '交付物', packs: '领域', builtin: '内置', scenarioClear: '不指定，让系统判断',
   packsLead: '领域包决定一类事怎么做：用什么数据、交付什么、怎么核验。你不用选，说出来就行；装了领域包，它认得的事自动归它。',
   packsEmpty: '还没有装领域包。交易工作台是第一个。',
-  hero: '你要什么结果？', ask: '今天要做什么', askRoutine: '安排一件例行的事，比如每天 9 点给我一份简报', hint: '回车创建，Shift + 回车换行。任务在后台完成，做完通知你。',
-  running: '进行中', recent: '最近', none: '还没有任务。', noneRunning: '现在没有在跑的任务。', noneDeliverables: '还没有交付物。',
-  all: '全部', active: '进行中', finished: '已完成', back: '返回', rerun: '再来一次', cancel: '取消', process: '过程', verifyAgain: '重新核验', rename: '重命名', remove: '删除', removeAsk: '删掉这条记录和它的交付物？', search: '搜索', noMatch: '没有匹配的', times: '次', phases: '步', verifyLabel: '核验', passed: '通过',
-  progress: '进度', deliverable: '交付物', waitingDeliverable: '做完后交付物出现在这里。', failedTitle: '失败',
-  queued: '排队', input: '你说的', elapsed: '用时', scenario: '场景', create: '创建', creating: '创建中…', openTask: '打开任务',
+  hero: '你要什么结果？', ask: '今天要做什么',
+  none: '还没有任务。', noneDeliverables: '还没有交付物。',
+  all: '全部', active: '进行中', back: '返回', rerun: '再来一次', cancel: '取消', process: '过程', verifyAgain: '重新核验', rename: '重命名', remove: '删除', removeAsk: '删掉这条记录和它的交付物？', search: '搜索', noMatch: '没有匹配的', times: '次', phases: '步', verifyLabel: '核验', passed: '通过',
+  failedTitle: '失败', create: '创建', openTask: '打开任务',
   ratingGood: '有用', ratingBad: '没用', exportMd: '导出 Markdown', exportPdf: '导出 PDF', none2: '无',
-  verified: '已核验', verifyIssues: '核验发现问题', verifyNone: '未能核验', verifying: '核验中', checked: '核对', issues: '问题',
-  doneToast: '任务完成', failedToast: '任务失败', open: '打开', tryScenario: '用这个场景', kinds: '交付', examples: '示例',
-  toolFailed: '失败', stepsTitle: '步骤',
-  attention: '等你看', attentionEmpty: '没有等你处理的事。', failedCard: '失败，可以再来一次', issuesCard: '核验发现问题', rateCard: '交付了，看一眼给个评价', running1: '个在跑', waiting1: '份等你看', quiet: '今天还很安静', greetMorning: '早上好', greetDay: '下午好', greetNight: '晚上好', todayDone: '今天完成', examplesTitle: '可以试试',
-  notesMore: '点开看核验员的完整说明', conversation: '对话', handedOff: '已交给后台', thinking: '在想', paused: '已暂停', ended: '已结束', endedN: '已结束的 {n} 项', runs: '运行记录', todayAt: '今天', allTasks: '全部', delivered: '已交付', answered: '已回答', quietDay: '今天没有等你的事。说一句，交给它。', moreRows: '还有 {n} 项', more: '更多', rawProcess: '原始对话', loadFailed: '没连上服务，稍后再试。', retry: '重试', moreRate: '还有 {n} 份交付了没评价',
+  verified: '已核验', verifyIssues: '核验发现问题', verifyFound: '核验发现 {n} 处', verifyNone: '未能核验', verifying: '核验中', checked: '核对', issues: '问题',
+  doneToast: '任务完成', failedToast: '任务失败', open: '打开',
+  toolFailed: '失败',
+  attention: '等你看', needsYou: '等你答', running1: '个在跑', waiting1: '份等你看', deliveredToday: '今天交付', unratedN: '{n} 份还没评价',
+  handedOff: '已交给后台', thinking: '在想', doing: '在做', paused: '已暂停', ended: '已结束', endedN: '已结束的 {n} 项', runs: '运行记录', todayAt: '今天', delivered: '已交付', answered: '已回答', quietDay: '今天没有等你的事。说一句，交给它。', moreRows: '还有 {n} 项', more: '更多', rawProcess: '原始对话', loadFailed: '没连上服务，稍后再试。', retry: '重试',
   routines: '例行', routinesLead: '还没有例行的事。说一句带时间的话，比如「每天 9 点给我一份简报」。',
-  routinesEmpty: '还没有例行的事。', remindCard: '提醒', gotIt: '知道了', runNow: '现在跑一次', pause: '暂停', resume: '恢复', remove: '删除', nextRun: '下次', lastRun: '上次', neverRan: '还没跑过', noChange: '没有变化', changed: '有变化', briefs: '今天的例行', scheduled: '已安排', kindTask: '例行任务', kindRemind: '提醒', quietTag: '安静',
-  say: '回复', conversational: '这次是回答，没有生成文档；要保存时说“整理成一份…”。',
+  remindCard: '提醒', gotIt: '知道了', runNow: '现在跑一次', pause: '暂停', resume: '恢复', nextRun: '下次', neverRan: '还没跑过', noChange: '没有变化', changed: '有变化', scheduled: '已安排', kindTask: '例行任务', kindRemind: '提醒',
+  say: '回复',
 }
 const en = {
-  today: 'Today', tasks: 'Tasks', deliverables: 'Deliverables', scenarios: 'Domains', packs: 'Domains', builtin: 'built in', scenarioClear: 'Let the system decide',
+  today: 'Today', tasks: 'Tasks', deliverables: 'Deliverables', packs: 'Domains', builtin: 'built in', scenarioClear: 'Let the system decide',
   packsLead: 'A domain pack defines how one kind of work gets done: which data, what to deliver, how to verify. You never pick; a pack claims the requests it recognises.',
   packsEmpty: 'No domain packs installed yet. The trading workbench is the first.',
-  hero: 'What do you want done?', ask: 'What needs doing today', askRoutine: 'Schedule something, e.g. a brief every day at 9', hint: 'Enter creates the task, Shift + Enter for a new line. It runs in the background and notifies you when done.',
-  running: 'In progress', recent: 'Recent', none: 'No tasks yet.', noneRunning: 'Nothing is running.', noneDeliverables: 'No deliverables yet.',
-  all: 'All', active: 'Active', finished: 'Finished', back: 'Back', rerun: 'Run again', cancel: 'Cancel', process: 'Process', verifyAgain: 'Verify again', rename: 'Rename', remove: 'Delete', removeAsk: 'Delete this record and its deliverables?', search: 'Search', noMatch: 'Nothing matches', times: 'calls', phases: 'steps', verifyLabel: 'Verification', passed: 'passed',
-  progress: 'Progress', deliverable: 'Deliverable', waitingDeliverable: 'The deliverable appears here when the task finishes.', failedTitle: 'Failed',
-  queued: 'Queued', input: 'Your request', elapsed: 'Elapsed', scenario: 'Scenario', create: 'Create', creating: 'Creating…', openTask: 'Open task',
+  hero: 'What do you want done?', ask: 'What needs doing today',
+  none: 'No tasks yet.', noneDeliverables: 'No deliverables yet.',
+  all: 'All', active: 'Active', back: 'Back', rerun: 'Run again', cancel: 'Cancel', process: 'Process', verifyAgain: 'Verify again', rename: 'Rename', remove: 'Delete', removeAsk: 'Delete this record and its deliverables?', search: 'Search', noMatch: 'Nothing matches', times: 'calls', phases: 'steps', verifyLabel: 'Verification', passed: 'passed',
+  failedTitle: 'Failed', create: 'Create', openTask: 'Open task',
   ratingGood: 'Useful', ratingBad: 'Not useful', exportMd: 'Export Markdown', exportPdf: 'Export PDF', none2: 'none',
-  verified: 'Verified', verifyIssues: 'Issues found', verifyNone: 'Not verified', verifying: 'Verifying', checked: 'checked', issues: 'issues',
-  doneToast: 'Task finished', failedToast: 'Task failed', open: 'Open', tryScenario: 'Use this scenario', kinds: 'Delivers', examples: 'Examples',
-  toolFailed: 'failed', stepsTitle: 'Steps',
-  attention: 'For you', attentionEmpty: 'Nothing waiting for you.', failedCard: 'Failed, can run again', issuesCard: 'Verification found issues', rateCard: 'Delivered, take a look and rate', running1: 'running', waiting1: 'waiting for you', quiet: 'A quiet day so far', greetMorning: 'Good morning', greetDay: 'Good afternoon', greetNight: 'Good evening', todayDone: 'Finished today', examplesTitle: 'Try',
-  notesMore: 'Tap for the verifier’s full notes', conversation: 'Conversation', handedOff: 'Handed to the background', thinking: 'Thinking', paused: 'Paused', ended: 'Ended', endedN: '{n} ended', runs: 'Runs', todayAt: 'today', allTasks: 'All', delivered: 'Delivered', answered: 'Answered', quietDay: 'Nothing waiting for you today. Say something and hand it over.', moreRows: '{n} more', more: 'More', rawProcess: 'Raw conversation', loadFailed: 'Could not reach the service, try again shortly.', retry: 'Retry', moreRate: '{n} more deliveries waiting for a rating',
+  verified: 'Verified', verifyIssues: 'Issues found', verifyFound: 'Verification found {n}', verifyNone: 'Not verified', verifying: 'Verifying', checked: 'checked', issues: 'issues',
+  doneToast: 'Task finished', failedToast: 'Task failed', open: 'Open',
+  toolFailed: 'failed',
+  attention: 'For you', needsYou: 'Needs you', running1: 'running', waiting1: 'waiting for you', deliveredToday: 'delivered today', unratedN: '{n} not rated yet',
+  handedOff: 'Handed to the background', thinking: 'Thinking', doing: 'Working', paused: 'Paused', ended: 'Ended', endedN: '{n} ended', runs: 'Runs', todayAt: 'today', delivered: 'Delivered', answered: 'Answered', quietDay: 'Nothing waiting for you today. Say something and hand it over.', moreRows: '{n} more', more: 'More', rawProcess: 'Raw conversation', loadFailed: 'Could not reach the service, try again shortly.', retry: 'Retry',
   routines: 'Routines', routinesLead: 'No routines yet. Say a sentence with a time: “every day at 9…”, “remind me at 6 on weekdays…”.',
-  routinesEmpty: 'No routines yet.', remindCard: 'Reminder', gotIt: 'Got it', runNow: 'Run now', pause: 'Pause', resume: 'Resume', remove: 'Remove', nextRun: 'Next', lastRun: 'Last', neverRan: 'Never ran', noChange: 'No change', changed: 'Changed', briefs: 'Today’s routines', scheduled: 'Scheduled', kindTask: 'Routine', kindRemind: 'Reminder', quietTag: 'quiet',
-  say: 'Reply', conversational: 'This was an answer, no document was produced; ask for one when you want it saved.',
+  remindCard: 'Reminder', gotIt: 'Got it', runNow: 'Run now', pause: 'Pause', resume: 'Resume', nextRun: 'Next', neverRan: 'Never ran', noChange: 'No change', changed: 'Changed', scheduled: 'Scheduled', kindTask: 'Routine', kindRemind: 'Reminder',
+  say: 'Reply',
 }
 
 const STYLE = `
@@ -94,52 +100,45 @@ body[data-ds-dark-theme] .mwt{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 @media (prefers-reduced-motion:reduce){.mwt *{transition:none!important;animation:none!important}}
 /* Page */
 .mwt-page{max-width:808px;margin:0 auto;padding:40px 28px 80px}
-.mwt-page.wide{max-width:808px}
 .mwt-title{display:flex;align-items:baseline;gap:10px;margin:0 0 24px}
 .mwt-title h1{margin:0;font-family:var(--font-display);font-size:26px;line-height:1.35;font-weight:400}
 .mwt-title span{color:var(--meta);font-size:12.5px;font-family:var(--font-mono)}
 .mwt-lead{margin:-12px 0 24px;max-width:65ch;color:var(--muted);font-size:14px;line-height:1.7}
-.mwt-greet{margin:0 0 36px}
-.mwt-greet h1{margin:0 0 4px;font-family:var(--font-display);font-size:28px;line-height:1.35;font-weight:400}
-.mwt-greet p{margin:0;color:var(--muted);font-size:14px}
+/* 今日 header: serif title, the date beside it, the status words on the right (nothing when quiet). */
+.mwt-today-head{display:flex;align-items:baseline;gap:12px;margin:0 0 12px}
+.mwt-today-head h1{margin:0;font-family:var(--font-display);font-size:26px;line-height:1.35;font-weight:400}
+.mwt-today-head .date{color:var(--muted);font-size:14px;font-variant-numeric:tabular-nums}
+.mwt-today-head .grow{flex:1}
+.mwt-today-head .words{color:var(--meta);font-size:13px;white-space:nowrap;font-variant-numeric:tabular-nums}
+/* 等你看 bar: 44px, sticky under the header for the whole page; the list opens in place right under it. */
+.mwt-today-bar{position:sticky;top:0;z-index:3;padding:6px 0 8px;background:var(--bg)}
+.mwt-today-bar .head{appearance:none;display:flex;align-items:center;gap:10px;width:100%;height:44px;padding:0 16px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface);color:var(--fg);font:inherit;font-size:14px;font-weight:500;text-align:left;cursor:pointer}
+.mwt-today-bar .head:hover{background:var(--surface-2)}
+.mwt-today-bar .head .grow{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mwt-today-bar .head svg{color:var(--meta);flex:none}
+.mwt-today-bar .head svg.turn{transition:transform var(--motion-fast) var(--ease-standard)}
 .mwt-hero{min-height:calc(100vh - 220px);display:flex;flex-direction:column;justify-content:center;padding:0 0 8vh;text-align:center}
 .mwt-hero h1{margin:0 0 20px;font-family:var(--font-display);font-size:28px;line-height:1.35;font-weight:400}
 @media (max-width:720px){.mwt-hero{min-height:0;padding:24px 0 8px}}
 .mwt-section{margin-top:32px}
 .mwt-section.first{margin-top:0}
-.mwt-section h2,.mwt-col h2{display:flex;align-items:center;gap:6px;margin:0 0 10px 2px;font-size:12.5px;line-height:18px;font-weight:500;letter-spacing:.02em;color:var(--muted)}
-.mwt-section h2 span,.mwt-col h2 span{color:var(--meta);font-family:var(--font-mono);font-weight:400}
-.mwt-col h2 .grow{flex:1}
-.mwt-section h2 svg,.mwt-col h2 svg{color:var(--meta)}
+.mwt-section h2{display:flex;align-items:center;gap:6px;margin:0 0 10px 2px;font-size:12.5px;line-height:18px;font-weight:500;letter-spacing:.02em;color:var(--muted)}
+.mwt-section h2 span{color:var(--meta);font-family:var(--font-mono);font-weight:400}
+.mwt-section h2 svg{color:var(--meta)}
 .mwt-empty{color:var(--muted);font-size:15px;padding:8px 2px}
 .mwt-quiet{padding:4px 2px}
 .mwt-quiet p{margin:0 0 4px;color:var(--muted);font-size:15px}
 .mwt-quiet .mwt-chips{margin-top:10px}
 /* Lists: one recipe. Container with a whisper border, rows divided by soft lines. */
-.mwt-cards,.mwt-atts,.mwt-rts{display:grid;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;background:var(--bg)}
-.mwt-card,.mwt-att,.mwt-rt{display:grid;align-items:center;column-gap:12px;min-height:44px;padding:12px 16px;border:0;border-top:1px solid var(--border-soft);background:transparent;color:inherit;font:inherit;text-align:left;width:100%;transition:background-color var(--motion-fast) var(--ease-standard)}
-.mwt-cards>:first-child,.mwt-atts>:first-child,.mwt-rts>:first-child{border-top:0}
+.mwt-cards{display:grid;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;background:var(--bg)}
+.mwt-card{display:grid;align-items:center;column-gap:12px;min-height:44px;padding:12px 16px;border:0;border-top:1px solid var(--border-soft);background:transparent;color:inherit;font:inherit;text-align:left;width:100%;transition:background-color var(--motion-fast) var(--ease-standard)}
+.mwt-cards>:first-child{border-top:0}
 .mwt-card{grid-template-columns:20px minmax(0,1fr) auto;cursor:pointer}
-.mwt-card:hover,.mwt-att:hover{background:var(--surface)}
-.mwt-card:focus-visible,.mwt-att:focus-visible{box-shadow:inset var(--focus-ring);border-radius:0}
+.mwt-card:hover{background:var(--surface)}
+.mwt-card:focus-visible{box-shadow:inset var(--focus-ring);border-radius:0}
 .mwt-card-title{display:block;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mwt-card-sub{display:block;color:var(--muted);font-size:12.5px;line-height:18px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mwt-card-sub.err{color:var(--danger)}
 .mwt-card-meta{color:var(--meta);font-size:12px;font-family:var(--font-mono);white-space:nowrap;font-variant-numeric:tabular-nums}
-.mwt-att{grid-template-columns:20px minmax(0,1fr) auto;cursor:pointer}
-.mwt-att-ic{display:flex;color:var(--muted)}
-.mwt-att[data-kind=failed] .mwt-att-ic{color:var(--danger)}
-.mwt-att[data-kind=issues] .mwt-att-ic{color:var(--warn)}
-.mwt-att[data-kind=rate] .mwt-att-ic{color:var(--success)}
-.mwt-att[data-kind=remind] .mwt-att-ic{color:var(--fg-2)}
-.mwt-att-label{font-size:12px;line-height:16px;color:var(--meta)}
-.mwt-att-title{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mwt-att-sub{color:var(--muted);font-size:12.5px;line-height:18px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mwt-att-go{display:flex;color:var(--meta)}
-.mwt-rt{grid-template-columns:20px minmax(0,1fr) auto}
-.mwt-rt[data-off=true]{opacity:.55}
-.mwt-rt-title{font-weight:500;display:flex;align-items:center;gap:8px;min-width:0}
-.mwt-rt-sub{color:var(--muted);font-size:12.5px;line-height:18px;font-variant-numeric:tabular-nums}
 .mwt-dot{display:inline-flex;width:20px;height:20px;align-items:center;justify-content:center;color:var(--meta)}
 .mwt-dot[data-s=running] svg,.mwt-dot[data-s=delivering] svg,.mwt-dot[data-s=verifying] svg{animation:mwt-spin 1.6s linear infinite;color:var(--fg-2)}
 .mwt-dot[data-s=ok]{color:var(--success)}
@@ -163,9 +162,6 @@ body[data-ds-dark-theme] .mwt{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 .mwt-chip:hover{color:var(--fg);background:var(--surface-2)}
 .mwt-chip[data-on=true]{color:var(--fg-2);background:var(--bg);border-color:var(--border)}
 .mwt-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:9999px;font-size:12px;line-height:16px;font-weight:500;letter-spacing:.02em;color:var(--muted);background:var(--surface)}
-.mwt-badge[data-v=passed]{color:var(--success);background:color-mix(in srgb,var(--success) 10%,transparent)}
-.mwt-badge[data-v=issues]{color:var(--warn);background:color-mix(in srgb,var(--warn) 10%,transparent)}
-.mwt-badge[data-v=verifying] svg{animation:mwt-spin 1.6s linear infinite}
 /* Composer: a raised card holding the field. */
 .mwt-ask-wrap{padding:0}
 .mwt-ask{text-align:left;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--bg);padding:14px 12px 10px 16px;transition:border-color var(--motion-fast) var(--ease-standard)}
@@ -176,7 +172,7 @@ body[data-ds-dark-theme] .mwt{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 .mwt-ask-row .grow{flex:1;min-width:0}
 .mwt-ask-row small{display:block;color:var(--meta);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mwt-page-today{display:flex;flex-direction:column;min-height:100%;padding-bottom:0}
-.mwt-page-today>.mwt-greet,.mwt-page-today>.mwt-list,.mwt-page-today>.mwt-empty,.mwt-page-today>.mwt-cards,.mwt-page-today>.mwt-retry{flex:none}
+.mwt-page-today>.mwt-today-head,.mwt-page-today>.mwt-today-bar,.mwt-page-today>.mwt-list,.mwt-page-today>.mwt-empty,.mwt-page-today>.mwt-cards,.mwt-page-today>.mwt-retry,.mwt-page-today>.mwt-quiet{flex:none}
 .mwt-dock{position:sticky;bottom:0;margin:32px 0 0;margin-top:auto;padding:12px 0 20px;background:linear-gradient(to top,var(--bg) 70%,transparent)}
 .mwt-ask-wrap.compact .mwt-ask{display:flex;flex-wrap:nowrap;align-items:flex-end;gap:8px;padding:8px 8px 8px 20px;border-radius:24px;box-shadow:0 1px 2px color-mix(in srgb,var(--fg) 4%,transparent),0 6px 20px color-mix(in srgb,var(--fg) 5%,transparent)}
 .mwt-ask-wrap.compact textarea{flex:1 1 0;min-width:0;min-height:36px;font-size:16px;line-height:26px;padding:5px 0}
@@ -227,12 +223,31 @@ body[data-ds-dark-theme] .mwt{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 .mwt-handoff-row .body{min-width:0;display:grid}
 .mwt-handoff-row .title{font-size:14px;line-height:20px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mwt-handoff-row .sub{font-size:12.5px;line-height:18px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:tabular-nums}
-/* ✓ result card: the countable outcome of a delivery, above the document. */
-.mwt-result{display:grid;gap:2px;margin:0 0 18px;padding:10px 14px;border-radius:var(--radius-lg);background:var(--surface)}
-.mwt-result-row{display:grid;grid-template-columns:16px auto minmax(0,1fr);column-gap:10px;align-items:baseline;min-height:26px;font-size:15px;line-height:24px}
-.mwt-result-row svg{color:var(--success);align-self:center}
-.mwt-result-row .label{font-weight:500;color:var(--fg)}
-.mwt-result-row .value{color:var(--muted);min-width:0;overflow-wrap:anywhere}
+/* The task page thread: same shapes as 今日, tighter under the title. */
+.mwt-thread.task{margin-top:8px}
+/* A delivery in the thread: ✓ summary rows as a plain list, the document as text, one meta line under it. No box. */
+.mwt-deliver{min-width:0}
+.mwt-sum{display:grid;gap:2px;margin:0 0 16px}
+.mwt-sum-row{display:grid;grid-template-columns:16px auto minmax(0,1fr);column-gap:10px;align-items:baseline;min-height:26px;font-size:15px;line-height:24px}
+.mwt-sum-row svg{color:var(--success);align-self:center}
+.mwt-sum-row .label{font-weight:500;color:var(--fg)}
+.mwt-sum-row .value{color:var(--muted);min-width:0;overflow-wrap:anywhere}
+.mwt-deliver-meta{display:flex;align-items:center;flex-wrap:wrap;gap:2px 6px;margin:14px 0 0;color:var(--muted);font-size:13px;line-height:20px;font-variant-numeric:tabular-nums}
+.mwt-deliver-meta .verdict{appearance:none;display:inline-flex;align-items:center;gap:6px;padding:0;border:0;background:transparent;color:inherit;font:inherit;cursor:default;text-align:left}
+.mwt-deliver-meta .verdict[data-notes=true]{cursor:pointer}
+.mwt-deliver-meta .verdict[data-notes=true]:hover{color:var(--fg)}
+.mwt-deliver-meta .verdict svg{color:var(--meta);flex:none}
+.mwt-deliver-meta .verdict[data-tone=success] svg{color:var(--success)}
+.mwt-deliver-meta .verdict[data-tone=warn]{color:var(--warn)}
+.mwt-deliver-meta .verdict[data-tone=warn] svg{color:var(--warn)}
+.mwt-deliver-meta .verdict[data-tone=live] svg{animation:mwt-spin 1.6s linear infinite}
+.mwt-deliver-meta .sep{color:var(--meta)}
+.mwt-deliver-meta .mwt-btn{height:28px;padding:0 10px;font-size:13px;font-weight:400}
+.mwt-deliver-meta .mwt-btn[aria-pressed=true]{color:var(--fg);background:var(--surface)}
+.mwt-notes{margin:10px 0 0;font-size:13px;line-height:1.7;color:var(--muted);border-left:2px solid var(--border);padding:2px 12px;white-space:pre-wrap;word-break:break-word}
+/* A failed run: one line and the one allowed button. */
+.mwt-failed{display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;color:var(--danger);font-size:14px;line-height:1.6}
+.mwt-failed .mwt-btn{height:28px;padding:0 10px;font-size:13px}
 .mwt-handoff:hover{background:var(--surface)}
 .mwt-handoff[disabled]{cursor:default}
 .mwt-row-static{cursor:default}
@@ -249,7 +264,6 @@ body[data-ds-dark-theme] .mwt{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 .mwt-search input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:var(--fg);font:inherit;font-size:13.5px}
 .mwt-search input::-webkit-search-cancel-button{-webkit-appearance:none}
 .mwt-task-meta{margin:0 0 22px;color:var(--meta);font-size:13px;font-variant-numeric:tabular-nums}
-.mwt-answer{font-size:15px;line-height:1.7;margin:0 0 16px}
 .mwt-proc{margin:24px 0 0;border-top:1px solid var(--border-soft)}
 .mwt-proc-head{appearance:none;display:flex;align-items:center;gap:10px;width:100%;padding:12px 0;border:0;background:transparent;color:var(--muted);font:inherit;font-size:13px;text-align:left;cursor:pointer}
 .mwt-proc-head:hover{color:var(--fg)}
@@ -261,14 +275,7 @@ body[data-ds-dark-theme] .mwt{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 /* Task page */
 .mwt-toolbar{display:flex;align-items:center;gap:4px;margin:0 0 12px}
 .mwt-toolbar .grow{flex:1}
-.mwt-detail-head{display:flex;align-items:flex-start;gap:12px;margin:0 0 4px}
-.mwt-detail-head h1{flex:1;margin:0;font-family:var(--font-display);font-size:26px;line-height:1.35;font-weight:400}
-.mwt-meta{display:flex;flex-wrap:wrap;gap:4px 16px;color:var(--meta);font-size:12.5px;margin:0 0 24px;padding-left:32px;font-variant-numeric:tabular-nums}
 .mwt-actions{display:flex;gap:2px;flex-wrap:wrap}
-.mwt-error{border:1px solid color-mix(in srgb,var(--danger) 30%,transparent);border-radius:var(--radius-lg);padding:10px 14px;color:var(--danger);font-size:13px;line-height:1.6;margin:0 0 20px;white-space:pre-wrap}
-.mwt-steps{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
-.mwt-step{display:inline-flex;align-items:center;gap:6px;padding:2px 8px;border-radius:9999px;background:var(--surface);font-size:12px;line-height:16px;color:var(--muted);font-variant-numeric:tabular-nums}
-.mwt-step[data-live=true]{color:var(--fg-2);border:1px solid var(--border);padding:1px 7px}
 .mwt-phases{padding:0 0 10px}
 .mwt-phase-head{appearance:none;display:grid;grid-template-columns:18px auto auto minmax(0,1fr);column-gap:10px;align-items:center;width:100%;min-height:30px;padding:3px 0;border:0;background:transparent;color:var(--fg);font:inherit;font-size:13px;line-height:20px;text-align:left;cursor:default}
 button.mwt-phase-head{cursor:pointer}
@@ -308,17 +315,7 @@ button.mwt-phase-head:hover .verb,button.mwt-phase-head:hover .obj{color:var(--f
 .mwt-say textarea::placeholder{color:var(--meta)}
 .mwt-say .mwt-btn.send{flex:none}
 .mwt-say-err{display:block;color:var(--danger);font-size:12.5px;padding:6px 2px 0}
-/* Deliverable: the one raised card. */
-.mwt-doc{margin:0 0 8px}
-.mwt-doc-head{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--surface);border-bottom:1px solid var(--border-soft);flex-wrap:wrap}
-.mwt-doc-head h3{flex:1;margin:0;font-size:14px;font-weight:500;min-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mwt-doc-head>svg{color:var(--muted)}
-.mwt-doc-body{padding:18px 24px 8px}
-.mwt-doc-meta{display:flex;align-items:center;gap:12px;flex-wrap:wrap;color:var(--meta);font-size:12px;font-family:var(--font-mono);margin:0 0 14px;font-variant-numeric:tabular-nums}
-.mwt-notes{font-size:13px;line-height:1.7;color:var(--muted);border-left:2px solid var(--border);padding:2px 12px;margin:0 0 16px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;cursor:pointer}
-.mwt-notes.open{display:block;-webkit-line-clamp:unset}
-.mwt-doc-actions{display:flex;gap:2px;flex-wrap:wrap;align-items:center;padding:8px 0 0;margin-top:8px}
-.mwt-doc-actions .mwt-btn[aria-pressed=true]{color:var(--fg);background:var(--surface)}
+/* Deliverable: not a card. The document at document typography, full width. */
 .mwt-md{font-size:16px;line-height:1.75;color:var(--fg)}
 .mwt-md>:first-child{margin-top:0}
 .mwt-md h2,.mwt-md h3,.mwt-md h4{margin:22px 0 8px;font-weight:600;line-height:1.4}
@@ -351,16 +348,11 @@ button.mwt-phase-head:hover .verb,button.mwt-phase-head:hover .obj{color:var(--f
 @media (max-width:720px){
   .mwt-page{padding:20px 12px 56px}
   .mwt-page-today{padding-bottom:0}
-  .mwt-greet h1,.mwt-title h1,.mwt-detail-head h1,.mwt-hero h1,.mwt-task-title{font-size:23px}
-  .mwt-card,.mwt-att,.mwt-rt{padding:11px 12px}
-  .mwt-card{grid-template-columns:18px minmax(0,1fr) auto}
-  .mwt-att .mwt-btn{height:30px;padding:0 10px}
-  .mwt-rt{grid-template-columns:20px minmax(0,1fr)}.mwt-rt .mwt-actions{grid-column:2;margin-top:4px}
+  .mwt-today-head h1,.mwt-title h1,.mwt-hero h1,.mwt-task-title{font-size:23px}
+  .mwt-today-head{flex-wrap:wrap;gap:6px 10px}
+  .mwt-today-head .words{flex-basis:100%;white-space:normal}
+  .mwt-card{padding:11px 12px;grid-template-columns:18px minmax(0,1fr) auto}
   .mwt-toolbar{flex-wrap:wrap}
-  .mwt-meta{padding-left:0}
-  .mwt-col.sticky{position:static;order:-1}
-  .mwt-doc-body{padding:14px 14px 4px}
-  .mwt-doc-actions{padding:6px 6px 8px}
   .mwt-md{font-size:15px}
   .mwt-md table{display:block;overflow:auto;max-width:100%}
   .mwt-scen{grid-template-columns:minmax(0,1fr)}
@@ -491,28 +483,29 @@ function safeName(s) { return String(s || 'deliverable').replace(/[\\/:*?"<>|]+/
 // ---- components -------------------------------------------------------------
 function makeComponents(ctx, t) {
   const selectPanel = (id) => { try { if (ctx.layout && typeof ctx.layout.selectPanel === 'function') ctx.layout.selectPanel(id) } catch (e) { console.warn(`[${PLUGIN}] selectPanel`, e) } }
-  const nav = { pendingTask: '', pendingDeliverable: '', pendingRoutine: '', pendingInput: null }
-  const openTask = (id) => { nav.pendingTask = id; selectPanel(PANELS.tasks) }
-  const openRoutine = (id) => { nav.pendingRoutine = id; selectPanel(PANELS.routines); fire('mywork:open-routine', { id }) }
-  const openDeliverable = (id) => { const d = state.deliverables.find((x) => x.id === id); if (d && d.taskId) openTask(d.taskId); else { nav.pendingDeliverable = id; selectPanel(PANELS.deliverables) } }
-  const newTask = (text, scenario) => { nav.pendingInput = { text: text || '', scenario: scenario || '' }; selectPanel(PANELS.create) }
-
-  function VerifyBadge({ v, status }) {
-    if (status === 'verifying') return h('span', { className: 'mwt-badge', 'data-v': 'verifying' }, icon('loader', { size: 12 }), t('verifying'))
-    if (!v) return null
-    const kind = v.passed === true ? 'passed' : v.passed === false ? 'issues' : 'none'
-    const label = kind === 'passed' ? t('verified') : kind === 'issues' ? t('verifyIssues') : t('verifyNone')
-    const detail = v.checked ? ` · ${t('checked')} ${v.checked}${v.issues ? ` · ${t('issues')} ${v.issues}` : ''}` : ''
-    return h('span', { className: 'mwt-badge', 'data-v': kind, title: v.notes || '' }, icon(kind === 'passed' ? 'circle-check' : kind === 'issues' ? 'circle-x' : 'x', { size: 12 }), label + detail)
+  const lang = () => {
+    try { const snap = ctx.locale.getSnapshot(); if (snap && typeof snap.active === 'string') return snap.active.toLowerCase().startsWith('zh') ? 'zh' : 'en' } catch {}
+    return (typeof navigator !== 'undefined' && navigator.language || 'zh').toLowerCase().startsWith('zh') ? 'zh' : 'en'
   }
-
-  function TaskCard({ task, onOpen, compact }) {
-    const live = task.status !== 'done'
-    const sub = live ? (task.currentStep || task.statusLabel) : task.error ? (t('failedTitle') + ' · ' + task.error) : ((task.routineId && !isReport(task) ? (task.quiet ? t('noChange') + ' · ' : t('changed') + ' · ') : '') + (task.summary || (task.deliverables[0] && task.deliverables[0].title) || ''))
-    return h('button', { type: 'button', className: 'mwt-card', onClick: () => onOpen(task.id) },
-      h(StatusDot, { task }),
-      h('span', null, h('span', { className: 'mwt-card-title' }, task.title), compact ? null : h('span', { className: 'mwt-card-sub' + (task.error ? ' err' : '') }, sub)),
-      h('span', { className: 'mwt-card-meta' }, live ? elapsedOf(task) : fmtTime(task.finishedAt)))
+  // Navigation: a page that is not mounted yet reads `nav.pending*` when it mounts; a mounted one hears navEmit.
+  const nav = { pendingTask: '', pendingDeliverable: '', pendingRoutine: '', pendingInput: null }
+  const navListeners = new Set()
+  const navEmit = (kind, id) => { for (const fn of navListeners) { try { fn(kind, id) } catch {} } }
+  const useNav = (fn) => { const ref = React.useRef(fn); ref.current = fn; React.useEffect(() => { const on = (k, id) => ref.current(k, id); navListeners.add(on); return () => { navListeners.delete(on) } }, []) }
+  const openToday = () => { selectPanel(PANELS.today) }
+  const openTask = (id) => { nav.pendingTask = id; selectPanel(PANELS.tasks); navEmit('task', id) }
+  const openRoutine = (id) => { nav.pendingRoutine = id; selectPanel(PANELS.routines); navEmit('routine', id); fire('mywork:open-routine', { id }) }
+  const openDeliverables = () => { nav.pendingDeliverable = ''; selectPanel(PANELS.deliverables); navEmit('deliverables', '') }
+  const openDeliverable = (id) => { const d = state.deliverables.find((x) => x.id === id); if (d && d.taskId) openTask(d.taskId); else { nav.pendingDeliverable = id; selectPanel(PANELS.deliverables); navEmit('deliverable', id) } }
+  const newTask = (text, scenario) => { nav.pendingInput = { text: text || '', scenario: scenario || '' }; selectPanel(PANELS.create) }
+  /**
+   * A thread came on screen (今日, a task page, a routine page): tell the sidebar, and mark it seen on the server (a 404
+   * means the route is not there yet). `stamp` changes when new content lands while the thread stays open, so what
+   * you are looking at never lights up as unread.
+   */
+  const useThreadOpened = (kind, id, stamp) => {
+    React.useEffect(() => { fire('mywork:thread-opened', { kind, id: id || '' }) }, [kind, id])
+    React.useEffect(() => { if (id) api('/seen', { id }).catch(() => {}) }, [id, stamp])
   }
 
   function Ask({ scenarios, initial, hero, compact, placeholder }) {
@@ -554,19 +547,22 @@ function makeComponents(ctx, t) {
   function todayRows(items, deliverables, reminders) {
     const rows = []
     const dayStart = new Date(); dayStart.setHours(0, 0, 0, 0)
-    for (const r of reminders || []) rows.push({ key: 'r' + r.routineId + r.at, rank: 0, at: r.at, glyph: 'bell', tone: 'fg', title: r.title, state: t('remindCard') + ' · ' + fmtTime(r.at), action: { label: t('gotIt'), run: () => api('/routines/ack', { id: r.routineId, at: r.at }).then(() => refresh()) } })
+    for (const r of reminders || []) rows.push({ key: 'r' + r.routineId + r.at, rank: 0, needs: true, at: r.at, glyph: 'bell', tone: 'fg', title: r.title, state: t('remindCard') + ' · ' + fmtTime(r.at), action: { label: t('gotIt'), run: () => api('/routines/ack', { id: r.routineId, at: r.at }).then(() => refresh()) } })
     for (const x of items) {
       if (x.scenario === 'assistant') continue
       const done = x.status === 'done'
       const when = new Date(x.finishedAt || x.createdAt)
-      if (done && x.error && !/已取消/.test(x.error) && when >= dayStart) rows.push({ key: 'f' + x.id, rank: 1, at: x.finishedAt, glyph: 'circle-x', tone: 'danger', title: x.title, state: t('failedTitle'), sub: x.error, action: { label: t('rerun'), run: () => api('/rerun', { id: x.id }).then((d) => { refresh(); if (d.task) openTask(d.task.id) }) }, open: () => openTask(x.id) })
+      if (done && x.error && !/已取消/.test(x.error) && when >= dayStart) rows.push({ key: 'f' + x.id, rank: 1, needs: true, at: x.finishedAt, glyph: 'circle-x', tone: 'danger', title: x.title, state: t('failedTitle'), sub: x.error, action: { label: t('rerun'), run: () => api('/rerun', { id: x.id }).then((d) => { refresh(); if (d.task) openTask(d.task.id) }) }, open: () => openTask(x.id) })
+      else if (!done && x.attentionAt) rows.push({ key: 'a' + x.id, rank: 1, needs: true, at: x.attentionAt, glyph: 'message', tone: 'fg', title: x.title, state: t('needsYou'), open: () => openTask(x.id) }) // 等你答 (the server stamps attentionAt when a task stops to ask)
       else if (done && x.verification && x.verification.passed === false && when >= dayStart) rows.push({ key: 'v' + x.id, rank: 2, at: x.finishedAt, glyph: 'circle-x', tone: 'warn', title: x.title, state: t('verifyIssues'), open: () => openTask(x.id) })
       else if (!done) rows.push({ key: 'l' + x.id, rank: 3, at: x.createdAt, glyph: 'loader', tone: 'live', spin: true, title: x.title, state: (x.currentStep || x.statusLabel) + ' · ' + elapsedOf(x), open: () => openTask(x.id) })
       else if (done && when >= dayStart) rows.push({ key: 'd' + x.id, rank: 4, at: x.finishedAt, glyph: 'circle-check', tone: 'success', title: x.title, state: x.routineId && !isReport(x) ? (x.quiet ? t('noChange') : t('changed')) : (x.deliverables.length ? t('delivered') : t('answered')), open: () => openTask(x.id) })
     }
     rows.sort((a, b) => a.rank - b.rank || new Date(b.at) - new Date(a.at))
     const unrated = (deliverables || []).filter((d) => d.rating === null || d.rating === undefined).length
-    return { rows: rows.slice(0, 10), more: Math.max(0, rows.length - 10), unrated }
+    // The bar's words come from every row, not only the ten shown.
+    const counts = { waiting: rows.filter((r) => r.rank <= 2).length, running: rows.filter((r) => r.rank === 3).length, delivered: rows.filter((r) => r.rank === 4).length, needs: rows.some((r) => r.needs) }
+    return { rows: rows.slice(0, 10), more: Math.max(0, rows.length - 10), unrated, counts }
   }
 
   function Row({ row }) {
@@ -577,33 +573,55 @@ function makeComponents(ctx, t) {
       row.action ? h('button', { type: 'button', className: 'mwt-btn', onClick: (e) => { e.stopPropagation(); row.action.run().catch(() => {}) } }, row.action.label) : h('span', { className: 'mwt-row-state', 'data-tone': row.tone }, row.state))
   }
 
+  /** 「9月30日」 beside the title, in the interface language. */
+  function todayLabel() {
+    const d = new Date()
+    try { return d.toLocaleDateString(lang() === 'zh' ? 'zh-CN' : 'en-US', { month: lang() === 'zh' ? 'long' : 'short', day: 'numeric' }) } catch { return (d.getMonth() + 1) + '/' + d.getDate() }
+  }
+
+  /**
+   * 今日: the title with the date and the day's status words; a sticky 等你看 bar that opens the day's list in place
+   * (open by itself when something needs you: a reminder, a failure, a question); the day's conversation; the dock.
+   */
   function TodayPage() {
     const s = usePolling()
-    const initial = nav.pendingInput; nav.pendingInput = null
-    const active = s.items.filter((x) => x.status !== 'done')
+    const active = s.items.filter((x) => x.status !== 'done' && x.scenario !== 'assistant')
     useTick(active.length > 0)
-    const { rows, more, unrated } = todayRows(s.items, s.deliverables, s.reminders)
-    const hour = new Date().getHours()
-    const greet = hour < 12 ? t('greetMorning') : hour < 18 ? t('greetDay') : t('greetNight')
-    const waiting = rows.filter((r) => r.rank <= 2).length
-    const status = [active.length ? `${active.length} ${t('running1')}` : '', waiting ? `${waiting} ${t('waiting1')}` : ''].filter(Boolean).join(' · ') || t('quiet')
+    const { rows, more, unrated, counts } = todayRows(s.items, s.deliverables, s.reminders)
+    const day = useDayThread(s.items)
+    useThreadOpened('today', day.thread ? day.thread.id : '', day.thread ? (day.thread.lastAt || '') + ':' + day.shown.length : '')
+    // null = follow the rule (open while something needs you); true / false = what you chose, until something new needs you.
+    const [choice, setChoice] = React.useState(null)
+    const needsBefore = React.useRef(counts.needs)
+    React.useEffect(() => { if (counts.needs && !needsBefore.current) setChoice(null); needsBefore.current = counts.needs }, [counts.needs])
+    const expanded = choice === null ? counts.needs : choice
+    const words = [active.length ? `${active.length} ${t('running1')}` : '', counts.waiting ? `${counts.waiting} ${t('waiting1')}` : ''].filter(Boolean).join(' · ')
+    const barText = [counts.waiting ? `${t('attention')} ${counts.waiting}` : '', counts.running ? `${counts.running} ${t('running1')}` : '', counts.delivered ? `${t('deliveredToday')} ${counts.delivered}` : ''].filter(Boolean).join(' · ') || t('unratedN').replace('{n}', String(unrated))
+    const hasBar = rows.length > 0 || unrated > 0
+    const loading = !s.loadedAt && !s.error
+    const failed = !!s.error && !s.items.length
+    const quiet = !loading && !failed && !hasBar && !day.any
+    const foldRow = more || unrated ? h('button', { type: 'button', className: 'mwt-row mwt-row-more', onClick: () => { if (unrated) openDeliverables(); else selectPanel(PANELS.tasks) } },
+      h('span', { className: 'mwt-dot' }, icon(unrated ? 'file-text' : 'list-checks', { size: 16 })),
+      h('span', { className: 'mwt-row-main' }, h('span', { className: 'mwt-row-title' }, [more ? t('moreRows').replace('{n}', String(more)) : '', unrated ? t('unratedN').replace('{n}', String(unrated)) : ''].filter(Boolean).join(' · '))),
+      h('span', { className: 'mwt-row-state' }, icon('arrow-left', { size: 14, style: { transform: 'rotate(180deg)' } }))) : null
     return h('div', { className: 'mwt mwt-today' }, h('style', null, STYLE), h('div', { className: 'mwt-page mwt-page-today' },
-      h('header', { className: 'mwt-greet' }, h('h1', null, greet)),
-      !s.loadedAt && !s.error ? h(Skeleton, { rows: 3 })
-        : s.error && !s.items.length ? h('div', { className: 'mwt-retry' }, h('span', null, t('loadFailed')), h('button', { type: 'button', className: 'mwt-btn', onClick: () => { refresh().then(schedulePoll) } }, t('retry')))
-        : rows.length || unrated ? h('div', { className: 'mwt-list' }, rows.map((row) => h(Row, { key: row.key, row })),
-          more || unrated ? h('button', { type: 'button', className: 'mwt-row mwt-row-more', onClick: () => selectPanel(PANELS.tasks) }, h('span', { className: 'mwt-dot' }, icon('list-checks', { size: 16 })), h('span', { className: 'mwt-row-main' }, h('span', { className: 'mwt-row-title' }, [more ? t('moreRows').replace('{n}', String(more)) : '', unrated ? t('moreRate').replace('{n}', String(unrated)) : ''].filter(Boolean).join(' · '))), h('span', { className: 'mwt-row-state' }, icon('arrow-left', { size: 14, style: { transform: 'rotate(180deg)' } }))) : null)
-        : h('div', { className: 'mwt-quiet' }, h('p', null, t('quietDay')),
-          h('div', { className: 'mwt-chips' }, s.scenarios.flatMap((sc) => sc.examples.slice(0, sc.builtin ? 3 : 1)).slice(0, 4).map((ex) => h('button', { key: ex, type: 'button', className: 'mwt-chip', onClick: () => newTask(ex) }, ex)))),
-      h(RoutinesSection, { routines: s.routines }),
-      h(DayThread, { items: s.items }),
+      h('header', { className: 'mwt-today-head' }, h('h1', null, t('today')), h('span', { className: 'date' }, todayLabel()), h('span', { className: 'grow' }), words ? h('span', { className: 'words' }, words) : null),
+      loading ? h(Skeleton, { rows: 3 })
+        : failed ? h('div', { className: 'mwt-retry' }, h('span', null, t('loadFailed')), h('button', { type: 'button', className: 'mwt-btn', onClick: () => { refresh().then(schedulePoll) } }, t('retry')))
+        : hasBar ? h('div', { className: 'mwt-today-bar' }, h('button', { type: 'button', className: 'head', 'aria-expanded': expanded, onClick: () => setChoice(!expanded) }, h('span', { className: 'grow' }, barText), icon('chevron-down', { size: 15, className: 'turn', style: { transform: expanded ? 'rotate(180deg)' : 'none' } })))
+        : quiet ? h('div', { className: 'mwt-quiet' }, h('p', null, t('quietDay')),
+          h('div', { className: 'mwt-chips' }, s.scenarios.flatMap((sc) => sc.examples.slice(0, sc.builtin ? 3 : 1)).slice(0, 4).map((ex) => h('button', { key: ex, type: 'button', className: 'mwt-chip', onClick: () => newTask(ex) }, ex))))
+        : null,
+      hasBar && expanded ? h('div', { className: 'mwt-list' }, rows.map((row) => h(Row, { key: row.key, row })), foldRow) : null,
+      day.any ? h(Turns, { entries: day.shown, live: day.liveState, items: s.items }) : null,
       h('div', { className: 'mwt-dock' }, h(TodayAsk))))
   }
 
-  /** Today's conversation: the last exchanges with the assistant; hand-offs it made are lines you can open. */
-  function DayThread({ items }) {
+  /** Today's conversation: the last exchanges with the assistant; hand-offs it made are rows you can open. */
+  function useDayThread(items) {
     const [thread, setThread] = React.useState(null)
-    const live = items.find((x) => x.scenario === 'assistant' && x.status !== 'done')
+    const live = items.find((x) => x.scenario === 'assistant' && x.status !== 'done') || null
     const key = items.filter((x) => x.scenario === 'assistant').map((x) => x.id + x.status + (x.activity ? x.activity.length : 0)).join(',') + (live ? Math.floor(Date.now() / FAST_MS) : '')
     React.useEffect(() => { let on = true; api('/today').then((d) => { if (on) setThread(d.thread) }).catch(() => {}); return () => { on = false } }, [key])
     // What you just sent shows at once, the Grok way, until the server's copy of it arrives.
@@ -611,9 +629,8 @@ function makeComponents(ctx, t) {
     React.useEffect(() => { const onSaid = (e) => setPending(String(e.detail && e.detail.text || '')); window.addEventListener('mywork:today-said', onSaid); return () => window.removeEventListener('mywork:today-said', onSaid) }, [])
     const entries = thread && Array.isArray(thread.activity) ? thread.activity : []
     React.useEffect(() => { if (pending && entries.some((e) => e.kind === 'user' && e.text === pending)) setPending('') }, [pending, entries.length])
-    if (!entries.length && !live && !pending) return null
     const shown = entries.slice(-12).concat(pending ? [{ kind: 'user', text: pending }] : [])
-    return h(Turns, { entries: shown, live: live || (pending ? { currentStep: '' } : null), items })
+    return { thread, live, shown, liveState: live || (pending ? { currentStep: '' } : null), any: entries.length > 0 || !!live || !!pending }
   }
 
   /** A conversation the Grok way: your words in a bubble on the right, the reply as plain text on the left, nothing else. */
@@ -683,23 +700,6 @@ function makeComponents(ctx, t) {
       h('div', { className: 'mwt-hero' }, h('h1', null, t('hero')), h(Ask, { scenarios: s.scenarios, initial: initial || { text: '', scenario: '' }, hero: true }))))
   }
 
-  /** Standing things, on the same page: what the system will do for you next. */
-  function RoutinesSection({ routines }) {
-    const [all, setAll] = React.useState(false)
-    // A one-off that already fired is history, not a standing thing.
-    const list = (routines || []).filter((r) => r.enabled || !r.once).slice().sort((a, b) => (a.enabled === b.enabled ? 0 : a.enabled ? -1 : 1) || (new Date(a.nextRunAt || 0) - new Date(b.nextRunAt || 0)))
-    if (!list.length) return null
-    const shown = all ? list : list.slice(0, 3)
-    const when = (r) => !r.enabled ? t('paused') : r.nextRunAt ? t('nextRun') + ' ' + (isToday(r.nextRunAt) ? t('todayAt') + ' ' + fmtTime(r.nextRunAt) : fmtDate(r.nextRunAt)) : ''
-    return h('section', { className: 'mwt-section' },
-      h('h2', null, t('routines')),
-      h('div', { className: 'mwt-list' }, shown.map((r) => { const go = () => { if (r.lastTaskId) openTask(r.lastTaskId); else openRoutine(r.id) }; return h('div', { key: r.id, className: 'mwt-row', 'data-off': !r.enabled, role: 'button', tabIndex: 0, onClick: go, onKeyDown: (e) => { if (e.key === 'Enter') go() } },
-        h('span', { className: 'mwt-dot' }, icon(r.kind === 'remind' ? 'bell' : 'history', { size: 16 })),
-        h('span', { className: 'mwt-row-main' }, h('span', { className: 'mwt-row-title' }, r.title), h('span', { className: 'mwt-row-sub' }, r.scheduleLabel)),
-        h('span', { className: 'mwt-row-state' }, when(r))) }),
-        list.length > 3 && !all ? h('button', { type: 'button', className: 'mwt-row mwt-row-more', onClick: () => setAll(true) }, h('span', { className: 'mwt-dot' }), h('span', { className: 'mwt-row-main' }, h('span', { className: 'mwt-row-title' }, t('moreRows').replace('{n}', String(list.length - 3)))), h('span', { className: 'mwt-row-state' }, icon('arrow-left', { size: 14, style: { transform: 'rotate(-90deg)' } }))) : null))
-  }
-
   function Say({ task }) {
     const [text, setText] = React.useState('')
     const [busy, setBusy] = React.useState(false)
@@ -722,24 +722,34 @@ function makeComponents(ctx, t) {
       err ? h('small', { className: 'mwt-say-err' }, err) : null)
   }
 
-  /** Verifier notes: two lines by default, the whole text on tap. */
-  function Notes({ text }) {
-    const [open, setOpen] = React.useState(false)
-    return h('div', { className: 'mwt-notes' + (open ? ' open' : ''), role: 'button', tabIndex: 0, title: open ? '' : t('notesMore'), onClick: () => setOpen(!open), onKeyDown: (e) => { if (e.key === 'Enter') setOpen(!open) } }, text)
+  /** The document itself: ✓ summary rows as a plain list, then the markdown as text. No box, no actions. */
+  function Doc({ d }) {
+    return h('div', { className: 'mwt-deliver' },
+      Array.isArray(d.summary) && d.summary.length ? h('div', { className: 'mwt-sum' }, d.summary.map((r, i) => h('div', { key: i, className: 'mwt-sum-row' }, icon('check', { size: 14 }), h('span', { className: 'label' }, r.label), h('span', { className: 'value' }, r.value)))) : null,
+      h(Markdown, { text: d.markdown }))
   }
 
-  function Doc({ d, status, onRate, onOpenTask }) {
-    return h('article', { className: 'mwt-doc' },
-      d.verification && d.verification.notes ? h(Notes, { text: d.verification.notes }) : null,
-      Array.isArray(d.summary) && d.summary.length ? h('div', { className: 'mwt-result' }, d.summary.map((r, i) => h('div', { key: i, className: 'mwt-result-row' }, icon('check', { size: 14 }), h('span', { className: 'label' }, r.label), h('span', { className: 'value' }, r.value)))) : null,
-      h(Markdown, { text: d.markdown }),
-      h('div', { className: 'mwt-doc-actions' },
-        h('button', { type: 'button', className: 'mwt-btn ghost', 'aria-pressed': d.rating === 1, onClick: () => onRate(d, 1) }, icon('check', { size: 13 }), t('ratingGood')),
-        h('button', { type: 'button', className: 'mwt-btn ghost', 'aria-pressed': d.rating === -1, onClick: () => onRate(d, -1) }, icon('x', { size: 13 }), t('ratingBad')),
-        h('span', { style: { flex: 1 } }),
-        h('button', { type: 'button', className: 'mwt-btn ghost', onClick: () => download(safeName(d.title) + '.md', '# ' + d.title + '\n\n' + d.markdown) }, t('exportMd')),
-        h('button', { type: 'button', className: 'mwt-btn ghost', onClick: () => printDoc(d) }, t('exportPdf')),
-        onOpenTask ? h('button', { type: 'button', className: 'mwt-btn ghost', onClick: onOpenTask }, t('openTask')) : null))
+  /**
+   * One meta line under a delivery: the verification word (read live from the task, so nothing reads 已核验 before the
+   * verifier stamped it), then the rating. 已核验 / 核验发现 / 未能核验 open the verifier's notes when there are any.
+   */
+  function DeliverMeta({ d, verify, onRate }) {
+    const [notes, setNotes] = React.useState(false)
+    const v = verify || { kind: '' }
+    const text = v.kind === 'verifying' ? t('verifying')
+      : v.kind === 'passed' ? [t('verified'), t('checked') + ' ' + v.checked, t('issues') + ' ' + v.issues].join(' · ')
+      : v.kind === 'issues' ? t('verifyFound').replace('{n}', String(v.issues || 0))
+      : v.kind === 'none' ? t('verifyNone') : ''
+    const hasNotes = !!(v.notes && v.kind !== 'verifying')
+    const tone = v.kind === 'passed' ? 'success' : v.kind === 'issues' ? 'warn' : v.kind === 'verifying' ? 'live' : undefined
+    const glyph = v.kind === 'passed' ? 'check' : v.kind === 'issues' ? 'circle-x' : v.kind === 'verifying' ? 'loader' : v.kind === 'none' ? 'x' : ''
+    return h('div', null,
+      h('div', { className: 'mwt-deliver-meta' },
+        text ? h('button', { type: 'button', className: 'verdict', 'data-tone': tone, 'data-notes': hasNotes, 'aria-expanded': hasNotes ? notes : undefined, onClick: () => { if (hasNotes) setNotes(!notes) } }, glyph ? icon(glyph, { size: 13 }) : null, text) : null,
+        text ? h('span', { className: 'sep' }, '·') : null,
+        h('button', { type: 'button', className: 'mwt-btn ghost', 'aria-pressed': d.rating === 1, onClick: () => onRate(d, 1) }, t('ratingGood')),
+        h('button', { type: 'button', className: 'mwt-btn ghost', 'aria-pressed': d.rating === -1, onClick: () => onRate(d, -1) }, t('ratingBad'))),
+      notes && hasNotes ? h('div', { className: 'mwt-notes' }, v.notes) : null)
   }
 
   function useTaskDetail(id, key) {
@@ -749,10 +759,9 @@ function makeComponents(ctx, t) {
   }
   const rateIn = (setDetail) => (d, r) => api('/rate', { id: d.id, rating: d.rating === r ? null : r }).then((x) => setDetail((prev) => prev ? { ...prev, deliverables: prev.deliverables.map((y) => y.id === x.deliverable.id ? x.deliverable : y) } : prev)).catch(() => {})
 
-  /** One line that says what the run did, and a fold that shows how. */
+  /** One line that says what the run did, and a fold that shows how. Folded by default; the thread above says what matters. */
   function Process({ task, live }) {
-    const [open, setOpen] = React.useState(live)
-    React.useEffect(() => { if (live) setOpen(true) }, [live])
+    const [open, setOpen] = React.useState(false)
     const n = phasesOf(task).filter((r) => r.kind === 'phase').length
     const summary = [t('process'), n ? n + ' ' + t('phases') : '', elapsedOf(task)].filter(Boolean).join(' · ')
     return h('div', { className: 'mwt-proc' },
@@ -834,6 +843,18 @@ function makeComponents(ctx, t) {
       open ? h('div', { className: 'mwt-menu-pop', role: 'menu' }, items.filter(Boolean).map((it) => h('button', { key: it.label, type: 'button', role: 'menuitem', onClick: () => { setOpen(false); it.run() } }, icon(it.icon, { size: 14 }), it.label))) : null)
   }
 
+  /** The verdict word for the meta line under the title. */
+  function verdictWord(task) {
+    const v = task.verification
+    if (task.status === 'verifying') return t('verifying')
+    if (!v) return ''
+    return v.passed === true ? t('verified') : v.passed === false ? t('verifyFound').replace('{n}', String(v.issues || 0)) : t('verifyNone')
+  }
+
+  /**
+   * The task page is a thread (threadOf in thread.cjs): your line in a bubble, each delivery as text with one meta line,
+   * the reply as text, a working line while it runs, a failure as one line; 过程 folded at the end; the composer docked.
+   */
   function TaskDetail({ id, onBack }) {
     const s = usePolling()
     const task = s.items.find((x) => x.id === id) || null
@@ -842,36 +863,45 @@ function makeComponents(ctx, t) {
     const key = task ? task.status + ':' + task.deliverableIds.length + ':' + (live ? Math.floor(Date.now() / FAST_MS) : 0) : ''
     const [detail, setDetail] = useTaskDetail(id, key)
     React.useEffect(() => { const el = document.querySelector('.mwt'); if (el) el.scrollTop = 0 }, [id]) // a task opens at its title, not where the last page was scrolled
+    useThreadOpened('task', id, task ? (task.lastAt || '') + ':' + task.status + ':' + task.deliverableIds.length : '')
     const [renaming, setRenaming] = React.useState(false)
     const [confirm, setConfirm] = React.useState(false)
     const [busy, setBusy] = React.useState(false)
     if (!task) return h('div', { className: 'mwt-empty' }, t('none'))
-    const full = detail && detail.task ? detail.task : task
-    const docs = detail && detail.deliverables ? detail.deliverables : []
+    // The live copy (polled) carries status and verification; the detail carries the activity and the documents.
+    const fresh = detail && detail.task && detail.task.id === id ? detail : null // the previous task's detail, for a moment after switching
+    const full = fresh ? { ...fresh.task, ...task, activity: fresh.task.activity } : task
+    const docs = fresh && Array.isArray(fresh.deliverables) ? fresh.deliverables : []
     const scenarioLabel = (s.scenarios.find((x) => x.id === task.scenario) || {}).label || task.scenario
-    const v = task.verification
-    const verdict = task.status === 'verifying' ? t('verifying') : v ? (v.passed === true ? t('verified') : v.passed === false ? t('verifyIssues') : t('verifyNone')) + (v.checked ? ` · ${t('checked')} ${v.checked}${v.issues ? ` · ${t('issues')} ${v.issues}` : ''}` : '') : ''
-    const meta = [task.status !== 'done' ? task.statusLabel : verdict, task.scenario !== 'general' ? scenarioLabel : '', fmtDate(task.finishedAt || task.createdAt)].filter(Boolean).join(' · ')
+    const meta = [live ? task.statusLabel : task.error ? t('failedTitle') : verdictWord(task), task.scenario !== 'general' ? scenarioLabel : '', fmtDate(task.finishedAt || task.createdAt)].filter(Boolean).join(' · ')
+    const latest = docs.length ? docs[docs.length - 1] : null
+    const rerun = () => api('/rerun', { id }).then((d) => { refresh().then(schedulePoll); if (d.task) openTask(d.task.id) })
     const menu = [
-      live ? { icon: 'x', label: t('cancel'), run: () => api('/cancel', { id }).then(() => refresh()) } : { icon: 'rotate-cw', label: t('rerun'), run: () => api('/rerun', { id }).then((d) => { refresh().then(schedulePoll); if (d.task) openTask(d.task.id) }) },
+      live ? { icon: 'x', label: t('cancel'), run: () => api('/cancel', { id }).then(() => refresh()) } : { icon: 'rotate-cw', label: t('rerun'), run: rerun },
       !live && task.deliverableIds.length ? { icon: 'circle-check', label: t('verifyAgain'), run: () => api('/verify', { id }).then(() => refresh().then(schedulePoll)) } : null,
       task.sessionId ? { icon: 'history', label: t('rawProcess'), run: () => fire('mywork:open-session', { sessionId: task.sessionId }) } : null,
       { icon: 'pencil', label: t('rename'), run: () => setRenaming(true) },
+      latest ? { icon: 'file-text', label: t('exportMd'), run: () => download(safeName(latest.title) + '.md', '# ' + latest.title + '\n\n' + latest.markdown) } : null,
+      latest ? { icon: 'file-text', label: t('exportPdf'), run: () => printDoc(latest) } : null,
       { icon: 'trash', label: t('remove'), run: () => setConfirm(true) },
     ]
     const saveTitle = (title) => { const v = String(title || '').trim(); setRenaming(false); if (!v || v === task.title) return; api('/rename', { id, title: v }).then(() => refresh()).catch(() => {}) }
     const remove = () => { if (busy) return; setBusy(true); api('/remove', { id }).then(() => refresh()).then(() => onBack()).catch(() => setBusy(false)) }
-    // Conversational tasks: the assistant's replies are the body.
-    const talk = (Array.isArray(full.activity) ? full.activity : []).filter((e) => e.kind === 'text' || e.kind === 'user')
+    const onRate = rateIn(setDetail)
+    const entries = threadOf(full, docs)
     return h('div', null,
       h('div', { className: 'mwt-toolbar' }, h('button', { type: 'button', className: 'mwt-btn ghost round', 'aria-label': t('back'), onClick: onBack }, icon('arrow-left', { size: 15 })), h('span', { className: 'grow' }), h(Menu, { items: menu })),
       renaming ? h(TitleEdit, { value: task.title, onDone: saveTitle }) : h('h1', { className: 'mwt-task-title' }, task.title),
       h('p', { className: 'mwt-task-meta' }, meta),
       confirm ? h('div', { className: 'mwt-confirm', role: 'alertdialog' }, h('span', null, t('removeAsk')), h('button', { type: 'button', className: 'mwt-btn danger', disabled: busy, onClick: remove }, t('remove')), h('button', { type: 'button', className: 'mwt-btn ghost', onClick: () => setConfirm(false) }, t('cancel'))) : null,
-      task.error ? h('div', { className: 'mwt-error' }, task.error) : null,
-      docs.length ? docs.map((d) => h(Doc, { key: d.id, d: { ...d, scenarioLabel }, status: task.status, onRate: rateIn(setDetail) }))
-        : talk.length ? h(Turns, { entries: talk, live: live ? task : null })
-        : live ? h('div', { className: 'mwt-empty' }, t('waitingDeliverable')) : null,
+      h('section', { className: 'mwt-thread task' }, entries.map((e) => {
+        if (e.kind === 'user') return h('div', { key: e.key, className: 'mwt-turn user' }, h('div', { className: 'mwt-bubble' }, e.text))
+        if (e.kind === 'deliver') return h('div', { key: e.key, className: 'mwt-turn ai' }, h(Doc, { d: e.d }), h(DeliverMeta, { d: e.d, verify: e.verify, onRate }))
+        if (e.kind === 'text') return h('div', { key: e.key, className: 'mwt-turn ai' }, h(Markdown, { text: e.text }))
+        if (e.kind === 'thinking') return h('div', { key: e.key, className: 'mwt-turn ai mwt-thinking' }, h('span', null, [t('doing'), e.step, elapsedOf(task)].filter(Boolean).join(' · ')))
+        if (e.kind === 'failed') return h('div', { key: e.key, className: 'mwt-turn ai' }, h('div', { className: 'mwt-failed' }, h('span', null, t('failedTitle') + ' · ' + e.reason), h('button', { type: 'button', className: 'mwt-btn ghost', onClick: rerun }, t('rerun'))))
+        return null
+      })),
       h(Process, { task: full, live }),
       h(Say, { task }))
   }
@@ -881,9 +911,10 @@ function makeComponents(ctx, t) {
     const [filter, setFilter] = React.useState('all')
     const [q, setQ] = React.useState('')
     const [open, setOpen] = React.useState(() => { const id = nav.pendingTask; nav.pendingTask = ''; return id })
+    useNav((kind, id) => { if (kind === 'task' && id) { nav.pendingTask = ''; setOpen(String(id)) } })
     React.useEffect(() => {
       const onOpen = (e) => { const id = e.detail && e.detail.id; if (id) setOpen(String(id)) }
-      const onHome = (e) => { if (e.detail && e.detail.id === 'mywork-tasks') setOpen('') } // 任务 in the sidebar, tapped again: back to the list
+      const onHome = (e) => { if (e.detail && e.detail.id === PANELS.tasks) setOpen('') } // 任务 in the sidebar, tapped again: back to the list
       window.addEventListener('mywork:open-task', onOpen)
       window.addEventListener('mywork:panel-home', onHome)
       if (nav.pendingTask) { setOpen(nav.pendingTask); nav.pendingTask = '' }
@@ -894,7 +925,7 @@ function makeComponents(ctx, t) {
     const hit = (x) => !needle || String(x.title || '').toLowerCase().includes(needle) || String(x.input || '').toLowerCase().includes(needle) || (x.deliverables || []).some((d) => String(d.title || '').toLowerCase().includes(needle))
     const items = s.items.filter((x) => (filter === 'all' ? true : filter === 'active' ? x.status !== 'done' : filter === 'delivered' ? x.deliverables.length > 0 : x.status === 'done') && hit(x))
     const state = (x) => x.status !== 'done' ? (x.currentStep || x.statusLabel) : x.error ? t('failedTitle') : x.verification && x.verification.passed === false ? t('verifyIssues') : x.deliverables.length ? (x.verification && x.verification.passed ? t('verified') : t('delivered')) : t('answered')
-    return h('div', { className: 'mwt' }, h('style', null, STYLE), h('div', { className: 'mwt-page' + (open ? ' wide' : '') },
+    return h('div', { className: 'mwt' }, h('style', null, STYLE), h('div', { className: 'mwt-page' },
       open ? h(TaskDetail, { id: open, onBack: () => setOpen('') }) : h(React.Fragment, null,
         h('div', { className: 'mwt-title' }, h('h1', null, t('tasks'))),
         h('div', { className: 'mwt-filters' },
@@ -912,20 +943,35 @@ function makeComponents(ctx, t) {
     const [open, setOpen] = React.useState(() => { const id = nav.pendingDeliverable; nav.pendingDeliverable = ''; return id })
     const [detail, setDetail] = React.useState(null)
     React.useEffect(() => { api('/deliverables').then((d) => setItems(d.items || [])).catch(() => {}) }, [s.loadedAt])
+    useNav((kind, id) => { if (kind === 'deliverables') setOpen(''); else if (kind === 'deliverable' && id) { nav.pendingDeliverable = ''; setOpen(String(id)) } })
     React.useEffect(() => {
       const onOpen = (e) => { const id = e.detail && e.detail.id; if (id) setOpen(String(id)) }
+      const onHome = (e) => { if (e.detail && e.detail.id === PANELS.deliverables) setOpen('') }
       window.addEventListener('mywork:open-deliverable', onOpen)
-      return () => window.removeEventListener('mywork:open-deliverable', onOpen)
+      window.addEventListener('mywork:panel-home', onHome)
+      return () => { window.removeEventListener('mywork:open-deliverable', onOpen); window.removeEventListener('mywork:panel-home', onHome) }
     }, [])
     React.useEffect(() => { if (!open) { setDetail(null); return } let on = true; api('/deliverable?id=' + encodeURIComponent(open)).then((d) => { if (on) setDetail(d) }).catch(() => {}); return () => { on = false } }, [open])
     const labelOf = (id) => (s.scenarios.find((x) => x.id === id) || {}).label || id
     const rate = (d, r) => api('/rate', { id: d.id, rating: d.rating === r ? null : r }).then((x) => { setDetail((prev) => prev ? { ...prev, deliverable: x.deliverable } : prev); setItems((prev) => prev.map((y) => y.id === x.deliverable.id ? { ...y, rating: x.deliverable.rating } : y)) }).catch(() => {})
     const scenariosSeen = [...new Set(items.map((d) => d.scenario))]
     const list = items.filter((d) => scenario === 'all' || d.scenario === scenario)
+    const cur = detail && detail.deliverable ? detail.deliverable : null
+    // The viewer reads the task's live copy when the list has it (verification stamps land there first), else the stored one.
+    const curTask = cur ? (s.items.find((x) => x.id === cur.taskId) || detail.task || { status: 'done', verification: cur.verification }) : null
+    const curVerify = cur ? verifyState(curTask) : null
+    const viewerMenu = cur ? [
+      detail.task ? { icon: 'list-checks', label: t('openTask'), run: () => openTask(detail.task.id) } : null,
+      { icon: 'file-text', label: t('exportMd'), run: () => download(safeName(cur.title) + '.md', '# ' + cur.title + '\n\n' + cur.markdown) },
+      { icon: 'file-text', label: t('exportPdf'), run: () => printDoc(cur) },
+    ] : []
     return h('div', { className: 'mwt' }, h('style', null, STYLE), h('div', { className: 'mwt-page' },
       open ? h(React.Fragment, null,
-        h('div', { className: 'mwt-toolbar' }, h('button', { type: 'button', className: 'mwt-btn', onClick: () => setOpen('') }, icon('arrow-left', { size: 14 }), t('back'))),
-        detail && detail.deliverable ? h(Doc, { d: { ...detail.deliverable, scenarioLabel: labelOf(detail.deliverable.scenario) }, status: detail.task ? detail.task.status : 'done', onRate: rate, onOpenTask: detail.task ? () => openTask(detail.task.id) : null }) : h('div', { className: 'mwt-empty' }, '…'))
+        h('div', { className: 'mwt-toolbar' }, h('button', { type: 'button', className: 'mwt-btn ghost round', 'aria-label': t('back'), onClick: () => setOpen('') }, icon('arrow-left', { size: 15 })), h('span', { className: 'grow' }), cur ? h(Menu, { items: viewerMenu }) : null),
+        cur ? h(React.Fragment, null,
+          h('h1', { className: 'mwt-task-title' }, cur.title),
+          h('p', { className: 'mwt-task-meta' }, [labelOf(cur.scenario), fmtDate(cur.createdAt)].filter(Boolean).join(' · ')),
+          h(Doc, { d: cur }), h(DeliverMeta, { d: cur, verify: curVerify, onRate: rate })) : h('div', { className: 'mwt-empty' }, '…'))
       : h(React.Fragment, null,
         h('div', { className: 'mwt-title' }, h('h1', null, t('deliverables')), h('span', null, String(items.length))),
         scenariosSeen.length > 1 ? h('div', { className: 'mwt-chips', style: { margin: '0 0 16px' } }, [['all', t('all')], ...scenariosSeen.map((id) => [id, labelOf(id)])].map(([k, label]) => h('button', { key: k, type: 'button', className: 'mwt-chip', 'data-on': scenario === k, onClick: () => setScenario(k) }, label))) : null,
@@ -955,7 +1001,8 @@ function makeComponents(ctx, t) {
     const [items, setItems] = React.useState([])
     const [open, setOpen] = React.useState(() => { const id = nav.pendingRoutine; nav.pendingRoutine = ''; return id })
     const [showSpent, setShowSpent] = React.useState(false)
-    React.useEffect(() => { const onOpen = (e) => { const id = e.detail && e.detail.id; if (id) setOpen(String(id)) }; const onHome = (e) => { if (e.detail && e.detail.id === 'mywork-routines') setOpen('') }; window.addEventListener('mywork:open-routine', onOpen); window.addEventListener('mywork:panel-home', onHome); return () => { window.removeEventListener('mywork:open-routine', onOpen); window.removeEventListener('mywork:panel-home', onHome) } }, [])
+    useNav((kind, id) => { if (kind === 'routine' && id) { nav.pendingRoutine = ''; setOpen(String(id)) } })
+    React.useEffect(() => { const onOpen = (e) => { const id = e.detail && e.detail.id; if (id) setOpen(String(id)) }; const onHome = (e) => { if (e.detail && e.detail.id === PANELS.routines) setOpen('') }; window.addEventListener('mywork:open-routine', onOpen); window.addEventListener('mywork:panel-home', onHome); if (nav.pendingRoutine) { setOpen(nav.pendingRoutine); nav.pendingRoutine = '' }; return () => { window.removeEventListener('mywork:open-routine', onOpen); window.removeEventListener('mywork:panel-home', onHome) } }, [])
     const load = React.useCallback(() => api('/routines').then((d) => setItems(d.items || [])).catch(() => {}), [])
     React.useEffect(() => { load() }, [s.loadedAt, load])
     const spent = items.filter((r) => !r.enabled && r.schedule && r.schedule.type === 'once')
@@ -979,6 +1026,7 @@ function makeComponents(ctx, t) {
 
   /** One routine: what it is, when it runs, its runs, and the three things you can do to it. */
   function RoutineDetail({ r, onBack, reload }) {
+    useThreadOpened('routine', r.id, r.lastAt || '')
     const act = (path, body, after) => api(path, body).then(() => { reload(); if (after) after() }).catch((e) => console.warn(`[${PLUGIN}]`, e))
     const once = r.schedule && r.schedule.type === 'once'
     // A one-off's schedule already is its next run; do not say it twice.
@@ -1037,7 +1085,7 @@ function makeComponents(ctx, t) {
         h('button', { type: 'button', className: 'mwt-btn', onClick: () => { setToasts((prev) => prev.filter((x) => x.id !== id)); openTask(task.id) } }, t('open')))))
   }
 
-  return { TodayPage, CreatePage, TasksPage, DeliverablesPage, RoutinesPage, ScenariosPage, Overlay, openTask, openDeliverable, newTask }
+  return { TodayPage, CreatePage, TasksPage, DeliverablesPage, RoutinesPage, ScenariosPage, Overlay, openToday, openTask, openRoutine, openDeliverable, openDeliverables, newTask }
 }
 
 // ---- plugin -----------------------------------------------------------------
@@ -1066,15 +1114,32 @@ exports.apply = function apply(ctx) {
   ctx.slots.inject('main', () => ctx.slots.register({ name: 'main', key: PANELS.scenarios, locale: NS, inject: () => ({}) }, function MyworkScenarios() { return h(c.ScenariosPage) }))
   ctx.slots.inject('shell.overlay', () => ctx.slots.register({ name: 'shell.overlay', id: PLUGIN, order: 45 }, function MyworkOverlay() { return h(c.Overlay) }))
 
-  // Window events from the sidebar (dsh-mywork-codex-ui) and other members.
+  // Window events from the sidebar (dsh-mywork-codex-ui) and other members. mywork:open-thread is the contract;
+  // the older per-object events keep working.
   ctx.effect(() => {
+    // The sidebar dispatches it cancelable: an uncancelled event falls through to the legacy events below, so every
+    // kind handled here is cancelled first.
+    const onThread = (e) => {
+      const d = e.detail || {}
+      const id = d.id === undefined || d.id === null ? '' : String(d.id)
+      const handled = d.kind === 'today' || d.kind === 'new' || d.kind === 'deliverables' || ((d.kind === 'task' || d.kind === 'routine') && !!id)
+      if (!handled) return
+      if (typeof e.preventDefault === 'function') e.preventDefault()
+      if (d.kind === 'today') c.openToday()
+      else if (d.kind === 'task') c.openTask(id)
+      else if (d.kind === 'routine') c.openRoutine(id)
+      else if (d.kind === 'new') c.newTask(d.text, d.scenario)
+      else if (id) c.openDeliverable(id)
+      else c.openDeliverables()
+    }
     const onNew = (e) => { const d = e.detail || {}; c.newTask(d.text, d.scenario) }
     const onTask = (e) => { if (e.detail && e.detail.id) c.openTask(String(e.detail.id)) }
     const onDeliverable = (e) => { if (e.detail && e.detail.id) c.openDeliverable(String(e.detail.id)) }
+    window.addEventListener('mywork:open-thread', onThread)
     window.addEventListener('mywork:new-task', onNew)
     window.addEventListener('mywork:open-task', onTask)
     window.addEventListener('mywork:open-deliverable', onDeliverable)
-    return () => { window.removeEventListener('mywork:new-task', onNew); window.removeEventListener('mywork:open-task', onTask); window.removeEventListener('mywork:open-deliverable', onDeliverable) }
+    return () => { window.removeEventListener('mywork:open-thread', onThread); window.removeEventListener('mywork:new-task', onNew); window.removeEventListener('mywork:open-task', onTask); window.removeEventListener('mywork:open-deliverable', onDeliverable) }
   }, PLUGIN + ': window events')
 
   // v2: the app opens on 今日, not on a conversation (unless a session deep link is present).

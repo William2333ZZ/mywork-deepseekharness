@@ -17,7 +17,11 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#1f1d1a"
-      }
+      },
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "ios": {
       "bundleIdentifier": "com.mywork.app",
@@ -46,6 +50,12 @@
       ],
       "expo-secure-store"
     ],
-    "newArchEnabled": false
+    "newArchEnabled": false,
+    "extra": {
+      "eas": {
+        "projectId": "a2470ca8-cc93-4b56-8946-d7d08522d974"
+      }
+    },
+    "owner": "hhdz"
   }
 }

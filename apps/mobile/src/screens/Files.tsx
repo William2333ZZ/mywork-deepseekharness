@@ -62,7 +62,7 @@ export default function Files({ mateId }: { mateId?: string }) {
 function Chip({ label, on, onPress }: { label: string; on: boolean; onPress: () => void }) {
   return (
     <Pressable onPress={onPress} accessibilityRole="button" accessibilityState={{ selected: on }} style={({ pressed }) => [styles.chip, on && styles.chipOn, pressed && { opacity: 0.7 }]}>
-      <Text style={[styles.chipText, on && { color: color.bg }]} numberOfLines={1}>{label}</Text>
+      <Text style={[styles.chipText, on && { color: color.onPrimary }]} numberOfLines={1}>{label}</Text>
     </Pressable>
   )
 }
@@ -71,8 +71,8 @@ const styles = StyleSheet.create({
   search: { marginHorizontal: space.lg, marginTop: space.xs, marginBottom: space.sm },
   chipsBar: { flexGrow: 0 },
   chips: { paddingHorizontal: space.lg, gap: space.sm, paddingBottom: space.sm },
-  chip: { height: 30, paddingHorizontal: 12, borderRadius: radius.xl, borderWidth: 1, borderColor: color.border, justifyContent: 'center', maxWidth: 160 },
-  chipOn: { backgroundColor: color.fg, borderColor: color.fg },
+  chip: { height: 32, paddingHorizontal: 14, borderRadius: radius.pill, borderWidth: 1, borderColor: color.border, backgroundColor: color.input, justifyContent: 'center', maxWidth: 160 },
+  chipOn: { backgroundColor: color.primary, borderColor: color.primary },
   chipText: { fontSize: size.meta, color: color.fg2 },
   list: { paddingHorizontal: 6, paddingBottom: space.xl },
   empty: { fontSize: size.meta, lineHeight: 18, color: color.muted, paddingHorizontal: 10, paddingVertical: 12 },

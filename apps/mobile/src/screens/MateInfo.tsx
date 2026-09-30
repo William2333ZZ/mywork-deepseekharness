@@ -75,7 +75,7 @@ export default function MateInfo({ id, routineId }: { id: string; routineId?: st
       <TopBar left={<IconBtn name="chevron-back-outline" label="返回" onPress={nav.pop} />} />
       <ScrollView contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled">
         <View style={styles.who}>
-          <Avatar char={glyphOf(mate)} isDefault={mate.isDefault} working={mate.state === 'working'} dim={52} />
+          <Avatar id={mate.id || mate.name} char={glyphOf(mate)} isDefault={mate.isDefault} working={mate.state === 'working'} dim={52} />
           <View style={{ flex: 1, minWidth: 0 }}>
             <Title>{mate.name}</Title>
             {mate.title ? <Meta>{mate.title}</Meta> : null}
@@ -126,7 +126,7 @@ function SwitchRow({ label, value, onChange }: { label: string; value: boolean; 
   return (
     <View style={styles.switchRow}>
       <Text style={styles.switchLabel}>{label}</Text>
-      <Switch value={value} onValueChange={onChange} trackColor={{ false: color.surface2, true: color.fg }} thumbColor={color.bg} ios_backgroundColor={color.surface2} />
+      <Switch value={value} onValueChange={onChange} trackColor={{ false: color.bubble, true: color.primary }} thumbColor={value ? color.onPrimary : color.muted} ios_backgroundColor={color.bubble} />
     </View>
   )
 }

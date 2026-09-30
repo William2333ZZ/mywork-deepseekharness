@@ -6,17 +6,17 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "mywork",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#fbfaf8"
+      "backgroundColor": "#0b0c0e"
     },
     "android": {
       "package": "com.mywork.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#1f1d1a"
+        "backgroundColor": "#0b0c0e"
       },
       "permissions": [
         "android.permission.CAMERA",
@@ -56,6 +56,7 @@
         "projectId": "a2470ca8-cc93-4b56-8946-d7d08522d974"
       }
     },
-    "owner": "hhdz"
+    "owner": "hhdz",
+    "backgroundColor": "#0b0c0e"
   }
 }

@@ -1,5 +1,5 @@
 /**
- * One file: the serif title, one meta line (teammate · time), ✓ rows, the body, the verification line with 有用 / 没用,
+ * One file, full screen (opened from a thread's 文件卡 or the files list): the serif title, one meta line (teammate · time), ✓ rows, the body (tables scroll sideways), share in the top bar, the verification line with 有用 / 没用,
  * and 「在对话里看」 — the conversation of the teammate that made it, scrolled to the run (§9.3 跳转一条规则).
  */
 import { useEffect, useState } from 'react'
@@ -7,7 +7,7 @@ import { ActivityIndicator, ScrollView, Share, StyleSheet, View } from 'react-na
 import { fmtDate, type Deliverable, type Run } from '../api'
 import { useConn, useNav, useStore } from '../store'
 import { Btn, Empty, IconBtn, Meta, Prose, ResultRows, Screen, Title, TopBar, VerifyLine, type Tone } from '../components'
-import { color, space } from '../theme'
+import { color, radius, space } from '../theme'
 import { verifyOf, verifyWords } from '../thread'
 
 export default function File({ id }: { id: string }) {
@@ -54,8 +54,8 @@ export default function File({ id }: { id: string }) {
       <ScrollView contentContainerStyle={styles.wrap}>
         <Title>{d.title}</Title>
         <Meta style={styles.meta}>{[mate ? mate.name : '', fmtDate(d.createdAt)].filter(Boolean).join(' · ')}</Meta>
-        <ResultRows rows={Array.isArray(d.summary) ? d.summary : []} />
-        <Prose markdown={d.markdown || ''} />
+        {Array.isArray(d.summary) && d.summary.length ? <View style={styles.sum}><ResultRows rows={d.summary} /></View> : null}
+        <View style={styles.doc}><Prose markdown={d.markdown || ''} wide /></View>
         <VerifyLine words={verifyWords(v)} tone={tone} notes={v.kind !== 'verifying' ? v.notes : ''} rating={d.rating} onRate={(r) => { rate(r) }} />
         {d.mateId ? <Btn label="在对话里看" icon="chatbubble-outline" onPress={() => nav.openMate(d.mateId!, d.runId)} style={styles.go} /> : null}
       </ScrollView>
@@ -68,4 +68,6 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   meta: { marginTop: space.sm, marginBottom: space.lg },
   go: { alignSelf: 'flex-start', marginTop: space.lg },
+  sum: { padding: 14, borderRadius: radius.lg, backgroundColor: color.card, borderWidth: 1, borderColor: color.border, marginBottom: space.lg },
+  doc: { marginBottom: space.sm },
 })

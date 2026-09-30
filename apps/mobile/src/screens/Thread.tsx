@@ -8,12 +8,12 @@
  * back until that run is loaded, scrolls to it and lights it up briefly.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native'
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type LayoutChangeEvent } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
-import { fmtDay, fmtDuration, fmtTime, isToday, type Deliverable, type Run } from '../api'
+import { fmtDay, fmtDuration, fmtTime, fmtWhen, isToday, type Deliverable, type Mate, type Run } from '../api'
 import { useConn, useNav, useStore } from '../store'
-import { Avatar, Btn, Bubble, CenterLine, Composer, DateLine, Empty, Folded, Ghost, IconBtn, Prose, Reply, ResultRows, Screen, Sheet, SheetItem, Thinking, VerifyLine, type Tone } from '../components'
+import { Avatar, Btn, Bubble, CenterLine, Composer, DateLine, Empty, Folded, Ghost, IconBtn, Reply, ReplyBubble, ResultRows, Screen, Sheet, SheetItem, Thinking, VerifyLine, type IconName, type Tone } from '../components'
 import { color, font, radius, size, space } from '../theme'
 import { describe, elapsedOf, glyphOf, mergeRuns, pendingAsk, phasesOf, runEntries, time, verifyWords, type ThreadEntry, type VerifyState } from '../thread'
 
@@ -22,6 +22,9 @@ const SEEK_PAGES = 10
 const LIGHT_MS = 1600
 
 type Page = { runs: Run[]; nextBefore: string | null; loaded: boolean; busy: boolean; missing: boolean }
+/** Each teammate's loaded runs, kept for the app's life so reopening a conversation draws at once. */
+const cache = new Map<string, { runs: Run[]; nextBefore: string | null }>()
+
 const errText = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 /** Re-render once a second while a run works, so 耗时 moves. */
@@ -53,8 +56,9 @@ function MateThread({ id, runId }: { id: string; runId?: string }) {
   // ---- the runs: the newest page on open and on every poll; older pages on request ----
   // The newest page replaces its own window (a routine run that ended quiet, or an empty intro, drops out of the
   // server's answer and must leave the screen too); pages loaded from before that window stay as they are.
-  const [page, setPage] = useState<Page>({ runs: [], nextBefore: null, loaded: false, busy: false, missing: false })
+  const [page, setPage] = useState<Page>(() => { const c = cache.get(id); return c ? { runs: c.runs, nextBefore: c.nextBefore, loaded: true, busy: false, missing: false } : { runs: [], nextBefore: null, loaded: false, busy: false, missing: false } })
   const pageRef = useRef(page); pageRef.current = page
+  useEffect(() => { if (page.loaded && !page.missing) cache.set(id, { runs: page.runs, nextBefore: page.nextBefore }) }, [id, page.runs, page.nextBefore, page.loaded, page.missing])
   const loadNewest = useCallback(async () => {
     if (!api) return
     try {
@@ -111,6 +115,10 @@ function MateThread({ id, runId }: { id: string; runId?: string }) {
     const t = setTimeout(() => scroller.current?.scrollToEnd({ animated: false }), 60)
     return () => clearTimeout(t)
   }, [lastKey])
+  /** Open at the newest message: while following, every growth of the line keeps its end in view. */
+  const onContentSize = () => { if (following.current && !target) scroller.current?.scrollToEnd({ animated: false }) }
+  const inputRef = useRef<TextInput>(null)
+  const fill = (v: string) => { setText(v); setTimeout(() => inputRef.current?.focus(), 30) }
 
   // ---- the dock ----
   const [text, setText] = useState('')
@@ -170,11 +178,8 @@ function MateThread({ id, runId }: { id: string; runId?: string }) {
       <View style={styles.head}>
         <IconBtn name="chevron-back-outline" label="返回" onPress={nav.pop} />
         <Pressable onPress={() => nav.push({ name: 'mateInfo', id })} accessibilityRole="button" style={({ pressed }) => [styles.who, pressed && { opacity: 0.7 }]}>
-          {mate ? <Avatar char={glyphOf(mate)} isDefault={mate.isDefault} working={mate.state === 'working'} dim={30} /> : null}
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={styles.name} numberOfLines={1}>{name}</Text>
-            {mate && mate.title ? <Text style={styles.title} numberOfLines={1}>{mate.title}</Text> : null}
-          </View>
+          {mate ? <Avatar id={mate.id || mate.name} char={glyphOf(mate)} isDefault={mate.isDefault} working={mate.state === 'working'} dim={30} /> : null}
+          <Text style={styles.name} numberOfLines={1}>{name}</Text>
         </Pressable>
         <IconBtn name="ellipsis-horizontal-outline" label="更多" onPress={() => setSheet(true)} />
       </View>
@@ -188,7 +193,10 @@ function MateThread({ id, runId }: { id: string; runId?: string }) {
           maintainVisibleContentPosition={{ minIndexForVisible: 1 }}
           onScrollBeginDrag={() => { following.current = false }}
           onMomentumScrollEnd={(e) => { const n = e.nativeEvent; following.current = n.contentOffset.y + n.layoutMeasurement.height >= n.contentSize.height - 48 }}
+          onScrollEndDrag={(e) => { const n = e.nativeEvent; following.current = n.contentOffset.y + n.layoutMeasurement.height >= n.contentSize.height - 48 }}
+          onContentSizeChange={onContentSize}
         >
+          {page.loaded && !runs.length && !pending && mate ? <Hello mate={mate} onPick={fill} /> : null}
           <View style={styles.older}>{page.nextBefore ? <Ghost icon="chevron-up-outline" label="加载更早" onPress={() => { loadOlder() }} disabled={page.busy} /> : null}</View>
           {runs.map((run) => {
             const day = new Date(run.createdAt).toDateString()
@@ -199,6 +207,7 @@ function MateThread({ id, runId }: { id: string; runId?: string }) {
                 {sep}
                 <RunView
                   run={run}
+                  mate={mate}
                   busyAnswer={busyAnswer}
                   acking={acking}
                   onAnswer={(askId, v) => { answer(run, askId, v) }}
@@ -215,7 +224,7 @@ function MateThread({ id, runId }: { id: string; runId?: string }) {
         </ScrollView>
         <View style={[styles.dock, { paddingBottom: Math.max(insets.bottom, space.sm) }]}>
           {err ? <Text style={styles.err}>{err}</Text> : null}
-          <Composer value={text} onChange={setText} onSend={send} placeholder={answering ? '回答' : name ? `给 ${name} 发消息` : '发消息'} busy={sending} disabled={!api || !mate} />
+          <Composer inputRef={inputRef} value={text} onChange={setText} onSend={send} onStop={mate && mate.state === 'working' ? () => { stop() } : undefined} placeholder={answering ? '回答' : name ? `给 ${name} 发消息` : '发消息'} busy={sending} disabled={!api || !mate} />
         </View>
       </KeyboardAvoidingView>
 
@@ -228,25 +237,27 @@ function MateThread({ id, runId }: { id: string; runId?: string }) {
 }
 
 /** One run: its entries, the 过程 fold, then the 在干活 or failure line. */
-function RunView({ run, busyAnswer, acking, onAnswer, onAck, onRate, onOpenFile, onRoutine }: {
-  run: Run; busyAnswer: boolean; acking: string
+function RunView({ run, mate, busyAnswer, acking, onAnswer, onAck, onRate, onOpenFile, onRoutine }: {
+  run: Run; mate: Mate | null; busyAnswer: boolean; acking: string
   onAnswer: (askId: string, value: string) => void; onAck: (routineId: string, at: string) => void
   onRate: (d: Deliverable, r: number) => void; onOpenFile: (d: Deliverable) => void; onRoutine: (routineId?: string) => void
 }) {
   const entries = useMemo(() => runEntries(run), [run])
+  // A delivery quotes its document's first paragraph only when no reply text follows it in the run (web DeliverBubble).
+  const replied = useMemo(() => { const s = new Set<string>(); entries.forEach((e, i) => { if (e.kind === 'deliver' && entries.slice(i + 1).some((x) => x.kind === 'text')) s.add(e.key) }); return s }, [entries])
   const body = entries.filter((e) => e.kind !== 'working' && e.kind !== 'failed')
   const end = entries.find((e) => e.kind === 'working' || e.kind === 'failed')
   return (
     <View style={styles.line}>
-      {body.map((e) => <Entry key={e.key} e={e} run={run} busyAnswer={busyAnswer} acking={acking} onAnswer={onAnswer} onAck={onAck} onRate={onRate} onOpenFile={onOpenFile} onRoutine={onRoutine} />)}
+      {body.map((e) => <Entry key={e.key} e={e} run={run} mate={mate} quote={!replied.has(e.key)} busyAnswer={busyAnswer} acking={acking} onAnswer={onAnswer} onAck={onAck} onRate={onRate} onOpenFile={onOpenFile} onRoutine={onRoutine} />)}
       <Process run={run} />
-      {end ? <Entry e={end} run={run} busyAnswer={busyAnswer} acking={acking} onAnswer={onAnswer} onAck={onAck} onRate={onRate} onOpenFile={onOpenFile} onRoutine={onRoutine} /> : null}
+      {end ? <Entry e={end} run={run} mate={mate} busyAnswer={busyAnswer} acking={acking} onAnswer={onAnswer} onAck={onAck} onRate={onRate} onOpenFile={onOpenFile} onRoutine={onRoutine} /> : null}
     </View>
   )
 }
 
-function Entry({ e, run, busyAnswer, acking, onAnswer, onAck, onRate, onOpenFile, onRoutine }: {
-  e: ThreadEntry; run: Run; busyAnswer: boolean; acking: string
+function Entry({ e, run, mate, quote, busyAnswer, acking, onAnswer, onAck, onRate, onOpenFile, onRoutine }: {
+  e: ThreadEntry; run: Run; mate: Mate | null; quote?: boolean; busyAnswer: boolean; acking: string
   onAnswer: (askId: string, value: string) => void; onAck: (routineId: string, at: string) => void
   onRate: (d: Deliverable, r: number) => void; onOpenFile: (d: Deliverable) => void; onRoutine: (routineId?: string) => void
 }) {
@@ -255,47 +266,76 @@ function Entry({ e, run, busyAnswer, acking, onAnswer, onAck, onRate, onOpenFile
     case 'scheduled': return <CenterLine icon="calendar-outline" text={e.text} onPress={() => onRoutine(e.routineId)} />
     case 'user': return <Bubble text={e.text} />
     case 'text': return <Reply markdown={e.text} />
-    case 'deliver': return <FileCard d={e.d} verify={e.verify} onRate={onRate} onOpen={onOpenFile} />
+    case 'deliver': return <Delivery d={e.d} verify={e.verify} quote={!!quote} onRate={onRate} onOpen={onOpenFile} />
     case 'ask': return <AskCard ask={e} busy={busyAnswer} onAnswer={(v) => onAnswer(e.id, v)} />
     case 'remind': return <RemindCard title={e.title} text={e.text} at={e.at} acked={e.acked} busy={acking === e.routineId + e.at} onAck={() => onAck(e.routineId, e.at)} onOpen={() => onRoutine(e.routineId)} />
     case 'auto': return <Text style={styles.muted}>24 小时没有回答，已按合理假设继续</Text>
-    case 'working': return <Thinking text={['在干活', e.step, elapsedOf(run)].filter(Boolean).join(' · ')} tail="" />
+    case 'working': return (
+      <View style={styles.working} accessibilityRole="text" accessibilityLabel={`${mate ? mate.name : ''} 在干活`}>
+        {mate ? <Avatar id={mate.id || mate.name} isDefault={mate.isDefault} working dim={26} /> : null}
+        <Thinking text={['在干活', e.step, elapsedOf(run)].filter(Boolean).join(' · ')} tail="" small />
+      </View>
+    )
     case 'failed': return e.cancelled ? <CenterLine text="已停止" /> : <Text style={styles.failed}>失败 · {e.reason}</Text>
     default: return null
   }
 }
 
-/** File bodies fetched for the cards, by file id: the thread's runs carry only a summary of each file (web DeliverBody). */
-const bodies = new Map<string, string>()
+const verifyWord = (v: VerifyState) => (v.kind === 'passed' ? '已核验' : v.kind === 'issues' ? '核验有问题' : v.kind === 'none' ? '未能核验' : v.kind === 'verifying' ? '核验中' : '')
+const fileIcon = (d: Deliverable): IconName => (d.kind === 'sheet' || d.kind === 'table' ? 'grid-outline' : d.kind === 'report' ? 'document-text-outline' : 'document-outline')
+/** The document's first paragraph, as plain words. */
+const plainWords = (md: string) => String(md || '').replace(/```[\s\S]*?```/g, ' ').replace(/[#>*_`|~\[\]]+/g, ' ').replace(/\(https?:[^)]*\)/g, '').replace(/\s+/g, ' ').trim()
 
-/** A card's body: the file's own markdown when the run carries it, else fetched once with GET /deliverable. */
-function useBody(d: Deliverable): string {
-  const { api } = useConn()
-  const need = typeof d.markdown !== 'string' && !!d.id
-  const [body, setBody] = useState(() => (need ? bodies.get(d.id) || '' : ''))
-  useEffect(() => {
-    if (!need || !api || bodies.has(d.id)) return
-    let on = true
-    api.deliverable(d.id).then((x) => { const md = x && x.deliverable && typeof x.deliverable.markdown === 'string' ? x.deliverable.markdown : ''; bodies.set(d.id, md); if (on) setBody(md) }).catch(() => { /* the title still opens the file */ })
-    return () => { on = false }
-  }, [api, d.id, need])
-  return need ? body : d.markdown || ''
+/**
+ * A delivery in the thread never carries the document (web DeliverBubble): inside the grey bubble the excerpt (only
+ * when no reply follows), the ✓ rows and the 文件卡; tapping the card opens the File screen. Verification + rating under it.
+ */
+function Delivery({ d, verify, quote, onRate, onOpen }: { d: Deliverable; verify: VerifyState; quote: boolean; onRate: (d: Deliverable, r: number) => void; onOpen: (d: Deliverable) => void }) {
+  const tone: Tone = verify.kind === 'passed' ? 'success' : verify.kind === 'issues' ? 'warn' : verify.kind === 'verifying' ? 'live' : 'meta'
+  const excerpt = quote && d.excerpt ? plainWords(d.excerpt) : ''
+  const rows = Array.isArray(d.summary) ? d.summary : []
+  return (
+    <View style={styles.delivery}>
+      <ReplyBubble>
+        {excerpt ? <Text style={styles.excerpt} numberOfLines={3}>{excerpt}</Text> : null}
+        {rows.length ? <ResultRows rows={rows} /> : null}
+        <Pressable onPress={() => onOpen(d)} accessibilityRole="button" accessibilityLabel={'打开 ' + d.title} style={({ pressed }) => [styles.fileCard, pressed && { backgroundColor: color.bubble }]}>
+          <View style={styles.fileTile}><Ionicons name={fileIcon(d)} size={19} color={color.fg} /></View>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={styles.fileTitle} numberOfLines={2}>{d.title || d.id}</Text>
+            <Text style={styles.fileMeta} numberOfLines={1}>{['文件', verifyWord(verify), fmtWhen(d.createdAt)].filter(Boolean).join(' · ')}</Text>
+          </View>
+        </Pressable>
+      </ReplyBubble>
+      <View style={styles.after}>
+        <VerifyLine words={verifyWords(verify)} tone={tone} notes={verify.kind !== 'verifying' ? verify.notes : ''} rating={d.rating} onRate={(r) => onRate(d, r)} />
+      </View>
+    </View>
+  )
 }
 
-/** 文件 (§9.1): the title opens the file; ✓ rows and the body inline; one line underneath reads verification live, then 有用 / 没用. */
-function FileCard({ d, verify, onRate, onOpen }: { d: Deliverable; verify: VerifyState; onRate: (d: Deliverable, r: number) => void; onOpen: (d: Deliverable) => void }) {
-  const markdown = useBody(d)
-  const tone: Tone = verify.kind === 'passed' ? 'success' : verify.kind === 'issues' ? 'warn' : verify.kind === 'verifying' ? 'live' : 'meta'
+/** Example prompts from a teammate's job (web examplesOf): its first clauses as asks, else three general ones. */
+function examplesOf(mate: Mate): string[] {
+  const parts = String(mate.description || '').split(/[，,。；;、\n]+/).map((x) => x.replace(/^(每天|负责|帮我|请)/, '').trim()).filter((x) => x.length >= 2 && x.length <= 30)
+  const topic = parts[0] || ''
+  if (!topic) return ['你能帮我做什么？', '先了解一下我的工作', '给我一个今天的建议']
+  return [topic, '关于「' + topic.slice(0, 14) + '」，先给我一份简报', parts[1] ? parts[1] : '你打算怎么做「' + topic.slice(0, 14) + '」？'].slice(0, 3)
+}
+
+/** An empty thread: the avatar, the name, the job muted, three pills that fill the composer. */
+function Hello({ mate, onPick }: { mate: Mate; onPick: (text: string) => void }) {
   return (
-    <View style={styles.file}>
-      <Pressable onPress={() => onOpen(d)} accessibilityRole="button" style={({ pressed }) => [styles.fileHead, pressed && { backgroundColor: color.surface }]}>
-        <Ionicons name={d.kind === 'report' ? 'newspaper-outline' : 'document-text-outline'} size={16} color={color.fg2} />
-        <Text style={styles.fileTitle} numberOfLines={2}>{d.title}</Text>
-        <Ionicons name="chevron-forward" size={14} color={color.meta} />
-      </Pressable>
-      <ResultRows rows={Array.isArray(d.summary) ? d.summary : []} />
-      {markdown ? <Prose markdown={markdown} /> : null}
-      <VerifyLine words={verifyWords(verify)} tone={tone} notes={verify.kind !== 'verifying' ? verify.notes : ''} rating={d.rating} onRate={(r) => onRate(d, r)} />
+    <View style={styles.hello}>
+      <Avatar id={mate.id || mate.name} isDefault={mate.isDefault} dim={64} />
+      <Text style={styles.helloName}>{mate.name}</Text>
+      {mate.description || mate.title ? <Text style={styles.helloDuty}>{mate.description || mate.title}</Text> : null}
+      <View style={styles.pills}>
+        {examplesOf(mate).map((x) => (
+          <Pressable key={x} onPress={() => onPick(x)} accessibilityRole="button" style={({ pressed }) => [styles.pill, pressed && { backgroundColor: color.bubble }]}>
+            <Text style={styles.pillText} numberOfLines={2}>{x}</Text>
+          </Pressable>
+        ))}
+      </View>
     </View>
   )
 }
@@ -340,17 +380,28 @@ function AskCard({ ask, busy, onAnswer }: { ask: Extract<ThreadEntry, { kind: 'a
 function Outline({ label, onPress, disabled, filled }: { label: string; onPress: () => void; disabled?: boolean; filled?: boolean }) {
   return (
     <Pressable onPress={onPress} disabled={disabled} accessibilityRole="button" style={({ pressed }) => [styles.outline, filled && styles.outlineFilled, disabled && { opacity: 0.45 }, pressed && { opacity: 0.7 }]}>
-      <Text style={[styles.outlineText, filled && { color: color.bg }]} numberOfLines={2}>{label}</Text>
+      <Text style={[styles.outlineText, filled && { color: color.onPrimary }]} numberOfLines={2}>{label}</Text>
     </Pressable>
   )
 }
 
 /** 「过程 · n 步 · 3m」 folded under the run: the run as phases, opening to their calls. Nothing when the run used no tools. */
 function Process({ run }: { run: Run }) {
-  const rows = useMemo(() => phasesOf(run), [run])
+  const { api } = useConn()
   const [open, setOpen] = useState(false)
   const [openPhase, setOpenPhase] = useState(-1)
-  const phaseCount = rows.filter((r) => r.kind === 'phase').length
+  // A finished run comes without its tool calls (run.process.lite): the fold fetches them from GET /run when opened.
+  const lite = !!(run.process && run.process.lite)
+  const [full, setFull] = useState<Run | null>(null)
+  useEffect(() => {
+    if (!open || !lite || full || !api) return
+    let on = true
+    api.run(run.id).then((x) => { if (on && x && x.run) setFull(x.run) }).catch(() => { /* the summary line stays */ })
+    return () => { on = false }
+  }, [open, lite, full, api, run.id])
+  const src = lite ? full : run
+  const rows = useMemo(() => (src ? phasesOf(src) : []), [src])
+  const phaseCount = src ? rows.filter((r) => r.kind === 'phase').length : (run.process && run.process.groups) || 0
   if (!phaseCount) return null
   const live = run.status === 'running'
   const lastIdx = rows.length - 1
@@ -361,7 +412,8 @@ function Process({ run }: { run: Run }) {
         <Ionicons name={open ? 'chevron-down-outline' : 'chevron-forward-outline'} size={13} color={color.meta} />
         <Text style={styles.procText}>{label}</Text>
       </Pressable>
-      {open ? (
+      {open && !src ? <ActivityIndicator size="small" color={color.meta} style={{ alignSelf: 'flex-start', marginLeft: 20 }} /> : null}
+      {open && src ? (
         <View style={styles.phases}>
           {rows.map((r, i) => {
             if (r.kind === 'phase') {
@@ -410,42 +462,52 @@ function Process({ run }: { run: Run }) {
 
 const styles = StyleSheet.create({
   head: { height: 56, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, gap: 2 },
-  who: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 6, height: 48, paddingRight: 8 },
-  name: { fontFamily: font.display, fontSize: 19, lineHeight: 24, color: color.fg },
-  title: { fontSize: size.small, lineHeight: 16, color: color.meta },
+  who: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 10, height: 48, paddingHorizontal: 4 },
+  name: { flexShrink: 1, fontSize: 17, lineHeight: 22, fontWeight: '600', color: color.fg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  body: { paddingHorizontal: space.lg, paddingBottom: space.xl, gap: space.lg },
+  body: { flexGrow: 1, paddingHorizontal: space.md, paddingBottom: space.lg, gap: space.lg },
   older: { alignItems: 'center', minHeight: 8 },
   run: { gap: space.md, borderRadius: radius.lg },
-  lit: { backgroundColor: color.surface, marginHorizontal: -8, paddingHorizontal: 8, paddingVertical: 6 },
+  lit: { backgroundColor: color.card, marginHorizontal: -8, paddingHorizontal: 8, paddingVertical: 6 },
   line: { gap: space.md },
   loading: { alignSelf: 'center', marginVertical: space.xl },
   dock: { paddingHorizontal: space.md, paddingTop: space.sm, gap: space.sm, backgroundColor: color.bg },
+  working: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 2 },
+  hello: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.lg, paddingVertical: space.xxl, gap: 8 },
+  helloName: { fontSize: 20, lineHeight: 26, fontWeight: '600', color: color.fg, marginTop: 8 },
+  helloDuty: { fontSize: 14, lineHeight: 20, color: color.muted, textAlign: 'center', maxWidth: 300 },
+  pills: { alignSelf: 'stretch', gap: 8, marginTop: space.lg },
+  pill: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 18, paddingVertical: 10, borderRadius: 22, borderWidth: 1, borderColor: color.border, backgroundColor: color.card },
+  pillText: { fontSize: 14.5, lineHeight: 20, color: color.fg2 },
   err: { fontSize: size.meta, lineHeight: 18, color: color.danger, paddingHorizontal: 6 },
   muted: { fontSize: size.meta, lineHeight: 18, color: color.muted },
   failed: { fontSize: size.ui, lineHeight: 22, color: color.danger },
   // 文件
-  file: { gap: 4 },
-  fileHead: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 36, paddingVertical: 4, marginHorizontal: -8, paddingHorizontal: 8, borderRadius: radius.md },
-  fileTitle: { flex: 1, minWidth: 0, fontSize: size.ui, lineHeight: 22, fontWeight: '600', color: color.fg },
+  delivery: { gap: 2 },
+  excerpt: { fontSize: size.ui, lineHeight: 23, color: color.fg },
+  fileCard: { flexDirection: 'row', alignItems: 'center', gap: 12, minWidth: 220, padding: 8, marginHorizontal: -6, borderRadius: 14, borderWidth: 1, borderColor: color.border, backgroundColor: color.surface },
+  fileTile: { width: 40, height: 40, borderRadius: 10, backgroundColor: color.bubble, alignItems: 'center', justifyContent: 'center' },
+  fileTitle: { fontSize: size.ui, lineHeight: 20, fontWeight: '600', color: color.fg },
+  fileMeta: { fontSize: 12, lineHeight: 17, color: color.muted, marginTop: 1, fontVariant: ['tabular-nums'] },
+  after: { paddingLeft: 12 },
   // 提醒卡
-  remind: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 44, paddingLeft: 14, paddingRight: 6, borderWidth: 1, borderColor: color.border, borderRadius: radius.lg, backgroundColor: color.surface },
+  remind: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 48, paddingLeft: 14, paddingRight: 6, borderWidth: 1, borderColor: color.border, borderRadius: radius.lg, backgroundColor: color.card },
   remindMain: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 },
   remindTitle: { fontSize: 14, lineHeight: 20, color: color.fg, fontVariant: ['tabular-nums'] },
   remindSub: { fontSize: size.small, lineHeight: 18, color: color.muted },
   remindDone: { fontSize: size.meta, color: color.meta, paddingHorizontal: 8 },
   // 找你卡
-  ask: { gap: 6 },
+  ask: { gap: 8, padding: 14, borderRadius: 20, backgroundColor: color.card, maxWidth: '92%' },
   askQ: { fontSize: size.ui, lineHeight: 24, color: color.fg, marginBottom: 2 },
-  askDetail: { maxHeight: 240, borderRadius: radius.md, backgroundColor: color.surface, marginBottom: 4 },
+  askDetail: { maxHeight: 240, borderRadius: radius.md, backgroundColor: color.input, marginBottom: 4 },
   askDetailText: { fontFamily: font.mono, fontSize: 13, lineHeight: 19, color: color.fg2, padding: 12 },
   askNote: { fontSize: size.ui, lineHeight: 22, color: color.muted, marginBottom: 2 },
   askDone: { fontSize: size.meta, lineHeight: 18, color: color.success },
-  outline: { minHeight: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1, borderColor: color.border, borderRadius: radius.md, backgroundColor: color.bg },
-  outlineFilled: { backgroundColor: color.fg, borderColor: color.fg },
+  outline: { minHeight: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1, borderColor: color.borderStrong, borderRadius: 22, backgroundColor: color.input },
+  outlineFilled: { backgroundColor: color.primary, borderColor: color.primary },
   outlineText: { fontSize: size.ui, fontWeight: '500', color: color.fg, textAlign: 'center' },
   // 过程
-  procHead: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 28, alignSelf: 'flex-start' },
+  procHead: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 28, alignSelf: 'flex-start', paddingLeft: 12 },
   procText: { fontSize: size.small, color: color.meta, fontVariant: ['tabular-nums'] },
   ic: { width: 20, alignItems: 'center' },
   phases: { paddingBottom: space.xs },

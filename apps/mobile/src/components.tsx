@@ -3,7 +3,7 @@
  * one list recipe, lists carry no actions, the composer never changes colour, no hint captions.
  */
 import React, { useEffect, useRef, useState } from 'react'
-import { ActivityIndicator, Animated, Dimensions, Easing, Modal, Pressable, StyleSheet, Text, TextInput, View, type ViewStyle, type TextStyle } from 'react-native'
+import { ActivityIndicator, Animated, Dimensions, Easing, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type ViewStyle, type TextStyle } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import Markdown from 'react-native-markdown-display'
 import { Ionicons } from '@expo/vector-icons'
@@ -35,7 +35,7 @@ export function TopBar({ left, title, right, onTitle }: { left?: React.ReactNode
 
 export function IconBtn({ name, onPress, label, size: s = 22, tone }: { name: IconName; onPress: () => void; label: string; size?: number; tone?: string }) {
   return (
-    <Pressable onPress={onPress} accessibilityLabel={label} accessibilityRole="button" hitSlop={6} style={({ pressed }) => [styles.iconBtn, pressed && { backgroundColor: color.surface }]}>
+    <Pressable onPress={onPress} accessibilityLabel={label} accessibilityRole="button" hitSlop={6} style={({ pressed }) => [styles.iconBtn, pressed && { backgroundColor: color.pressed }]}>
       <Ionicons name={name} size={s} color={tone || color.fg2} />
     </Pressable>
   )
@@ -50,8 +50,8 @@ export function Mark({ dim = 22, live, round }: { dim?: number; live?: boolean; 
     loop.start(); return () => loop.stop()
   }, [live, pulse])
   return (
-    <View style={{ width: dim, height: dim, borderRadius: round ? dim / 2 : dim * 0.23, backgroundColor: color.fg, alignItems: 'center', justifyContent: 'center' }}>
-      <Animated.Text style={{ color: color.warmWhite, fontSize: dim * 0.62, fontWeight: '700', lineHeight: dim * 0.75, opacity: pulse, fontFamily: font.display }}>M</Animated.Text>
+    <View style={{ width: dim, height: dim, borderRadius: round ? dim / 2 : dim * 0.23, backgroundColor: color.card, borderWidth: 1, borderColor: color.border, alignItems: 'center', justifyContent: 'center' }}>
+      <Animated.Text style={{ color: color.primary, fontSize: dim * 0.62, fontWeight: '700', lineHeight: dim * 0.75, opacity: pulse, fontFamily: font.display }}>M</Animated.Text>
     </View>
   )
 }
@@ -73,7 +73,7 @@ export type Tone = 'live' | 'success' | 'danger' | 'warn' | 'meta'
 const toneColor: Record<Tone, string> = { live: color.fg2, success: color.success, danger: color.danger, warn: color.warn, meta: color.meta }
 export function Row({ glyph, tone = 'meta', spin, title, sub, state, stateTone, onPress, chevron }: { glyph?: IconName; tone?: Tone; spin?: boolean; title: string; sub?: string; state?: string; stateTone?: Tone; onPress?: () => void; chevron?: boolean }) {
   return (
-    <Pressable onPress={onPress} disabled={!onPress} style={({ pressed }) => [styles.row, pressed && { backgroundColor: color.surface }]}>
+    <Pressable onPress={onPress} disabled={!onPress} style={({ pressed }) => [styles.row, pressed && { backgroundColor: color.pressed }]}>
       {glyph || spin ? <View style={styles.rowGlyph}>{spin ? <ActivityIndicator size="small" color={color.fg2} /> : <Ionicons name={glyph as IconName} size={18} color={toneColor[tone]} />}</View> : null}
       <View style={styles.rowMain}>
         <Text style={styles.rowTitle} numberOfLines={1}>{title}</Text>
@@ -92,7 +92,7 @@ export function Row({ glyph, tone = 'meta', spin, title, sub, state, stateTone, 
  */
 export function ThreadRow({ glyph, tone = 'meta', spin, title, time, unread, preview, onPress, current }: { glyph?: IconName | React.ReactNode; tone?: Tone; spin?: boolean; title: string; time?: string; unread?: boolean; preview?: string; onPress: () => void; current?: boolean }) {
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" style={({ pressed }) => [styles.trow, (pressed || current) && { backgroundColor: color.surface }]}>
+    <Pressable onPress={onPress} accessibilityRole="button" style={({ pressed }) => [styles.trow, (pressed || current) && { backgroundColor: color.pressed }]}>
       <View style={styles.trowGlyph}>{spin ? <ActivityIndicator size="small" color={color.fg2} /> : typeof glyph === 'string' ? <Ionicons name={glyph as IconName} size={20} color={toneColor[tone]} /> : glyph}</View>
       <View style={styles.trowMain}>
         <View style={styles.trowLine}>
@@ -106,46 +106,65 @@ export function ThreadRow({ glyph, tone = 'meta', spin, title, time, unread, pre
   )
 }
 
+/** Rakazo's bot palette (same as the web client): light → dark, eye colour. */
+const AVATAR_COLORS: [string, string, string][] = [['#A97EFE', '#7C3AED', '#FFFFFF'], ['#00C972', '#059669', '#FFFFFF'], ['#FF781C', '#EA580C', '#FFFFFF'], ['#1CC3B0', '#0284C7', '#FFFFFF'], ['#2A92FE', '#1D4ED8', '#FFFFFF'], ['#FFAF38', '#D97706', '#141414'], ['#A27952', '#78350F', '#FFFFFF'], ['#FF3E51', '#BE123C', '#FFFFFF'], ['#FF5EB1', '#BE185D', '#FFFFFF'], ['#94A3B8', '#475569', '#FFFFFF']]
+/** Rakazo's shippedHash (FNV-1a), the web's avatarHash. */
+export function avatarHash(v: string): number { let x = 2166136261; for (let i = 0; i < v.length; i++) x = Math.imul(x ^ v.charCodeAt(i), 16777619); return x >>> 0 }
+/** The web's three shapes (blob, squircle, pebble) as corner radii in a 100 box. */
+const AVATAR_SHAPES: { r: number; sx: number; sy: number }[] = [{ r: 0.5, sx: 0.92, sy: 0.92 }, { r: 0.3, sx: 0.92, sy: 0.92 }, { r: 0.46, sx: 0.92, sy: 0.84 }]
+export function avatarLook(id: string) {
+  const hash = avatarHash(String(id || 'mate'))
+  const [light, dark, eye] = AVATAR_COLORS[hash % AVATAR_COLORS.length]
+  const shape = AVATAR_SHAPES[(Math.imul(hash ^ (hash >>> 16), 73244475) >>> 0) % AVATAR_SHAPES.length]
+  return { light, dark, eye, shape }
+}
+
 /**
- * A teammate's avatar (§9.1): a monochrome circle with one character, the Mark for MyWork. While it works a thin ring
- * turns around it; the ring's room is always reserved so nothing shifts when it starts.
+ * A teammate's avatar, the web's MateAvatar: a coloured shape picked from its id (light fill shading to dark at the
+ * lower right) with two eyes; MyWork is the cream mark on the card colour. `working` pulses it at scale 1.04.
  */
-export function Avatar({ char, isDefault, dim = 36, working }: { char: string; isDefault?: boolean; dim?: number; working?: boolean }) {
-  const spin = useRef(new Animated.Value(0)).current
+export function Avatar({ id, isDefault, dim = 36, working }: { id: string; char?: string; isDefault?: boolean; dim?: number; working?: boolean }) {
+  const pulse = useRef(new Animated.Value(1)).current
   useEffect(() => {
-    if (!working) { spin.setValue(0); return }
-    const loop = Animated.loop(Animated.timing(spin, { toValue: 1, duration: 1100, easing: Easing.linear, useNativeDriver: true }))
+    if (!working) { pulse.setValue(1); return }
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(pulse, { toValue: 1.04, duration: 700, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+      Animated.timing(pulse, { toValue: 1, duration: 700, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+    ]))
     loop.start(); return () => loop.stop()
-  }, [working, spin])
-  const outer = dim + 8
-  const rotate = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] })
-  return (
-    <View style={{ width: outer, height: outer, alignItems: 'center', justifyContent: 'center' }}>
-      {working ? <Animated.View style={{ position: 'absolute', width: outer, height: outer, borderRadius: outer / 2, borderWidth: 1.5, borderColor: color.borderSoft, borderTopColor: color.fg, borderRightColor: color.fg, transform: [{ rotate }] }} /> : null}
-      {isDefault ? <Mark dim={dim} round /> : (
-        <View style={{ width: dim, height: dim, borderRadius: dim / 2, backgroundColor: color.surface2, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ fontSize: dim * 0.44, lineHeight: dim * 0.6, color: color.fg, fontWeight: '500' }}>{char}</Text>
-        </View>
-      )}
-    </View>
-  )
+  }, [working, pulse])
+  let body: React.ReactNode
+  if (isDefault) body = <Mark dim={dim * 0.92} round />
+  else {
+    const { light, dark, eye, shape } = avatarLook(id)
+    const w = dim * shape.sx; const h = dim * shape.sy
+    const ex = dim * 0.044; const ey = dim * 0.031
+    body = (
+      <View style={{ width: w, height: h, borderRadius: Math.min(w, h) * shape.r, backgroundColor: light, overflow: 'hidden' }}>
+        <View style={{ position: 'absolute', width: w * 1.3, height: h * 1.3, borderRadius: w, backgroundColor: dark, opacity: 0.55, left: w * 0.35, top: h * 0.35 }} />
+        <View style={{ position: 'absolute', width: ex * 2, height: ey * 2, borderRadius: ex, backgroundColor: eye, left: w / 2 - dim * 0.127 - ex, top: h * 0.465 - ey }} />
+        <View style={{ position: 'absolute', width: ex * 2, height: ey * 2, borderRadius: ex, backgroundColor: eye, left: w / 2 + dim * 0.127 - ex, top: h * 0.465 - ey }} />
+      </View>
+    )
+  }
+  return <Animated.View style={{ width: dim, height: dim, alignItems: 'center', justifyContent: 'center', transform: [{ scale: pulse }] }}>{body}</Animated.View>
 }
 
 /**
  * The teammates list's one row (§9.4): avatar (ring while it works) · name (600 when unread) · time · unread dot · one
  * line underneath (最近一句 / 在干活 · 步骤 / 等你答 · 问题). Rows carry no actions; opening the row is all it does.
  */
-export function MateRow({ char, isDefault, working, waiting, name, time, unread, sub, onPress }: { char: string; isDefault?: boolean; working?: boolean; waiting?: boolean; name: string; time?: string; unread?: boolean; sub?: string; onPress: () => void }) {
+export function MateRow({ id, char, isDefault, working, waiting, name, time, unread, sub, onPress }: { id: string; char: string; isDefault?: boolean; working?: boolean; waiting?: boolean; name: string; time?: string; unread?: boolean; sub?: string; onPress: () => void }) {
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" style={({ pressed }) => [styles.mrow, pressed && { backgroundColor: color.surface }]}>
-      <Avatar char={char} isDefault={isDefault} working={working} dim={40} />
+    <Pressable onPress={onPress} accessibilityRole="button" style={({ pressed }) => [styles.mrow, pressed && { backgroundColor: color.pressed }]}>
+      <Avatar id={id} char={char} isDefault={isDefault} working={working} dim={44} />
       <View style={styles.trowMain}>
         <View style={styles.trowLine}>
-          <Text style={[styles.mrowName, unread && { fontWeight: '600' }]} numberOfLines={1}>{name}</Text>
+          <Text style={[styles.mrowName, unread && { fontWeight: '600', color: color.fg }]} numberOfLines={1}>{name}</Text>
           {time ? <Text style={styles.trowTime}>{time}</Text> : null}
           {unread ? <View style={styles.trowDot} /> : null}
         </View>
-        {sub ? <Text style={[styles.trowSub, waiting && { color: color.warn }]} numberOfLines={1}>{sub}</Text> : null}
+        {sub ? <Text style={[styles.mrowSub, waiting && { color: color.warn }]} numberOfLines={2}>{sub}</Text> : null}
       </View>
     </Pressable>
   )
@@ -154,7 +173,7 @@ export function MateRow({ char, isDefault, working, waiting, name, time, unread,
 /** A centred small line in a conversation: a routine's marker 「每日日报 · 19:00」, 「已安排 · …」, 已停止. */
 export function CenterLine({ text, icon, onPress, lit }: { text: string; icon?: IconName; onPress?: () => void; lit?: boolean }) {
   return (
-    <Pressable onPress={onPress} disabled={!onPress} style={({ pressed }) => [styles.center, lit && { backgroundColor: color.surface }, pressed && { opacity: 0.7 }]}>
+    <Pressable onPress={onPress} disabled={!onPress} style={({ pressed }) => [styles.center, lit && { backgroundColor: color.card }, pressed && { opacity: 0.7 }]}>
       {icon ? <Ionicons name={icon} size={12} color={color.meta} /> : null}
       <Text style={styles.centerText} numberOfLines={2}>{text}</Text>
     </Pressable>
@@ -212,7 +231,7 @@ export function VerifyLine({ words, tone = 'meta', notes, rating, onRate }: { wo
 export function Ghost({ icon, label, on, onPress, disabled }: { icon?: IconName; label: string; on?: boolean; onPress: () => void; disabled?: boolean }) {
   const tone = on ? color.fg : color.muted
   return (
-    <Pressable onPress={onPress} disabled={disabled} accessibilityRole="button" accessibilityState={{ selected: !!on }} style={({ pressed }) => [styles.ghost, on && { backgroundColor: color.surface }, disabled && { opacity: 0.45 }, pressed && { opacity: 0.7 }]}>
+    <Pressable onPress={onPress} disabled={disabled} accessibilityRole="button" accessibilityState={{ selected: !!on }} style={({ pressed }) => [styles.ghost, on && { backgroundColor: color.input }, disabled && { opacity: 0.45 }, pressed && { opacity: 0.7 }]}>
       {icon ? <Ionicons name={icon} size={15} color={tone} /> : null}
       <Text style={[styles.ghostText, { color: tone }]}>{label}</Text>
     </Pressable>
@@ -223,24 +242,40 @@ export function Ghost({ icon, label, on, onPress, disabled }: { icon?: IconName;
 export function Bubble({ text }: { text: string }) {
   return <View style={styles.bubbleWrap}><View style={styles.bubble}><Text style={styles.bubbleText}>{text}</Text></View></View>
 }
-export function Reply({ markdown }: { markdown: string }) { return <View style={styles.reply}><Prose markdown={markdown} /></View> }
+export function Reply({ markdown }: { markdown: string }) { return <ReplyBubble><Prose markdown={markdown} tight /></ReplyBubble> }
+/** The teammate's side: a grey bubble on the left (card colour, radius 20, up to 88%). */
+export function ReplyBubble({ children }: { children: React.ReactNode }) {
+  return <View style={styles.replyWrap}><View style={styles.reply}>{children}</View></View>
+}
 /** One pulsing line while a run works: 「在干活 · 步骤 · 耗时」 (no ellipsis). */
-export function Thinking({ text = '在想', tail = '…' }: { text?: string; tail?: string }) {
+export function Thinking({ text = '在想', tail = '…', small }: { text?: string; tail?: string; small?: boolean }) {
   const op = useRef(new Animated.Value(0.35)).current
   useEffect(() => { const loop = Animated.loop(Animated.sequence([Animated.timing(op, { toValue: 1, duration: 800, useNativeDriver: true }), Animated.timing(op, { toValue: 0.35, duration: 800, useNativeDriver: true })])); loop.start(); return () => loop.stop() }, [op])
-  return <Animated.Text style={[styles.body, { color: color.muted, opacity: op, fontVariant: ['tabular-nums'] }]}>{text}{tail}</Animated.Text>
+  return <Animated.Text numberOfLines={1} style={[styles.body, small && { fontSize: 13, lineHeight: 18, flexShrink: 1 }, { color: color.muted, opacity: op, fontVariant: ['tabular-nums'] }]}>{text}{tail}</Animated.Text>
 }
 /** Markdown at reading size. Titles in the serif, like the web. */
-export function Prose({ markdown }: { markdown: string }) {
-  return <Markdown style={mdStyles}>{markdown || ''}</Markdown>
+export function Prose({ markdown, wide, tight }: { markdown: string; wide?: boolean; tight?: boolean }) {
+  return <Markdown style={tight ? mdTight : mdStyles} rules={wide ? wideRules : undefined}>{String(markdown || '').trim()}</Markdown>
+}
+/** Tables scroll sideways instead of squeezing their columns (the file screen). */
+const wideRules = {
+  table: (node: { key: string }, children: React.ReactNode) => (
+    <ScrollView key={node.key} horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
+      <View style={mdWide.table}>{children}</View>
+    </ScrollView>
+  ),
+  th: (node: { key: string }, children: React.ReactNode) => <View key={node.key} style={mdWide.th}>{children}</View>,
+  td: (node: { key: string }, children: React.ReactNode) => <View key={node.key} style={mdWide.td}>{children}</View>,
 }
 
-/** The composer: a rounded field with a round send button. Neutral, never changes colour. */
-export function Composer({ value, onChange, onSend, placeholder, busy, disabled, autoFocus, big }: { value: string; onChange: (v: string) => void; onSend: () => void; placeholder: string; busy?: boolean; disabled?: boolean; autoFocus?: boolean; big?: boolean }) {
+/** The composer: a pill with a cream round send; while the teammate works and nothing is typed, a Stop circle. */
+export function Composer({ value, onChange, onSend, placeholder, busy, disabled, autoFocus, big, onStop, inputRef }: { value: string; onChange: (v: string) => void; onSend: () => void; placeholder: string; busy?: boolean; disabled?: boolean; autoFocus?: boolean; big?: boolean; onStop?: () => void; inputRef?: React.Ref<TextInput> }) {
   const can = !!value.trim() && !busy && !disabled
+  const stopping = !!onStop && !value.trim() && !busy
   return (
     <View style={[styles.composer, big && styles.composerBig]}>
       <TextInput
+        ref={inputRef}
         value={value}
         onChangeText={onChange}
         placeholder={placeholder}
@@ -248,19 +283,26 @@ export function Composer({ value, onChange, onSend, placeholder, busy, disabled,
         multiline
         autoFocus={autoFocus}
         editable={!disabled}
+        selectionColor={color.primary}
         style={[styles.composerInput, big && { minHeight: 96, textAlignVertical: 'top' }]}
         onSubmitEditing={can ? onSend : undefined}
         blurOnSubmit={false}
       />
-      <Pressable onPress={onSend} disabled={!can} accessibilityLabel="发送" style={[styles.send, can ? styles.sendOn : styles.sendOff]}>
-        {busy ? <ActivityIndicator size="small" color={can ? color.bg : color.meta} /> : <Ionicons name="arrow-up" size={18} color={can ? color.bg : color.meta} />}
-      </Pressable>
+      {stopping ? (
+        <Pressable onPress={onStop} accessibilityLabel="停止" accessibilityRole="button" style={({ pressed }) => [styles.send, styles.stop, pressed && { opacity: 0.7 }]}>
+          <View style={styles.stopSquare} />
+        </Pressable>
+      ) : (
+        <Pressable onPress={onSend} disabled={!can} accessibilityLabel="发送" accessibilityRole="button" style={({ pressed }) => [styles.send, can ? styles.sendOn : styles.sendOff, pressed && { opacity: 0.8 }]}>
+          {busy ? <ActivityIndicator size="small" color={color.onPrimary} /> : <Ionicons name="arrow-up" size={18} color={can ? color.onPrimary : color.meta} />}
+        </Pressable>
+      )}
     </View>
   )
 }
 
 export function Btn({ label, onPress, kind = 'ghost', icon, disabled, style }: { label: string; onPress: () => void; kind?: 'ghost' | 'primary' | 'danger'; icon?: IconName; disabled?: boolean; style?: ViewStyle }) {
-  const txt = kind === 'primary' ? color.bg : kind === 'danger' ? color.danger : color.fg2
+  const txt = kind === 'primary' ? color.onPrimary : kind === 'danger' ? color.danger : color.fg2
   return (
     <Pressable onPress={onPress} disabled={disabled} style={({ pressed }) => [styles.btn, kind === 'primary' && styles.btnPrimary, kind === 'ghost' && styles.btnGhost, disabled && { opacity: 0.45 }, pressed && { opacity: 0.7 }, style]}>
       {icon ? <Ionicons name={icon} size={15} color={txt} /> : null}
@@ -324,7 +366,7 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
 }
 export function SheetItem({ icon, label, onPress, danger }: { icon?: IconName; label: string; onPress: () => void; danger?: boolean }) {
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.sheetItem, pressed && { backgroundColor: color.surface }]}>
+    <Pressable onPress={onPress} style={({ pressed }) => [styles.sheetItem, pressed && { backgroundColor: color.pressed }]}>
       {icon ? <Ionicons name={icon} size={18} color={danger ? color.danger : color.fg2} /> : null}
       <Text style={[styles.sheetItemText, danger && { color: color.danger }]}>{label}</Text>
     </Pressable>
@@ -350,7 +392,7 @@ const styles = StyleSheet.create({
   section: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: space.xxl, marginBottom: 10, paddingHorizontal: 2 },
   sectionLabel: { fontSize: size.small, lineHeight: 18, fontWeight: '500', letterSpacing: 0.3, color: color.muted },
   empty: { fontSize: size.ui, color: color.muted, paddingVertical: 8, paddingHorizontal: 2 },
-  listBox: { borderWidth: 1, borderColor: color.border, borderRadius: radius.lg, backgroundColor: color.bg, overflow: 'hidden' },
+  listBox: { borderWidth: 1, borderColor: color.border, borderRadius: radius.lg, backgroundColor: color.card, overflow: 'hidden' },
   rowDivider: { borderTopWidth: 1, borderTopColor: color.borderSoft },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 52, paddingVertical: 12, paddingHorizontal: 16 },
   rowGlyph: { width: 20, alignItems: 'center' },
@@ -359,23 +401,24 @@ const styles = StyleSheet.create({
   rowSub: { fontSize: size.meta, lineHeight: 18, color: color.muted },
   rowState: { fontSize: size.meta, color: color.meta, fontVariant: ['tabular-nums'], maxWidth: 140 },
   // the column's row
-  trow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48, paddingVertical: 8, paddingHorizontal: 10, borderRadius: radius.lg },
+  trow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 48, paddingVertical: 8, paddingHorizontal: 12, borderRadius: radius.lg },
   trowGlyph: { width: 20, height: 20, alignItems: 'center', justifyContent: 'center' },
   trowMain: { flex: 1, minWidth: 0 },
   trowLine: { flexDirection: 'row', alignItems: 'center' },
   trowTitle: { flex: 1, minWidth: 0, fontSize: size.ui, lineHeight: 22, fontWeight: '400', color: color.fg },
   trowTime: { marginLeft: 8, fontSize: 11.5, lineHeight: 22, color: color.meta, fontVariant: ['tabular-nums'], textAlign: 'right' },
-  trowDot: { width: 6, height: 6, borderRadius: 3, marginLeft: 6, backgroundColor: color.fg },
+  trowDot: { width: 8, height: 8, borderRadius: 4, marginLeft: 8, backgroundColor: color.primary },
   trowSub: { fontSize: size.meta, lineHeight: 18, color: color.muted },
-  mrow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 60, paddingVertical: 6, paddingHorizontal: 8, borderRadius: radius.lg },
-  mrowName: { flex: 1, minWidth: 0, fontSize: size.body, lineHeight: 22, fontWeight: '400', color: color.fg },
+  mrow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, minHeight: 68, paddingVertical: 10, paddingHorizontal: 12, borderRadius: radius.lg },
+  mrowSub: { fontSize: 14, lineHeight: 20, color: color.muted, marginTop: 1 },
+  mrowName: { flex: 1, minWidth: 0, fontSize: size.body, lineHeight: 22, fontWeight: '400', color: color.fg2 },
   center: { flexDirection: 'row', alignSelf: 'center', alignItems: 'center', gap: 5, paddingVertical: 3, paddingHorizontal: 10, borderRadius: 10, maxWidth: '90%' },
   centerText: { fontSize: size.small, lineHeight: 18, color: color.meta, textAlign: 'center', fontVariant: ['tabular-nums'] },
   // thread pieces
   dateLine: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
   dateRule: { flex: 1, height: 1, backgroundColor: color.borderSoft },
   dateText: { fontSize: size.small, lineHeight: 18, color: color.meta, fontVariant: ['tabular-nums'] },
-  results: { gap: 2, marginBottom: 12 },
+  results: { gap: 2 },
   resultRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 26 },
   resultLabel: { fontSize: size.ui, fontWeight: '500', color: color.fg },
   resultValue: { flex: 1, fontSize: size.ui, color: color.muted, fontVariant: ['tabular-nums'] },
@@ -387,50 +430,64 @@ const styles = StyleSheet.create({
   ghost: { flexDirection: 'row', alignItems: 'center', gap: 5, height: 32, paddingHorizontal: 8, borderRadius: radius.sm },
   ghostText: { fontSize: 14, fontWeight: '500' },
   bubbleWrap: { flexDirection: 'row', justifyContent: 'flex-end' },
-  bubble: { maxWidth: '82%', paddingVertical: 10, paddingHorizontal: 16, borderRadius: radius.xl, backgroundColor: color.surface },
+  bubble: { maxWidth: '78%', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 20, backgroundColor: color.bubble },
   bubbleText: { fontSize: size.body, lineHeight: 25, color: color.fg },
-  reply: { paddingRight: 8 },
-  composer: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, borderWidth: 1, borderColor: color.border, borderRadius: 24, backgroundColor: color.bg, paddingVertical: 6, paddingLeft: 18, paddingRight: 6, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
-  composerBig: { alignItems: 'flex-end', borderRadius: 18, paddingTop: 10 },
+  replyWrap: { flexDirection: 'row', justifyContent: 'flex-start' },
+  reply: { maxWidth: '88%', paddingTop: 10, paddingBottom: 10, paddingHorizontal: 16, borderRadius: 20, backgroundColor: color.card, gap: 8 },
+  composer: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, borderWidth: 1, borderColor: color.border, borderRadius: 26, backgroundColor: color.input, paddingVertical: 6, paddingLeft: 18, paddingRight: 6 },
+  composerBig: { alignItems: 'flex-end', borderRadius: 22, paddingTop: 10 },
   composerInput: { flex: 1, minHeight: 36, maxHeight: 160, fontSize: size.body, lineHeight: 24, paddingVertical: 6, color: color.fg },
   send: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', marginBottom: 1 },
-  sendOn: { backgroundColor: color.fg },
-  sendOff: { backgroundColor: color.surface2 },
-  btn: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 36, paddingHorizontal: 14, borderRadius: radius.sm, backgroundColor: color.surface },
-  btnPrimary: { backgroundColor: color.fg },
+  sendOn: { backgroundColor: color.primary },
+  stop: { backgroundColor: color.bubble, borderWidth: 1, borderColor: color.borderStrong },
+  stopSquare: { width: 11, height: 11, borderRadius: 2, backgroundColor: color.fg },
+  sendOff: { backgroundColor: color.bubble },
+  btn: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 38, paddingHorizontal: 16, borderRadius: radius.pill, backgroundColor: color.input },
+  btnPrimary: { backgroundColor: color.primary },
   btnGhost: { backgroundColor: 'transparent', paddingHorizontal: 8 },
   btnText: { fontSize: 14, fontWeight: '500' },
-  field: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 40, paddingHorizontal: 12, borderWidth: 1, borderColor: color.border, borderRadius: radius.md, backgroundColor: color.bg },
-  fieldMulti: { height: undefined, alignItems: 'flex-start', paddingVertical: 10 },
+  field: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 44, paddingHorizontal: 16, borderWidth: 1, borderColor: color.border, borderRadius: radius.pill, backgroundColor: color.input },
+  fieldMulti: { height: undefined, alignItems: 'flex-start', paddingVertical: 12, borderRadius: 22 },
   fieldInput: { flex: 1, fontSize: size.ui, color: color.fg, paddingVertical: 0 },
-  sheetShade: { backgroundColor: 'rgba(0,0,0,0.25)' },
+  sheetShade: { backgroundColor: 'rgba(0,0,0,0.6)' },
   sheetBackdrop: { flex: 1 },
-  sheet: { backgroundColor: color.bg, borderTopLeftRadius: 16, borderTopRightRadius: 16, paddingHorizontal: 12, paddingTop: 8, paddingBottom: 28 },
-  sheetHandle: { alignSelf: 'center', width: 36, height: 4, borderRadius: 2, backgroundColor: color.surface2, marginBottom: 8 },
+  sheet: { backgroundColor: color.card, borderTopWidth: 1, borderColor: color.border, borderTopLeftRadius: 20, borderTopRightRadius: 16, paddingHorizontal: 12, paddingTop: 8, paddingBottom: 28 },
+  sheetHandle: { alignSelf: 'center', width: 36, height: 4, borderRadius: 2, backgroundColor: color.borderStrong, marginBottom: 8 },
   sheetTitle: { fontSize: size.ui, color: color.muted, paddingHorizontal: 12, paddingVertical: 8 },
-  sheetItem: { flexDirection: 'row', alignItems: 'center', gap: 12, height: 48, paddingHorizontal: 12, borderRadius: radius.md },
+  sheetItem: { flexDirection: 'row', alignItems: 'center', gap: 12, height: 48, paddingHorizontal: 12, borderRadius: radius.lg },
   sheetItemText: { fontSize: size.body, color: color.fg },
 })
 
-const mdStyles = StyleSheet.create({
-  body: { fontSize: size.body, lineHeight: 28, color: color.fg },
+const mdBase = {
+  body: { fontSize: size.body, lineHeight: 26, color: color.fg },
+  text: { color: color.fg },
   paragraph: { marginTop: 0, marginBottom: 12 },
-  heading1: { fontFamily: font.display, fontSize: 24, lineHeight: 32, fontWeight: '400', marginTop: 20, marginBottom: 8 },
-  heading2: { fontFamily: font.display, fontSize: 20, lineHeight: 28, fontWeight: '400', marginTop: 20, marginBottom: 6 },
-  heading3: { fontSize: 16, lineHeight: 24, fontWeight: '600', marginTop: 16, marginBottom: 4 },
-  strong: { fontWeight: '600' },
+  heading1: { fontFamily: font.display, fontSize: 24, lineHeight: 32, fontWeight: '400' as const, color: color.fg, marginTop: 20, marginBottom: 8 },
+  heading2: { fontFamily: font.display, fontSize: 20, lineHeight: 28, fontWeight: '400' as const, color: color.fg, marginTop: 20, marginBottom: 6 },
+  heading3: { fontSize: 16, lineHeight: 24, fontWeight: '600' as const, color: color.fg, marginTop: 16, marginBottom: 4 },
+  strong: { fontWeight: '600' as const, color: color.fg },
   bullet_list: { marginBottom: 12 },
   ordered_list: { marginBottom: 12 },
   list_item: { marginBottom: 2 },
-  blockquote: { backgroundColor: color.surface, borderLeftWidth: 2, borderLeftColor: color.borderStrong, paddingHorizontal: 12, marginBottom: 12 },
-  code_inline: { fontFamily: font.mono, fontSize: 14, backgroundColor: color.surface, paddingHorizontal: 4, borderRadius: 4 },
-  fence: { fontFamily: font.mono, fontSize: 13, backgroundColor: color.surface, borderRadius: radius.md, padding: 12, marginBottom: 12, borderWidth: 0 },
-  code_block: { fontFamily: font.mono, fontSize: 13, backgroundColor: color.surface, borderRadius: radius.md, padding: 12, marginBottom: 12, borderWidth: 0 },
-  table: { borderWidth: 1, borderColor: color.borderSoft, borderRadius: radius.md, marginBottom: 14 },
-  thead: { backgroundColor: color.surface },
-  th: { padding: 8, fontSize: 13, fontWeight: '500', color: color.muted },
-  td: { padding: 8, fontSize: 14 },
-  tr: { borderBottomWidth: 1, borderColor: color.borderSoft },
-  hr: { backgroundColor: color.borderSoft, marginVertical: 16 },
-  link: { color: color.fg, textDecorationLine: 'underline' },
+  bullet_list_icon: { color: color.muted },
+  ordered_list_icon: { color: color.muted },
+  blockquote: { backgroundColor: color.card, borderLeftWidth: 2, borderLeftColor: color.borderStrong, paddingHorizontal: 12, marginBottom: 12 },
+  code_inline: { fontFamily: font.mono, fontSize: 14, backgroundColor: color.input, color: color.fg2, paddingHorizontal: 4, borderRadius: 4 },
+  fence: { fontFamily: font.mono, fontSize: 13, backgroundColor: color.input, color: color.fg2, borderRadius: radius.md, padding: 12, marginBottom: 12, borderWidth: 0 },
+  code_block: { fontFamily: font.mono, fontSize: 13, backgroundColor: color.input, color: color.fg2, borderRadius: radius.md, padding: 12, marginBottom: 12, borderWidth: 0 },
+  table: { borderWidth: 1, borderColor: color.border, borderRadius: radius.md, marginBottom: 14 },
+  thead: { backgroundColor: color.card },
+  th: { padding: 8, fontSize: 13, fontWeight: '500' as const, color: color.muted },
+  td: { padding: 8, fontSize: 14, color: color.fg },
+  tr: { borderBottomWidth: 1, borderColor: color.border, flexDirection: 'row' as const },
+  hr: { backgroundColor: color.border, marginVertical: 16 },
+  link: { color: color.fg, textDecorationLine: 'underline' as const },
+}
+const mdStyles = StyleSheet.create(mdBase)
+/** Inside a bubble: no trailing gap under the last paragraph. */
+const mdTight = StyleSheet.create({ ...mdBase, paragraph: { marginTop: 0, marginBottom: 6 }, body: { ...mdBase.body, marginBottom: -6 } })
+const mdWide = StyleSheet.create({
+  table: { borderWidth: 1, borderColor: color.border, borderRadius: radius.md, overflow: 'hidden' },
+  th: { width: 140, padding: 8, backgroundColor: color.card },
+  td: { width: 140, padding: 8 },
 })

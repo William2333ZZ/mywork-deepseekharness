@@ -63,7 +63,7 @@ export default function Pair() {
         <CameraView style={StyleSheet.absoluteFill} facing="back" barcodeScannerSettings={{ barcodeTypes: ['qr'] }} onBarcodeScanned={onScanned} />
         <Screen style={{ backgroundColor: 'transparent' }}>
           <View style={styles.camBar}>
-            <IconBtn name="close-outline" label="关闭" onPress={() => setMode('idle')} tone={color.bg} />
+            <IconBtn name="close-outline" label="关闭" onPress={() => setMode('idle')} tone={color.fg} />
           </View>
         </Screen>
       </View>

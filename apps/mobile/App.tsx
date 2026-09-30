@@ -40,7 +40,7 @@ function Router() {
 export default function App() {
   return (
     <SafeAreaProvider>
-      <StatusBar barStyle="dark-content" backgroundColor={color.bg} />
+      <StatusBar barStyle="light-content" backgroundColor={color.bg} />
       <Providers><Router /></Providers>
     </SafeAreaProvider>
   )

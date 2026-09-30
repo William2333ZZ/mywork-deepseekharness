@@ -17,6 +17,8 @@ export type Deliverable = {
   markdown?: string; verification?: Verification | null; summary?: { label: string; value: string }[] | null
   /** Set by the server while the background verifier works on it, when it says so. */
   verifying?: boolean
+  /** The thread's copy carries the document's first paragraph, not the document. */
+  excerpt?: string
 }
 export type Verification = { passed: boolean | null; checked: number; issues: number; notes: string; at: string; status?: string; pending?: boolean }
 export type AskKind = 'text' | 'choice' | 'approval' | 'takeover'
@@ -52,6 +54,8 @@ export type Run = {
   verifying?: boolean
   /** Migrated old tasks may carry only a summary. */
   summary?: string
+  /** The thread's lite copy of a finished run: tool calls left out (GET /run has them), counted here. */
+  process?: { tools: number; groups: number; lite?: boolean }
 }
 export type ThreadPage = { runs: Run[]; nextBefore: string | null }
 /** A routine's run receipt: a task routine's names its run `taskId`, a fired reminder's `runId`; read `runId || taskId`. */
@@ -124,6 +128,8 @@ export class Api {
   stop(id: string) { return this.req<{ mate: Mate }>('/mates/stop', { id }) }
   /** An ask card's button: choice → the option, approval → 允许一次 / 拒绝, takeover → 我做完了. 400 when nothing is pending or the askId is stale. */
   answer(runId: string, askId: string, answer: string) { return this.req<{ run: Run }>('/answer', { id: runId, askId, answer }) }
+  /** One run with its whole activity (the 过程 fold of a lite run). */
+  run(id: string) { return this.req<{ run: Run }>('/run?id=' + encodeURIComponent(id)) }
   seen(mateId: string) { return this.req<{ id: string; seenAt: string }>('/seen', { id: mateId }) }
   activity() { return this.req<ActivityPayload>('/activity') }
   search(q: string) { return this.req<SearchResult>('/search?q=' + encodeURIComponent(q)) }

@@ -57,7 +57,6 @@ export function Mark({ dim = 22, live }: { dim?: number; live?: boolean }) {
 }
 
 export function Title({ children, style }: { children: React.ReactNode; style?: TextStyle }) { return <Text style={[styles.title, style]}>{children}</Text> }
-export function Greet({ children }: { children: React.ReactNode }) { return <Text style={styles.greet}>{children}</Text> }
 export function Meta({ children, style }: { children: React.ReactNode; style?: TextStyle }) { return <Text style={[styles.meta, style]}>{children}</Text> }
 export function Body({ children, style }: { children: React.ReactNode; style?: TextStyle }) { return <Text style={[styles.body, style]}>{children}</Text> }
 export function Section({ label, right }: { label: string; right?: React.ReactNode }) {
@@ -86,36 +85,114 @@ export function Row({ glyph, tone = 'meta', spin, title, sub, state, stateTone, 
   )
 }
 
+/**
+ * The column's one row shape (TEAMMATES.md §8.2): glyph 20px · title 15px (600 when unread) · time right-aligned tabular ·
+ * unread dot 6px · one line of preview 13px muted. Rows carry no actions; opening the row is the only thing it does.
+ * `glyph` is an icon name or a ready element (the 今日 row's Mark); `spin` draws the running spinner instead.
+ */
+export function ThreadRow({ glyph, tone = 'meta', spin, title, time, unread, preview, onPress, current }: { glyph?: IconName | React.ReactNode; tone?: Tone; spin?: boolean; title: string; time?: string; unread?: boolean; preview?: string; onPress: () => void; current?: boolean }) {
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button" style={({ pressed }) => [styles.trow, (pressed || current) && { backgroundColor: color.surface }]}>
+      <View style={styles.trowGlyph}>{spin ? <ActivityIndicator size="small" color={color.fg2} /> : typeof glyph === 'string' ? <Ionicons name={glyph as IconName} size={20} color={toneColor[tone]} /> : glyph}</View>
+      <View style={styles.trowMain}>
+        <View style={styles.trowLine}>
+          <Text style={[styles.trowTitle, unread && { fontWeight: '600' }]} numberOfLines={1}>{title}</Text>
+          {time ? <Text style={styles.trowTime}>{time}</Text> : null}
+          {unread ? <View style={styles.trowDot} /> : null}
+        </View>
+        {preview ? <Text style={styles.trowSub} numberOfLines={1}>{preview}</Text> : null}
+      </View>
+    </Pressable>
+  )
+}
+
+/** A date separator in a thread (「9月29日」 in a routine's runs, the day line when reading back in 今日). */
+export function DateLine({ text }: { text: string }) {
+  return <View style={styles.dateLine}><View style={styles.dateRule} /><Text style={styles.dateText}>{text}</Text><View style={styles.dateRule} /></View>
+}
+
+/** ✓ countable results, one per line, as a plain list: no box, no border (§8.3). */
+export function ResultRows({ rows }: { rows: { label: string; value: string }[] }) {
+  if (!rows.length) return null
+  return (
+    <View style={styles.results}>
+      {rows.map((r, i) => (
+        <View key={i} style={styles.resultRow}>
+          <Ionicons name="checkmark-outline" size={16} color={color.success} />
+          <Text style={styles.resultLabel}>{r.label}</Text>
+          <Text style={styles.resultValue} numberOfLines={1}>{String(r.value === undefined || r.value === null ? '' : r.value)}</Text>
+        </View>
+      ))}
+    </View>
+  )
+}
+
+/**
+ * One meta line under a delivery: the verification words read live (核验中 / 已核验 · 核对 n · 问题 m / 核验发现 n 处 / 未能核验),
+ * then the rating ghosts. The verdict opens the verifier's notes when there are any.
+ */
+export function VerifyLine({ words, tone = 'meta', notes, rating, onRate }: { words: string; tone?: Tone; notes?: string; rating: number | null | undefined; onRate: (r: number) => void }) {
+  const [open, setOpen] = useState(false)
+  const hasNotes = !!notes
+  const glyph: IconName | '' = tone === 'success' ? 'checkmark-outline' : tone === 'warn' ? 'close-circle-outline' : tone === 'live' ? 'time-outline' : words ? 'remove-outline' : ''
+  return (
+    <View>
+      <View style={styles.verifyLine}>
+        {words ? (
+          <Pressable onPress={() => { if (hasNotes) setOpen(!open) }} disabled={!hasNotes} style={styles.verdict} accessibilityRole={hasNotes ? 'button' : undefined} accessibilityState={hasNotes ? { expanded: open } : undefined}>
+            {glyph ? <Ionicons name={glyph} size={13} color={toneColor[tone]} /> : null}
+            <Text style={[styles.verdictText, { color: toneColor[tone] }, hasNotes && { textDecorationLine: 'underline', textDecorationStyle: 'dotted' }]} numberOfLines={1}>{words}</Text>
+          </Pressable>
+        ) : null}
+        {words ? <Text style={styles.verdictSep}>·</Text> : null}
+        <Ghost icon="checkmark-outline" label="有用" on={rating === 1} onPress={() => onRate(1)} />
+        <Ghost icon="close-outline" label="没用" on={rating === -1} onPress={() => onRate(-1)} />
+      </View>
+      {open && hasNotes ? <Text style={styles.notes}>{notes}</Text> : null}
+    </View>
+  )
+}
+
+/** A ghost button whose text and icon darken when it is the chosen one (有用 / 没用, 再来一次). */
+export function Ghost({ icon, label, on, onPress, disabled }: { icon?: IconName; label: string; on?: boolean; onPress: () => void; disabled?: boolean }) {
+  const tone = on ? color.fg : color.muted
+  return (
+    <Pressable onPress={onPress} disabled={disabled} accessibilityRole="button" accessibilityState={{ selected: !!on }} style={({ pressed }) => [styles.ghost, on && { backgroundColor: color.surface }, disabled && { opacity: 0.45 }, pressed && { opacity: 0.7 }]}>
+      {icon ? <Ionicons name={icon} size={15} color={tone} /> : null}
+      <Text style={[styles.ghostText, { color: tone }]}>{label}</Text>
+    </Pressable>
+  )
+}
+
 /** Conversation turns, the Grok shape: the user's words in a bubble on the right, the reply as plain text. */
 export function Bubble({ text }: { text: string }) {
   return <View style={styles.bubbleWrap}><View style={styles.bubble}><Text style={styles.bubbleText}>{text}</Text></View></View>
 }
 export function Reply({ markdown }: { markdown: string }) { return <View style={styles.reply}><Prose markdown={markdown} /></View> }
-export function Thinking({ text = '在想' }: { text?: string }) {
+/** One pulsing line while something runs: 「在想…」 in 今日, 「在做 · 步骤 · 耗时」 (no ellipsis) in a task. */
+export function Thinking({ text = '在想', tail = '…' }: { text?: string; tail?: string }) {
   const op = useRef(new Animated.Value(0.35)).current
   useEffect(() => { const loop = Animated.loop(Animated.sequence([Animated.timing(op, { toValue: 1, duration: 800, useNativeDriver: true }), Animated.timing(op, { toValue: 0.35, duration: 800, useNativeDriver: true })])); loop.start(); return () => loop.stop() }, [op])
-  return <Animated.Text style={[styles.body, { color: color.muted, opacity: op }]}>{text}…</Animated.Text>
+  return <Animated.Text style={[styles.body, { color: color.muted, opacity: op, fontVariant: ['tabular-nums'] }]}>{text}{tail}</Animated.Text>
 }
-export function HandoffChip({ label, onPress }: { label: string; onPress: () => void }) {
+/**
+ * A hand-off row in the 今日 line: what the assistant handed to a task or a routine, with the task's live state as its
+ * second line (查阅 · 40s → ✓ 已交付 · 已核验). It is the delivery card too: opening it is the task thread. The one
+ * button it may carry is 再来一次 after a failure.
+ */
+export function HandoffChip({ label, sub, glyph = 'time-outline', spin, tone = 'live', onPress, action, actionLabel = '再来一次', busy }: { label: string; sub?: string; glyph?: IconName; spin?: boolean; tone?: Tone; onPress: () => void; action?: () => void; actionLabel?: string; busy?: boolean }) {
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.chip, pressed && { backgroundColor: color.surface }]}>
-      <Ionicons name="time-outline" size={14} color={color.fg2} />
-      <Text style={styles.chipText} numberOfLines={1}>{label}</Text>
-      <Ionicons name="arrow-forward" size={12} color={color.meta} />
-    </Pressable>
-  )
-}
-/** A deliverable in the flow: a card that opens the task. No summary text, no buttons. */
-export function DeliverableCard({ title, meta, warn, onPress, icon = 'document-text-outline' }: { title: string; meta: string; warn?: string; onPress: () => void; icon?: IconName }) {
-  return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.card, pressed && { backgroundColor: color.surface }]}>
-      <Ionicons name={icon} size={20} color={color.fg2} style={{ marginTop: 1 }} />
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text style={styles.cardTitle} numberOfLines={2}>{title}</Text>
-        <Text style={[styles.meta, warn ? { color: color.warn } : null]} numberOfLines={1}>{warn || meta}</Text>
-      </View>
-      <Ionicons name="chevron-forward" size={16} color={color.meta} />
-    </Pressable>
+    <View style={styles.handoff}>
+      <Pressable onPress={onPress} style={({ pressed }) => [styles.handoffMain, pressed && { backgroundColor: color.surface }]}>
+        <View style={styles.handoffIc}>{spin ? <ActivityIndicator size="small" color={color.fg2} /> : <Ionicons name={glyph} size={15} color={toneColor[tone]} />}</View>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text style={styles.handoffTitle} numberOfLines={1}>{label}</Text>
+          {sub ? <Text style={[styles.handoffSub, tone === 'danger' && { color: color.danger }]} numberOfLines={1}>{sub}</Text> : null}
+        </View>
+        <Ionicons name="chevron-forward" size={14} color={color.meta} />
+      </Pressable>
+      {action ? <Btn label={actionLabel} onPress={action} disabled={busy} /> : null}
+    </View>
   )
 }
 
@@ -158,11 +235,12 @@ export function Btn({ label, onPress, kind = 'ghost', icon, disabled, style }: {
   )
 }
 
-export function Field({ value, onChange, placeholder, icon, autoFocus, onSubmit, mono }: { value: string; onChange: (v: string) => void; placeholder: string; icon?: IconName; autoFocus?: boolean; onSubmit?: () => void; mono?: boolean }) {
+export function Field({ value, onChange, placeholder, icon, autoFocus, onSubmit, mono, clearable, style }: { value: string; onChange: (v: string) => void; placeholder: string; icon?: IconName; autoFocus?: boolean; onSubmit?: () => void; mono?: boolean; clearable?: boolean; style?: ViewStyle }) {
   return (
-    <View style={styles.field}>
+    <View style={[styles.field, style]}>
       {icon ? <Ionicons name={icon} size={16} color={color.meta} /> : null}
-      <TextInput value={value} onChangeText={onChange} placeholder={placeholder} placeholderTextColor={color.meta} autoFocus={autoFocus} autoCapitalize="none" autoCorrect={false} onSubmitEditing={onSubmit} returnKeyType={onSubmit ? 'go' : 'done'} style={[styles.fieldInput, mono && { fontFamily: font.mono, fontSize: 14 }]} />
+      <TextInput value={value} onChangeText={onChange} placeholder={placeholder} placeholderTextColor={color.meta} autoFocus={autoFocus} autoCapitalize="none" autoCorrect={false} onSubmitEditing={onSubmit} returnKeyType={onSubmit ? 'go' : clearable ? 'search' : 'done'} style={[styles.fieldInput, mono && { fontFamily: font.mono, fontSize: 14 }]} />
+      {clearable && value ? <Pressable onPress={() => onChange('')} accessibilityLabel="清除" hitSlop={8}><Ionicons name="close-circle" size={16} color={color.meta} /></Pressable> : null}
     </View>
   )
 }
@@ -203,7 +281,6 @@ const styles = StyleSheet.create({
   barTitle: { fontSize: size.ui, fontWeight: '600', color: color.fg },
   iconBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   title: { fontFamily: font.display, fontSize: size.title, lineHeight: 36, color: color.fg, fontWeight: '400' },
-  greet: { fontFamily: font.display, fontSize: size.greet, lineHeight: 38, color: color.fg, fontWeight: '400' },
   meta: { fontSize: size.meta, lineHeight: 18, color: color.meta, fontVariant: ['tabular-nums'] },
   body: { fontSize: size.body, lineHeight: 28, color: color.fg },
   section: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: space.xxl, marginBottom: 10, paddingHorizontal: 2 },
@@ -217,14 +294,39 @@ const styles = StyleSheet.create({
   rowTitle: { fontSize: size.ui, lineHeight: 22, fontWeight: '500', color: color.fg },
   rowSub: { fontSize: size.meta, lineHeight: 18, color: color.muted },
   rowState: { fontSize: size.meta, color: color.meta, fontVariant: ['tabular-nums'], maxWidth: 140 },
+  // the column's row
+  trow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48, paddingVertical: 8, paddingHorizontal: 10, borderRadius: radius.lg },
+  trowGlyph: { width: 20, height: 20, alignItems: 'center', justifyContent: 'center' },
+  trowMain: { flex: 1, minWidth: 0 },
+  trowLine: { flexDirection: 'row', alignItems: 'center' },
+  trowTitle: { flex: 1, minWidth: 0, fontSize: size.ui, lineHeight: 22, fontWeight: '400', color: color.fg },
+  trowTime: { marginLeft: 8, fontSize: 11.5, lineHeight: 22, color: color.meta, fontVariant: ['tabular-nums'], textAlign: 'right' },
+  trowDot: { width: 6, height: 6, borderRadius: 3, marginLeft: 6, backgroundColor: color.fg },
+  trowSub: { fontSize: size.meta, lineHeight: 18, color: color.muted },
+  // thread pieces
+  dateLine: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
+  dateRule: { flex: 1, height: 1, backgroundColor: color.borderSoft },
+  dateText: { fontSize: size.small, lineHeight: 18, color: color.meta, fontVariant: ['tabular-nums'] },
+  results: { gap: 2, marginBottom: 12 },
+  resultRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 26 },
+  resultLabel: { fontSize: size.ui, fontWeight: '500', color: color.fg },
+  resultValue: { flex: 1, fontSize: size.ui, color: color.muted, fontVariant: ['tabular-nums'] },
+  verifyLine: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 4, marginTop: 2, marginLeft: -8 },
+  verdict: { flexDirection: 'row', alignItems: 'center', gap: 5, height: 32, paddingHorizontal: 8 },
+  verdictText: { fontSize: size.meta, fontVariant: ['tabular-nums'] },
+  verdictSep: { fontSize: size.meta, color: color.meta },
+  notes: { fontSize: 14, lineHeight: 20, color: color.muted, marginTop: 4 },
+  ghost: { flexDirection: 'row', alignItems: 'center', gap: 5, height: 32, paddingHorizontal: 8, borderRadius: radius.sm },
+  ghostText: { fontSize: 14, fontWeight: '500' },
   bubbleWrap: { flexDirection: 'row', justifyContent: 'flex-end' },
   bubble: { maxWidth: '82%', paddingVertical: 10, paddingHorizontal: 16, borderRadius: radius.xl, backgroundColor: color.surface },
   bubbleText: { fontSize: size.body, lineHeight: 25, color: color.fg },
   reply: { paddingRight: 8 },
-  chip: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 7, paddingLeft: 10, paddingRight: 12, borderWidth: 1, borderColor: color.border, borderRadius: radius.md, backgroundColor: color.bg, maxWidth: '100%' },
-  chipText: { fontSize: size.meta + 1, color: color.fg2, flexShrink: 1 },
-  card: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 14, borderWidth: 1, borderColor: color.border, borderRadius: radius.lg, backgroundColor: color.bg },
-  cardTitle: { fontSize: size.ui, lineHeight: 22, fontWeight: '500', color: color.fg, marginBottom: 2 },
+  handoff: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  handoffMain: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, paddingLeft: 10, paddingRight: 8, borderWidth: 1, borderColor: color.border, borderRadius: radius.lg, backgroundColor: color.bg },
+  handoffIc: { width: 20, alignItems: 'center' },
+  handoffTitle: { fontSize: size.ui, lineHeight: 20, color: color.fg },
+  handoffSub: { fontSize: size.meta, lineHeight: 18, color: color.muted, fontVariant: ['tabular-nums'] },
   composer: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, borderWidth: 1, borderColor: color.border, borderRadius: 24, backgroundColor: color.bg, paddingVertical: 6, paddingLeft: 18, paddingRight: 6, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
   composerBig: { alignItems: 'flex-end', borderRadius: 18, paddingTop: 10 },
   composerInput: { flex: 1, minHeight: 36, maxHeight: 160, fontSize: size.body, lineHeight: 24, paddingVertical: 6, color: color.fg },

@@ -6,19 +6,19 @@
  *                                                              something runs, 30s otherwise
  *   useNav()   → { route, stack, push(r), pop(), replace(r), reset(r) }
  *
- * Navigation is a plain stack in state (no router dependency): Android back pops it.
+ * Navigation is a plain stack in state (no router dependency): Android back pops it. The stack starts on the
+ * column (home); a thread is pushed on top of it, so back always lands on the column.
  */
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { AppState, BackHandler } from 'react-native'
 import { Api, clearConnection, loadConnection, login, parsePairText, saveConnection, type Connection, type Task, type TasksPayload } from './api'
 
+/** The four thread shapes (TEAMMATES.md §8.5): 今日, a task, a routine, and the empty one 「+」 opens. */
+export type ThreadKind = 'today' | 'task' | 'routine' | 'new'
 export type Route =
   | { name: 'home' }
-  | { name: 'new'; prefill?: string }
-  | { name: 'task'; id: string }
-  | { name: 'mywork' }
-  | { name: 'tasks'; filter?: 'all' | 'active' | 'delivered' }
-  | { name: 'routine'; id: string }
+  | { name: 'thread'; kind: ThreadKind; id?: string }
+  | { name: 'deliverables' }
   | { name: 'settings' }
 
 type Nav = { route: Route; stack: Route[]; push: (r: Route) => void; pop: () => void; replace: (r: Route) => void; reset: (r: Route) => void }
@@ -96,7 +96,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
     const tick = async () => {
       if (!alive) return
       await refresh()
-      const active = !!(data && data.items.some((x) => x.status !== 'done')) || !!(thread && thread.status !== 'done')
+      // 5s while something runs; a task waiting on a question (等你答) is not running, so it does not keep the fast cadence.
+      const active = !!(data && data.items.some((x) => x.status !== 'done' && x.status !== 'waiting')) || !!(thread && thread.status !== 'done')
       timer.current = setTimeout(tick, active ? FAST : SLOW)
     }
     tick()

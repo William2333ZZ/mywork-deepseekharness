@@ -1,8 +1,8 @@
 /**
  * MyWork mobile — a native client for the MyWork running on your own computer.
  *
- * Screens (design/v2/MOBILE.md §2): pair · conversation (home) · 等你看 · new task · task page ·
- * MyWork page · task list · routine page · settings. One stack, one screen at a time.
+ * Screens (design/v2/TEAMMATES.md §8.5, MOBILE.md §10): pair · home (the column) · thread (今日 / task / routine / new) ·
+ * 交付物 · settings. One stack, one screen at a time; the app starts on the column and a thread is pushed on top of it.
  */
 import React from 'react'
 import { ActivityIndicator, StatusBar, View } from 'react-native'
@@ -11,11 +11,8 @@ import { Providers, useConn, useNav } from './src/store'
 import { color } from './src/theme'
 import Pair from './src/screens/Pair'
 import Home from './src/screens/Home'
-import NewTask from './src/screens/NewTask'
-import TaskPage from './src/screens/TaskPage'
-import MyWork from './src/screens/MyWork'
-import Tasks from './src/screens/Tasks'
-import RoutinePage from './src/screens/RoutinePage'
+import Thread from './src/screens/Thread'
+import Deliverables from './src/screens/Deliverables'
 import Settings from './src/screens/Settings'
 
 function Router() {
@@ -24,11 +21,8 @@ function Router() {
   if (!ready) return <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: color.bg }}><ActivityIndicator color={color.fg2} /></View>
   if (!conn || failed) return <Pair />
   switch (route.name) {
-    case 'new': return <NewTask prefill={route.prefill} />
-    case 'task': return <TaskPage id={route.id} />
-    case 'mywork': return <MyWork />
-    case 'tasks': return <Tasks filter={route.filter} />
-    case 'routine': return <RoutinePage id={route.id} />
+    case 'thread': return <Thread kind={route.kind} id={route.id} />
+    case 'deliverables': return <Deliverables />
     case 'settings': return <Settings />
     default: return <Home />
   }

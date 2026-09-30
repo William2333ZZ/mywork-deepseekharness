@@ -212,7 +212,12 @@ M2 的触发条件（任一成立即开工）：交付物不再是能读的文�
 
 - **栈**：Expo SDK 53 / React Native 0.79 / TypeScript，原生控件，不用 WebView；不用路由库，`src/store.tsx` 里一个栈；关掉新架构（`newArchEnabled: false`，少一层原生编译）。同一份代码出 Android 和 iOS。
 - **连接**：扫 设置 → MyWork → 手机 的二维码（`http://<ip>:<网关端口>/?token=…`）。App 不用 cookie：每个请求带 `Authorization: Bearer <手机令牌>`，网关核对后用自己持有的 dsh 会话转发（网关用 launch token 换过一次 cookie，401 时重换）。手机令牌跨重启不变，所以电脑上的 MyWork 重启后 App 不用重新扫码；关掉「允许手机连接」即断。Android 的 cookie 存储会丢掉 dsh 那个 SameSite=Strict 的 cookie，cookie 路线在真机上不可靠，这是实测出来的。之后只走 `/mywork-tasks/api/*`，在跑时 5 秒、闲时 30 秒轮询。配对信息存在系统安全存储里。
-- **屏幕**：§2 的 S0 连接、S1 会话 + 等你看 sheet、S2 新任务、S3 任务页（正文 + ··· sheet + 过程时间线 + 追问）、S4 MyWork 页、S5 例行页、S6 任务列表、S7 设置。契约文件 `src/api.ts`、`src/store.tsx`、`src/components.tsx`、`src/theme.ts`；每个屏幕只从这四个文件和已装依赖 import。
+- **屏幕（2026-09-30 晚起，按 TEAMMATES.md §8.5）**：S0 连接（`Pair`）· 首页 = 会话列（`Home`：搜索 · 「+」 · 设置齿轮；「今日」固定第一行，字形是 M 标；其余任务与例行按最近活动混排，不分日期，上限 80；搜索非空时整列换成结果，交付物靠字形区分；列底一行「交付物」）· 线程屏（`Thread`，`kind: today | task | routine | new`，同一套头部 / 衬线标题 / 一行元信息 / ··· / 底部 dock）· 交付物（`Deliverables`，一列同形行，点开所属任务线程）· 设置（`Settings`）。
+  - 今日线程：「今日 · 9月30日」+ 状态词，44px 等你看栏吸顶、点开是 sheet（每行至多一个按钮）；线走 `GET /feed`（按天、「加载昨天」），服务端还没有时回落到 `/today` 的活动；交办行读轮询里的任务实时状态，失败时带「再来一次」；dock → `/today/say`。
+  - 任务线程：`src/thread.ts` 里 `threadOf()`（从网页 `thread.cjs` 原样移植）：原话气泡 → 在跑时一行「在做 · 步骤 · 耗时」→ ✓ 结果行 + 正文 + 一行实时核验（核验中 / 已核验 · 核对 n · 问题 m / 核验发现 n 处 / 未能核验）+ 有用 / 没用 → 回复正文 → 失败行 + 再来一次 → 「过程 · n 步 · 3m」折叠行在 dock 之上；··· = 取消｜再来一次 · 重新核验 · 重命名 · 分享（系统分享最新交付物 Markdown）· 删除。等你答（§2.7 找人）：ask 条目在线里原位成「需要你」卡——问题 + 等宽 detail 块，choice 是整宽叠放的描边按钮、approval 是 允许一次 / 拒绝、takeover 只有一行「需要你在电脑上操作」+ 我做完了、text 由 dock 回答（占位「回答」），走 `POST /answer`；已回答收成一行「已回答：X」，过期 / 被替代读「不再等待」，24 小时没答的自动继续是一行灰字；列里 waiting 行字形是对话气泡（warn 色），等你看 sheet 里是无按钮的「等你答」行。
+  - 例行线程：一行元信息；运行倒序，每次 = 日期分隔（点开那次的任务）+ 那次的回复（最新交付物全文，安静运行一行「没有变化」）；dock「追问这一次」→ 最近一次运行的 `/say`；··· = 现在跑一次 · 暂停/恢复 · 删除。
+  - 新线程：衬线一句「要什么结果？」+ 示例胶囊 + dock → `/create`，线程原地变成建出的任务（带时间则例行）。
+  - 打开任一线程即 `POST /seen`，回到列时刷新一次，未读点随之消失。路由只有 `home | thread | deliverables | settings`，栈起点是列，Android 返回键出栈。契约文件 `src/api.ts`、`src/store.tsx`、`src/components.tsx`、`src/theme.ts`、`src/thread.ts`；每个屏幕只从这五个文件和已装依赖 import。旧的 S2 新任务 / S4 MyWork / S6 任务列表 / 任务页 / 例行页 已删。
 - **构建**：Expo 云端（EAS，项目 @hhdz/mywork，`preview` 档出可直接安装的 APK / IPA）；本地 Android 编译也能跑，但外置盘上的原生编译会把磁盘拖死（Spotlight 索引 + CMake），已把外置盘设为不索引。
 - **这台 Mac 上能编什么**：Android 能（SDK 34/35、JDK 17、模拟器 TestDevice）；iOS 不能，没有 Xcode。系统盘只剩几个 G，NDK 和 CMake 装在外置盘 `android-sdk-ext` 里软链进 SDK。iOS 的路：Xcode 装外盘 + 真机免费签名（模拟器镜像必须在系统盘，装不下），或 EAS 云端构建。
 - **没做的**：推送（前台轮询，后台仍靠飞书）、出局域网的中继、扫码创建 agent 之类的 Cue 特性。

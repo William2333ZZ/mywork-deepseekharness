@@ -459,7 +459,7 @@ function makeComponents(ctx, t) {
 
   function TaskCard({ task, onOpen, compact }) {
     const live = task.status !== 'done'
-    const sub = live ? (task.currentStep || task.statusLabel) : task.error ? (t('failedTitle') + ' · ' + task.error) : ((task.routineId ? (task.quiet ? t('noChange') + ' · ' : t('changed') + ' · ') : '') + (task.summary || (task.deliverables[0] && task.deliverables[0].title) || ''))
+    const sub = live ? (task.currentStep || task.statusLabel) : task.error ? (t('failedTitle') + ' · ' + task.error) : ((task.routineId && !task.report ? (task.quiet ? t('noChange') + ' · ' : t('changed') + ' · ') : '') + (task.summary || (task.deliverables[0] && task.deliverables[0].title) || ''))
     return h('button', { type: 'button', className: 'mwt-card', onClick: () => onOpen(task.id) },
       h(StatusDot, { task }),
       h('span', null, h('span', { className: 'mwt-card-title' }, task.title), compact ? null : h('span', { className: 'mwt-card-sub' + (task.error ? ' err' : '') }, sub)),
@@ -513,7 +513,7 @@ function makeComponents(ctx, t) {
       if (done && x.error && !/已取消/.test(x.error) && when >= dayStart) rows.push({ key: 'f' + x.id, rank: 1, at: x.finishedAt, glyph: 'circle-x', tone: 'danger', title: x.title, state: t('failedTitle'), sub: x.error, action: { label: t('rerun'), run: () => api('/rerun', { id: x.id }).then((d) => { refresh(); if (d.task) openTask(d.task.id) }) }, open: () => openTask(x.id) })
       else if (done && x.verification && x.verification.passed === false && when >= dayStart) rows.push({ key: 'v' + x.id, rank: 2, at: x.finishedAt, glyph: 'circle-x', tone: 'warn', title: x.title, state: t('verifyIssues'), open: () => openTask(x.id) })
       else if (!done) rows.push({ key: 'l' + x.id, rank: 3, at: x.createdAt, glyph: 'loader', tone: 'live', spin: true, title: x.title, state: (x.currentStep || x.statusLabel) + ' · ' + elapsedOf(x), open: () => openTask(x.id) })
-      else if (done && when >= dayStart) rows.push({ key: 'd' + x.id, rank: 4, at: x.finishedAt, glyph: 'circle-check', tone: 'success', title: x.title, state: x.routineId ? (x.quiet ? t('noChange') : t('changed')) : (x.deliverables.length ? t('delivered') : t('answered')), open: () => openTask(x.id) })
+      else if (done && when >= dayStart) rows.push({ key: 'd' + x.id, rank: 4, at: x.finishedAt, glyph: 'circle-check', tone: 'success', title: x.title, state: x.routineId && !x.report ? (x.quiet ? t('noChange') : t('changed')) : (x.deliverables.length ? t('delivered') : t('answered')), open: () => openTask(x.id) })
     }
     rows.sort((a, b) => a.rank - b.rank || new Date(b.at) - new Date(a.at))
     const unrated = (deliverables || []).filter((d) => d.rating === null || d.rating === undefined).length

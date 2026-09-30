@@ -188,7 +188,7 @@ export function createEngine({ ctx, store, deliverables, scenarios, config, log,
         const previousRun = routine ? routine.runs.find((r) => r.taskId && r.taskId !== task.id && r.deliverableId) : null
         const previous = previousRun ? deliverables.get(previousRun.deliverableId) : null
         const record = routine && wantsRecord(routine) && typeof workRecord === 'function' ? workRecord(recordDays(routine)) : ''
-        if (record) store.update(task.id, { material: record }) // the verifier must see the same record, or every fact in the report looks unsourced
+        if (record) store.update(task.id, { material: record, report: true }) // the verifier must see the same record, or every fact in the report looks unsourced
         if (routine) request = routinePrompt(routine, previous, record)
       }
       const prompt = scenario.compose(request, { date: new Date().toISOString().slice(0, 10), cwd: opened.workspace.path, task: { id: task.id, title: task.title }, capabilities: typeof capabilities === 'function' ? capabilities() : {}, today: { summary: typeof todaySummary === 'function' ? todaySummary() : '' } })

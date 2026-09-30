@@ -80,7 +80,8 @@ export type AskStatus = 'pending' | 'answered' | 'superseded' | 'expired'
 export type ThreadEntry =
   | { kind: 'marker'; key: string; at: string; text: string; routineId?: string }
   | { kind: 'user'; key: string; at: string; text: string }
-  | { kind: 'deliver'; key: string; at: string; d: Deliverable; verify: VerifyState }
+  /** One segment's output as ONE bubble: the reply text ('' when none), then every deliverable (d = ds[0]). */
+  | { kind: 'deliver'; key: string; at: string; d: Deliverable; ds: Deliverable[]; text: string; verify: VerifyState }
   | { kind: 'text'; key: string; at: string; text: string }
   | { kind: 'ask'; key: string; at: string; id: string; status: AskStatus; question: string; askKind: AskKind; options: string[]; detail: string; answer: string; answerable: boolean }
   | { kind: 'scheduled'; key: string; at: string; routineId: string; text: string }
@@ -146,7 +147,6 @@ export function runEntries(run: Run): ThreadEntry[] {
     const body: ThreadEntry[] = []
     if (i > 0) body.push(steers[i - 1])
     const mine = docs.filter((d) => { const c = time(d.createdAt); return (i === 0 || c >= seg.start) && c < end })
-    for (const d of mine) body.push({ kind: 'deliver', key: k('d' + (d.id || seq++)), at: d.createdAt || r.createdAt, d, verify: verifyOf(d, r) })
     const asks = seg.entries.filter((e): e is AskActivity => e.kind === 'ask')
     for (const a of asks) {
       let status = askStatus(a)
@@ -166,7 +166,9 @@ export function runEntries(run: Run): ThreadEntry[] {
     const cut = Math.max(mine.length ? time(mine[mine.length - 1].createdAt) : -Infinity, asks.length ? time(asks[asks.length - 1].at) : -Infinity)
     const texts = seg.entries.filter((e): e is Text => e.kind === 'text' && !!String(e.text || '').trim())
     if (mine.length) {
-      for (const e of texts) if (time(e.at) > cut) body.push({ kind: 'text', key: k('t' + seq++), at: e.at, text: String(e.text) })
+      const reply = texts.filter((e) => time(e.at) > cut)
+      const at = reply.length ? reply[reply.length - 1].at : (mine[mine.length - 1].createdAt || r.createdAt)
+      body.push({ kind: 'deliver', key: k('d' + (mine[0].id || seq++)), at: at || '', d: mine[0], ds: mine, text: reply.map((e) => String(e.text)).join('\n\n'), verify: verifyOf(mine[0], r) })
     } else if (!(last && !done)) {
       // No file: the reply is the segment's final text. While the last segment is still going, the working line speaks.
       const final = texts[texts.length - 1]

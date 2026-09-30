@@ -10,9 +10,11 @@
  *   user      { text }                         run.input first — unless the run's trigger is 'system' (the hidden intro) or
  *                                              'routine' — then every activity entry of kind 'user' (a message that steered
  *                                              the run while it worked)
- *   deliver   { d, verify }                    one per deliverable, at its createdAt; `verify` is verifyState(run), read live
- *   text      { text }                         a reply: activity text AFTER the last deliverable (or question) of its
- *                                              segment; a segment without either shows only its final text
+ *   deliver   { d, ds, text, verify }          ONE per segment that delivered: its reply `text` (activity text after the
+ *                                              segment's last deliverable/question, joined; '' when none), all its
+ *                                              deliverables `ds` (d = ds[0]); at = the later of the last file / reply;
+ *                                              `verify` is verifyState(run), read live
+ *   text      { text }                         a reply in a segment without a deliverable: its final text
  *   ask       { id, status, question, askKind, options, detail, answer, answerable }
  *                                              a question the run stopped on; status pending | answered | superseded |
  *                                              expired; answerable = the newest pending question of a waiting run
@@ -111,7 +113,6 @@ function threadOf(run, deliverables) {
     const body = []
     // Deliverables of this segment: the first also takes anything stamped before its own line (clock skew, trimmed history).
     const mine = docs.filter((d) => { const c = time(d.createdAt); return (i === 0 || c >= start) && c < end })
-    for (const d of mine) body.push({ kind: 'deliver', key: 'd' + (d.id || seq++), at: d.createdAt || seg.at, d, verify })
     const asks = seg.entries.filter((e) => e.kind === 'ask')
     for (const a of asks) {
       let status = askStatus(a)
@@ -132,7 +133,11 @@ function threadOf(run, deliverables) {
     const cut = Math.max(mine.length ? time(mine[mine.length - 1].createdAt) : -Infinity, asks.length ? time(asks[asks.length - 1].at) : -Infinity)
     const texts = seg.entries.filter((e) => e.kind === 'text' && str(e.text).trim())
     if (mine.length) {
-      for (const e of texts) if (time(e.at) > cut) body.push({ kind: 'text', key: 't' + seq++, at: e.at, text: str(e.text) })
+      // One bubble for the segment's output: the reply, the ✓ rows, every file card.
+      const reply = texts.filter((e) => time(e.at) > cut)
+      const lastDoc = mine[mine.length - 1]
+      const at = reply.length ? reply[reply.length - 1].at : (lastDoc.createdAt || seg.at)
+      body.push({ kind: 'deliver', key: 'd' + (mine[0].id || seq++), at: str(at), d: mine[0], ds: mine, text: reply.map((e) => str(e.text)).join('\n\n'), verify })
     } else if (!(last && !done)) {
       // No deliverable: the reply is the segment's final text. While the last segment is still going, the working line speaks.
       const final = texts[texts.length - 1]

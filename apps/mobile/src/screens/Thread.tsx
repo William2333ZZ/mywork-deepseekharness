@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { fmtDay, fmtDuration, fmtTime, fmtWhen, isToday, type Deliverable, type Mate, type Run } from '../api'
 import { useConn, useNav, useStore } from '../store'
-import { Avatar, Btn, Bubble, CenterLine, Composer, DateLine, Empty, Folded, Ghost, IconBtn, Reply, ReplyBubble, ResultRows, Screen, Sheet, SheetItem, Thinking, VerifyLine, type IconName, type Tone } from '../components'
+import { Avatar, Btn, Bubble, CenterLine, Composer, DateLine, Empty, Folded, Ghost, IconBtn, Prose, Reply, ReplyBubble, ResultRows, Screen, Sheet, SheetItem, Thinking, VerifyLine, type IconName, type Tone } from '../components'
 import { color, font, radius, size, space } from '../theme'
 import { describe, elapsedOf, glyphOf, mergeRuns, pendingAsk, phasesOf, runEntries, time, verifyWords, type ThreadEntry, type VerifyState } from '../thread'
 
@@ -243,21 +243,19 @@ function RunView({ run, mate, busyAnswer, acking, onAnswer, onAck, onRate, onOpe
   onRate: (d: Deliverable, r: number) => void; onOpenFile: (d: Deliverable) => void; onRoutine: (routineId?: string) => void
 }) {
   const entries = useMemo(() => runEntries(run), [run])
-  // A delivery quotes its document's first paragraph only when no reply text follows it in the run (web DeliverBubble).
-  const replied = useMemo(() => { const s = new Set<string>(); entries.forEach((e, i) => { if (e.kind === 'deliver' && entries.slice(i + 1).some((x) => x.kind === 'text')) s.add(e.key) }); return s }, [entries])
   const body = entries.filter((e) => e.kind !== 'working' && e.kind !== 'failed')
   const end = entries.find((e) => e.kind === 'working' || e.kind === 'failed')
   return (
     <View style={styles.line}>
-      {body.map((e) => <Entry key={e.key} e={e} run={run} mate={mate} quote={!replied.has(e.key)} busyAnswer={busyAnswer} acking={acking} onAnswer={onAnswer} onAck={onAck} onRate={onRate} onOpenFile={onOpenFile} onRoutine={onRoutine} />)}
+      {body.map((e) => <Entry key={e.key} e={e} run={run} mate={mate} busyAnswer={busyAnswer} acking={acking} onAnswer={onAnswer} onAck={onAck} onRate={onRate} onOpenFile={onOpenFile} onRoutine={onRoutine} />)}
       <Process run={run} />
       {end ? <Entry e={end} run={run} mate={mate} busyAnswer={busyAnswer} acking={acking} onAnswer={onAnswer} onAck={onAck} onRate={onRate} onOpenFile={onOpenFile} onRoutine={onRoutine} /> : null}
     </View>
   )
 }
 
-function Entry({ e, run, mate, quote, busyAnswer, acking, onAnswer, onAck, onRate, onOpenFile, onRoutine }: {
-  e: ThreadEntry; run: Run; mate: Mate | null; quote?: boolean; busyAnswer: boolean; acking: string
+function Entry({ e, run, mate, busyAnswer, acking, onAnswer, onAck, onRate, onOpenFile, onRoutine }: {
+  e: ThreadEntry; run: Run; mate: Mate | null; busyAnswer: boolean; acking: string
   onAnswer: (askId: string, value: string) => void; onAck: (routineId: string, at: string) => void
   onRate: (d: Deliverable, r: number) => void; onOpenFile: (d: Deliverable) => void; onRoutine: (routineId?: string) => void
 }) {
@@ -266,7 +264,7 @@ function Entry({ e, run, mate, quote, busyAnswer, acking, onAnswer, onAck, onRat
     case 'scheduled': return <CenterLine icon="calendar-outline" text={e.text} onPress={() => onRoutine(e.routineId)} />
     case 'user': return <Bubble text={e.text} />
     case 'text': return <Reply markdown={e.text} />
-    case 'deliver': return <Delivery d={e.d} verify={e.verify} quote={!!quote} onRate={onRate} onOpen={onOpenFile} />
+    case 'deliver': return <Delivery ds={e.ds} text={e.text} verify={e.verify} onRate={onRate} onOpen={onOpenFile} />
     case 'ask': return <AskCard ask={e} busy={busyAnswer} onAnswer={(v) => onAnswer(e.id, v)} />
     case 'remind': return <RemindCard title={e.title} text={e.text} at={e.at} acked={e.acked} busy={acking === e.routineId + e.at} onAck={() => onAck(e.routineId, e.at)} onOpen={() => onRoutine(e.routineId)} />
     case 'auto': return <Text style={styles.muted}>24 小时没有回答，已按合理假设继续</Text>
@@ -287,28 +285,31 @@ const fileIcon = (d: Deliverable): IconName => (d.kind === 'sheet' || d.kind ===
 const plainWords = (md: string) => String(md || '').replace(/```[\s\S]*?```/g, ' ').replace(/[#>*_`|~\[\]]+/g, ' ').replace(/\(https?:[^)]*\)/g, '').replace(/\s+/g, ' ').trim()
 
 /**
- * A delivery in the thread never carries the document (web DeliverBubble): inside the grey bubble the excerpt (only
- * when no reply follows), the ✓ rows and the 文件卡; tapping the card opens the File screen. Verification + rating under it.
+ * One segment's output as ONE grey bubble (web DeliverBubble), never carrying the document: the reply (or, when none
+ * follows, the first document's excerpt), every file's ✓ rows, every 文件卡 (tapping opens the File screen).
+ * Verification + rating under it, one line per file.
  */
-function Delivery({ d, verify, quote, onRate, onOpen }: { d: Deliverable; verify: VerifyState; quote: boolean; onRate: (d: Deliverable, r: number) => void; onOpen: (d: Deliverable) => void }) {
+function Delivery({ ds, text, verify, onRate, onOpen }: { ds: Deliverable[]; text: string; verify: VerifyState; onRate: (d: Deliverable, r: number) => void; onOpen: (d: Deliverable) => void }) {
   const tone: Tone = verify.kind === 'passed' ? 'success' : verify.kind === 'issues' ? 'warn' : verify.kind === 'verifying' ? 'live' : 'meta'
-  const excerpt = quote && d.excerpt ? plainWords(d.excerpt) : ''
-  const rows = Array.isArray(d.summary) ? d.summary : []
+  const first = ds[0]
+  const excerpt = !text && first && first.excerpt ? plainWords(first.excerpt) : ''
   return (
     <View style={styles.delivery}>
       <ReplyBubble>
-        {excerpt ? <Text style={styles.excerpt} numberOfLines={3}>{excerpt}</Text> : null}
-        {rows.length ? <ResultRows rows={rows} /> : null}
-        <Pressable onPress={() => onOpen(d)} accessibilityRole="button" accessibilityLabel={'打开 ' + d.title} style={({ pressed }) => [styles.fileCard, pressed && { backgroundColor: color.bubble }]}>
-          <View style={styles.fileTile}><Ionicons name={fileIcon(d)} size={19} color={color.fg} /></View>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={styles.fileTitle} numberOfLines={2}>{d.title || d.id}</Text>
-            <Text style={styles.fileMeta} numberOfLines={1}>{['文件', verifyWord(verify), fmtWhen(d.createdAt)].filter(Boolean).join(' · ')}</Text>
-          </View>
-        </Pressable>
+        {text ? <Prose markdown={text} tight /> : excerpt ? <Text style={styles.excerpt} numberOfLines={3}>{excerpt}</Text> : null}
+        {ds.map((d, i) => (Array.isArray(d.summary) && d.summary.length ? <ResultRows key={'s' + i} rows={d.summary} /> : null))}
+        {ds.map((d, i) => (
+          <Pressable key={'f' + (d.id || i)} onPress={() => onOpen(d)} accessibilityRole="button" accessibilityLabel={'打开 ' + d.title} style={({ pressed }) => [styles.fileCard, pressed && { backgroundColor: color.bubble }]}>
+            <View style={styles.fileTile}><Ionicons name={fileIcon(d)} size={19} color={color.fg} /></View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={styles.fileTitle} numberOfLines={2}>{d.title || d.id}</Text>
+              <Text style={styles.fileMeta} numberOfLines={1}>{['文件', verifyWord(verify), fmtWhen(d.createdAt)].filter(Boolean).join(' · ')}</Text>
+            </View>
+          </Pressable>
+        ))}
       </ReplyBubble>
       <View style={styles.after}>
-        <VerifyLine words={verifyWords(verify)} tone={tone} notes={verify.kind !== 'verifying' ? verify.notes : ''} rating={d.rating} onRate={(r) => onRate(d, r)} />
+        {ds.map((d, i) => <VerifyLine key={d.id || i} words={verifyWords(verify)} tone={tone} notes={verify.kind !== 'verifying' ? verify.notes : ''} rating={d.rating} onRate={(r) => onRate(d, r)} />)}
       </View>
     </View>
   )

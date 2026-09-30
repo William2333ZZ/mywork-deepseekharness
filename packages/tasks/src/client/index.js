@@ -732,14 +732,15 @@ function makeComponents(ctx, t) {
       h('span', { className: 'nm' }, h('b', null, d.title || d.id), h('small', null, [t('file'), verifyWord(verify), fmtWhen(d.createdAt)].filter(Boolean).join(' · '))))
   }
   /**
-   * A delivery in the thread never carries the document: the reply (or, when the run said nothing after it, the
-   * document's first paragraph, three lines at most), the ✓ summary rows, the file card.
+   * One segment's output in ONE bubble; it never carries the document: the reply (or, when the run said nothing after
+   * the files, the first document's first paragraph, three lines at most), every file's ✓ summary rows, the file cards.
    */
-  function DeliverBubble({ d, verify, quote, onOpen }) {
+  function DeliverBubble({ ds, text, verify, onOpen }) {
+    const first = ds[0] || {}
     return h('div', { className: 'mwt-turn ai bubble' },
-      quote && d.excerpt ? h('div', { className: 'mwt-excerpt' }, plainWords(d.excerpt)) : null,
-      Array.isArray(d.summary) && d.summary.length ? h('div', { className: 'mwt-sum' }, d.summary.map((r, i) => h('div', { key: i, className: 'mwt-sum-row' }, icon('check', { size: 14 }), h('span', { className: 'label' }, r.label), h('span', { className: 'value' }, r.value)))) : null,
-      h(FileCard, { d, verify, onOpen }))
+      text ? h(Markdown, { text }) : first.excerpt ? h('div', { className: 'mwt-excerpt' }, plainWords(first.excerpt)) : null,
+      ds.map((d, i) => Array.isArray(d.summary) && d.summary.length ? h('div', { key: 's' + i, className: 'mwt-sum' }, d.summary.map((r, j) => h('div', { key: j, className: 'mwt-sum-row' }, icon('check', { size: 14 }), h('span', { className: 'label' }, r.label), h('span', { className: 'value' }, r.value)))) : null),
+      ds.map((d, i) => h(FileCard, { key: 'f' + (d.id || i), d, verify, onOpen })))
   }
   /** The right panel's 文件 mode: the whole document, full width, its own header (title · 下载 .md · 在文件页打开 · close). */
   function FilePanel({ id, onClose }) {
@@ -1119,7 +1120,7 @@ function makeComponents(ctx, t) {
       if (e.kind === 'scheduled') return h('button', { key: e.key, type: 'button', className: 'mwt-center', onClick: () => showAside(true, { mode: 'mate', section: 'routines', routineId: e.routineId }) }, t('scheduled') + ' · ' + [e.scheduleLabel, e.title].filter(Boolean).join(' '))
       if (e.kind === 'remind') return h('div', { key: e.key, className: 'mwt-turn ai' }, h(RemindCard, { e, onAck: ack }))
       if (e.kind === 'user') return h('div', { key: e.key, className: 'mwt-turn user' }, h('div', { className: 'mwt-bubble' }, e.text))
-      if (e.kind === 'deliver') return h(React.Fragment, { key: e.key }, h(DeliverBubble, { d: e.d, verify: e.verify, quote: !e.replied, onOpen: openDoc }), h('div', { className: 'mwt-after' }, h(DeliverMeta, { d: e.d, verify: e.verify, onRate: rate })))
+      if (e.kind === 'deliver') { const ds = e.ds || [e.d]; return h(React.Fragment, { key: e.key }, h(DeliverBubble, { ds, text: e.text, verify: e.verify, onOpen: openDoc }), h('div', { className: 'mwt-after' }, ds.map((d) => h(DeliverMeta, { key: d.id, d, verify: e.verify, onRate: rate })))) }
       if (e.kind === 'text') return h('div', { key: e.key, className: 'mwt-turn ai bubble' }, h(Markdown, { text: e.text }))
       if (e.kind === 'ask') return h('div', { key: e.key, className: 'mwt-turn ai' }, h(AskCard, { e, onAnswer: answer(run.id), onTakeover: takeover }))
       if (e.kind === 'auto') return h('div', { key: e.key, className: 'mwt-turn ai' }, h('div', { className: 'mwt-askline' }, h('span', null, t('askAuto'))))
@@ -1168,15 +1169,13 @@ function makeComponents(ctx, t) {
               th.nextBefore ? h('button', { type: 'button', className: 'mwt-older', disabled: th.busy, onClick: loadEarlier }, t('loadEarlier')) : null,
               runs.map((run) => {
                 const list = threadOf(run)
-                // A delivery quotes its document only when no reply text follows it in the run.
-                list.forEach((e, i) => { if (e.kind === 'deliver') e.replied = list.slice(i + 1).some((x) => x.kind === 'text') })
                 if (folded.has(run.id) && list.some((e) => e.kind === 'deliver')) {
                   return h('div', { key: run.id, className: 'mwt-run folded' + (hl === run.id ? ' hl' : ''), 'data-run': run.id },
                     list.map((e) => {
                       if (e.kind === 'user' || e.kind === 'routine') return renderEntry(run, e)
                       if (e.kind !== 'deliver') return null
-                      return h('div', { key: e.key, className: 'mwt-turn ai' },
-                        h(FoldRow, { d: e.d, verify: e.verify, open: shown && aside.mode === 'file' && aside.fileId === e.d.id, onToggle: () => openDoc(e.d) }))
+                      return (e.ds || [e.d]).map((d) => h('div', { key: e.key + ':' + d.id, className: 'mwt-turn ai' },
+                        h(FoldRow, { d, verify: e.verify, open: shown && aside.mode === 'file' && aside.fileId === d.id, onToggle: () => openDoc(d) })))
                     }))
                 }
                 return h('div', { key: run.id, className: 'mwt-run' + (hl === run.id ? ' hl' : ''), 'data-run': run.id },

@@ -93,9 +93,11 @@ module.exports = { render, inline, esc }
  *   user      { text }                         run.input first — unless the run's trigger is 'system' (the hidden intro) or
  *                                              'routine' — then every activity entry of kind 'user' (a message that steered
  *                                              the run while it worked)
- *   deliver   { d, verify }                    one per deliverable, at its createdAt; `verify` is verifyState(run), read live
- *   text      { text }                         a reply: activity text AFTER the last deliverable (or question) of its
- *                                              segment; a segment without either shows only its final text
+ *   deliver   { d, ds, text, verify }          ONE per segment that delivered: its reply `text` (activity text after the
+ *                                              segment's last deliverable/question, joined; '' when none), all its
+ *                                              deliverables `ds` (d = ds[0]); at = the later of the last file / reply;
+ *                                              `verify` is verifyState(run), read live
+ *   text      { text }                         a reply in a segment without a deliverable: its final text
  *   ask       { id, status, question, askKind, options, detail, answer, answerable }
  *                                              a question the run stopped on; status pending | answered | superseded |
  *                                              expired; answerable = the newest pending question of a waiting run
@@ -194,7 +196,6 @@ function threadOf(run, deliverables) {
     const body = []
     // Deliverables of this segment: the first also takes anything stamped before its own line (clock skew, trimmed history).
     const mine = docs.filter((d) => { const c = time(d.createdAt); return (i === 0 || c >= start) && c < end })
-    for (const d of mine) body.push({ kind: 'deliver', key: 'd' + (d.id || seq++), at: d.createdAt || seg.at, d, verify })
     const asks = seg.entries.filter((e) => e.kind === 'ask')
     for (const a of asks) {
       let status = askStatus(a)
@@ -215,7 +216,11 @@ function threadOf(run, deliverables) {
     const cut = Math.max(mine.length ? time(mine[mine.length - 1].createdAt) : -Infinity, asks.length ? time(asks[asks.length - 1].at) : -Infinity)
     const texts = seg.entries.filter((e) => e.kind === 'text' && str(e.text).trim())
     if (mine.length) {
-      for (const e of texts) if (time(e.at) > cut) body.push({ kind: 'text', key: 't' + seq++, at: e.at, text: str(e.text) })
+      // One bubble for the segment's output: the reply, the ✓ rows, every file card.
+      const reply = texts.filter((e) => time(e.at) > cut)
+      const lastDoc = mine[mine.length - 1]
+      const at = reply.length ? reply[reply.length - 1].at : (lastDoc.createdAt || seg.at)
+      body.push({ kind: 'deliver', key: 'd' + (mine[0].id || seq++), at: str(at), d: mine[0], ds: mine, text: reply.map((e) => str(e.text)).join('\n\n'), verify })
     } else if (!(last && !done)) {
       // No deliverable: the reply is the segment's final text. While the last segment is still going, the working line speaks.
       const final = texts[texts.length - 1]
@@ -1135,14 +1140,15 @@ function makeComponents(ctx, t) {
       h('span', { className: 'nm' }, h('b', null, d.title || d.id), h('small', null, [t('file'), verifyWord(verify), fmtWhen(d.createdAt)].filter(Boolean).join(' · '))))
   }
   /**
-   * A delivery in the thread never carries the document: the reply (or, when the run said nothing after it, the
-   * document's first paragraph, three lines at most), the ✓ summary rows, the file card.
+   * One segment's output in ONE bubble; it never carries the document: the reply (or, when the run said nothing after
+   * the files, the first document's first paragraph, three lines at most), every file's ✓ summary rows, the file cards.
    */
-  function DeliverBubble({ d, verify, quote, onOpen }) {
+  function DeliverBubble({ ds, text, verify, onOpen }) {
+    const first = ds[0] || {}
     return h('div', { className: 'mwt-turn ai bubble' },
-      quote && d.excerpt ? h('div', { className: 'mwt-excerpt' }, plainWords(d.excerpt)) : null,
-      Array.isArray(d.summary) && d.summary.length ? h('div', { className: 'mwt-sum' }, d.summary.map((r, i) => h('div', { key: i, className: 'mwt-sum-row' }, icon('check', { size: 14 }), h('span', { className: 'label' }, r.label), h('span', { className: 'value' }, r.value)))) : null,
-      h(FileCard, { d, verify, onOpen }))
+      text ? h(Markdown, { text }) : first.excerpt ? h('div', { className: 'mwt-excerpt' }, plainWords(first.excerpt)) : null,
+      ds.map((d, i) => Array.isArray(d.summary) && d.summary.length ? h('div', { key: 's' + i, className: 'mwt-sum' }, d.summary.map((r, j) => h('div', { key: j, className: 'mwt-sum-row' }, icon('check', { size: 14 }), h('span', { className: 'label' }, r.label), h('span', { className: 'value' }, r.value)))) : null),
+      ds.map((d, i) => h(FileCard, { key: 'f' + (d.id || i), d, verify, onOpen })))
   }
   /** The right panel's 文件 mode: the whole document, full width, its own header (title · 下载 .md · 在文件页打开 · close). */
   function FilePanel({ id, onClose }) {
@@ -1522,7 +1528,7 @@ function makeComponents(ctx, t) {
       if (e.kind === 'scheduled') return h('button', { key: e.key, type: 'button', className: 'mwt-center', onClick: () => showAside(true, { mode: 'mate', section: 'routines', routineId: e.routineId }) }, t('scheduled') + ' · ' + [e.scheduleLabel, e.title].filter(Boolean).join(' '))
       if (e.kind === 'remind') return h('div', { key: e.key, className: 'mwt-turn ai' }, h(RemindCard, { e, onAck: ack }))
       if (e.kind === 'user') return h('div', { key: e.key, className: 'mwt-turn user' }, h('div', { className: 'mwt-bubble' }, e.text))
-      if (e.kind === 'deliver') return h(React.Fragment, { key: e.key }, h(DeliverBubble, { d: e.d, verify: e.verify, quote: !e.replied, onOpen: openDoc }), h('div', { className: 'mwt-after' }, h(DeliverMeta, { d: e.d, verify: e.verify, onRate: rate })))
+      if (e.kind === 'deliver') { const ds = e.ds || [e.d]; return h(React.Fragment, { key: e.key }, h(DeliverBubble, { ds, text: e.text, verify: e.verify, onOpen: openDoc }), h('div', { className: 'mwt-after' }, ds.map((d) => h(DeliverMeta, { key: d.id, d, verify: e.verify, onRate: rate })))) }
       if (e.kind === 'text') return h('div', { key: e.key, className: 'mwt-turn ai bubble' }, h(Markdown, { text: e.text }))
       if (e.kind === 'ask') return h('div', { key: e.key, className: 'mwt-turn ai' }, h(AskCard, { e, onAnswer: answer(run.id), onTakeover: takeover }))
       if (e.kind === 'auto') return h('div', { key: e.key, className: 'mwt-turn ai' }, h('div', { className: 'mwt-askline' }, h('span', null, t('askAuto'))))
@@ -1571,15 +1577,13 @@ function makeComponents(ctx, t) {
               th.nextBefore ? h('button', { type: 'button', className: 'mwt-older', disabled: th.busy, onClick: loadEarlier }, t('loadEarlier')) : null,
               runs.map((run) => {
                 const list = threadOf(run)
-                // A delivery quotes its document only when no reply text follows it in the run.
-                list.forEach((e, i) => { if (e.kind === 'deliver') e.replied = list.slice(i + 1).some((x) => x.kind === 'text') })
                 if (folded.has(run.id) && list.some((e) => e.kind === 'deliver')) {
                   return h('div', { key: run.id, className: 'mwt-run folded' + (hl === run.id ? ' hl' : ''), 'data-run': run.id },
                     list.map((e) => {
                       if (e.kind === 'user' || e.kind === 'routine') return renderEntry(run, e)
                       if (e.kind !== 'deliver') return null
-                      return h('div', { key: e.key, className: 'mwt-turn ai' },
-                        h(FoldRow, { d: e.d, verify: e.verify, open: shown && aside.mode === 'file' && aside.fileId === e.d.id, onToggle: () => openDoc(e.d) }))
+                      return (e.ds || [e.d]).map((d) => h('div', { key: e.key + ':' + d.id, className: 'mwt-turn ai' },
+                        h(FoldRow, { d, verify: e.verify, open: shown && aside.mode === 'file' && aside.fileId === d.id, onToggle: () => openDoc(d) })))
                     }))
                 }
                 return h('div', { key: run.id, className: 'mwt-run' + (hl === run.id ? ' hl' : ''), 'data-run': run.id },

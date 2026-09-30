@@ -12,7 +12,7 @@ const at = (s) => new Date(new Date(T0).getTime() + s * 1000).toISOString()
 const kinds = (list) => list.map((e) => e.kind)
 const run = (over) => ({ id: 'r1', mateId: 'm1', trigger: 'user', input: '把 README 整理成一页', status: 'done', createdAt: T0, startedAt: T0, finishedAt: at(60), error: '', summary: '', step: '', activity: [], deliverables: [], verification: null, ask: null, quiet: false, ...over })
 
-test('text before a deliverable stays out of the thread, text after it is the reply', () => {
+test('text before a deliverable stays out of the thread; the reply after it joins the delivery in one bubble', () => {
   const r = run({
     activity: [
       { kind: 'text', at: at(5), text: '我先看看仓库。' },
@@ -25,11 +25,17 @@ test('text before a deliverable stays out of the thread, text after it is the re
     verification: { passed: true, checked: 4, issues: 0, notes: '核对了四处。' },
   })
   const th = threadOf(r)
-  assert.deepEqual(kinds(th), ['user', 'deliver', 'text'])
+  assert.deepEqual(kinds(th), ['user', 'deliver'])
   assert.equal(th[0].text, '把 README 整理成一页')
   assert.equal(th[1].d.id, 'd1')
+  assert.deepEqual(th[1].ds.map((d) => d.id), ['d1'])
   assert.equal(th[1].verify.kind, 'passed')
-  assert.equal(th[2].text, '整理好了，见上。')
+  assert.equal(th[1].text, '整理好了，见上。')
+  assert.equal(th[1].at, at(12))
+  // No reply after the file: the bubble has no text (the client quotes the excerpt).
+  const quiet = threadOf(run({ deliverables: [{ id: 'd1', createdAt: at(10) }], activity: [{ kind: 'text', at: at(5), text: '先看看' }] }))
+  assert.deepEqual(kinds(quiet), ['user', 'deliver'])
+  assert.equal(quiet[1].text, '')
   assert.ok(!th.some((e) => e.kind === 'text' && /先看看|还在整理/.test(e.text)))
 })
 
@@ -89,8 +95,9 @@ test('a failed run ends with one failed entry', () => {
 
 test('a migrated task whose activity was trimmed still shows the bubble, its deliverables, or its summary', () => {
   const th = threadOf(run({ deliverables: [{ id: 'd1', title: '周报', createdAt: at(40) }, { id: 'd0', title: '草稿', createdAt: at(30) }], verification: { passed: true, checked: 2, issues: 0 } }))
-  assert.deepEqual(kinds(th), ['user', 'deliver', 'deliver'])
-  assert.deepEqual(th.slice(1).map((e) => e.d.id), ['d0', 'd1'])
+  assert.deepEqual(kinds(th), ['user', 'deliver'])
+  assert.deepEqual(th[1].ds.map((d) => d.id), ['d0', 'd1'])
+  assert.equal(th[1].d.id, 'd0')
   const answered = threadOf(run({ summary: '仓库有三个包。' }))
   assert.deepEqual(kinds(answered), ['user', 'text'])
   assert.equal(answered[1].text, '仓库有三个包。')
@@ -198,7 +205,8 @@ test('the answer line is not a bubble: the question shows the answer and the run
   assert.equal(running[1].answer, '王总')
   assert.equal(running[1].answerable, false)
   const done = threadOf(run({ activity: activity.concat([{ kind: 'text', at: at(30), text: '已写好，见上。' }]), deliverables: [{ id: 'd1', createdAt: at(25) }] }))
-  assert.deepEqual(kinds(done), ['user', 'ask', 'deliver', 'text'])
+  assert.deepEqual(kinds(done), ['user', 'ask', 'deliver'])
+  assert.equal(done[2].text, '已写好，见上。')
   assert.ok(!done.some((e) => e.kind === 'user' && e.text === '王总'))
 })
 

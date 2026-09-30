@@ -883,7 +883,9 @@ exports.apply = function apply(ctx) {
           onMouseDown: io.onMouseDown, onMouseUp: whenYours(io.onMouseUp), onMouseMove: whenYours(io.onMouseMove), onWheel: whenYours(io.onWheel) }) : null),
     )
   }
+  // dsh 0.1.6-alpha.2's SlotCore keeps only { key, id, order, label, priority } on e.options, so the
+  // predicate and title also ride on the component, where the tasks container looks next.
   ctx.slots.inject(ASIDE_SLOT, () => ctx.slots.register({
-    name: ASIDE_SLOT, id: 'screen', order: 10, title: '画面', when: asideWhen,
-  }, function MyworkAsideScreen(props) { return h(AsideScreen, props) }))
+    name: ASIDE_SLOT, id: 'screen', order: 10, label: '画面', title: '画面', when: asideWhen,
+  }, Object.assign(function MyworkAsideScreen(props) { return h(AsideScreen, props) }, { when: asideWhen, title: '画面' })))
 }

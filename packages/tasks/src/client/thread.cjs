@@ -8,14 +8,20 @@
  * Entry kinds, in the order they appear:
  *   user      { text }                     task.input first, then every activity entry of kind 'user' (follow-ups)
  *   deliver   { d, verify }                one per deliverable, at its createdAt; `verify` is verifyState(task), read live
- *   text      { text }                     a reply: activity text AFTER the last deliverable of its run; a run without a
- *                                          deliverable shows only its final text; text before a deliverable stays in 过程
- *   thinking  { step }                     one line while the task is not done (the caller renders the elapsed time)
+ *   text      { text }                     a reply: activity text AFTER the last deliverable (or question) of its run; a
+ *                                          run without either shows only its final text; text before them stays in 过程
+ *   ask       { id, status, question, askKind, options, detail, answer, answerable }
+ *                                          a question the task stopped on (§2.7 找人), at its time in its run. status:
+ *                                          pending | answered | superseded | expired; an older pending one reads as
+ *                                          superseded. answerable = the newest pending question of a waiting task.
+ *   auto      {}                           the 24 h resume (the user line with auto: true): one muted line
+ *   thinking  { step }                     one line while the task works (not done, not waiting); the caller renders the time
  *   failed    { reason }                   a done task with an error
  *
- * A run is what one user line started: task.input opens the first, each follow-up the next. Deliverables belong to
- * the run whose window (its user line up to the next) holds their createdAt, so old tasks whose activity was trimmed
- * still show the bubble and every deliverable under it.
+ * A run is what one user line started: task.input opens the first, each follow-up the next. The line that answers a
+ * question (askId) and the 24 h resume (auto) do not open a run and are not bubbles: the question shows its answer.
+ * Deliverables belong to the run whose window (its user line up to the next) holds their createdAt, so old tasks whose
+ * activity was trimmed still show the bubble and every deliverable under it.
  */
 'use strict'
 
@@ -51,12 +57,16 @@ function threadOf(task, deliverables) {
   const docs = (Array.isArray(deliverables) && deliverables.length ? deliverables : Array.isArray(t.deliverables) ? t.deliverables : [])
     .filter((d) => d && typeof d === 'object').slice().sort((a, b) => time(a.createdAt) - time(b.createdAt))
   const verify = verifyState(t)
+  const waiting = t.status === 'waiting'
+  // The one question that can still be answered: the newest pending ask, and only while the task waits on it.
+  let newestPending = null
+  for (const e of activity) if (e && e.kind === 'ask' && askStatus(e) === 'pending') newestPending = e
 
-  // Split the activity into runs, each opened by a user line.
+  // Split the activity into runs, each opened by a user line (an answer or the 24 h resume continues the run it answers).
   const runs = [{ at: t.createdAt || '', text: String(t.input || ''), entries: [] }]
   for (const e of activity) {
     if (!e || typeof e !== 'object') continue
-    if (e.kind === 'user') { runs.push({ at: e.at || '', text: String(e.text || ''), entries: [] }); continue }
+    if (e.kind === 'user' && !e.askId && !e.auto) { runs.push({ at: e.at || '', text: String(e.text || ''), entries: [] }); continue }
     runs[runs.length - 1].entries.push(e)
   }
 
@@ -67,26 +77,48 @@ function threadOf(task, deliverables) {
     const start = time(run.at)
     const end = last ? Infinity : time(runs[i + 1].at)
     out.push({ kind: 'user', key: 'u' + i, at: run.at, text: run.text })
+    const body = []
     // Deliverables of this run: the first run also takes anything stamped before its own line (trimmed history, clock skew).
     const mine = docs.filter((d) => { const c = time(d.createdAt); return (i === 0 || c >= start) && c < end })
-    for (const d of mine) out.push({ kind: 'deliver', key: 'd' + (d.id || seq++), at: d.createdAt || run.at, d, verify })
+    for (const d of mine) body.push({ kind: 'deliver', key: 'd' + (d.id || seq++), at: d.createdAt || run.at, d, verify })
+    const asks = run.entries.filter((e) => e.kind === 'ask')
+    for (const a of asks) {
+      let status = askStatus(a)
+      if (status === 'pending' && a !== newestPending) status = 'superseded' // only the newest question is open
+      body.push({
+        kind: 'ask', key: 'a' + (a.id || seq++), at: a.at || '', id: String(a.id || ''), status,
+        question: String(a.question || a.text || ''), askKind: a.askKind || 'text', options: Array.isArray(a.options) ? a.options.map(String) : [],
+        detail: typeof a.detail === 'string' ? a.detail : '', answer: a.answer === undefined || a.answer === null ? '' : String(a.answer),
+        answerable: status === 'pending' && waiting,
+      })
+    }
+    for (const e of run.entries) if (e.kind === 'user' && e.auto) body.push({ kind: 'auto', key: 'r' + seq++, at: e.at || '' })
+    // Text before the run's last deliverable or question is narration (过程); what comes after it is the reply.
+    const cut = Math.max(mine.length ? time(mine[mine.length - 1].createdAt) : -Infinity, asks.length ? time(asks[asks.length - 1].at) : -Infinity)
     const texts = run.entries.filter((e) => e.kind === 'text' && String(e.text || '').trim())
     if (mine.length) {
-      const lastDoc = time(mine[mine.length - 1].createdAt)
-      for (const e of texts) if (time(e.at) > lastDoc) out.push({ kind: 'text', key: 't' + seq++, at: e.at, text: String(e.text) })
+      for (const e of texts) if (time(e.at) > cut) body.push({ kind: 'text', key: 't' + seq++, at: e.at, text: String(e.text) })
     } else if (!(last && !done)) {
       // No deliverable: the reply is the run's final text. While the last run is still going, the thinking line speaks instead.
       const final = texts[texts.length - 1]
-      if (final) out.push({ kind: 'text', key: 't' + seq++, at: final.at, text: String(final.text) })
-      else if (i === 0 && last && done && !t.error && !docs.length && !activity.some((e) => e && e.kind === 'text') && String(t.summary || '').trim()) {
-        out.push({ kind: 'text', key: 't' + seq++, at: t.finishedAt || run.at, text: String(t.summary) }) // old task whose activity was trimmed: what is left of the answer
+      if (final && time(final.at) > cut) body.push({ kind: 'text', key: 't' + seq++, at: final.at, text: String(final.text) })
+      else if (!final && i === 0 && last && done && !t.error && !docs.length && !activity.some((e) => e && e.kind === 'text') && String(t.summary || '').trim()) {
+        body.push({ kind: 'text', key: 't' + seq++, at: t.finishedAt || run.at, text: String(t.summary) }) // old task whose activity was trimmed: what is left of the answer
       }
     }
+    // In time order; entries stamped at the same moment keep the order above (deliverable, question, resume, reply).
+    body.map((e, n) => ({ e, n, at: time(e.at) })).sort((a, b) => a.at - b.at || a.n - b.n).forEach((x) => out.push(x.e))
   })
 
-  if (!done) out.push({ kind: 'thinking', key: 'thinking', at: '', step: String(t.currentStep || t.statusLabel || '') })
-  else if (t.error) out.push({ kind: 'failed', key: 'failed', at: t.finishedAt || '', reason: String(t.error) })
+  if (!done && !waiting) out.push({ kind: 'thinking', key: 'thinking', at: '', step: String(t.currentStep || t.statusLabel || '') })
+  else if (done && t.error) out.push({ kind: 'failed', key: 'failed', at: t.finishedAt || '', reason: String(t.error) })
   return out
+}
+
+/** An ask entry's status; legacy entries without one are open until they carry an answer (store.isPendingAsk). */
+function askStatus(a) {
+  if (a.status === 'pending' || a.status === 'answered' || a.status === 'superseded' || a.status === 'expired') return a.status
+  return a.answer ? 'answered' : 'pending'
 }
 
 // ---- 今日's line (§8.3): the client's side of GET /feed ------------------------------------------------------------

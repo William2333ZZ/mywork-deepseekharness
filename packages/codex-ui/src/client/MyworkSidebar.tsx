@@ -9,7 +9,7 @@
  * the column dispatches mywork:open-thread and listens for mywork:thread-opened.
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactElement, type ReactNode } from 'react'
-import { CircleCheck, CircleX, FileText, Files, History, Loader, PanelLeft, Plus, Repeat, Search } from 'lucide-react'
+import { CircleCheck, CircleX, FileText, Files, History, Loader, MessageCircle, PanelLeft, Plus, Repeat, Search } from 'lucide-react'
 import type { CodexSidebarProps } from './CodexSidebar.tsx'
 
 export const V2_STORAGE_KEY = 'dsh-mywork:v2'
@@ -35,8 +35,8 @@ const useLegacyPanelInfo = <T,>(selector: (info: { activePanelId: string | null 
 
 const stylesheet = `
 /* Tokens: design/v2/DESIGN.md §2. The column is --surface beside a --bg page; rows step to --surface-2. */
-.mws{--bg:#ffffff;--surface:#f6f5f4;--surface-2:#efedeb;--fg:rgba(0,0,0,.92);--fg-2:#31302e;--muted:#615d59;--meta:#75706a;--border:rgba(0,0,0,.1);--border-soft:rgba(0,0,0,.06);--border-strong:rgba(0,0,0,.22);--success:#127e28;--danger:#c0392b;--focus-ring:0 0 0 3px rgba(0,117,222,.25);--motion-fast:150ms;--ease-standard:cubic-bezier(.2,0,0,1);position:relative;width:100%;height:100%;min-width:0;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;background:var(--surface);color:var(--fg);box-shadow:inset -1px 0 var(--border-soft);font:14px/20px -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei UI",sans-serif;-webkit-font-smoothing:antialiased}
-body[data-ds-dark-theme] .mws{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a;--fg:rgba(255,255,255,.9);--fg-2:#e6e4e0;--muted:#9b9893;--meta:#8a867f;--border:rgba(255,255,255,.1);--border-soft:rgba(255,255,255,.06);--border-strong:rgba(255,255,255,.22);--success:#4dab7a;--danger:#e26e63;--focus-ring:0 0 0 3px rgba(82,156,202,.35)}
+.mws{--bg:#ffffff;--surface:#f6f5f4;--surface-2:#efedeb;--fg:rgba(0,0,0,.92);--fg-2:#31302e;--muted:#615d59;--meta:#75706a;--border:rgba(0,0,0,.1);--border-soft:rgba(0,0,0,.06);--border-strong:rgba(0,0,0,.22);--success:#127e28;--warn:#b5480a;--danger:#c0392b;--focus-ring:0 0 0 3px rgba(0,117,222,.25);--motion-fast:150ms;--ease-standard:cubic-bezier(.2,0,0,1);position:relative;width:100%;height:100%;min-width:0;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;background:var(--surface);color:var(--fg);box-shadow:inset -1px 0 var(--border-soft);font:14px/20px -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei UI",sans-serif;-webkit-font-smoothing:antialiased}
+body[data-ds-dark-theme] .mws{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a;--fg:rgba(255,255,255,.9);--fg-2:#e6e4e0;--muted:#9b9893;--meta:#8a867f;--border:rgba(255,255,255,.1);--border-soft:rgba(255,255,255,.06);--border-strong:rgba(255,255,255,.22);--success:#4dab7a;--warn:#e08a3c;--danger:#e26e63;--focus-ring:0 0 0 3px rgba(82,156,202,.35)}
 .mws *{box-sizing:border-box}
 .mws button{font-family:inherit;transition:background-color var(--motion-fast) var(--ease-standard),color var(--motion-fast) var(--ease-standard),transform var(--motion-fast) var(--ease-standard)}
 .mws button:active{transform:scale(.98)}
@@ -58,7 +58,7 @@ body[data-ds-dark-theme] .mws{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 .mws-glyph{display:inline-grid;place-items:center;width:20px;height:20px;color:var(--meta)}
 .mws-glyph svg{display:block}
 .mws-glyph[data-s=running] svg,.mws-glyph[data-s=delivering] svg,.mws-glyph[data-s=verifying] svg{animation:mws-spin 1.6s linear infinite;color:var(--fg-2)}
-.mws-glyph[data-s=ok]{color:var(--success)}.mws-glyph[data-s=err]{color:var(--danger)}
+.mws-glyph[data-s=ok]{color:var(--success)}.mws-glyph[data-s=err]{color:var(--danger)}.mws-glyph[data-s=waiting]{color:var(--warn)}
 @keyframes mws-spin{to{transform:rotate(360deg)}}
 .mws-main{min-width:0}
 .mws-line{display:flex;align-items:center;min-width:0}
@@ -154,7 +154,8 @@ function Glyph({ row, live }: { row: Row; live: boolean }): ReactElement {
   if (row.kind === 'routine') return <span className="mws-glyph"><Repeat size={16} strokeWidth={1.5} /></span>
   if (row.kind === 'deliverable') return <span className="mws-glyph"><FileText size={16} strokeWidth={1.5} /></span>
   const v = visual(row.status ?? 'done', row.failed === true)
-  const Icon = v === 'ok' ? CircleCheck : v === 'err' ? CircleX : v === 'queued' ? History : Loader
+  // 等你答 (waiting): the task stopped on a question; the preview line under the title already carries it.
+  const Icon = v === 'ok' ? CircleCheck : v === 'err' ? CircleX : v === 'queued' ? History : v === 'waiting' ? MessageCircle : Loader
   return <span className="mws-glyph" data-s={v}><Icon size={16} strokeWidth={1.5} /></span>
 }
 
@@ -200,7 +201,7 @@ export function MyworkSidebar({ selectPanel, usePanelInfo = useLegacyPanelInfo, 
       const routineItems = rd !== null && Array.isArray(rd.items) ? rd.items : d !== null && Array.isArray(d.routines) ? d.routines : undefined
       if (routineItems !== undefined) setRoutines(routineItems)
       window.clearTimeout(timer.current)
-      timer.current = window.setTimeout(load, (items ?? []).some(x => x.status !== 'done') ? FAST_MS : SLOW_MS)
+      timer.current = window.setTimeout(load, (items ?? []).some(x => x.status !== 'done' && x.status !== 'waiting') ? FAST_MS : SLOW_MS)
     }).catch(() => { window.clearTimeout(timer.current); timer.current = window.setTimeout(load, SLOW_MS) })
   }, [])
   const markSeen = useCallback((key: string): void => {
@@ -245,13 +246,14 @@ export function MyworkSidebar({ selectPanel, usePanelInfo = useLegacyPanelInfo, 
 
   // Only what the user asked for: the day's conversation is the 今日 row, routine runs live behind their routine.
   const mine = useMemo(() => tasks.filter(x => x.scenario !== 'assistant' && !x.routineId), [tasks])
-  const live = tasks.some(x => x.status !== 'done')
+  const live = tasks.some(x => x.status !== 'done' && x.status !== 'waiting')
   const now = new Date()
   const today = useMemo((): Row => {
     const assistant = tasks.filter(x => x.scenario === 'assistant').map(taskRow).sort(byLastAt)[0]
-    const running = mine.filter(x => x.status !== 'done').length
+    const running = mine.filter(x => x.status !== 'done' && x.status !== 'waiting').length
     const dayStart = new Date(); dayStart.setHours(0, 0, 0, 0)
-    const waiting = reminders.length + mine.filter(x => x.status === 'done' && ms(str(x.finishedAt) || str(x.createdAt)) >= dayStart.getTime()
+    // 等你看 = reminders + tasks waiting for an answer + today's failures and verification issues
+    const waiting = reminders.length + mine.filter(x => x.status === 'waiting').length + mine.filter(x => x.status === 'done' && ms(str(x.finishedAt) || str(x.createdAt)) >= dayStart.getTime()
       && ((str(x.error) !== '' && !/已取消/.test(str(x.error))) || x.verification?.passed === false)).length
     const counts = [running > 0 ? `${running} ${t('v2.running1')}` : '', waiting > 0 ? `${waiting} ${t('v2.waiting1')}` : ''].filter(x => x !== '').join(' · ')
     const thinking = assistant !== undefined && assistant.status !== 'done' ? assistant.preview : ''

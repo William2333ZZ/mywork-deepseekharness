@@ -13,7 +13,15 @@
  *   mywork-deliverables  交付物：全部交付物，按场景筛，查看器
  *   mywork-routines      例行：列表；例行条目页
  *   mywork-scenarios     领域：已装领域包
- * Overlay (shell.overlay): completion toasts + browser notifications; keeps polling while any page is hidden.
+ * Overlay (shell.overlay): completion toasts, 「需要你」 toasts when a task stops to ask, browser notifications; keeps
+ * polling while any page is hidden.
+ *
+ * Child slot `mywork.thread.aside` (declared on the 任务 page entry, list): 这台电脑, the aside beside a task thread.
+ *   ctx.slots.inject('mywork.thread.aside', () => ctx.slots.register({ name: 'mywork.thread.aside', id: 'screen', order: 10,
+ *     label: '画面', title: '画面', when }, Object.assign(Component, { when, title: '画面' })))
+ *   `when(task)` gets the task detail (with activity); only entries it accepts show, and only the first of them. dsh
+ *   0.1.6 keeps just id / order / label on `options`, so `when` / `title` are read from options, then from the component.
+ *   Props: { task, deliverables, live } (live = not done and not waiting). No entry → no monitor button, no frame.
  *
  * Window events (for the sidebar in dsh-mywork-codex-ui and other members):
  *   in:  mywork:open-thread {kind: 'today'|'task'|'routine'|'new'|'deliverables', id?}   the one navigation contract
@@ -29,6 +37,9 @@ const React = require('react')
 const md = require('./md.cjs')
 const { threadOf, verifyState, localDay, dayStartIso, shiftDay, shortDay, mergeFeed, olderDayOf, feedRows } = require('./thread.cjs')
 const icons = require('./client-icons.cjs')
+// Two lucide line icons this bundle needs that the shared set does not carry (the prelude is this bundle's own copy).
+if (icons.PATHS && !icons.PATHS['message-circle']) icons.PATHS['message-circle'] = ['M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719']
+if (icons.PATHS && !icons.PATHS.monitor) icons.PATHS.monitor = ['M4 3h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z', 'M8 21h8', 'M12 17v4']
 const icon = (name, opts) => icons.icon(name, { strokeWidth: 1.5, ...(opts || {}) })
 
 const h = React.createElement
@@ -43,6 +54,12 @@ const SLOW_MS = 20000
 /** Entries per GET /feed page (the server's default). */
 const FEED_PAGE = 60
 const V2_KEY = 'dsh-mywork:v2'
+/** 这台电脑 (§8.4): the tasks page's child slot, and where each task's open / closed aside is remembered. */
+const ASIDE_SLOT = 'mywork.thread.aside'
+const ASIDE_KEY = 'dsh-mywork:aside'
+/** The aside is a grid column once the page has room for the reading column (752 + 2 × 28 padding), a 24 gap and 384. */
+const ASIDE_W = 384
+const SPLIT_MIN = 752 + 56 + 24 + ASIDE_W
 
 const zh = {
   today: '今日', tasks: '任务', deliverables: '交付物', packs: '领域', builtin: '内置', scenarioClear: '不指定，让系统判断',
@@ -62,6 +79,9 @@ const zh = {
   remindCard: '提醒', gotIt: '知道了', runNow: '现在跑一次', pause: '暂停', resume: '恢复', nextRun: '下次', neverRan: '还没跑过', noChange: '没有变化', changed: '有变化', scheduled: '已安排', kindTask: '例行任务', kindRemind: '提醒',
   say: '回复',
   loadYesterday: '加载昨天', loadDay: '加载 {d}', loadEarlier: '加载更早', yesterday: '昨天', reportOut: '已出报告',
+  needsYouToast: '需要你', answerPh: '回答', allowOnce: '允许一次', deny: '拒绝', takeoverGo: '去 Chrome 里处理', takeoverDone: '我做完了',
+  answeredLine: '已回答：{a}', askClosed: '不再等待', askAuto: '24 小时没有回答，按合理假设继续',
+  justNow: '刚刚', minutesAgo: '{n} 分钟前', hoursAgo: '{n} 小时前', computer: '这台电脑', close: '关闭',
 }
 const en = {
   today: 'Today', tasks: 'Tasks', deliverables: 'Deliverables', packs: 'Domains', builtin: 'built in', scenarioClear: 'Let the system decide',
@@ -81,6 +101,9 @@ const en = {
   remindCard: 'Reminder', gotIt: 'Got it', runNow: 'Run now', pause: 'Pause', resume: 'Resume', nextRun: 'Next', neverRan: 'Never ran', noChange: 'No change', changed: 'Changed', scheduled: 'Scheduled', kindTask: 'Routine', kindRemind: 'Reminder',
   say: 'Reply',
   loadYesterday: 'Load yesterday', loadDay: 'Load {d}', loadEarlier: 'Load earlier', yesterday: 'Yesterday', reportOut: 'Report ready',
+  needsYouToast: 'Needs you', answerPh: 'Answer', allowOnce: 'Allow once', deny: 'Deny', takeoverGo: 'Handle it in Chrome', takeoverDone: 'Done',
+  answeredLine: 'Answered: {a}', askClosed: 'No longer waiting', askAuto: 'No answer in 24 hours, continued on reasonable assumptions',
+  justNow: 'just now', minutesAgo: '{n} min ago', hoursAgo: '{n} h ago', computer: 'This computer', close: 'Close',
 }
 
 const STYLE = `
@@ -147,6 +170,7 @@ body[data-ds-dark-theme] .mwt{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 .mwt-dot[data-s=running] svg,.mwt-dot[data-s=delivering] svg,.mwt-dot[data-s=verifying] svg{animation:mwt-spin 1.6s linear infinite;color:var(--fg-2)}
 .mwt-dot[data-s=ok]{color:var(--success)}
 .mwt-dot[data-s=err]{color:var(--danger)}
+.mwt-dot[data-s=waiting]{color:var(--warn)}
 @keyframes mwt-spin{to{transform:rotate(360deg)}}
 /* Buttons */
 .mwt-btn{appearance:none;display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border:0;border-radius:var(--radius-sm);background:var(--surface);color:var(--fg);font:inherit;font-size:14px;font-weight:500;letter-spacing:.01em;cursor:pointer;white-space:nowrap}
@@ -223,6 +247,7 @@ body[data-ds-dark-theme] .mwt{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 .mwt-handoff-row[data-tone=success] .ic{color:var(--success)}
 .mwt-handoff-row[data-tone=danger] .ic{color:var(--danger)}
 .mwt-handoff-row[data-tone=live] .ic{color:var(--fg-2)}
+.mwt-handoff-row[data-tone=warn] .ic{color:var(--warn)}
 .mwt-handoff-row .ic .spin{animation:mwt-spin 1.6s linear infinite}
 .mwt-handoff-row .body{min-width:0;display:grid}
 .mwt-handoff-row .title{font-size:14px;line-height:20px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -261,6 +286,43 @@ button.mwt-line:hover{color:var(--fg)}
 .mwt-deliver-meta .mwt-btn{height:28px;padding:0 10px;font-size:13px;font-weight:400}
 .mwt-deliver-meta .mwt-btn[aria-pressed=true]{color:var(--fg);background:var(--surface)}
 .mwt-notes{margin:10px 0 0;font-size:13px;line-height:1.7;color:var(--muted);border-left:2px solid var(--border);padding:2px 12px;white-space:pre-wrap;word-break:break-word}
+/* 需要你 (§3.3): the question a task stopped on. The one card a task puts in its own thread; settled, it is one line. */
+.mwt-askcard{max-width:560px;padding:16px 16px 14px;border:1px solid var(--border-strong);border-radius:var(--radius-lg);background:var(--surface)}
+.mwt-askcard .q{font-size:15px;line-height:1.6;color:var(--fg);word-break:break-word}
+.mwt-askcard .q code{font-family:var(--font-mono);font-size:12.5px;background:var(--surface-2);padding:1px 5px;border-radius:4px}
+.mwt-askcard .q a{color:var(--fg);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--border)}
+.mwt-askcard .detail{margin:10px 0 0;max-height:240px;overflow:auto;padding:10px 12px;border-radius:var(--radius-md);background:var(--surface-2);color:var(--fg-2);font:12.5px/1.6 var(--font-mono);white-space:pre-wrap;word-break:break-word}
+.mwt-askcard .opts{display:grid;gap:6px;margin:14px 0 0}
+.mwt-askopt{appearance:none;display:flex;align-items:center;width:100%;min-height:44px;padding:0 14px;border:1px solid var(--border-strong);border-radius:var(--radius-md);background:transparent;color:var(--fg);font:inherit;font-size:14px;line-height:20px;text-align:left;cursor:pointer}
+.mwt-askopt:hover{background:var(--surface-2)}
+.mwt-askopt[disabled]{opacity:.4;cursor:default;transform:none}
+.mwt-askopt[disabled]:hover{background:transparent}
+.mwt-askcard .row{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:14px 0 0}
+.mwt-askcard .row .grow{flex:1;min-width:0}
+.mwt-askcard .row .mwt-btn{height:36px}
+.mwt-btn.outline{background:transparent;box-shadow:inset 0 0 0 1px var(--border-strong)}
+.mwt-btn.outline:hover{background:var(--surface-2)}
+.mwt-askcard .go{appearance:none;display:inline-flex;align-items:center;gap:6px;padding:0;border:0;background:transparent;color:var(--fg-2);font:inherit;font-size:14px;line-height:20px;cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--border-strong)}
+.mwt-askcard .go:hover{color:var(--fg)}
+.mwt-askcard .go.plain{cursor:default;text-decoration:none;color:var(--muted)}
+.mwt-ask-err{max-width:560px;margin:6px 0 0;color:var(--danger);font-size:13px;line-height:20px}
+.mwt-askline{display:flex;align-items:center;gap:6px;max-width:560px;min-height:20px;color:var(--meta);font-size:13px;line-height:20px}
+.mwt-askline[data-tone=success]{color:var(--success)}
+.mwt-askline span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* 这台电脑 (§8.4): beside the thread as a grid column when the page has room, else a slide-over at its right edge (no mask). */
+.mwt-page.split{max-width:${SPLIT_MIN}px;display:grid;grid-template-columns:minmax(0,752px) ${ASIDE_W}px;column-gap:24px;align-items:start}
+.mwt-col{min-width:0}
+.mwt-aside{display:flex;flex-direction:column;min-height:0;background:var(--bg)}
+.mwt-aside.col{position:sticky;top:16px;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
+.mwt-aside-head{display:flex;align-items:center;gap:8px;flex:none;height:44px;padding:0 8px 0 14px;border-bottom:1px solid var(--border-soft)}
+.mwt-aside-head .title{flex:1;min-width:0;color:var(--muted);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mwt-aside-head .mwt-btn.round{width:28px;height:28px}
+.mwt-aside-body{flex:1;min-height:0;overflow:auto;padding:12px 14px 14px}
+.mwt-aside-dock{position:sticky;top:0;height:0;z-index:6}
+.mwt-aside-clip{position:absolute;top:0;right:0;display:flex;justify-content:flex-end;width:min(${ASIDE_W + 24}px,100%);overflow:hidden;pointer-events:none}
+.mwt-aside.over{width:min(${ASIDE_W}px,100%);height:100%;border-left:1px solid var(--border);box-shadow:var(--elev-raised);pointer-events:auto;transform:translateX(100%);visibility:hidden;transition:transform var(--motion-fast) var(--ease-standard),visibility 0s linear var(--motion-fast)}
+.mwt-aside.over[data-open=true]{transform:none;visibility:visible;transition:transform var(--motion-fast) var(--ease-standard),visibility 0s}
+.mwt-toolbar .mwt-btn[aria-pressed=true]{background:var(--surface);color:var(--fg)}
 /* A failed run: one line and the one allowed button. */
 .mwt-failed{display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;color:var(--danger);font-size:14px;line-height:1.6}
 .mwt-failed .mwt-btn{height:28px;padding:0 10px;font-size:13px}
@@ -392,6 +454,7 @@ async function api(path, body) {
 }
 let refreshing = null
 const completionListeners = new Set() // (task) => void, fired when a task reaches done
+const waitingListeners = new Set() // (task) => void, fired when a task stops to ask (§2.7)
 const noticeListeners = new Set() // (title, body) => void
 function announce(title, body) { for (const fn of noticeListeners) { try { fn(title, body) } catch {} } }
 function refresh() {
@@ -401,16 +464,22 @@ function refresh() {
     const items = d.items || []
     setState({ items, deliverables: d.deliverables || [], reminders: d.reminders || [], routines: d.routines || [], scenarios: d.scenarios || [], error: '', loadedAt: Date.now() })
     fire('mywork:tasks-updated', { items })
-    if (before.size) for (const t of items) if (t.status === 'done' && before.has(t.id) && before.get(t.id) !== 'done') for (const fn of completionListeners) { try { fn(t) } catch {} }
+    if (before.size) for (const t of items) {
+      if (!before.has(t.id) || before.get(t.id) === t.status) continue
+      const heard = t.status === 'done' ? completionListeners : t.status === 'waiting' ? waitingListeners : null
+      if (heard) for (const fn of heard) { try { fn(t) } catch {} }
+    }
   }).catch((e) => { setState({ error: e.message || String(e) }) }).finally(() => { refreshing = null })
   return refreshing
 }
+/** Working (not done, not stopped on a question): what keeps the poll fast and the clocks ticking. */
+const working = (t) => !!t && t.status !== 'done' && t.status !== 'waiting'
 let pollTimer = null
 let pollUsers = 0
 function schedulePoll() {
   clearTimeout(pollTimer)
   if (pollUsers <= 0) return
-  const active = state.items.some((t) => t.status !== 'done')
+  const active = state.items.some(working)
   pollTimer = setTimeout(() => { refresh().then(schedulePoll) }, active ? FAST_MS : SLOW_MS)
 }
 function usePolling() {
@@ -444,8 +513,59 @@ function isToday(iso) { if (!iso) return false; const d = new Date(iso); const n
 function visual(t) { return t.status !== 'done' ? t.status : t.error ? 'err' : 'ok' }
 function StatusDot({ task }) {
   const v = visual(task)
-  const name = v === 'ok' ? 'circle-check' : v === 'err' ? 'circle-x' : v === 'queued' ? 'history' : 'loader'
+  const name = v === 'ok' ? 'circle-check' : v === 'err' ? 'circle-x' : v === 'queued' ? 'history' : v === 'waiting' ? 'message-circle' : 'loader'
   return h('span', { className: 'mwt-dot', 'data-s': v, title: task.statusLabel }, icon(name, { size: 16 }))
+}
+/** A question as plain words (toasts, notifications, tooltips): the inline Markdown marks go, link text stays. */
+function plainWords(text) { return String(text || '').replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/\*\*|__|`/g, '').replace(/(^|[^*\w])\*([^*\n]+)\*(?!\w)/g, '$1$2') }
+/** Is this task's page on screen right now (the 「需要你」 toast stays quiet for the page you are looking at)? */
+function taskOnScreen(id) {
+  try {
+    if (typeof document === 'undefined' || document.visibilityState === 'hidden') return false
+    const sel = typeof CSS !== 'undefined' && typeof CSS.escape === 'function' ? CSS.escape(String(id)) : String(id).replace(/["\\]/g, '\\$&')
+    const el = document.querySelector('[data-mwt-task="' + sel + '"]')
+    return !!el && el.getClientRects().length > 0
+  } catch { return false }
+}
+/**
+ * An entry of the `mywork.thread.aside` slot as this page uses it: { id, order, title, when }. dsh 0.1.6 keeps only
+ * id / order / label on `options`, so `when` and `title` are also looked up on the entry and on the component.
+ */
+function asideEntry(e) {
+  if (!e || !e.options) return null
+  const o = e.options
+  const c = e.component || {}
+  const when = [o.when, e.when, c.when].find((f) => typeof f === 'function') || null
+  const title = [o.title, o.label, c.title].find((x) => x !== undefined && x !== null)
+  return { id: o.id, order: Number(o.order) || 0, when, title }
+}
+const asideTitle = (x) => { try { const v = typeof x.title === 'function' ? x.title() : x.title; return v === undefined || v === null ? '' : String(v) } catch { return '' } }
+/** Per task: 'open' (auto-opened or opened by hand) or 'closed' (closed by hand, never auto-opened again). */
+function asideMemory(id) { try { const m = JSON.parse(localStorage.getItem(ASIDE_KEY) || '{}'); return m && typeof m === 'object' ? m[id] : undefined } catch { return undefined } }
+function rememberAside(id, value) {
+  try {
+    const raw = JSON.parse(localStorage.getItem(ASIDE_KEY) || '{}')
+    const m = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {}
+    delete m[id]; m[id] = value
+    const keys = Object.keys(m)
+    for (const k of keys.slice(0, Math.max(0, keys.length - 200))) delete m[k] // the newest 200 tasks are enough
+    localStorage.setItem(ASIDE_KEY, JSON.stringify(m))
+  } catch {}
+}
+/** The element's inner size, kept current (ResizeObserver; window resize where there is none). */
+function useBox(ref) {
+  const [box, setBox] = React.useState({ w: 0, h: 0 })
+  React.useEffect(() => {
+    const el = ref.current
+    if (!el) return undefined
+    const read = () => setBox((prev) => (prev.w === el.clientWidth && prev.h === el.clientHeight ? prev : { w: el.clientWidth, h: el.clientHeight }))
+    read()
+    if (typeof ResizeObserver === 'undefined') { window.addEventListener('resize', read); return () => window.removeEventListener('resize', read) }
+    const ro = new ResizeObserver(read)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+  return box
 }
 /** State coverage: three quiet skeleton rows while the first poll is in flight, one sentence with a retry on error. */
 function Skeleton({ rows }) { return h('div', { className: 'mwt-cards mwt-skeleton', 'aria-busy': 'true' }, Array.from({ length: rows || 3 }, (_, i) => h('div', { key: i, className: 'mwt-card' }, h('span', { className: 'mwt-sk mwt-sk-dot' }), h('span', null, h('span', { className: 'mwt-sk mwt-sk-line' }), h('span', { className: 'mwt-sk mwt-sk-line short' })), h('span', { className: 'mwt-sk mwt-sk-meta' })))) }
@@ -523,6 +643,30 @@ function makeComponents(ctx, t) {
     React.useEffect(() => { fire('mywork:thread-opened', { kind, id: id || '' }) }, [kind, id])
     React.useEffect(() => { if (id) api('/seen', { id }).catch(() => {}) }, [id, stamp])
   }
+  /** 「12 分钟前」: how long ago, in the interface language; the date once it is a day old. */
+  const ago = (iso) => {
+    const ms = Date.now() - new Date(iso).getTime()
+    if (!iso || !Number.isFinite(ms)) return ''
+    const m = Math.floor(ms / 60000)
+    if (m < 1) return t('justNow')
+    if (m < 60) return t('minutesAgo').replace('{n}', String(m))
+    if (m < 1440) return t('hoursAgo').replace('{n}', String(Math.floor(m / 60)))
+    return fmtDate(iso)
+  }
+
+  // 这台电脑: the entries other members register into the tasks page's `mywork.thread.aside` slot, re-read on every change.
+  const asideSubs = new Set()
+  const readAside = () => {
+    let list = []
+    try { list = typeof ctx.slots.entriesOfSlot === 'function' ? ctx.slots.entriesOfSlot(ASIDE_SLOT) : ctx.slots.entries(ASIDE_SLOT) } catch { list = [] }
+    return (Array.isArray(list) ? list : []).map(asideEntry).filter(Boolean).sort((a, b) => a.order - b.order)
+  }
+  const notifyAside = () => { for (const fn of asideSubs) { try { fn() } catch {} } }
+  const useAsideEntries = () => {
+    const [list, setList] = React.useState(readAside)
+    React.useEffect(() => { const fn = () => setList(readAside()); asideSubs.add(fn); fn(); return () => { asideSubs.delete(fn) } }, [])
+    return list
+  }
 
   function Ask({ scenarios, initial, hero, compact, placeholder }) {
     const [focused, setFocused] = React.useState(false)
@@ -558,7 +702,7 @@ function makeComponents(ctx, t) {
 
   /**
    * 今日 is one list. Every row is the same shape: glyph, title, one state on the right.
-   * Order: reminders, failures, verification issues, running, delivered today, the rest of today.
+   * Order (§3.3): reminders, 等你答, failures, verification issues, running, delivered today.
    */
   function todayRows(items, deliverables, reminders) {
     const rows = []
@@ -568,16 +712,17 @@ function makeComponents(ctx, t) {
       if (x.scenario === 'assistant') continue
       const done = x.status === 'done'
       const when = new Date(x.finishedAt || x.createdAt)
-      if (done && x.error && !/已取消/.test(x.error) && when >= dayStart) rows.push({ key: 'f' + x.id, rank: 1, needs: true, at: x.finishedAt, glyph: 'circle-x', tone: 'danger', title: x.title, state: t('failedTitle'), sub: x.error, action: { label: t('rerun'), run: () => api('/rerun', { id: x.id }).then((d) => { refresh(); if (d.task) openTask(d.task.id) }) }, open: () => openTask(x.id) })
-      else if (!done && x.attentionAt) rows.push({ key: 'a' + x.id, rank: 1, needs: true, at: x.attentionAt, glyph: 'message', tone: 'fg', title: x.title, state: t('needsYou'), open: () => openTask(x.id) }) // 等你答 (the server stamps attentionAt when a task stops to ask)
-      else if (done && x.verification && x.verification.passed === false && when >= dayStart) rows.push({ key: 'v' + x.id, rank: 2, at: x.finishedAt, glyph: 'circle-x', tone: 'warn', title: x.title, state: t('verifyIssues'), open: () => openTask(x.id) })
-      else if (!done) rows.push({ key: 'l' + x.id, rank: 3, at: x.createdAt, glyph: 'loader', tone: 'live', spin: true, title: x.title, state: (x.currentStep || x.statusLabel) + ' · ' + elapsedOf(x), open: () => openTask(x.id) })
-      else if (done && when >= dayStart) rows.push({ key: 'd' + x.id, rank: 4, at: x.finishedAt, glyph: 'circle-check', tone: 'success', title: x.title, state: x.routineId && !isReport(x) ? (x.quiet ? t('noChange') : t('changed')) : (x.deliverables.length ? t('delivered') : t('answered')), open: () => openTask(x.id) })
+      // 等你答: a task stopped on a question. No button on the row: the question is answered on the task page.
+      if (x.status === 'waiting') rows.push({ key: 'a' + x.id, rank: 1, needs: true, at: (x.ask && x.ask.at) || x.attentionAt || x.createdAt, glyph: 'message-circle', tone: 'warn', title: x.title, state: t('needsYou'), open: () => openTask(x.id) })
+      else if (done && x.error && !/已取消/.test(x.error) && when >= dayStart) rows.push({ key: 'f' + x.id, rank: 2, needs: true, at: x.finishedAt, glyph: 'circle-x', tone: 'danger', title: x.title, state: t('failedTitle'), sub: x.error, action: { label: t('rerun'), run: () => api('/rerun', { id: x.id }).then((d) => { refresh(); if (d.task) openTask(d.task.id) }) }, open: () => openTask(x.id) })
+      else if (done && x.verification && x.verification.passed === false && when >= dayStart) rows.push({ key: 'v' + x.id, rank: 3, at: x.finishedAt, glyph: 'circle-x', tone: 'warn', title: x.title, state: t('verifyIssues'), open: () => openTask(x.id) })
+      else if (!done) rows.push({ key: 'l' + x.id, rank: 4, at: x.createdAt, glyph: 'loader', tone: 'live', spin: true, title: x.title, state: (x.currentStep || x.statusLabel) + ' · ' + elapsedOf(x), open: () => openTask(x.id) })
+      else if (done && when >= dayStart) rows.push({ key: 'd' + x.id, rank: 5, at: x.finishedAt, glyph: 'circle-check', tone: 'success', title: x.title, state: x.routineId && !isReport(x) ? (x.quiet ? t('noChange') : t('changed')) : (x.deliverables.length ? t('delivered') : t('answered')), open: () => openTask(x.id) })
     }
     rows.sort((a, b) => a.rank - b.rank || new Date(b.at) - new Date(a.at))
     const unrated = (deliverables || []).filter((d) => d.rating === null || d.rating === undefined).length
     // The bar's words come from every row, not only the ten shown.
-    const counts = { waiting: rows.filter((r) => r.rank <= 2).length, running: rows.filter((r) => r.rank === 3).length, delivered: rows.filter((r) => r.rank === 4).length, needs: rows.some((r) => r.needs) }
+    const counts = { waiting: rows.filter((r) => r.rank <= 3).length, running: rows.filter((r) => r.rank === 4).length, delivered: rows.filter((r) => r.rank === 5).length, needs: rows.some((r) => r.needs) }
     return { rows: rows.slice(0, 10), more: Math.max(0, rows.length - 10), unrated, counts }
   }
 
@@ -601,7 +746,7 @@ function makeComponents(ctx, t) {
    */
   function TodayPage() {
     const s = usePolling()
-    const active = s.items.filter((x) => x.status !== 'done' && x.scenario !== 'assistant')
+    const active = s.items.filter((x) => working(x) && x.scenario !== 'assistant') // a task waiting on you is not 在跑; the bar counts it
     useTick(active.length > 0)
     const { rows, more, unrated, counts } = todayRows(s.items, s.deliverables, s.reminders)
     const day = useDayFeed(s)
@@ -689,10 +834,13 @@ function makeComponents(ctx, t) {
     return { rows, live, liveState: live || (pending ? { currentStep: '' } : null), any: rows.length > 0 || !!live || canOlder, canOlder, olderLabel, busy: feed.busy, loadOlder }
   }
 
-  /** A conversation the Grok way: your words in a bubble on the right, the reply as plain text on the left, nothing else. */
-  /** What a hand-off line says about its task right now: running step · time, ✓ delivered · verified, answered, or failed. */
+  /**
+   * What a hand-off line says about its task right now: running step · time, 等你答 (the row's chevron opens the task
+   * and its question), ✓ delivered · verified, answered, or failed.
+   */
   function handoffState(task) {
     if (!task) return null
+    if (task.status === 'waiting') return { glyph: 'message-circle', tone: 'warn', sub: t('needsYou') }
     if (task.status !== 'done') return { glyph: 'loader', spin: true, tone: 'live', sub: (task.currentStep || task.statusLabel) + ' · ' + elapsedOf(task) }
     if (task.error) return { glyph: 'circle-x', tone: 'danger', sub: t('failedTitle') + ' · ' + String(task.error).slice(0, 80), failed: true }
     const v = task.verification
@@ -774,24 +922,33 @@ function makeComponents(ctx, t) {
       h('div', { className: 'mwt-hero' }, h('h1', null, t('hero')), h(Ask, { scenarios: s.scenarios, initial: initial || { text: '', scenario: '' }, hero: true }))))
   }
 
-  function Say({ task }) {
+  /**
+   * The task's dock. While the task waits on a text question, it answers that question (POST /answer with its askId,
+   * placeholder 回答); otherwise it says the next thing into the task's conversation (POST /say).
+   */
+  function Say({ task, onAnswer }) {
     const [text, setText] = React.useState('')
     const [busy, setBusy] = React.useState(false)
     const [err, setErr] = React.useState('')
     const ref = React.useRef(null)
     const blocked = task.status === 'verifying' || task.status === 'queued' || !task.sessionId
+    const textAsk = task.status === 'waiting' && task.ask && task.ask.askKind === 'text' && task.ask.id ? task.ask : null
     const submit = async () => {
       const body = text.trim()
       if (!body || busy || blocked) return
       setBusy(true); setErr('')
-      try { await api('/say', { id: task.id, text: body }); setText(''); await refresh(); schedulePoll() } catch (e) { setErr(e.message || String(e)) } finally { setBusy(false) }
+      try {
+        if (textAsk && onAnswer) await onAnswer(textAsk.id, body)
+        else { await api('/say', { id: task.id, text: body }); await refresh(); schedulePoll() }
+        setText('')
+      } catch (e) { setErr(e.message || String(e)) } finally { setBusy(false) }
     }
     const grow = () => { const el = ref.current; if (!el) return; el.style.height = 'auto'; el.style.height = Math.min(160, el.scrollHeight) + 'px' }
     React.useEffect(grow, [text])
     if (!task.sessionId) return null
     return h('div', { className: 'mwt-say' },
       h('div', { className: 'mwt-say-inner' },
-        h('textarea', { ref, value: text, rows: 1, placeholder: t('say'), disabled: blocked, onChange: (e) => setText(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); submit() } } }),
+        h('textarea', { ref, value: text, rows: 1, placeholder: textAsk ? t('answerPh') : t('say'), disabled: blocked, onChange: (e) => setText(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); submit() } } }),
         h('button', { type: 'button', className: 'mwt-btn send round', 'aria-label': t('create'), disabled: busy || blocked || !text.trim(), onClick: submit }, icon(busy ? 'loader' : 'arrow-up', { size: 13 }))),
       err ? h('small', { className: 'mwt-say-err' }, err) : null)
   }
@@ -926,28 +1083,96 @@ function makeComponents(ctx, t) {
   }
 
   /**
-   * The task page is a thread (threadOf in thread.cjs): your line in a bubble, each delivery as text with one meta line,
-   * the reply as text, a working line while it runs, a failure as one line; 过程 folded at the end; the composer docked.
+   * 需要你 (§2.3 row 5, §3.3): the question a task stopped on. choice → full-width options; approval → 允许一次 / 拒绝;
+   * takeover → 「去 Chrome 里处理」 (opens 这台电脑 when the page has it) and 我做完了; text → no controls, the dock
+   * answers it. Only the newest open question can be answered; answered it is one line 「已回答：X」, closed 「不再等待」.
    */
-  function TaskDetail({ id, onBack }) {
+  function AskCard({ e, onAnswer, onTakeover }) {
+    const [busy, setBusy] = React.useState(false)
+    const [err, setErr] = React.useState('')
+    if (e.status === 'answered') return h('div', { className: 'mwt-askline', 'data-tone': 'success', title: plainWords(e.question) }, icon('check', { size: 14 }), h('span', null, t('answeredLine').replace('{a}', e.answer)))
+    if (e.status !== 'pending') return h('div', { className: 'mwt-askline', title: plainWords(e.question) }, h('span', null, t('askClosed')))
+    const can = e.answerable && !busy
+    const send = (value) => {
+      if (!can) return
+      setBusy(true); setErr('')
+      Promise.resolve().then(() => onAnswer(e.id, value)).catch((x) => setErr((x && x.message) || String(x))).finally(() => setBusy(false))
+    }
+    const controls = e.askKind === 'choice' && e.options.length
+      ? h('div', { className: 'opts' }, e.options.map((o) => h('button', { key: o, type: 'button', className: 'mwt-askopt', disabled: !can, onClick: () => send(o) }, o)))
+      : e.askKind === 'approval'
+        ? h('div', { className: 'row' },
+          h('button', { type: 'button', className: 'mwt-btn primary', disabled: !can, onClick: () => send(true) }, t('allowOnce')),
+          h('button', { type: 'button', className: 'mwt-btn outline', disabled: !can, onClick: () => send(false) }, t('deny')))
+        : e.askKind === 'takeover'
+          ? h('div', { className: 'row' },
+            onTakeover ? h('button', { type: 'button', className: 'go', onClick: onTakeover }, icon('monitor', { size: 14 }), t('takeoverGo')) : h('span', { className: 'go plain' }, t('takeoverGo')),
+            h('span', { className: 'grow' }),
+            h('button', { type: 'button', className: 'mwt-btn outline', disabled: !can, onClick: () => send(true) }, t('takeoverDone')))
+          : null
+    return h(React.Fragment, null,
+      h('div', { className: 'mwt-askcard', 'aria-busy': busy || undefined },
+        h('div', { className: 'q', dangerouslySetInnerHTML: { __html: md.inline(e.question) } }),
+        e.detail ? h('pre', { className: 'detail' }, e.detail) : null,
+        controls),
+      err ? h('div', { className: 'mwt-ask-err', role: 'alert' }, err) : null)
+  }
+
+  /**
+   * The task page is a thread (threadOf in thread.cjs): your line in a bubble, each delivery as text with one meta line,
+   * the reply as text, a working line while it runs, the question it stopped on, a failure as one line; 过程 folded at
+   * the end; the composer docked. 这台电脑 (the `mywork.thread.aside` slot) sits beside it when an entry wants this task:
+   * a grid column when the page has room, else a slide-over at its right edge; the reading column never shrinks.
+   */
+  function TaskDetail({ id, onBack, renderSlot }) {
     const s = usePolling()
     const task = s.items.find((x) => x.id === id) || null
     const live = !!task && task.status !== 'done'
-    useTick(live)
-    const key = task ? task.status + ':' + task.deliverableIds.length + ':' + (live ? Math.floor(Date.now() / FAST_MS) : 0) : ''
+    const waiting = !!task && task.status === 'waiting'
+    const running = live && !waiting
+    useTick(running)
+    const key = task ? task.status + ':' + task.deliverableIds.length + ':' + (task.ask ? task.ask.id : '') + ':' + (running ? Math.floor(Date.now() / FAST_MS) : 0) : ''
     const [detail, setDetail] = useTaskDetail(id, key)
-    React.useEffect(() => { const el = document.querySelector('.mwt'); if (el) el.scrollTop = 0 }, [id]) // a task opens at its title, not where the last page was scrolled
+    const rootRef = React.useRef(null)
+    const box = useBox(rootRef)
+    React.useEffect(() => { if (rootRef.current) rootRef.current.scrollTop = 0 }, [id]) // a task opens at its title
     useThreadOpened('task', id, task ? (task.lastAt || '') + ':' + task.status + ':' + task.deliverableIds.length : '')
     const [renaming, setRenaming] = React.useState(false)
     const [confirm, setConfirm] = React.useState(false)
     const [busy, setBusy] = React.useState(false)
-    if (!task) return h('div', { className: 'mwt-empty' }, t('none'))
     // The live copy (polled) carries status and verification; the detail carries the activity and the documents.
     const fresh = detail && detail.task && detail.task.id === id ? detail : null // the previous task's detail, for a moment after switching
-    const full = fresh ? { ...fresh.task, ...task, activity: fresh.task.activity } : task
+    const full = task ? (fresh ? { ...fresh.task, ...task, activity: fresh.task.activity } : task) : null
     const docs = fresh && Array.isArray(fresh.deliverables) ? fresh.deliverables : []
+    // 这台电脑: the first entry that wants this task (its `when` reads the detail, activity included).
+    const entries = useAsideEntries()
+    const aside = renderSlot && full ? entries.find((x) => { if (!x.when) return false; try { return !!x.when(full) } catch { return false } }) || null : null
+    const [asideOpen, setAsideOpen] = React.useState(false)
+    const autoOpened = React.useRef(false)
+    React.useEffect(() => {
+      // Opens by itself once while the task works (unless you closed it for this task before); never closes by itself.
+      if (!aside || !running || autoOpened.current) return
+      autoOpened.current = true
+      const mem = asideMemory(id)
+      if (mem === 'closed') return
+      setAsideOpen(true)
+      if (!mem) rememberAside(id, 'open')
+    }, [!!aside, running, id])
+    const showAside = (open) => { setAsideOpen(open); rememberAside(id, open ? 'open' : 'closed') }
+    const split = box.w >= SPLIT_MIN
+    const shown = !!aside && asideOpen
+    React.useEffect(() => {
+      if (!shown || split) return undefined
+      // Escape closes the slide-over, except while the key goes to the picture you are driving inside it.
+      const onKey = (ev) => { if (ev.key === 'Escape' && !ev.defaultPrevented && !(ev.target && typeof ev.target.closest === 'function' && ev.target.closest('.mwt-aside'))) showAside(false) }
+      window.addEventListener('keydown', onKey)
+      return () => window.removeEventListener('keydown', onKey)
+    }, [shown, split])
+    const root = (...children) => h('div', { ref: rootRef, className: 'mwt mwt-task-screen', 'data-mwt-task': id }, h('style', null, STYLE), ...children)
+    if (!task) return root(h('div', { className: 'mwt-page' }, !s.loadedAt && !s.error ? h(Skeleton, { rows: 3 }) : h('div', { className: 'mwt-empty' }, t('none'))))
     const scenarioLabel = (s.scenarios.find((x) => x.id === task.scenario) || {}).label || task.scenario
-    const meta = [live ? task.statusLabel : task.error ? t('failedTitle') : verdictWord(task), task.scenario !== 'general' ? scenarioLabel : '', fmtDate(task.finishedAt || task.createdAt)].filter(Boolean).join(' · ')
+    const meta = waiting ? [t('needsYou'), ago((task.ask && task.ask.at) || task.attentionAt)].filter(Boolean).join(' · ')
+      : [live ? task.statusLabel : task.error ? t('failedTitle') : verdictWord(task), task.scenario !== 'general' ? scenarioLabel : '', fmtDate(task.finishedAt || task.createdAt)].filter(Boolean).join(' · ')
     const latest = docs.length ? docs[docs.length - 1] : null
     const rerun = () => api('/rerun', { id }).then((d) => { refresh().then(schedulePoll); if (d.task) openTask(d.task.id) })
     const menu = [
@@ -962,25 +1187,47 @@ function makeComponents(ctx, t) {
     const saveTitle = (title) => { const v = String(title || '').trim(); setRenaming(false); if (!v || v === task.title) return; api('/rename', { id, title: v }).then(() => refresh()).catch(() => {}) }
     const remove = () => { if (busy) return; setBusy(true); api('/remove', { id }).then(() => refresh()).then(() => onBack()).catch(() => setBusy(false)) }
     const onRate = rateIn(setDetail)
-    const entries = threadOf(full, docs)
-    return h('div', null,
-      h('div', { className: 'mwt-toolbar' }, h('button', { type: 'button', className: 'mwt-btn ghost round', 'aria-label': t('back'), onClick: onBack }, icon('arrow-left', { size: 15 })), h('span', { className: 'grow' }), h(Menu, { items: menu })),
-      renaming ? h(TitleEdit, { value: task.title, onDone: saveTitle }) : h('h1', { className: 'mwt-task-title' }, task.title),
-      h('p', { className: 'mwt-task-meta' }, meta),
-      confirm ? h('div', { className: 'mwt-confirm', role: 'alertdialog' }, h('span', null, t('removeAsk')), h('button', { type: 'button', className: 'mwt-btn danger', disabled: busy, onClick: remove }, t('remove')), h('button', { type: 'button', className: 'mwt-btn ghost', onClick: () => setConfirm(false) }, t('cancel'))) : null,
-      h('section', { className: 'mwt-thread task' }, entries.map((e) => {
-        if (e.kind === 'user') return h('div', { key: e.key, className: 'mwt-turn user' }, h('div', { className: 'mwt-bubble' }, e.text))
-        if (e.kind === 'deliver') return h('div', { key: e.key, className: 'mwt-turn ai' }, h(Doc, { d: e.d }), h(DeliverMeta, { d: e.d, verify: e.verify, onRate }))
-        if (e.kind === 'text') return h('div', { key: e.key, className: 'mwt-turn ai' }, h(Markdown, { text: e.text }))
-        if (e.kind === 'thinking') return h('div', { key: e.key, className: 'mwt-turn ai mwt-thinking' }, h('span', null, [t('doing'), e.step, elapsedOf(task)].filter(Boolean).join(' · ')))
-        if (e.kind === 'failed') return h('div', { key: e.key, className: 'mwt-turn ai' }, h('div', { className: 'mwt-failed' }, h('span', null, t('failedTitle') + ' · ' + e.reason), h('button', { type: 'button', className: 'mwt-btn ghost', onClick: rerun }, t('rerun'))))
-        return null
-      })),
-      h(Process, { task: full, live }),
-      h(Say, { task }))
+    // 找人: POST /answer, then the returned task (activity included) settles the card at once; the poll brings the new status.
+    const answer = (askId, value) => api('/answer', { id, askId, answer: value }).then((d) => {
+      if (d && d.task && Array.isArray(d.task.activity)) setDetail((prev) => (prev && prev.task && prev.task.id === id ? { ...prev, task: d.task } : prev))
+      refresh().then(schedulePoll)
+    })
+    const takeover = aside ? () => showAside(true) : null
+    const thread = threadOf(full, docs)
+    const title = aside ? asideTitle(aside) || t('computer') : ''
+    const asidePanel = (mode) => h('aside', { className: 'mwt-aside ' + mode, 'data-open': mode === 'over' ? shown : undefined, 'aria-label': title, 'aria-hidden': mode === 'over' && !shown ? 'true' : undefined, style: mode === 'col' && box.h ? { maxHeight: Math.max(240, box.h - 32) } : undefined },
+      h('div', { className: 'mwt-aside-head' },
+        h('span', { className: 'title' }, title),
+        h('button', { type: 'button', className: 'mwt-btn ghost round', 'aria-label': t('close'), onClick: () => showAside(false) }, icon('x', { size: 14 }))),
+      shown ? h('div', { className: 'mwt-aside-body' }, renderSlot(ASIDE_SLOT, { task: full, deliverables: docs, live: running }, { only: aside.id })) : null)
+    return root(
+      aside && !split ? h('div', { className: 'mwt-aside-dock' }, h('div', { className: 'mwt-aside-clip', style: box.h ? { height: box.h } : undefined }, asidePanel('over'))) : null,
+      h('div', { className: 'mwt-page' + (shown && split ? ' split' : '') },
+        h('div', { className: 'mwt-col' },
+          h('div', { className: 'mwt-toolbar' },
+            h('button', { type: 'button', className: 'mwt-btn ghost round', 'aria-label': t('back'), onClick: onBack }, icon('arrow-left', { size: 15 })),
+            h('span', { className: 'grow' }),
+            aside ? h('button', { type: 'button', className: 'mwt-btn ghost round', 'aria-label': t('computer'), 'aria-pressed': shown, onClick: () => showAside(!shown) }, icon('monitor', { size: 15 })) : null,
+            h(Menu, { items: menu })),
+          renaming ? h(TitleEdit, { value: task.title, onDone: saveTitle }) : h('h1', { className: 'mwt-task-title' }, task.title),
+          h('p', { className: 'mwt-task-meta' }, meta),
+          confirm ? h('div', { className: 'mwt-confirm', role: 'alertdialog' }, h('span', null, t('removeAsk')), h('button', { type: 'button', className: 'mwt-btn danger', disabled: busy, onClick: remove }, t('remove')), h('button', { type: 'button', className: 'mwt-btn ghost', onClick: () => setConfirm(false) }, t('cancel'))) : null,
+          h('section', { className: 'mwt-thread task' }, thread.map((e) => {
+            if (e.kind === 'user') return h('div', { key: e.key, className: 'mwt-turn user' }, h('div', { className: 'mwt-bubble' }, e.text))
+            if (e.kind === 'deliver') return h('div', { key: e.key, className: 'mwt-turn ai' }, h(Doc, { d: e.d }), h(DeliverMeta, { d: e.d, verify: e.verify, onRate }))
+            if (e.kind === 'text') return h('div', { key: e.key, className: 'mwt-turn ai' }, h(Markdown, { text: e.text }))
+            if (e.kind === 'ask') return h('div', { key: e.key, className: 'mwt-turn ai' }, h(AskCard, { e, onAnswer: answer, onTakeover: takeover }))
+            if (e.kind === 'auto') return h('div', { key: e.key, className: 'mwt-turn ai' }, h('div', { className: 'mwt-askline' }, h('span', null, t('askAuto'))))
+            if (e.kind === 'thinking') return h('div', { key: e.key, className: 'mwt-turn ai mwt-thinking' }, h('span', null, [t('doing'), e.step, elapsedOf(task)].filter(Boolean).join(' · ')))
+            if (e.kind === 'failed') return h('div', { key: e.key, className: 'mwt-turn ai' }, h('div', { className: 'mwt-failed' }, h('span', null, t('failedTitle') + ' · ' + e.reason), h('button', { type: 'button', className: 'mwt-btn ghost', onClick: rerun }, t('rerun'))))
+            return null
+          })),
+          h(Process, { task: full, live: running }),
+          h(Say, { task, onAnswer: answer })),
+        shown && split ? asidePanel('col') : null))
   }
 
-  function TasksPage() {
+  function TasksPage({ renderSlot }) {
     const s = usePolling()
     const [filter, setFilter] = React.useState('all')
     const [q, setQ] = React.useState('')
@@ -994,20 +1241,22 @@ function makeComponents(ctx, t) {
       if (nav.pendingTask) { setOpen(nav.pendingTask); nav.pendingTask = '' }
       return () => { window.removeEventListener('mywork:open-task', onOpen); window.removeEventListener('mywork:panel-home', onHome) }
     }, [])
-    useTick(s.items.some((x) => x.status !== 'done'))
+    useTick(!open && s.items.some(working))
+    // A task page is its own screen (its root holds the aside); keyed so each task starts closed and at its title.
+    if (open) return h(TaskDetail, { key: open, id: open, onBack: () => setOpen(''), renderSlot })
     const needle = q.trim().toLowerCase()
     const hit = (x) => !needle || String(x.title || '').toLowerCase().includes(needle) || String(x.input || '').toLowerCase().includes(needle) || (x.deliverables || []).some((d) => String(d.title || '').toLowerCase().includes(needle))
     const items = s.items.filter((x) => (filter === 'all' ? true : filter === 'active' ? x.status !== 'done' : filter === 'delivered' ? x.deliverables.length > 0 : x.status === 'done') && hit(x))
     const state = (x) => x.status !== 'done' ? (x.currentStep || x.statusLabel) : x.error ? t('failedTitle') : x.verification && x.verification.passed === false ? t('verifyIssues') : x.deliverables.length ? (x.verification && x.verification.passed ? t('verified') : t('delivered')) : t('answered')
+    const glyphOf = (x) => x.status === 'waiting' ? { glyph: 'message-circle', spin: false, tone: 'warn' } : x.status !== 'done' ? { glyph: 'loader', spin: true, tone: 'live' } : x.error ? { glyph: 'circle-x', spin: false, tone: 'danger' } : { glyph: 'circle-check', spin: false, tone: 'success' }
     return h('div', { className: 'mwt' }, h('style', null, STYLE), h('div', { className: 'mwt-page' },
-      open ? h(TaskDetail, { id: open, onBack: () => setOpen('') }) : h(React.Fragment, null,
-        h('div', { className: 'mwt-title' }, h('h1', null, t('tasks'))),
-        h('div', { className: 'mwt-filters' },
-          h('div', { className: 'mwt-chips', style: { margin: 0 } }, [['all', t('all')], ['active', t('active')], ['delivered', t('deliverables')]].map(([k, label]) => h('button', { key: k, type: 'button', className: 'mwt-chip', 'data-on': filter === k, onClick: () => setFilter(k) }, label))),
-          h('label', { className: 'mwt-search' }, icon('search', { size: 14 }), h('input', { type: 'search', value: q, placeholder: t('search'), 'aria-label': t('search'), onChange: (e) => setQ(e.target.value) }))),
-        !s.loadedAt && !s.error ? h(Skeleton, { rows: 4 })
-          : items.length ? h('div', { className: 'mwt-list' }, items.map((x) => h(Row, { key: x.id, row: { glyph: x.status !== 'done' ? 'loader' : x.error ? 'circle-x' : 'circle-check', spin: x.status !== 'done', tone: x.status !== 'done' ? 'live' : x.error ? 'danger' : 'success', title: x.title, state: state(x) + ' · ' + fmtTime(x.finishedAt || x.createdAt), open: () => setOpen(x.id) } })))
-          : h('div', { className: 'mwt-empty' }, s.error || (needle ? t('noMatch') : t('none'))))))
+      h('div', { className: 'mwt-title' }, h('h1', null, t('tasks'))),
+      h('div', { className: 'mwt-filters' },
+        h('div', { className: 'mwt-chips', style: { margin: 0 } }, [['all', t('all')], ['active', t('active')], ['delivered', t('deliverables')]].map(([k, label]) => h('button', { key: k, type: 'button', className: 'mwt-chip', 'data-on': filter === k, onClick: () => setFilter(k) }, label))),
+        h('label', { className: 'mwt-search' }, icon('search', { size: 14 }), h('input', { type: 'search', value: q, placeholder: t('search'), 'aria-label': t('search'), onChange: (e) => setQ(e.target.value) }))),
+      !s.loadedAt && !s.error ? h(Skeleton, { rows: 4 })
+        : items.length ? h('div', { className: 'mwt-list' }, items.map((x) => h(Row, { key: x.id, row: { ...glyphOf(x), title: x.title, state: state(x) + ' · ' + fmtTime(x.finishedAt || x.createdAt), open: () => setOpen(x.id) } })))
+        : h('div', { className: 'mwt-empty' }, s.error || (needle ? t('noMatch') : t('none')))))
   }
 
   function DeliverablesPage() {
@@ -1133,9 +1382,16 @@ function makeComponents(ctx, t) {
         try { if (typeof Notification !== 'undefined' && Notification.permission === 'granted') new Notification((task.error ? t('failedToast') : t('doneToast')) + ' · ' + task.title, { body: task.error || task.summary || '' }) } catch {}
       }
       completionListeners.add(onDone)
+      // 需要你: a task stopped on a question. One toast per stop, none for the task page you are looking at.
+      const onWaiting = (task) => {
+        if (taskOnScreen(task.id)) return
+        setToasts((prev) => [...prev.filter((x) => !(x.asking && x.asking.id === task.id)).slice(-3), { id: 'w' + task.id + ':' + Date.now(), asking: task }])
+        try { if (typeof Notification !== 'undefined' && Notification.permission === 'granted') new Notification(t('needsYouToast') + ' · ' + task.title, { body: task.ask ? plainWords(task.ask.question) : '' }) } catch {}
+      }
+      waitingListeners.add(onWaiting)
       const onNotice = (title, body) => setToasts((prev) => [...prev.slice(-3), { id: 'n' + Date.now(), notice: { title, body } }])
       noticeListeners.add(onNotice)
-      return () => { completionListeners.delete(onDone); noticeListeners.delete(onNotice) }
+      return () => { completionListeners.delete(onDone); waitingListeners.delete(onWaiting); noticeListeners.delete(onNotice) }
     }, [])
     // Reminders: a new pending reminder pops a toast and a browser notification once.
     const seen = React.useRef(new Set())
@@ -1152,14 +1408,18 @@ function makeComponents(ctx, t) {
     }, [st.reminders])
     React.useEffect(() => { if (!toasts.length) return; const id = setTimeout(() => setToasts((prev) => prev.slice(1)), 8000); return () => clearTimeout(id) }, [toasts])
     if (!toasts.length) return null
-    return h('div', { className: 'mwt mwt-toasts' }, h('style', null, STYLE), toasts.map(({ id, task, notice }) => notice
+    return h('div', { className: 'mwt mwt-toasts' }, h('style', null, STYLE), toasts.map(({ id, task, notice, asking }) => notice
       ? h('div', { key: id, className: 'mwt-toast' }, h('span', { className: 'mwt-dot' }, icon('bell', { size: 16 })), h('div', null, h('b', null, notice.title), notice.body ? h('span', null, notice.body) : null), h('button', { type: 'button', className: 'mwt-btn', onClick: () => setToasts((prev) => prev.filter((x) => x.id !== id)) }, t('gotIt')))
+      : asking ? h('div', { key: id, className: 'mwt-toast' },
+        h('span', { className: 'mwt-dot', 'data-s': 'waiting' }, icon('message-circle', { size: 16 })),
+        h('div', null, h('b', null, t('needsYouToast') + ' · ' + asking.title), asking.ask && asking.ask.question ? h('span', null, plainWords(asking.ask.question)) : null),
+        h('button', { type: 'button', className: 'mwt-btn', onClick: () => { setToasts((prev) => prev.filter((x) => x.id !== id)); openTask(asking.id) } }, t('open')))
       : h('div', { key: id, className: 'mwt-toast' },
         h(StatusDot, { task }), h('div', null, h('b', null, task.title), h('span', null, task.error || task.summary || '')),
         h('button', { type: 'button', className: 'mwt-btn', onClick: () => { setToasts((prev) => prev.filter((x) => x.id !== id)); openTask(task.id) } }, t('open')))))
   }
 
-  return { TodayPage, CreatePage, TasksPage, DeliverablesPage, RoutinesPage, ScenariosPage, Overlay, openToday, openTask, openRoutine, openDeliverable, openDeliverables, newTask }
+  return { TodayPage, CreatePage, TasksPage, DeliverablesPage, RoutinesPage, ScenariosPage, Overlay, openToday, openTask, openRoutine, openDeliverable, openDeliverables, newTask, notifyAside }
 }
 
 // ---- plugin -----------------------------------------------------------------
@@ -1175,13 +1435,16 @@ exports.apply = function apply(ctx) {
   ctx.effect(() => { if (document.querySelector('link[data-mywork-display-cjk]')) return () => {}; const link = document.createElement('link'); link.rel = 'stylesheet'; link.href = 'https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500&display=swap'; link.setAttribute('data-mywork-display-cjk', ''); document.head.appendChild(link); return () => { link.remove() } }, PLUGIN + ': display serif')
   const t = ctx.locale.bind(NS)
   const c = makeComponents(ctx, t)
-  const page = (key, order, label, iconName, Component) => {
-    ctx.slots.inject('main', () => ctx.slots.register({ name: 'main', key, locale: NS, inject: () => ({}) }, function MyworkPage() { return h(Component) }))
+  // `children` declares child slots on the page entry; dsh then hands the page a bound `renderSlot` for them.
+  const page = (key, order, label, iconName, Component, children) => {
+    ctx.slots.inject('main', () => ctx.slots.register({ name: 'main', key, locale: NS, inject: () => ({}), ...(children ? { children } : {}) }, function MyworkPage(props) { return h(Component, { renderSlot: props && typeof props.renderSlot === 'function' ? props.renderSlot : null }) }))
     ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({ name: 'sidebar.panellist', id: key, order, locale: NS, label: () => t(label), inject: () => ({}) }, function MyworkPageIcon() { return icon(iconName, { size: 16, strokeWidth: 1.6 }) }))
   }
   page(PANELS.today, 1, 'today', 'sun', c.TodayPage)
   ctx.slots.inject('main', () => ctx.slots.register({ name: 'main', key: PANELS.create, locale: NS, inject: () => ({}) }, function MyworkCreate() { return h(c.CreatePage) }))
-  page(PANELS.tasks, 2, 'tasks', 'list-checks', c.TasksPage)
+  // The 任务 page declares 这台电脑 (list, root scope): other members register the aside's sections into it.
+  page(PANELS.tasks, 2, 'tasks', 'list-checks', c.TasksPage, { [ASIDE_SLOT]: { kind: 'list', scope: 'root' } })
+  ctx.effect(() => { try { return ctx.slots.subscribe(ASIDE_SLOT, c.notifyAside) } catch { return () => {} } }, PLUGIN + ': thread aside entries')
   page(PANELS.routines, 3, 'routines', 'history', c.RoutinesPage)
   // Reachable, not navigated: deliverables open through their task; 领域 through 设置.
   ctx.slots.inject('main', () => ctx.slots.register({ name: 'main', key: PANELS.deliverables, locale: NS, inject: () => ({}) }, function MyworkDeliverables() { return h(c.DeliverablesPage) }))

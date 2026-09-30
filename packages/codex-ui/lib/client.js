@@ -2520,8 +2520,8 @@ window.__ModuleLoader__.load({
 		const useLegacyPanelInfo$1 = (selector) => selector({ activePanelId: null });
 		const stylesheet$5 = `
 /* Tokens: design/v2/DESIGN.md §2. The column is --surface beside a --bg page; rows step to --surface-2. */
-.mws{--bg:#ffffff;--surface:#f6f5f4;--surface-2:#efedeb;--fg:rgba(0,0,0,.92);--fg-2:#31302e;--muted:#615d59;--meta:#75706a;--border:rgba(0,0,0,.1);--border-soft:rgba(0,0,0,.06);--border-strong:rgba(0,0,0,.22);--success:#127e28;--danger:#c0392b;--focus-ring:0 0 0 3px rgba(0,117,222,.25);--motion-fast:150ms;--ease-standard:cubic-bezier(.2,0,0,1);position:relative;width:100%;height:100%;min-width:0;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;background:var(--surface);color:var(--fg);box-shadow:inset -1px 0 var(--border-soft);font:14px/20px -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei UI",sans-serif;-webkit-font-smoothing:antialiased}
-body[data-ds-dark-theme] .mws{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a;--fg:rgba(255,255,255,.9);--fg-2:#e6e4e0;--muted:#9b9893;--meta:#8a867f;--border:rgba(255,255,255,.1);--border-soft:rgba(255,255,255,.06);--border-strong:rgba(255,255,255,.22);--success:#4dab7a;--danger:#e26e63;--focus-ring:0 0 0 3px rgba(82,156,202,.35)}
+.mws{--bg:#ffffff;--surface:#f6f5f4;--surface-2:#efedeb;--fg:rgba(0,0,0,.92);--fg-2:#31302e;--muted:#615d59;--meta:#75706a;--border:rgba(0,0,0,.1);--border-soft:rgba(0,0,0,.06);--border-strong:rgba(0,0,0,.22);--success:#127e28;--warn:#b5480a;--danger:#c0392b;--focus-ring:0 0 0 3px rgba(0,117,222,.25);--motion-fast:150ms;--ease-standard:cubic-bezier(.2,0,0,1);position:relative;width:100%;height:100%;min-width:0;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;background:var(--surface);color:var(--fg);box-shadow:inset -1px 0 var(--border-soft);font:14px/20px -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei UI",sans-serif;-webkit-font-smoothing:antialiased}
+body[data-ds-dark-theme] .mws{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a;--fg:rgba(255,255,255,.9);--fg-2:#e6e4e0;--muted:#9b9893;--meta:#8a867f;--border:rgba(255,255,255,.1);--border-soft:rgba(255,255,255,.06);--border-strong:rgba(255,255,255,.22);--success:#4dab7a;--warn:#e08a3c;--danger:#e26e63;--focus-ring:0 0 0 3px rgba(82,156,202,.35)}
 .mws *{box-sizing:border-box}
 .mws button{font-family:inherit;transition:background-color var(--motion-fast) var(--ease-standard),color var(--motion-fast) var(--ease-standard),transform var(--motion-fast) var(--ease-standard)}
 .mws button:active{transform:scale(.98)}
@@ -2543,7 +2543,7 @@ body[data-ds-dark-theme] .mws{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 .mws-glyph{display:inline-grid;place-items:center;width:20px;height:20px;color:var(--meta)}
 .mws-glyph svg{display:block}
 .mws-glyph[data-s=running] svg,.mws-glyph[data-s=delivering] svg,.mws-glyph[data-s=verifying] svg{animation:mws-spin 1.6s linear infinite;color:var(--fg-2)}
-.mws-glyph[data-s=ok]{color:var(--success)}.mws-glyph[data-s=err]{color:var(--danger)}
+.mws-glyph[data-s=ok]{color:var(--success)}.mws-glyph[data-s=err]{color:var(--danger)}.mws-glyph[data-s=waiting]{color:var(--warn)}
 @keyframes mws-spin{to{transform:rotate(360deg)}}
 .mws-main{min-width:0}
 .mws-line{display:flex;align-items:center;min-width:0}
@@ -2714,7 +2714,7 @@ body[data-ds-dark-theme] .mws{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 			return /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 				className: "mws-glyph",
 				"data-s": v,
-				children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(v === "ok" ? CircleCheck : v === "err" ? CircleX : v === "queued" ? RotateCcwClock : Loader, {
+				children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(v === "ok" ? CircleCheck : v === "err" ? CircleX : v === "queued" ? RotateCcwClock : v === "waiting" ? MessageCircle : Loader, {
 					size: 16,
 					strokeWidth: 1.5
 				})
@@ -2802,7 +2802,7 @@ body[data-ds-dark-theme] .mws{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 					const routineItems = rd !== null && Array.isArray(rd.items) ? rd.items : d !== null && Array.isArray(d.routines) ? d.routines : void 0;
 					if (routineItems !== void 0) setRoutines(routineItems);
 					window.clearTimeout(timer.current);
-					timer.current = window.setTimeout(load, (items ?? []).some((x) => x.status !== "done") ? FAST_MS : SLOW_MS);
+					timer.current = window.setTimeout(load, (items ?? []).some((x) => x.status !== "done" && x.status !== "waiting") ? FAST_MS : SLOW_MS);
 				}).catch(() => {
 					window.clearTimeout(timer.current);
 					timer.current = window.setTimeout(load, SLOW_MS);
@@ -2861,14 +2861,14 @@ body[data-ds-dark-theme] .mws{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 				};
 			}, [needle]);
 			const mine = (0, react.useMemo)(() => tasks.filter((x) => x.scenario !== "assistant" && !x.routineId), [tasks]);
-			const live = tasks.some((x) => x.status !== "done");
+			const live = tasks.some((x) => x.status !== "done" && x.status !== "waiting");
 			const now = /* @__PURE__ */ new Date();
 			const today = (0, react.useMemo)(() => {
 				const assistant = tasks.filter((x) => x.scenario === "assistant").map(taskRow).sort(byLastAt)[0];
-				const running = mine.filter((x) => x.status !== "done").length;
+				const running = mine.filter((x) => x.status !== "done" && x.status !== "waiting").length;
 				const dayStart = /* @__PURE__ */ new Date();
 				dayStart.setHours(0, 0, 0, 0);
-				const waiting = reminders.length + mine.filter((x) => x.status === "done" && ms(str(x.finishedAt) || str(x.createdAt)) >= dayStart.getTime() && (str(x.error) !== "" && !/已取消/.test(str(x.error)) || x.verification?.passed === false)).length;
+				const waiting = reminders.length + mine.filter((x) => x.status === "waiting").length + mine.filter((x) => x.status === "done" && ms(str(x.finishedAt) || str(x.createdAt)) >= dayStart.getTime() && (str(x.error) !== "" && !/已取消/.test(str(x.error)) || x.verification?.passed === false)).length;
 				const counts = [running > 0 ? `${running} ${t("v2.running1")}` : "", waiting > 0 ? `${waiting} ${t("v2.waiting1")}` : ""].filter((x) => x !== "").join(" · ");
 				const thinking = assistant !== void 0 && assistant.status !== "done" ? assistant.preview : "";
 				const preview = counts !== "" ? counts : assistant === void 0 ? "" : str(tasks.find((x) => x.id === assistant.id)?.preview) || thinking;

@@ -99,3 +99,89 @@ test('verification states are read from the task, live', () => {
   // Re-verifying a finished task: the old verdict gives way to 核验中.
   assert.equal(threadOf(task({ status: 'verifying', verification: { passed: true, checked: 1, issues: 0 } }), [{ id: 'd1', createdAt: at(10) }])[1].verify.kind, 'verifying')
 })
+
+// ---- 找人 (§2.7): questions in the thread ------------------------------------------------------------------------------
+const ask = (s, over) => ({ kind: 'ask', id: 'ask-' + s, at: at(s), status: 'pending', question: '发给谁？', askKind: 'text', ...over })
+
+test('a waiting task ends on its open question: no 在做 line, the narration before it stays in 过程', () => {
+  const t = task({ status: 'waiting', finishedAt: '', statusLabel: '等你答', activity: [
+    { kind: 'text', at: at(2), text: '我需要确认收件人。' },
+    { kind: 'tool', at: at(3), name: 'mywork_ask', detail: '{}' },
+    ask(4, { askKind: 'choice', options: ['王总', '李总'], detail: '正文' }),
+  ] })
+  const th = threadOf(t, [])
+  assert.deepEqual(kinds(th), ['user', 'ask'])
+  const q = th[1]
+  assert.equal(q.status, 'pending')
+  assert.equal(q.answerable, true)
+  assert.equal(q.askKind, 'choice')
+  assert.deepEqual(q.options, ['王总', '李总'])
+  assert.equal(q.detail, '正文')
+  assert.equal(q.id, 'ask-4')
+  assert.ok(!th.some((e) => e.kind === 'text' || e.kind === 'thinking'))
+})
+
+test('the answer line is not a bubble: the question shows the answer and the run goes on', () => {
+  const activity = [
+    { kind: 'text', at: at(2), text: '我需要确认收件人。' },
+    ask(4, { status: 'answered', answer: '王总', answeredAt: at(20) }),
+    { kind: 'user', at: at(20), text: '回答：王总', askId: 'ask-4' },
+  ]
+  // Resumed and working: the question (answered), then the working line.
+  const running = threadOf(task({ status: 'running', finishedAt: '', currentStep: '发送', activity }), [])
+  assert.deepEqual(kinds(running), ['user', 'ask', 'thinking'])
+  assert.equal(running[1].status, 'answered')
+  assert.equal(running[1].answer, '王总')
+  assert.equal(running[1].answerable, false)
+  // Done with a deliverable after the answer: it stays in the same run, under the question, and the reply follows.
+  const done = threadOf(task({ activity: activity.concat([{ kind: 'text', at: at(30), text: '已写好，见上。' }]) }), [{ id: 'd1', createdAt: at(25) }])
+  assert.deepEqual(kinds(done), ['user', 'ask', 'deliver', 'text'])
+  assert.equal(done[3].text, '已写好，见上。')
+  assert.ok(!done.some((e) => e.kind === 'user' && /回答：/.test(e.text)))
+  // Done without a deliverable: the final text after the question is the reply; the text before it is not.
+  const answered = threadOf(task({ activity: activity.concat([{ kind: 'text', at: at(30), text: '发好了。' }]) }), [])
+  assert.deepEqual(kinds(answered), ['user', 'ask', 'text'])
+  assert.equal(answered[2].text, '发好了。')
+})
+
+test('a follow-up after an answered question still opens its own run', () => {
+  const t = task({ activity: [
+    ask(4, { status: 'answered', answer: '王总' }),
+    { kind: 'user', at: at(10), text: '回答：王总', askId: 'ask-4' },
+    { kind: 'text', at: at(15), text: '发好了。' },
+    { kind: 'user', at: at(40), text: '再抄送李总' },
+    { kind: 'text', at: at(45), text: '已抄送。' },
+  ] })
+  const th = threadOf(t, [])
+  assert.deepEqual(kinds(th), ['user', 'ask', 'text', 'user', 'text'])
+  assert.deepEqual(th.filter((e) => e.kind === 'user').map((e) => e.text), ['把 README 整理成一页', '再抄送李总'])
+})
+
+test('only the newest pending question is answerable; older ones read as no longer waiting', () => {
+  const t = task({ status: 'waiting', finishedAt: '', activity: [
+    ask(3, { status: 'superseded' }),
+    { kind: 'text', at: at(5), text: '换个问法。' },
+    { kind: 'ask', id: 'ask-legacy', at: at(6), question: '旧的', askKind: 'text' }, // legacy entry without a status: open
+    ask(8, { question: '新的' }),
+  ] })
+  const qs = threadOf(t, []).filter((e) => e.kind === 'ask')
+  assert.deepEqual(qs.map((q) => q.status), ['superseded', 'superseded', 'pending'])
+  assert.deepEqual(qs.map((q) => q.answerable), [false, false, true])
+  // A question just written while the turn is still ending (status not yet waiting) cannot be answered yet.
+  const ending = threadOf(task({ status: 'running', finishedAt: '', activity: [ask(4)] }), [])
+  assert.deepEqual(kinds(ending), ['user', 'ask', 'thinking'])
+  assert.equal(ending[1].answerable, false)
+})
+
+test('the 24 h resume is one muted line after the expired question, and the reply follows', () => {
+  const t = task({ activity: [
+    ask(4, { status: 'expired' }),
+    { kind: 'user', at: at(86410), text: '用户 24 小时没有回答，按合理假设继续，并在结果里写明假设', auto: true, askId: 'ask-4' },
+    { kind: 'text', at: at(86420), text: '按王总处理，已发送。' },
+  ] })
+  const th = threadOf(t, [])
+  assert.deepEqual(kinds(th), ['user', 'ask', 'auto', 'text'])
+  assert.equal(th[1].status, 'expired')
+  assert.equal(th[3].text, '按王总处理，已发送。')
+  assert.ok(!th.some((e) => e.kind === 'user' && /24 小时/.test(e.text)))
+})

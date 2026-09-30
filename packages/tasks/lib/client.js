@@ -204,7 +204,7 @@ const zh = {
   packsEmpty: '还没有装领域包。交易工作台是第一个。',
   hero: '你要什么结果？', ask: '今天要做什么', askRoutine: '安排一件例行的事，比如每天 9 点给我一份简报', hint: '回车创建，Shift + 回车换行。任务在后台完成，做完通知你。',
   running: '进行中', recent: '最近', none: '还没有任务。', noneRunning: '现在没有在跑的任务。', noneDeliverables: '还没有交付物。',
-  all: '全部', active: '进行中', finished: '已完成', back: '返回', rerun: '再来一次', cancel: '取消', process: '过程', verifyAgain: '重新核验',
+  all: '全部', active: '进行中', finished: '已完成', back: '返回', rerun: '再来一次', cancel: '取消', process: '过程', verifyAgain: '重新核验', times: '次', phases: '步', verifyLabel: '核验', passed: '通过',
   progress: '进度', deliverable: '交付物', waitingDeliverable: '做完后交付物出现在这里。', failedTitle: '失败',
   queued: '排队', input: '你说的', elapsed: '用时', scenario: '场景', create: '创建', creating: '创建中…', openTask: '打开任务',
   ratingGood: '有用', ratingBad: '没用', exportMd: '导出 Markdown', exportPdf: '导出 PDF', none2: '无',
@@ -223,7 +223,7 @@ const en = {
   packsEmpty: 'No domain packs installed yet. The trading workbench is the first.',
   hero: 'What do you want done?', ask: 'What needs doing today', askRoutine: 'Schedule something, e.g. a brief every day at 9', hint: 'Enter creates the task, Shift + Enter for a new line. It runs in the background and notifies you when done.',
   running: 'In progress', recent: 'Recent', none: 'No tasks yet.', noneRunning: 'Nothing is running.', noneDeliverables: 'No deliverables yet.',
-  all: 'All', active: 'Active', finished: 'Finished', back: 'Back', rerun: 'Run again', cancel: 'Cancel', process: 'Process', verifyAgain: 'Verify again',
+  all: 'All', active: 'Active', finished: 'Finished', back: 'Back', rerun: 'Run again', cancel: 'Cancel', process: 'Process', verifyAgain: 'Verify again', times: 'calls', phases: 'steps', verifyLabel: 'Verification', passed: 'passed',
   progress: 'Progress', deliverable: 'Deliverable', waitingDeliverable: 'The deliverable appears here when the task finishes.', failedTitle: 'Failed',
   queued: 'Queued', input: 'Your request', elapsed: 'Elapsed', scenario: 'Scenario', create: 'Create', creating: 'Creating…', openTask: 'Open task',
   ratingGood: 'Useful', ratingBad: 'Not useful', exportMd: 'Export Markdown', exportPdf: 'Export PDF', none2: 'none',
@@ -403,6 +403,24 @@ body[data-ds-dark-theme] .mwt{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 .mwt-step{display:inline-flex;align-items:center;gap:6px;padding:2px 8px;border-radius:9999px;background:var(--surface);font-size:12px;line-height:16px;color:var(--muted);font-variant-numeric:tabular-nums}
 .mwt-step[data-live=true]{color:var(--fg-2);border:1px solid var(--border);padding:1px 7px}
 .mwt-stream{position:relative;padding:2px 0;max-height:72vh;overflow:auto}
+.mwt-phases{padding:0 0 10px}
+.mwt-phase-head{appearance:none;display:grid;grid-template-columns:18px auto auto minmax(0,1fr);column-gap:10px;align-items:center;width:100%;min-height:30px;padding:3px 0;border:0;background:transparent;color:var(--fg);font:inherit;font-size:13px;line-height:20px;text-align:left;cursor:default}
+button.mwt-phase-head{cursor:pointer}
+button.mwt-phase-head:hover .verb,button.mwt-phase-head:hover .obj{color:var(--fg)}
+.mwt-phase-head .ic{display:flex;align-items:center;justify-content:center;height:20px;color:var(--meta)}
+.mwt-phase-head[data-tone=live] .ic{color:var(--fg-2)}
+.mwt-phase-head[data-tone=live] .ic svg{animation:mwt-spin 1.6s linear infinite}
+.mwt-phase-head[data-tone=danger] .ic{color:var(--danger)}
+.mwt-phase-head .verb{font-weight:500;color:var(--fg-2);white-space:nowrap}
+.mwt-phase-head .meta{color:var(--meta);font-variant-numeric:tabular-nums;white-space:nowrap}
+.mwt-phase-head .obj{min-width:0;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mwt-phase-body{margin:2px 0 10px 8px;padding-left:19px;border-left:1px solid var(--border-soft)}
+.mwt-phase-body .mwt-ev{padding:2px 0}
+.mwt-phase-note{display:grid;grid-template-columns:18px minmax(0,1fr);column-gap:10px;padding:5px 0;font-size:13px;line-height:1.6;color:var(--fg);cursor:pointer}
+.mwt-phase-note .ic{display:flex;justify-content:center;padding-top:2px;color:var(--meta)}
+.mwt-phase-note .body{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-wrap;word-break:break-word;color:var(--muted)}
+.mwt-phase-note.open .body{display:block;color:var(--fg)}
+.mwt-phase-note .lbl{color:var(--fg-2);font-weight:500}
 .mwt-ev{position:relative;display:grid;grid-template-columns:18px minmax(0,1fr);column-gap:12px;padding:4px 0;font-size:13px;line-height:20px}
 .mwt-ev .ic{display:flex;align-items:center;justify-content:center;height:20px;color:var(--meta)}
 .mwt-ev[data-ok=true] .ic{color:var(--success)}
@@ -784,21 +802,6 @@ function makeComponents(ctx, t) {
         list.length > 3 && !all ? h('button', { type: 'button', className: 'mwt-row mwt-row-more', onClick: () => setAll(true) }, h('span', { className: 'mwt-dot' }), h('span', { className: 'mwt-row-main' }, h('span', { className: 'mwt-row-title' }, t('moreRows').replace('{n}', String(list.length - 3)))), h('span', { className: 'mwt-row-state' }, icon('arrow-left', { size: 14, style: { transform: 'rotate(-90deg)' } }))) : null))
   }
 
-  function Activity({ task, live }) {
-    const list = Array.isArray(task.activity) ? task.activity : []
-    const ref = React.useRef(null)
-    React.useEffect(() => { if (live && ref.current) ref.current.scrollTop = ref.current.scrollHeight }, [list.length, live])
-    if (!list.length) return h('div', { className: 'mwt-empty' }, live ? task.statusLabel + '…' : t('none2'))
-    return h('div', { className: 'mwt-stream', ref }, list.map((e, i) => e.kind === 'handoff'
-      ? h('div', { key: i, className: 'mwt-ev' }, h('span', { className: 'ic' }, icon(e.target === 'task' ? 'list-checks' : 'history', { size: 13 })), h('div', { className: 'line' }, h('button', { type: 'button', className: 'mwt-handoff', style: { margin: 0 }, onClick: () => { if (e.target === 'task') openTask(e.id); else openRoutine(e.id) } }, (e.target === 'task' ? t('handedOff') : t('scheduled')) + '：' + e.title)))
-      : e.kind === 'user'
-      ? h('div', { key: i, className: 'mwt-ev user' }, h('span', { className: 'ic' }, icon('message', { size: 13 })), h('div', null, h('span', { className: 'body' }, e.text)))
-      : e.kind === 'text'
-      ? h('div', { key: i, className: 'mwt-ev text' }, h('span', { className: 'ic' }, icon('message', { size: 13 })), h('div', { className: 'body' }, e.text))
-      : (() => { const d = describeTool(e.name, e.detail); return h('div', { key: i, className: 'mwt-ev', 'data-ok': e.ok === undefined ? undefined : e.ok, title: e.name + (e.detail ? ' ' + e.detail : '') }, h('span', { className: 'ic' }, icon(e.ok === false ? 'circle-x' : e.ok === true ? 'check' : 'loader', { size: 13 })),
-        h('div', { className: 'line' }, h('span', { className: 'verb' }, d.verb), d.obj ? h('span', { className: 'obj' }, d.obj) : null, e.ok === false && e.result ? h('div', { className: 'result' }, t('toolFailed') + ' · ' + e.result) : null)) })()))
-  }
-
   function Say({ task }) {
     const [text, setText] = React.useState('')
     const [busy, setBusy] = React.useState(false)
@@ -851,14 +854,68 @@ function makeComponents(ctx, t) {
   function Process({ task, live }) {
     const [open, setOpen] = React.useState(live)
     React.useEffect(() => { if (live) setOpen(true) }, [live])
-    const list = Array.isArray(task.activity) ? task.activity : []
-    const counts = {}
-    for (const e of list) if (e.kind === 'tool') { const v = describeTool(e.name, e.detail).verb; counts[v] = (counts[v] || 0) + 1 }
-    const parts = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([v, n]) => `${v} ${n} 次`)
-    const summary = [t('process'), ...parts, elapsedOf(task)].join(' · ')
+    const n = phasesOf(task).filter((r) => r.kind === 'phase').length
+    const summary = [t('process'), n ? n + ' ' + t('phases') : '', elapsedOf(task)].filter(Boolean).join(' · ')
     return h('div', { className: 'mwt-proc' },
       h('button', { type: 'button', className: 'mwt-proc-head', 'aria-expanded': open, onClick: () => setOpen(!open) }, h('span', { className: 'mwt-dot', 'data-s': live ? 'running' : undefined }, icon(live ? 'loader' : 'history', { size: 15 })), h('span', { className: 'grow' }, summary), icon('arrow-left', { size: 14, style: { transform: open ? 'rotate(-90deg)' : 'rotate(180deg)', transition: 'transform 150ms' } })),
-      open ? h(Activity, { task, live }) : null)
+      open ? h(Phases, { task, live }) : null)
+  }
+
+  /** The run as phases. Consecutive tool calls with the same verb fold into one line (查阅 · 3 次 · 12s) that opens
+   *  to its calls; a note the agent wrote is its own line; a hand-off opens what it created; verification closes the list. */
+  function phasesOf(task) {
+    const list = Array.isArray(task.activity) ? task.activity : []
+    const out = []
+    for (const e of list) {
+      if (e.kind === 'user') continue // follow-ups are in the conversation above
+      if (e.kind === 'tool') {
+        const d = describeTool(e.name, e.detail)
+        const last = out[out.length - 1]
+        if (last && last.kind === 'phase' && last.verb === d.verb) { last.items.push(e); if (d.obj) last.obj = d.obj; if (e.ok === false) last.failed++; continue }
+        out.push({ kind: 'phase', verb: d.verb, obj: d.obj, items: [e], at: e.at, failed: e.ok === false ? 1 : 0 })
+        continue
+      }
+      if (e.kind === 'text' || e.kind === 'handoff' || e.kind === 'verify') out.push(e)
+    }
+    const end = task.finishedAt || new Date().toISOString()
+    for (let i = 0; i < out.length; i++) if (out[i].kind === 'phase') out[i].ms = new Date((out[i + 1] && out[i + 1].at) || end) - new Date(out[i].at)
+    return out
+  }
+
+  function Phases({ task, live }) {
+    const rows = React.useMemo(() => phasesOf(task), [task])
+    const [open, setOpen] = React.useState(-1)
+    const lastIdx = rows.length - 1
+    React.useEffect(() => { if (live && rows[lastIdx] && rows[lastIdx].kind === 'phase') setOpen(lastIdx) }, [live, rows.length])
+    const v = task.verification
+    if (!rows.length && !v) return h('div', { className: 'mwt-empty' }, live ? task.statusLabel + '…' : t('none2'))
+    return h('div', { className: 'mwt-phases' },
+      rows.map((r, i) => {
+        if (r.kind === 'phase') {
+          const running = live && i === lastIdx && task.status === 'running'
+          const n = r.items.length
+          const meta = [n > 1 ? n + ' ' + t('times') : '', r.ms > 1500 ? fmtDuration(r.ms) : ''].filter(Boolean).join(' · ')
+          return h('div', { key: i, className: 'mwt-phase' },
+            h('button', { type: 'button', className: 'mwt-phase-head', 'aria-expanded': open === i, 'data-tone': running ? 'live' : r.failed ? 'danger' : undefined, onClick: () => setOpen(open === i ? -1 : i) },
+              h('span', { className: 'ic' }, icon(running ? 'loader' : r.failed ? 'circle-x' : 'check', { size: 13 })),
+              h('span', { className: 'verb' }, r.verb),
+              meta ? h('span', { className: 'meta' }, meta) : null,
+              open !== i && r.obj ? h('span', { className: 'obj' }, r.obj) : null),
+            open === i ? h('div', { className: 'mwt-phase-body' }, r.items.map((e, j) => { const d = describeTool(e.name, e.detail); return h('div', { key: j, className: 'mwt-ev', 'data-ok': e.ok === undefined ? undefined : e.ok, title: e.name + (e.detail ? ' ' + e.detail : '') }, h('span', { className: 'ic' }, icon(e.ok === false ? 'circle-x' : e.ok === true ? 'check' : 'loader', { size: 13 })), h('div', { className: 'line' }, h('span', { className: 'verb' }, d.verb), d.obj ? h('span', { className: 'obj' }, d.obj) : null, e.ok === false && e.result ? h('div', { className: 'result' }, t('toolFailed') + ' · ' + e.result) : null)) })) : null)
+        }
+        if (r.kind === 'handoff') return h('div', { key: i, className: 'mwt-phase-note' }, h('span', { className: 'ic' }, icon(r.target === 'task' ? 'list-checks' : 'history', { size: 13 })), h('div', null, h('button', { type: 'button', className: 'mwt-handoff', style: { margin: 0 }, onClick: () => { if (r.target === 'task') openTask(r.id); else openRoutine(r.id) } }, (r.target === 'task' ? t('handedOff') : t('scheduled')) + '：' + r.title)))
+        return h(PhaseNote, { key: i, text: r.text, label: r.kind === 'verify' ? t('verifyLabel') : '' })
+      }),
+      task.status === 'verifying' ? h('div', { className: 'mwt-phase-head', 'data-tone': 'live' }, h('span', { className: 'ic' }, icon('loader', { size: 13 })), h('span', { className: 'verb' }, t('verifyLabel')), h('span', { className: 'meta' }, t('verifying')))
+        : v ? h('div', { className: 'mwt-phase-head', 'data-tone': v.passed === false ? 'danger' : undefined }, h('span', { className: 'ic' }, icon(v.passed === false ? 'circle-x' : v.passed === true ? 'check' : 'minus', { size: 13 })), h('span', { className: 'verb' }, t('verifyLabel')), h('span', { className: 'meta' }, [v.passed === true ? t('passed') : v.passed === false ? t('verifyIssues') : t('verifyNone'), v.checked ? t('checked') + ' ' + v.checked : '', v.issues ? t('issues') + ' ' + v.issues : ''].filter(Boolean).join(' · '))) : null)
+  }
+
+  /** What the agent said mid-run: two lines, the whole note on tap. */
+  function PhaseNote({ text, label }) {
+    const [open, setOpen] = React.useState(false)
+    return h('div', { className: 'mwt-phase-note' + (open ? ' open' : ''), role: 'button', tabIndex: 0, onClick: () => setOpen(!open), onKeyDown: (e) => { if (e.key === 'Enter') setOpen(!open) } },
+      h('span', { className: 'ic' }, icon('message', { size: 13 })),
+      h('div', { className: 'body' }, label ? h('span', { className: 'lbl' }, label + ' · ') : null, text))
   }
 
   function Menu({ items }) {

@@ -1654,6 +1654,9 @@ window.__ModuleLoader__.load({
 			"v2.routines": "例行",
 			"v2.newTask": "新任务",
 			"v2.running": "进行中",
+			"v2.groupToday": "今天",
+			"v2.groupYesterday": "昨天",
+			"v2.groupEarlier": "更早",
 			"v2.recent": "最近",
 			"v2.noTasks": "还没有任务",
 			"v2.allTasks": "全部",
@@ -1970,6 +1973,9 @@ window.__ModuleLoader__.load({
 			"v2.routines": "Routines",
 			"v2.newTask": "New task",
 			"v2.running": "In progress",
+			"v2.groupToday": "Today",
+			"v2.groupYesterday": "Yesterday",
+			"v2.groupEarlier": "Earlier",
 			"v2.recent": "Recent",
 			"v2.noTasks": "No tasks yet",
 			"v2.allTasks": "All",
@@ -2542,7 +2548,8 @@ body[data-ds-dark-theme] .mws-new:hover{background:var(--surface-2)}
 .mws-nav button:hover svg,.mws-nav button[aria-current=page] svg{color:var(--fg-2)}
 .mws-list{flex:1;min-height:0;overflow:auto;margin-top:12px;padding:4px 8px 8px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
 .mws-group{padding:8px 10px 4px;color:var(--meta);font-size:12px;font-weight:500;letter-spacing:.02em;font-variant-numeric:tabular-nums}
-.mws-task{appearance:none;display:grid;grid-template-columns:16px minmax(0,1fr);column-gap:8px;align-items:center;width:100%;min-height:30px;padding:4px 10px;border:0;border-radius:var(--radius-md);background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
+.mws-task{appearance:none;display:grid;grid-template-columns:minmax(0,1fr) 16px;column-gap:8px;align-items:center;width:100%;min-height:30px;padding:4px 10px;border:0;border-radius:var(--radius-md);background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
+.mws-task.mws-all{grid-template-columns:16px minmax(0,1fr)}
 .mws-task:hover{background:var(--surface-2)}
 .mws-task span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
 .mws-task small{display:block;color:var(--meta);font-size:12px;line-height:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -2578,6 +2585,35 @@ body[data-ds-dark-theme] .mws-new:hover{background:var(--surface-2)}
 					strokeWidth: 1.6
 				})
 			});
+		}
+		/** 今天 / 昨天 / 更早 — the day a task finished, in local time. */
+		function groupByDay(items, t) {
+			const dayOf = (iso) => {
+				const d = new Date(iso);
+				return isNaN(d.getTime()) ? "" : `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+			};
+			const now = /* @__PURE__ */ new Date();
+			const today = dayOf(now.toISOString());
+			const yesterday = dayOf((/* @__PURE__ */ new Date(now.getTime() - 864e5)).toISOString());
+			const buckets = [
+				{
+					label: t("v2.groupToday"),
+					items: []
+				},
+				{
+					label: t("v2.groupYesterday"),
+					items: []
+				},
+				{
+					label: t("v2.groupEarlier"),
+					items: []
+				}
+			];
+			for (const x of items) {
+				const day = dayOf(x.finishedAt || x.createdAt);
+				(day === today ? buckets[0] : day === yesterday ? buckets[1] : buckets[2]).items.push(x);
+			}
+			return buckets.filter((b) => b.items.length > 0);
 		}
 		function fire(name, detail) {
 			try {
@@ -2637,8 +2673,10 @@ body[data-ds-dark-theme] .mws-new:hover{background:var(--surface-2)}
 					Icon: Clock
 				}
 			];
-			const active = tasks.filter((x) => x.status !== "done");
-			const recent = tasks.filter((x) => x.status === "done").slice(0, 12);
+			const mine = tasks.filter((x) => x.scenario !== "assistant" && !x.routineId);
+			const active = mine.filter((x) => x.status !== "done");
+			const recent = mine.filter((x) => x.status === "done").slice(0, 12);
+			const groups = groupByDay(recent, t);
 			const openTask = (id) => {
 				go(MYWORK_PANELS.tasks);
 				fire("mywork:open-task", { id });
@@ -2650,7 +2688,7 @@ body[data-ds-dark-theme] .mws-new:hover{background:var(--surface-2)}
 				onClick: () => {
 					openTask(task.id);
 				},
-				children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(Dot, { task }), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", { children: [task.title, task.status !== "done" ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("small", { children: task.currentStep || task.statusLabel }) : null] })]
+				children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", { children: [task.title, task.status !== "done" ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("small", { children: task.currentStep || task.statusLabel }) : null] }), task.status !== "done" || task.error ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)(Dot, { task }) : /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {})]
 			}, task.id);
 			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 				className: "mws" + (compact ? " compact" : ""),
@@ -2717,11 +2755,14 @@ body[data-ds-dark-theme] .mws-new:hover{background:var(--surface-2)}
 									active.length
 								]
 							}), active.map(item)] }),
-							recent.length > 0 ? recent.map(item) : /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+							recent.length > 0 ? groups.map((g) => /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+								className: "mws-group",
+								children: g.label
+							}), g.items.map(item)] }, g.label)) : active.length === 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
 								className: "mws-empty",
 								children: t("v2.noTasks")
-							}),
-							tasks.length > recent.length && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
+							}) : null,
+							mine.length > active.length + recent.length && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
 								type: "button",
 								className: "mws-task mws-all",
 								onClick: () => {

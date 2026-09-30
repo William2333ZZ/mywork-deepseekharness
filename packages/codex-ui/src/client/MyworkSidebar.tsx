@@ -18,7 +18,7 @@ const API = '/mywork-tasks/api/tasks'
 const FAST_MS = 4000
 const SLOW_MS = 30000
 
-type SidebarTask = { id: string; title: string; status: string; statusLabel: string; error: string; currentStep: string; finishedAt: string; createdAt: string }
+type SidebarTask = { id: string; title: string; status: string; statusLabel: string; error: string; currentStep: string; finishedAt: string; createdAt: string; scenario?: string; routineId?: string }
 type SidebarProps = Pick<CodexSidebarProps, 'selectPanel' | 'usePanelInfo' | 'collapsed' | 'width' | 'toggleSidebar' | 'renderSlot' | 't'>
 
 const useLegacyPanelInfo = <T,>(selector: (info: { activePanelId: string | null }) => T): T => selector({ activePanelId: null })
@@ -51,7 +51,8 @@ body[data-ds-dark-theme] .mws-new:hover{background:var(--surface-2)}
 .mws-nav button:hover svg,.mws-nav button[aria-current=page] svg{color:var(--fg-2)}
 .mws-list{flex:1;min-height:0;overflow:auto;margin-top:12px;padding:4px 8px 8px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
 .mws-group{padding:8px 10px 4px;color:var(--meta);font-size:12px;font-weight:500;letter-spacing:.02em;font-variant-numeric:tabular-nums}
-.mws-task{appearance:none;display:grid;grid-template-columns:16px minmax(0,1fr);column-gap:8px;align-items:center;width:100%;min-height:30px;padding:4px 10px;border:0;border-radius:var(--radius-md);background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
+.mws-task{appearance:none;display:grid;grid-template-columns:minmax(0,1fr) 16px;column-gap:8px;align-items:center;width:100%;min-height:30px;padding:4px 10px;border:0;border-radius:var(--radius-md);background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
+.mws-task.mws-all{grid-template-columns:16px minmax(0,1fr)}
 .mws-task:hover{background:var(--surface-2)}
 .mws-task span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
 .mws-task small{display:block;color:var(--meta);font-size:12px;line-height:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -78,6 +79,16 @@ function Dot({ task }: { task: SidebarTask }): ReactElement {
   const v = visual(task)
   const Icon = v === 'ok' ? CircleCheck : v === 'err' ? CircleX : v === 'queued' ? History : Loader
   return <span className="mws-dot" data-s={v} title={task.statusLabel}><Icon size={14} strokeWidth={1.6} /></span>
+}
+/** 今天 / 昨天 / 更早 — the day a task finished, in local time. */
+function groupByDay(items: SidebarTask[], t: (key: string) => string): { label: string; items: SidebarTask[] }[] {
+  const dayOf = (iso: string): string => { const d = new Date(iso); return isNaN(d.getTime()) ? '' : `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}` }
+  const now = new Date()
+  const today = dayOf(now.toISOString())
+  const yesterday = dayOf(new Date(now.getTime() - 86400000).toISOString())
+  const buckets: { label: string; items: SidebarTask[] }[] = [{ label: t('v2.groupToday'), items: [] }, { label: t('v2.groupYesterday'), items: [] }, { label: t('v2.groupEarlier'), items: [] }]
+  for (const x of items) { const day = dayOf(x.finishedAt || x.createdAt); (day === today ? buckets[0] : day === yesterday ? buckets[1] : buckets[2]).items.push(x) }
+  return buckets.filter(b => b.items.length > 0)
 }
 function fire(name: string, detail: Record<string, unknown>): void { try { window.dispatchEvent(new CustomEvent(name, { detail })) } catch { /* no window */ } }
 
@@ -113,11 +124,14 @@ export function MyworkSidebar({ selectPanel, usePanelInfo = useLegacyPanelInfo, 
     { id: MYWORK_PANELS.tasks, label: t('v2.tasks'), Icon: ListChecks },
     { id: MYWORK_PANELS.routines, label: t('v2.routines'), Icon: Clock },
   ]
-  const active = tasks.filter(x => x.status !== 'done')
-  const recent = tasks.filter(x => x.status === 'done').slice(0, 12)
+  // Only what the user asked for: routine runs live on 例行, the day's conversation on 今日.
+  const mine = tasks.filter(x => x.scenario !== 'assistant' && !x.routineId)
+  const active = mine.filter(x => x.status !== 'done')
+  const recent = mine.filter(x => x.status === 'done').slice(0, 12)
+  const groups = groupByDay(recent, t)
   const openTask = (id: string): void => { go(MYWORK_PANELS.tasks); fire('mywork:open-task', { id }) }
   const item = (task: SidebarTask): ReactElement => <button key={task.id} type="button" className="mws-task" title={task.title} onClick={() => { openTask(task.id) }}>
-    <Dot task={task} /><span>{task.title}{task.status !== 'done' ? <small>{task.currentStep || task.statusLabel}</small> : null}</span>
+    <span>{task.title}{task.status !== 'done' ? <small>{task.currentStep || task.statusLabel}</small> : null}</span>{task.status !== 'done' || task.error ? <Dot task={task} /> : <span />}
   </button>
 
   return <div className={'mws' + (compact ? ' compact' : '')} data-mywork-sidebar="v2">
@@ -127,8 +141,8 @@ export function MyworkSidebar({ selectPanel, usePanelInfo = useLegacyPanelInfo, 
     <nav className="mws-nav" aria-label="MyWork">{nav.map(({ id, label, Icon }) => <button key={id} type="button" aria-current={activePanelId === id ? 'page' : undefined} title={label} onClick={() => { go(id) }}><Icon size={16} strokeWidth={1.5} /><span>{label}</span></button>)}</nav>
     <div className="mws-list">
       {active.length > 0 && <><div className="mws-group">{t('v2.running')} · {active.length}</div>{active.map(item)}</>}
-      {recent.length > 0 ? recent.map(item) : <div className="mws-empty">{t('v2.noTasks')}</div>}
-      {tasks.length > recent.length && <button type="button" className="mws-task mws-all" onClick={() => { go(MYWORK_PANELS.tasks) }}><span className="mws-dot"><ListChecks size={14} strokeWidth={1.6} /></span><span>{t('v2.allTasks')}</span></button>}
+      {recent.length > 0 ? groups.map(g => <div key={g.label}><div className="mws-group">{g.label}</div>{g.items.map(item)}</div>) : active.length === 0 ? <div className="mws-empty">{t('v2.noTasks')}</div> : null}
+      {mine.length > active.length + recent.length && <button type="button" className="mws-task mws-all" onClick={() => { go(MYWORK_PANELS.tasks) }}><span className="mws-dot"><ListChecks size={14} strokeWidth={1.6} /></span><span>{t('v2.allTasks')}</span></button>}
     </div>
     <footer className="mws-foot"><div>{renderSlot('sidebar.settings', { wide: !compact })}</div></footer>
   </div>

@@ -121,11 +121,13 @@ export function apply(ctx, config = {}) {
     const asked = []
     for (const t of store.items) {
       if (t.scenario === 'assistant') {
+        // The hand-off line is the fact; the assistant's wording of it can be stale (a routine renamed or removed since).
+        let handedOff = false
         for (const a of t.activity || []) {
           if (new Date(a.at).getTime() < since) continue
-          if (a.kind === 'user') asked.push(`- ${stamp(a.at)} 问：${clip(a.text, 200)}`)
-          else if (a.kind === 'text') asked.push(`  答：${clip(a.text, 160)}`)
-          else if (a.kind === 'handoff') asked.push(`  → ${a.target === 'routine' ? '安排了例行' : '交给了后台'}：${a.title}${a.schedule ? '（' + a.schedule + '）' : ''}`)
+          if (a.kind === 'user') { handedOff = false; asked.push(`- ${stamp(a.at)} 问：${clip(a.text, 200)}`) }
+          else if (a.kind === 'handoff') { handedOff = true; asked.push(`  → ${a.target === 'routine' ? '安排了例行' : '交给了后台'}：${a.title}${a.schedule ? '（' + a.schedule + '）' : ''}`) }
+          else if (a.kind === 'text' && !handedOff) asked.push(`  答：${clip(a.text, 160)}`)
         }
         continue
       }
@@ -141,7 +143,8 @@ export function apply(ctx, config = {}) {
         if (body) work.push('  ' + body)
       }
     }
-    return [asked.length ? '用户在「今日」问过 / 说过：\n' + asked.slice(-80).join('\n') : '', work.length ? '后台做过的任务：\n' + work.slice(-60).join('\n') : ''].filter(Boolean).join('\n\n')
+    const standing = routines.items.filter((r) => r.enabled).map((r) => `- ${r.title}：${describeSchedule(r.schedule)}${r.kind === 'remind' ? '（提醒）' : ''}`)
+    return [asked.length ? '用户在「今日」问过 / 说过：\n' + asked.slice(-80).join('\n') : '', work.length ? '后台做过的任务：\n' + work.slice(-60).join('\n') : '', '现在有效的例行（以此为准，别的说法都过时了）：\n' + (standing.join('\n') || '- 无')].filter(Boolean).join('\n\n')
   }
   const todaySay = async (text) => {
     const body = String(text || '').trim()

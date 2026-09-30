@@ -153,13 +153,14 @@ export function defaultVerifyPrompt(task, deliverables, activity) {
     '你是核验员。下面是一个后台任务、它执行时调用过的工具，以及它交付的内容。请只做核对，不要重做任务，不要调用会修改东西的工具。',
     '', '## 任务', task.input, '',
     '## 执行时调用的工具', tools.length ? tools.join('\n') : '（没有调用工具）', '',
+    task.material ? '## 任务拿到的素材（系统从自己的记录里给的，视为已核实）\n' + String(task.material).slice(0, 8000) + '\n' : '',
     '## 交付内容', docs, '',
     '## 核对什么',
     '1. 交付内容是否回答了任务要求；有没有承诺了但没做的事。',
-    '2. 交付里的关键事实和数字，是否能对应到上面的工具调用（没有调用工具却给出具体数据的，视为未核实）。',
+    task.material ? '2. 交付里的关键事实和数字，是否能对应到上面的素材或工具调用（素材里没有、也没调用工具就给出的具体数据，视为未核实）。' : '2. 交付里的关键事实和数字，是否能对应到上面的工具调用（没有调用工具却给出具体数据的，视为未核实）。',
     '3. 有没有明显的自相矛盾或格式问题。',
     '', '最后只输出一个 JSON 对象，不要别的：{"passed": true 或 false, "checked": 核对过的要点数, "issues": 发现的问题数, "notes": "两三句话的结论"}',
-  ].join('\n')
+  ].filter((x) => x !== '').join('\n')
 }
 
 /** Pull the verifier's JSON verdict out of its final text. */

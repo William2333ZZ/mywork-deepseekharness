@@ -129,5 +129,6 @@ export function titleOf(text) {
 export function taskView(t, deliverables) {
   const list = deliverables ? deliverables.forTask(t.id) : []
   const current = t.steps.length ? t.steps[t.steps.length - 1] : null
-  return { ...t, currentStep: current && !current.endedAt ? current.name : '', statusLabel: STATUS_LABELS[t.status] || t.status, deliverables: list.map((d) => ({ id: d.id, title: d.title, kind: d.kind, createdAt: d.createdAt, rating: d.rating })) }
+  const { material: _material, ...rest } = t // the report material stays server-side (verifier input), not in every list payload
+  return { ...rest, currentStep: current && !current.endedAt ? current.name : '', statusLabel: STATUS_LABELS[t.status] || t.status, deliverables: list.map((d) => ({ id: d.id, title: d.title, kind: d.kind, createdAt: d.createdAt, rating: d.rating })) }
 }

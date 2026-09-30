@@ -53,7 +53,7 @@ export function apply(ctx) {
 ## 工具与 API
 
 - 工具：`deliver({ title, markdown, kind?, data? })`（任务会话内）、`mywork_task_create({ input, scenario? })`、`mywork_tasks()`。
-- HTTP（同源）：`GET /mywork-tasks/api/tasks`、`GET /task?id=`（含活动流）、`POST /create`、`POST /cancel`、`POST /rerun`、`POST /verify`、`GET /routines`、`POST /routines/{create,run,enable,remove,ack}`、`POST /say`（追问：运行中进活体 agent 的收件箱，已完成的走 dsh sessionController 在原会话续一轮，产出新交付物时再核验一次）、`GET /scenarios`、`GET /deliverables`、`GET /deliverable?id=`、`POST /rate`。
+- HTTP（同源）：`GET /mywork-tasks/api/tasks`、`GET /task?id=`（含活动流）、`POST /create`、`POST /cancel`、`POST /rerun`、`POST /verify`、`GET /routines`、`POST /routines/{create,run,enable,remove,ack}`、`POST /say`（追问：运行中进活体 agent 的收件箱，已完成的走 dsh sessionController 在原会话续一轮，产出新交付物时再核验一次）、`GET /scenarios`、`GET /deliverables`、`GET /deliverable?id=`、`POST /rate`；会话列与线程用的：`GET /today[?day=YYYY-MM-DD]`、`POST /today/say`、`GET /feed?before=&limit=`（今日线：各天助理会话的话与交办行、到点的提醒、有变化或报告类的例行运行，按时间分页）、`POST /seen {id|ids}`（已读，存 seen.json）、`GET /search?q=`（任务 · 例行 · 交付物）。任务与例行的视图都带 `lastAt` / `preview` / `unread`，给左栏那一列用。今日助理另有工具 `mywork_task_say({ id, text })`，把追问送进已有任务，今日线里留一行原地更新的交办行。
 - 事件：`mywork/task`，`{ kind: queued | started | step | deliverable | verifying | done | routine | remind, task?, deliverable?, routine? }`；`done` 的 task 带 `quiet`（例行运行没有变化）。
 - 页面间的窗口事件：`mywork:new-task {text?, scenario?}`、`mywork:open-task {id}`、`mywork:open-deliverable {id}`、`mywork:open-session {sessionId}`。
 

@@ -15,7 +15,7 @@
   "files": ["src", "lib", "cordis.patch.yml", "README.md"],
   "scripts": {
     "build": "node ../../scripts/build-client.mjs .",
-    "check": "node --check src/index.js && node --check src/store.js && node --check src/engine.js && node --check src/scenarios.js && node --check src/client/index.js",
+    "check": "node --check src/index.js && node --check src/store.js && node --check src/engine.js && node --check src/scenarios.js && node --check src/feed.js && node --check src/client/thread.cjs && node --check src/client/index.js",
     "test": "node --test test/*.test.mjs"
   },
   "engines": { "node": ">=22.19", "dsh": ">=0.1.6-alpha.2" },

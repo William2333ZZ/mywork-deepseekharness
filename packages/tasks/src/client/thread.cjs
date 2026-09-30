@@ -89,4 +89,51 @@ function threadOf(task, deliverables) {
   return out
 }
 
-module.exports = { threadOf, verifyState }
+// ---- 今日's line (§8.3): the client's side of GET /feed ------------------------------------------------------------
+// Entries come from the server ascending by `at` with no date entries; the client keeps everything it has fetched,
+// shows from a cut-off (`from`, local midnight of the oldest day revealed) and draws the separators itself.
+
+const pad2 = (n) => String(n).padStart(2, '0')
+/** Local calendar day of an ISO stamp as YYYY-MM-DD ('' when unparsable): what separators and 「今天」 compare by. */
+function localDay(iso) { const d = new Date(iso); if (!Number.isFinite(d.getTime())) return ''; return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) }
+const parts = (day) => String(day || '').split('-').map(Number)
+/** Local midnight that starts a YYYY-MM-DD day, as ISO. */
+function dayStartIso(day) { const [y, m, d] = parts(day); return new Date(y || 1970, (m || 1) - 1, d || 1).toISOString() }
+/** The YYYY-MM-DD day `n` days after `day`. */
+function shiftDay(day, n) { const [y, m, d] = parts(day); return localDay(new Date(y || 1970, (m || 1) - 1, (d || 1) + n).toISOString()) }
+/** 「9/29」 for a YYYY-MM-DD day. */
+function shortDay(day) { const [, m, d] = parts(day); return (m || 0) + '/' + (d || 0) }
+/** Identity of a feed entry across pages and polls: kind, stamp and the thing it points at. */
+function feedKey(e) { return e.kind + '|' + (e.at || '') + '|' + (e.id || e.routineId || e.taskId || '') }
+/** Merge a page into what is loaded: the same key replaces (a reminder's ack lands this way), the rest joins; ascending by at. */
+function mergeFeed(existing, incoming) {
+  const map = new Map()
+  for (const e of existing || []) if (e) map.set(feedKey(e), e)
+  for (const e of incoming || []) if (e) map.set(feedKey(e), e)
+  return [...map.values()].sort((a, b) => time(a.at) - time(b.at))
+}
+/** The day of the newest loaded entry before `from` (ISO): what 「加载昨天」 reveals next; '' when nothing is loaded there. */
+function olderDayOf(entries, from) {
+  const cut = time(from)
+  let best = null
+  for (const e of entries || []) { if (!e) continue; const t = time(e.at); if (t < cut && (!best || t > time(best.at))) best = e }
+  return best ? localDay(best.at) : ''
+}
+/**
+ * What the line renders: the entries from `from` on, each with its key and a `today` flag, and one date separator
+ * before the first entry of every day but today — 「昨天 · 9/29」, then 「9/28」.
+ */
+function feedRows(entries, from, today, yesterdayWord) {
+  const cut = time(from)
+  const out = []
+  let day = ''
+  for (const e of entries || []) {
+    if (!e || time(e.at) < cut) continue
+    const d = localDay(e.at)
+    if (d !== day) { day = d; if (d && d !== today) out.push({ kind: 'date', key: 'date|' + d, at: e.at, day: d, label: d === shiftDay(today, -1) ? String(yesterdayWord || '') + ' · ' + shortDay(d) : shortDay(d) }) }
+    out.push({ ...e, key: feedKey(e), today: d === today })
+  }
+  return out
+}
+
+module.exports = { threadOf, verifyState, localDay, dayStartIso, shiftDay, shortDay, feedKey, mergeFeed, olderDayOf, feedRows }

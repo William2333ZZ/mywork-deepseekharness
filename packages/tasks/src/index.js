@@ -6,9 +6,10 @@
  *   • service `myworkTasks`: scenario plugins register { id, label, intro, examples, compose, toolStepMap, … }
  *     and can create / list tasks (ctx.provide, so `inject: ['myworkTasks']` works in cordis).
  *   • tools: deliver({ title, markdown, kind?, data? }) inside a task session;
- *            mywork_task_create({ input, scenario? }) and mywork_tasks() from any session.
+ *            mywork_task_create({ input, scenario? }) and mywork_tasks() from any session;
+ *            mywork_task_say({ id, text }) from the day's assistant session only (a follow-up into an existing task).
  *   • HTTP: /mywork-tasks/api/{tasks, task, create, cancel, rerun, verify, say, scenarios, deliverables, deliverable, rate,
- *           today[?day=YYYY-MM-DD], seen, search?q=}
+ *           today[?day=YYYY-MM-DD], feed?before=&limit=, seen, search?q=}
  *   • events: ctx.emit('mywork/task', { kind: started|step|deliverable|done, task, deliverable? })
  *
  * Every task and routine view carries what the conversation column shows: lastAt, preview, attentionAt
@@ -16,6 +17,7 @@
  */
 import { join } from 'node:path'
 import { createEngine } from './engine.js'
+import { assistantMemory, buildFeed } from './feed.js'
 import { configSchema, defineRawTool, rejectUntrusted } from './harness.js'
 import { BUILTIN_SCENARIOS, createScenarioRegistry } from './scenarios.js'
 import { DeliverableStore, myworkDir, searchAll, SeenStore, TaskStore, taskView, STATUS_LABELS } from './store.js'
@@ -60,7 +62,8 @@ export function apply(ctx, config = {}) {
   const view = (t) => taskView(t, deliverables, seen)
   const rview = (r) => routineView(r, seen)
   const scenarios = createScenarioRegistry()
-  for (const s of BUILTIN_SCENARIOS) scenarios.register(s)
+  // §8.3 助理的连续性: the assistant composes with the recent tasks, earlier days' lines and the last results (feed.js).
+  for (const s of BUILTIN_SCENARIOS) scenarios.register(s.id === 'assistant' ? { ...s, compose: (input, context) => s.compose(input, { ...context, memory: assistantMemory({ store, deliverables, today: dayKey() }) }) } : s)
   const listeners = new Set()
   const emit = (kind, task, deliverable, extra) => {
     const payload = { kind, task: task ? view(task) : null, ...(deliverable ? { deliverable: { id: deliverable.id, title: deliverable.title, kind: deliverable.kind, taskId: deliverable.taskId } } : {}), ...(extra || {}) }
@@ -239,6 +242,26 @@ export function apply(ctx, config = {}) {
       parameters: {},
       async execute() { return { routines: api.routines().map((r) => ({ id: r.id, kind: r.kind, title: r.title, schedule: r.scheduleLabel, enabled: r.enabled, nextRunAt: r.nextRunAt })), scenarios: scenarios.list().map((s) => ({ id: s.id, label: s.label })), tasks: api.list().slice(0, 20).map((t) => ({ id: t.id, title: t.title, status: t.statusLabel, step: t.currentStep, deliverables: t.deliverables.map((d) => d.title), error: t.error })) } },
     }))
+    // §8.3 助理的连续性: a follow-up into an existing task, from the day's assistant session only. engine.say() queues the
+    // words into the live agent or resumes the task's persisted session and returns at once; the run finishes in the
+    // background, and the hand-off row this leaves on 今日 (followup: true) updates in place from the polled task.
+    ctx.tools.register(defineRawTool({
+      name: 'mywork_task_say',
+      description: '追问一个已有的后台任务（只在「今日」的助理会话里可用）：把用户的话送进那个任务自己的会话，它接着改、再交付。用户对已有结果提修改或补充（「再短一点」「上一份改成英文」「刚才那个加个表」）时用它，不要为此新建任务。id 取「最近的任务」里对应任务的 id，text 用用户的原话。',
+      parameters: { id: { type: 'string', required: true, description: '任务 id（「最近的任务」里的）' }, text: { type: 'string', required: true, description: '要对那个任务说的话，用用户的原话' } },
+      async execute(args, exec) {
+        const sid = exec && exec.agent && exec.agent.session ? String(exec.agent.session.id) : ''
+        const caller = sid ? store.bySession(sid) : null
+        if (!caller || caller.scenario !== 'assistant') throw new Error('mywork_task_say 只能在「今日」的助理会话里调用。')
+        const target = store.get(String(args.id || '').trim())
+        if (!target) throw new Error('没有这个任务：' + String(args.id || ''))
+        if (target.scenario === 'assistant') throw new Error('这是今日的对话本身，直接回答即可。')
+        const t = await engine.say(target.id, args.text)
+        handoff(exec, { kind: 'handoff', target: 'task', id: t.id, title: t.title, followup: true })
+        return { id: t.id, title: t.title, status: t.status }
+      },
+      render: (_a, v) => [{ type: 'text', text: `已把话送进任务「${v.title}」（${v.id}），它接着改；改完在今日线里原地更新，不必再建任务。` }],
+    }))
   }
 
   ctx.inject(['webServer'], (wctx) => {
@@ -275,6 +298,15 @@ export function apply(ctx, config = {}) {
       json(res, { thread: t ? view(t) : null, day, readOnly: day !== dayKey() })
     })
     post('/today/say', async (b, res) => { if (!String(b.text || '').trim()) return json(res, { error: 'text is required' }, 400); json(res, { thread: await todaySay(b.text) }) })
+    // §8.3 今日线程: the line across days, paged by time (feed.js). ?before=<ISO> pages back; ?limit= 1..200, default 60.
+    route('/feed', async (req, res) => {
+      const q = query(req)
+      const before = String(q.get('before') || '').trim()
+      if (before && !Number.isFinite(Date.parse(before))) return json(res, { error: 'before must be an ISO date' }, 400)
+      const limit = q.get('limit') === null || q.get('limit') === '' ? undefined : Number(q.get('limit'))
+      if (limit !== undefined && !Number.isFinite(limit)) return json(res, { error: 'limit must be a number' }, 400)
+      json(res, buildFeed({ store, deliverables, routines, before: before || undefined, limit, today: dayKey() }))
+    })
     post('/say', async (b, res) => { if (!String(b.text || '').trim()) return json(res, { error: 'text is required' }, 400); json(res, { task: await api.say(String(b.id || ''), b.text) }) })
     // History is the user's: rename a task, or delete it with its deliverables (a running one is cancelled first).
     post('/rename', async (b, res) => { const t = store.get(String(b.id || '')); if (!t) return json(res, { error: 'task not found' }, 404); const title = String(b.title || '').trim().slice(0, 200); if (!title) return json(res, { error: 'title is required' }, 400); store.update(t.id, { title }); json(res, { task: view(store.get(t.id)) }) })

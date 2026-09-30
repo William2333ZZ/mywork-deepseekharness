@@ -8,7 +8,7 @@
  * with a sticky 等你看 bar under its title.
  *
  * Pages (main slot):
- *   mywork-today         今日：标题 + 日期 + 状态词；等你看栏（可展开的清单）；今天的对话；dock
+ *   mywork-today         今日：标题 + 日期 + 状态词；等你看栏（可展开的清单）；GET /feed 的线（今天，「加载昨天」只读回看）；dock
  *   mywork-tasks         任务：列表；任务页 = 线程（threadOf in thread.cjs）
  *   mywork-deliverables  交付物：全部交付物，按场景筛，查看器
  *   mywork-routines      例行：列表；例行条目页
@@ -27,7 +27,7 @@
 
 const React = require('react')
 const md = require('./md.cjs')
-const { threadOf, verifyState } = require('./thread.cjs')
+const { threadOf, verifyState, localDay, dayStartIso, shiftDay, shortDay, mergeFeed, olderDayOf, feedRows } = require('./thread.cjs')
 const icons = require('./client-icons.cjs')
 const icon = (name, opts) => icons.icon(name, { strokeWidth: 1.5, ...(opts || {}) })
 
@@ -40,6 +40,8 @@ const isReport = (task) => !!(task && (task.report || (task.deliverables || []).
 const PANELS = { today: 'mywork-today', create: 'mywork-new', tasks: 'mywork-tasks', deliverables: 'mywork-deliverables', routines: 'mywork-routines', scenarios: 'mywork-scenarios' }
 const FAST_MS = 3000
 const SLOW_MS = 20000
+/** Entries per GET /feed page (the server's default). */
+const FEED_PAGE = 60
 const V2_KEY = 'dsh-mywork:v2'
 
 const zh = {
@@ -59,6 +61,7 @@ const zh = {
   routines: '例行', routinesLead: '还没有例行的事。说一句带时间的话，比如「每天 9 点给我一份简报」。',
   remindCard: '提醒', gotIt: '知道了', runNow: '现在跑一次', pause: '暂停', resume: '恢复', nextRun: '下次', neverRan: '还没跑过', noChange: '没有变化', changed: '有变化', scheduled: '已安排', kindTask: '例行任务', kindRemind: '提醒',
   say: '回复',
+  loadYesterday: '加载昨天', loadDay: '加载 {d}', loadEarlier: '加载更早', yesterday: '昨天', reportOut: '已出报告',
 }
 const en = {
   today: 'Today', tasks: 'Tasks', deliverables: 'Deliverables', packs: 'Domains', builtin: 'built in', scenarioClear: 'Let the system decide',
@@ -77,6 +80,7 @@ const en = {
   routines: 'Routines', routinesLead: 'No routines yet. Say a sentence with a time: “every day at 9…”, “remind me at 6 on weekdays…”.',
   remindCard: 'Reminder', gotIt: 'Got it', runNow: 'Run now', pause: 'Pause', resume: 'Resume', nextRun: 'Next', neverRan: 'Never ran', noChange: 'No change', changed: 'Changed', scheduled: 'Scheduled', kindTask: 'Routine', kindRemind: 'Reminder',
   say: 'Reply',
+  loadYesterday: 'Load yesterday', loadDay: 'Load {d}', loadEarlier: 'Load earlier', yesterday: 'Yesterday', reportOut: 'Report ready',
 }
 
 const STYLE = `
@@ -223,6 +227,18 @@ body[data-ds-dark-theme] .mwt{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 .mwt-handoff-row .body{min-width:0;display:grid}
 .mwt-handoff-row .title{font-size:14px;line-height:20px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mwt-handoff-row .sub{font-size:12.5px;line-height:18px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:tabular-nums}
+/* 今日's line across days: 「加载昨天」 at the top, a centred date before each earlier day, a reminder or a routine change as one plain line (no card). */
+.mwt-thread{overflow-anchor:none} /* the scroller is re-placed by hand when earlier days are prepended */
+.mwt-older{appearance:none;align-self:center;margin:0 0 -8px;padding:4px 10px;border:0;border-radius:var(--radius-sm);background:transparent;color:var(--muted);font:inherit;font-size:13px;cursor:pointer}
+.mwt-older:hover{color:var(--fg);background:var(--surface)}
+.mwt-older[disabled]{opacity:.5;cursor:default}
+.mwt-date{align-self:center;margin:6px 0 -8px;color:var(--meta);font-size:12px;line-height:16px;font-variant-numeric:tabular-nums}
+.mwt-line{display:flex;align-items:center;gap:8px;max-width:560px;min-height:28px;color:var(--fg-2);font-size:14px;line-height:20px;font-variant-numeric:tabular-nums}
+.mwt-line .ic{display:flex;flex:none;color:var(--meta)}
+.mwt-line .txt{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mwt-line .mwt-btn{flex:none;height:28px;padding:0 10px;font-size:13px}
+button.mwt-line{appearance:none;padding:0;border:0;background:transparent;font:inherit;text-align:left;cursor:pointer}
+button.mwt-line:hover{color:var(--fg)}
 /* The task page thread: same shapes as 今日, tighter under the title. */
 .mwt-thread.task{margin-top:8px}
 /* A delivery in the thread: ✓ summary rows as a plain list, the document as text, one meta line under it. No box. */
@@ -588,8 +604,9 @@ function makeComponents(ctx, t) {
     const active = s.items.filter((x) => x.status !== 'done' && x.scenario !== 'assistant')
     useTick(active.length > 0)
     const { rows, more, unrated, counts } = todayRows(s.items, s.deliverables, s.reminders)
-    const day = useDayThread(s.items)
-    useThreadOpened('today', day.thread ? day.thread.id : '', day.thread ? (day.thread.lastAt || '') + ':' + day.shown.length : '')
+    const day = useDayFeed(s)
+    const thread = useTodayThread(s.items)
+    useThreadOpened('today', thread ? thread.id : '', day.rows.length ? day.rows[day.rows.length - 1].key : '')
     // null = follow the rule (open while something needs you); true / false = what you chose, until something new needs you.
     const [choice, setChoice] = React.useState(null)
     const needsBefore = React.useRef(counts.needs)
@@ -614,23 +631,62 @@ function makeComponents(ctx, t) {
           h('div', { className: 'mwt-chips' }, s.scenarios.flatMap((sc) => sc.examples.slice(0, sc.builtin ? 3 : 1)).slice(0, 4).map((ex) => h('button', { key: ex, type: 'button', className: 'mwt-chip', onClick: () => newTask(ex) }, ex))))
         : null,
       hasBar && expanded ? h('div', { className: 'mwt-list' }, rows.map((row) => h(Row, { key: row.key, row })), foldRow) : null,
-      day.any ? h(Turns, { entries: day.shown, live: day.liveState, items: s.items }) : null,
+      day.any ? h(Turns, { rows: day.rows, live: day.liveState, items: s.items, older: day.canOlder ? { label: day.olderLabel, busy: day.busy, load: day.loadOlder } : null }) : null,
       h('div', { className: 'mwt-dock' }, h(TodayAsk))))
   }
 
-  /** Today's conversation: the last exchanges with the assistant; hand-offs it made are rows you can open. */
-  function useDayThread(items) {
+  /** The day's assistant task (its id is what /seen and mywork:thread-opened take); re-read when a day's thread appears or settles. */
+  function useTodayThread(items) {
     const [thread, setThread] = React.useState(null)
-    const live = items.find((x) => x.scenario === 'assistant' && x.status !== 'done') || null
-    const key = items.filter((x) => x.scenario === 'assistant').map((x) => x.id + x.status + (x.activity ? x.activity.length : 0)).join(',') + (live ? Math.floor(Date.now() / FAST_MS) : '')
-    React.useEffect(() => { let on = true; api('/today').then((d) => { if (on) setThread(d.thread) }).catch(() => {}); return () => { on = false } }, [key])
+    const key = items.filter((x) => x.scenario === 'assistant').map((x) => x.id + ':' + x.status).join(',')
+    React.useEffect(() => { let on = true; api('/today').then((d) => { if (on) setThread(d.thread || null) }).catch(() => {}); return () => { on = false } }, [key])
+    return thread
+  }
+
+  /**
+   * The day's line (GET /feed, §8.3): the newest page on every poll, merged by key so nothing doubles; shown from local
+   * midnight today, so the first load is today's entries. 「加载昨天」 reveals one earlier day at a time from what is
+   * loaded, fetching the page before the oldest when nothing older is loaded yet. Earlier days are read-only.
+   */
+  function useDayFeed(s) {
+    const [feed, setFeed] = React.useState({ entries: [], nextBefore: null, today: '', from: '', loaded: false, busy: false })
+    const ref = React.useRef(feed); ref.current = feed
+    React.useEffect(() => {
+      let on = true
+      api('/feed?limit=' + FEED_PAGE).then((d) => {
+        if (!on) return
+        setFeed((prev) => {
+          const today = localDay(new Date().toISOString())
+          const fresh = !prev.loaded || prev.today !== today // first page, or the page was left open past midnight
+          return { ...prev, loaded: true, today, entries: mergeFeed(fresh ? [] : prev.entries, d.entries || []), from: fresh ? dayStartIso(today) : prev.from, nextBefore: fresh ? d.nextBefore : prev.nextBefore }
+        })
+      }).catch(() => {})
+      return () => { on = false }
+    }, [s.loadedAt])
+    const loadOlder = React.useCallback(async () => {
+      const cur = ref.current
+      if (cur.busy) return
+      if (!olderDayOf(cur.entries, cur.from)) {
+        if (!cur.nextBefore) return
+        setFeed((p) => ({ ...p, busy: true }))
+        try {
+          const d = await api('/feed?before=' + encodeURIComponent(cur.nextBefore) + '&limit=' + FEED_PAGE)
+          setFeed((p) => ({ ...p, busy: false, entries: mergeFeed(p.entries, d.entries || []), nextBefore: d.nextBefore }))
+        } catch { setFeed((p) => ({ ...p, busy: false })); return }
+      }
+      setFeed((p) => { const day = olderDayOf(p.entries, p.from); return day ? { ...p, from: dayStartIso(day) } : p })
+    }, [])
+    const live = s.items.find((x) => x.scenario === 'assistant' && x.status !== 'done') || null
     // What you just sent shows at once, the Grok way, until the server's copy of it arrives.
     const [pending, setPending] = React.useState('')
     React.useEffect(() => { const onSaid = (e) => setPending(String(e.detail && e.detail.text || '')); window.addEventListener('mywork:today-said', onSaid); return () => window.removeEventListener('mywork:today-said', onSaid) }, [])
-    const entries = thread && Array.isArray(thread.activity) ? thread.activity : []
-    React.useEffect(() => { if (pending && entries.some((e) => e.kind === 'user' && e.text === pending)) setPending('') }, [pending, entries.length])
-    const shown = entries.slice(-12).concat(pending ? [{ kind: 'user', text: pending }] : [])
-    return { thread, live, shown, liveState: live || (pending ? { currentStep: '' } : null), any: entries.length > 0 || !!live || !!pending }
+    const shown = feedRows(feed.entries, feed.from, feed.today, t('yesterday'))
+    React.useEffect(() => { if (pending && shown.some((e) => e.kind === 'user' && e.text === pending)) setPending('') }, [pending, shown.length])
+    const rows = pending ? shown.concat([{ kind: 'user', key: 'pending', at: '', text: pending, today: true }]) : shown
+    const olderDay = olderDayOf(feed.entries, feed.from)
+    const canOlder = !!olderDay || !!feed.nextBefore
+    const olderLabel = olderDay ? (olderDay === shiftDay(feed.today, -1) ? t('loadYesterday') : t('loadDay').replace('{d}', shortDay(olderDay))) : t('loadEarlier')
+    return { rows, live, liveState: live || (pending ? { currentStep: '' } : null), any: rows.length > 0 || !!live || canOlder, canOlder, olderLabel, busy: feed.busy, loadOlder }
   }
 
   /** A conversation the Grok way: your words in a bubble on the right, the reply as plain text on the left, nothing else. */
@@ -644,28 +700,46 @@ function makeComponents(ctx, t) {
     return { glyph: 'check', tone: 'success', sub: t('answered') }
   }
 
-  function Turns({ entries, live, items }) {
+  /**
+   * The line itself (rows from feedRows): a date before each earlier day; your words in a bubble; a reply as text; a hand-off
+   * row that reads its task's live state (a follow-up sent with mywork_task_say is the same row); a reminder as bell · title ·
+   * 知道了; a routine's change as one line that opens the run. Earlier days are read-only: only opening a task stays live.
+   */
+  function Turns({ rows, live, items, older }) {
     const endRef = React.useRef(null)
-    const n = entries.length
-    React.useEffect(() => { if (endRef.current && typeof endRef.current.scrollIntoView === 'function') endRef.current.scrollIntoView({ block: 'nearest' }) }, [n, !!live])
+    const lastKey = rows.length ? rows[rows.length - 1].key : ''
+    React.useEffect(() => { if (endRef.current && typeof endRef.current.scrollIntoView === 'function') endRef.current.scrollIntoView({ block: 'nearest' }) }, [lastKey, !!live])
+    // Revealing an earlier day prepends above what is on screen: the scroller is put back where it was, so nothing jumps.
+    const firstKey = rows.length ? rows[0].key : ''
+    const keep = React.useRef(null)
+    const remember = () => { const el = endRef.current ? endRef.current.closest('.mwt') : null; if (el) keep.current = { el, height: el.scrollHeight, top: el.scrollTop, at: Date.now() } }
+    React.useLayoutEffect(() => { const k = keep.current; if (!k) return; keep.current = null; if (Date.now() - k.at < 10000) k.el.scrollTop = k.top + (k.el.scrollHeight - k.height) }, [firstKey])
+    const chevron = () => icon('arrow-left', { size: 13, style: { transform: 'rotate(180deg)', color: 'var(--meta)' } })
     return h('section', { className: 'mwt-thread' },
-      entries.map((e, i) => {
-        if (e.kind === 'user') return h('div', { key: i, className: 'mwt-turn user' }, h('div', { className: 'mwt-bubble' }, e.text))
-        if (e.kind === 'text') return h('div', { key: i, className: 'mwt-turn ai' }, h(Markdown, { text: e.text }))
+      older ? h('button', { type: 'button', className: 'mwt-older', disabled: older.busy, onClick: () => { remember(); older.load() } }, older.label) : null,
+      rows.map((e) => {
+        if (e.kind === 'date') return h('div', { key: e.key, className: 'mwt-date' }, e.label)
+        if (e.kind === 'user') return h('div', { key: e.key, className: 'mwt-turn user' }, h('div', { className: 'mwt-bubble' }, e.text))
+        if (e.kind === 'text') return h('div', { key: e.key, className: 'mwt-turn ai' }, h(Markdown, { text: e.text }))
         if (e.kind === 'handoff') {
           const isTask = e.target === 'task'
           const task = isTask && Array.isArray(items) ? items.find((x) => x.id === e.id) : null
           const st = isTask ? handoffState(task) : null
           const glyph = st ? st.glyph : isTask ? 'list-checks' : 'history'
           const sub = st ? st.sub : isTask ? t('handedOff') : (t('scheduled') + (e.schedule ? ' · ' + e.schedule : ''))
-          return h('div', { key: i, className: 'mwt-turn ai' },
+          return h('div', { key: e.key, className: 'mwt-turn ai' },
             h('div', { className: 'mwt-handoff-row', 'data-tone': st ? st.tone : undefined },
               h('button', { type: 'button', className: 'main', onClick: () => { if (isTask) openTask(e.id); else openRoutine(e.id) } },
                 h('span', { className: 'ic' }, icon(glyph, { size: 15, className: st && st.spin ? 'spin' : undefined })),
                 h('span', { className: 'body' }, h('span', { className: 'title' }, e.title), h('span', { className: 'sub' }, sub)),
-                icon('arrow-left', { size: 13, style: { transform: 'rotate(180deg)', color: 'var(--meta)' } })),
-              st && st.failed ? h('button', { type: 'button', className: 'mwt-btn ghost', onClick: () => api('/rerun', { id: e.id }).then((d) => { refresh().then(schedulePoll); if (d.task) openTask(d.task.id) }) }, t('rerun')) : null))
+                chevron()),
+              e.today && st && st.failed ? h('button', { type: 'button', className: 'mwt-btn ghost', onClick: () => api('/rerun', { id: e.id }).then((d) => { refresh().then(schedulePoll); if (d.task) openTask(d.task.id) }) }, t('rerun')) : null))
         }
+        if (e.kind === 'remind') return h('div', { key: e.key, className: 'mwt-turn ai' },
+          h('div', { className: 'mwt-line' }, h('span', { className: 'ic' }, icon('bell', { size: 14 })), h('span', { className: 'txt' }, e.title),
+            e.today && !e.acked ? h('button', { type: 'button', className: 'mwt-btn ghost', onClick: () => api('/routines/ack', { id: e.routineId, at: e.at }).then(() => refresh()).catch(() => {}) }, t('gotIt')) : null))
+        if (e.kind === 'change') return h('div', { key: e.key, className: 'mwt-turn ai' },
+          h('button', { type: 'button', className: 'mwt-line', onClick: () => openTask(e.taskId) }, h('span', { className: 'ic' }, icon('history', { size: 14 })), h('span', { className: 'txt' }, [e.title, e.report ? t('reportOut') : t('changed'), fmtTime(e.at)].join(' · ')), chevron()))
         return null
       }),
       live ? h('div', { className: 'mwt-turn ai mwt-thinking' }, h('span', null, (live.currentStep || t('thinking')) + '…')) : null,

@@ -78,7 +78,12 @@ export const GENERAL = {
 /**
  * The assistant behind 今日's conversation. It answers what can be answered, hands real work to
  * a background task (mywork_task_create), turns timed requests into routines
- * (mywork_routine_create), and keeps its own replies short. Hidden from the packs list.
+ * (mywork_routine_create), sends a follow-up into an existing task (mywork_task_say), and keeps
+ * its own replies short. Hidden from the packs list.
+ *
+ * §8.3 助理的连续性: `context.memory` (feed.js assistantMemory, injected by index.js) is what makes one assistant
+ * across days — { recent: [{ id, title, status }], history: '9/29 用户：…\n9/29 你：…', results: [title] }.
+ * It goes into the prompt as facts; nothing here says the assistant cannot see earlier days.
  */
 export const ASSISTANT = {
   id: 'assistant',
@@ -87,22 +92,27 @@ export const ASSISTANT = {
   examples: [],
   hidden: true,
   agentPreset: 'mywork-assistant', // presets/mywork-assistant: no shell, files or web; answer or hand off only
-  toolStepMap: { mywork_task_create: '交办', mywork_routine_create: '安排' },
+  toolStepMap: { mywork_task_create: '交办', mywork_routine_create: '安排', mywork_task_say: '追问' },
   deliverableKinds: [],
   deliverable: false,
   verify: false,
   compose(input, context) {
     const today = (context && context.today) || {}
+    const memory = (context && context.memory) || {}
     const lines = [
       '你是 MyWork 里的助理，和用户在「今日」页上说话。用户随口说，你来判断怎么处理，不要反问用户想要哪种。',
       '',
-      '三种处理：',
+      '四种处理：',
       '1. 一句两句能答的（解释、建议、算一下、改一段话）：直接答，像同事说话，不铺垫。',
       '2. 要干活的（查资料、比较、写文档、做表、整理文件、任何要用几分钟以上的）：调用 mywork_task_create 交给后台，input 写清楚要的结果；然后只回一句，说明交给后台了、大概会得到什么，不要自己动手做。',
       '3. 带时间的（每天 / 每周 / 工作日 / 几点 / 多久之后 / 提醒我）：调用 mywork_routine_create，然后按返回的 kind 回一句：是例行任务就说到点 MyWork 会做好交给用户（比如「每周五提醒我写周报」= 每周五 MyWork 写好周报），是提醒就说到点会提醒。',
+      '4. 追问已有任务（「再短一点」「上一份改成英文」「刚才那个加个表」这类对已有结果的修改或补充）：调用 mywork_task_say，id 用下面「最近的任务」里对应任务的 id，text 用用户的原话；然后只回一句，说明已经让它接着改。不要为此新建任务。',
       '',
-      '只用 mywork_task_create 和 mywork_routine_create 这两个工具；不要用 reminder、automation、bash、文件、搜索等任何别的工具，也不要在这个对话里调用 deliver。一件事只安排一次：mywork_routine_create 返回后就回话，不要再补提醒或再查一遍。回复保持简短，可以用 Markdown 但不要标题和长列表。',
+      '只用 mywork_task_create、mywork_routine_create 和 mywork_task_say 这三个工具；不要用 reminder、automation、bash、文件、搜索等任何别的工具，也不要在这个对话里调用 deliver。一件事只安排一次：工具返回后就回话，不要再补提醒或再查一遍。回复保持简短，可以用 Markdown 但不要标题和长列表。',
       today.summary ? '\n今天的情况：' + today.summary : '',
+      Array.isArray(memory.recent) && memory.recent.length ? '\n最近的任务（追问时用它的 id）：\n' + memory.recent.map((x) => `- ${x.id} · ${x.title} · ${x.status}`).join('\n') : '',
+      memory.history ? '\n前几天的对话：\n' + memory.history : '',
+      Array.isArray(memory.results) && memory.results.length ? '\n最近的结果：' + memory.results.map((x) => '《' + x + '》').join('') : '',
       context && context.date ? '\n今天是 ' + context.date + '。' : '',
       '', '用户说：', input,
     ]

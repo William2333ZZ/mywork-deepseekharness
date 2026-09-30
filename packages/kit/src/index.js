@@ -8,7 +8,12 @@
  *
  * Model tool `mywork_kit_status` lets the agent explain what is installed.
  */
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { homedir, hostname, networkInterfaces } from 'node:os'
+import { join } from 'node:path'
+import qrcode from 'qrcode-generator'
 import * as installer from './installer.js'
+import { startLanGateway } from './lan-gateway.js'
 import { configSchema, defineRawTool, rejectUntrusted } from './harness.js'
 import { repairImWorkspacesFile } from './im-guard.js'
 
@@ -65,6 +70,49 @@ export function apply(ctx, config = {}) {
     const route = (path, handler) => wctx.webServer.register({
       kind: 'exact', path: '/mywork-kit/api' + path,
       handler: (req, res) => rejectUntrusted(ctx, req, res, json) || Promise.resolve(handler(req, res)).catch((e) => json(res, { error: e instanceof Error ? e.message : String(e) }, 500)),
+    })
+
+    // ---- 手机 ---------------------------------------------------------------------------------
+    // The phone opens the same web app through the LAN gateway (see lan-gateway.js): dsh stays on
+    // loopback, the gateway listens on every interface and forwards. The switch is remembered in
+    // $DSH_HOME/mywork/lan.json and takes effect at once; the login is dsh's own ?token= exchange.
+    const homeDir = () => process.env.DSH_HOME || join(homedir(), '.dsh')
+    const lanFile = () => join(homeDir(), 'mywork', 'lan.json')
+    const readLan = () => { try { return existsSync(lanFile()) ? JSON.parse(readFileSync(lanFile(), 'utf8')) : {} } catch { return {} } }
+    // Only private-range addresses go on the QR (a VPN tunnel's address would only confuse); the gateway itself listens on every interface.
+    const privateV4 = (a) => /^10\.|^192\.168\.|^172\.(1[6-9]|2\d|3[01])\./.test(a)
+    const lanAddresses = () => Object.values(networkInterfaces()).flat().filter((i) => i && i.family === 'IPv4' && !i.internal && privateV4(i.address)).map((i) => i.address)
+    const gatewayPort = () => Number(readLan().port) || wctx.webServer.port + 1
+    let gateway = null
+    const openGateway = () => { if (gateway) return; gateway = startLanGateway({ targetPort: wctx.webServer.port, listenPort: gatewayPort(), log: (m) => console.log('[dsh-mywork-kit] ' + m) }) }
+    const closeGateway = () => { if (!gateway) return; try { gateway.close() } catch { /* already closed */ } gateway = null }
+    if (readLan().enabled) openGateway()
+    ctx.effect(() => () => closeGateway(), 'dsh-mywork-kit: phone gateway')
+    const launchToken = () => {
+      try { const c = ctx.get('connection'); const u = new URL(c.authenticatedUrl(`http://127.0.0.1:${wctx.webServer.port}`)); return u.searchParams.get('token') || '' } catch { return '' }
+    }
+    route('/phone', async (req, res) => {
+      const exposed = !!gateway
+      const here = loopback(req) // the login URL is only ever shown on the computer itself
+      const token = here ? launchToken() : ''
+      const lan = (exposed ? lanAddresses() : []).map((address) => {
+        const base = `http://${address}:${gatewayPort()}`
+        if (!token) return { address, base }
+        const url = `${base}/?token=${encodeURIComponent(token)}`
+        const qr = qrcode(0, 'M'); qr.addData(url); qr.make()
+        return { address, base, url, svg: qr.createSvgTag({ cellSize: 4, margin: 0, scalable: true }) }
+      })
+      json(res, { exposed, wanted: !!readLan().enabled, lan, hostname: hostname(), port: gatewayPort(), here })
+    })
+    route('/phone/enable', async (req, res) => {
+      if (req.method !== 'POST') return json(res, { error: 'POST only' }, 405)
+      if (!loopback(req)) return json(res, { error: 'this switch is limited to loopback requests' }, 403)
+      const body = await readBody(req).catch(() => ({}))
+      const enabled = body.enabled !== false
+      mkdirSync(join(homeDir(), 'mywork'), { recursive: true })
+      writeFileSync(lanFile(), JSON.stringify({ ...readLan(), enabled }, null, 2) + '\n')
+      if (enabled) openGateway(); else closeGateway()
+      json(res, { wanted: enabled, exposed: !!gateway })
     })
 
     route('/status', async (_req, res) => {

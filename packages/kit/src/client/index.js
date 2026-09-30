@@ -48,6 +48,14 @@ const zh = {
   hint: '提示：',
   noProfile: '没有找到安装了本 Kit 的 profile。',
   noTabs: '没有可用的设置页。',
+  phone: '手机',
+  phoneOn: '手机和电脑连同一个 Wi‑Fi，扫这个码就能打开 MyWork。',
+  phoneOff: '现在只有这台电脑能打开 MyWork。',
+  phoneAllow: '允许手机连接',
+  phoneDeny: '关闭手机连接',
+  phoneRestart: '重启 MyWork 后生效。',
+  phoneHere: '这个页面要在电脑上看。',
+  phoneNoLan: '这台电脑没有连上局域网。',
 }
 const en = {
   nav: 'MyWork',
@@ -73,10 +81,24 @@ const en = {
   hint: 'Hint: ',
   noProfile: 'No profile with this kit installed was found.',
   noTabs: 'No settings pages available.',
+  phone: 'Phone',
+  phoneOn: 'On the same Wi‑Fi, scan this to open MyWork on your phone.',
+  phoneOff: 'Only this computer can open MyWork right now.',
+  phoneAllow: 'Allow phones to connect',
+  phoneDeny: 'Stop phone connections',
+  phoneRestart: 'Takes effect after MyWork restarts.',
+  phoneHere: 'Open this page on the computer.',
+  phoneNoLan: 'This computer is not on a local network.',
 }
 
 const CSS = `
 .mwk{font-size:13px;color:var(--dsw-alias-label-primary)}
+.mwk-phone{display:grid;gap:14px;max-width:420px}
+.mwk-phone p{margin:0;font-size:14px;line-height:1.6}
+.mwk-qr{width:208px;height:208px;padding:12px;box-sizing:border-box;background:#fff;border:1px solid color-mix(in srgb,currentColor 12%,transparent);border-radius:12px}
+.mwk-qr svg{display:block;width:100%;height:100%}
+.mwk-url{font-family:ui-monospace,Menlo,monospace;font-size:12px;opacity:.7;word-break:break-all;user-select:all}
+.mwk-phone button{justify-self:start}
 .mwk-tabs{display:flex;gap:2px;border-bottom:0.5px solid var(--dsw-alias-border-l2);margin:0 0 16px;overflow-x:auto}
 .mwk-tab{border:0;background:transparent;color:var(--dsw-alias-label-secondary);padding:8px 12px;font:inherit;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-0.5px;white-space:nowrap}
 .mwk-tab:hover{color:var(--dsw-alias-label-primary)}
@@ -254,4 +276,30 @@ exports.apply = function apply(ctx) {
   ctx.slots.inject(TAB_SLOT, () => ctx.slots.register({
     name: TAB_SLOT, id: 'members', order: 10, label: () => t('members'),
   }, function MyworkMembersTab() { return h(Members) }))
+
+  // ---- "手机" tab: the phone opens the same web app over the LAN ---------------------------------
+  function Phone() {
+    const [st, setSt] = React.useState(null)
+    const [busy, setBusy] = React.useState(false)
+    const load = React.useCallback(async () => { const r = await api('/phone'); if (r.ok) setSt(r.data) }, [])
+    React.useEffect(() => { load() }, [load])
+    const flip = async (enabled) => { if (busy) return; setBusy(true); try { await api('/phone/enable', { enabled }); await load() } finally { setBusy(false) } }
+    if (!st) return h('div', null, t('loading'))
+    if (!st.here) return h('div', { className: 'mwk-phone' }, h('p', null, t('phoneHere')))
+    const first = st.lan && st.lan[0]
+    if (st.exposed && first) {
+      return h('div', { className: 'mwk-phone' },
+        h('p', null, t('phoneOn')),
+        h('div', { className: 'mwk-qr', dangerouslySetInnerHTML: { __html: first.svg } }),
+        h('div', { className: 'mwk-url' }, first.url),
+        h('button', { type: 'button', className: 'mwk-btn', disabled: busy, onClick: () => flip(false) }, t('phoneDeny')))
+    }
+    if (st.exposed && !first) return h('div', { className: 'mwk-phone' }, h('p', null, t('phoneNoLan')), h('button', { type: 'button', className: 'mwk-btn', disabled: busy, onClick: () => flip(false) }, t('phoneDeny')))
+    return h('div', { className: 'mwk-phone' },
+      h('p', null, t('phoneOff')),
+      h('button', { type: 'button', className: 'mwk-btn', disabled: busy, onClick: () => flip(true) }, t('phoneAllow')))
+  }
+  ctx.slots.inject(TAB_SLOT, () => ctx.slots.register({
+    name: TAB_SLOT, id: 'phone', order: 30, label: () => t('phone'),
+  }, function MyworkPhoneTab() { return h(Phone) }))
 }

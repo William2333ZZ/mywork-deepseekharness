@@ -3,7 +3,7 @@
  * one list recipe, lists carry no actions, the composer never changes colour, no hint captions.
  */
 import React, { useEffect, useRef, useState } from 'react'
-import { ActivityIndicator, Animated, Modal, Pressable, StyleSheet, Text, TextInput, View, type ViewStyle, type TextStyle } from 'react-native'
+import { ActivityIndicator, Animated, Dimensions, Easing, Modal, Pressable, StyleSheet, Text, TextInput, View, type ViewStyle, type TextStyle } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import Markdown from 'react-native-markdown-display'
 import { Ionicons } from '@expo/vector-icons'
@@ -42,7 +42,7 @@ export function IconBtn({ name, onPress, label, size: s = 22, tone }: { name: Ic
 }
 
 /** The brand mark: an M whose last stroke turns into a check. Drawn with two rotated strokes so it needs no SVG dependency. */
-export function Mark({ dim = 22, live }: { dim?: number; live?: boolean }) {
+export function Mark({ dim = 22, live, round }: { dim?: number; live?: boolean; round?: boolean }) {
   const pulse = useRef(new Animated.Value(1)).current
   useEffect(() => {
     if (!live) { pulse.setValue(1); return }
@@ -50,7 +50,7 @@ export function Mark({ dim = 22, live }: { dim?: number; live?: boolean }) {
     loop.start(); return () => loop.stop()
   }, [live, pulse])
   return (
-    <View style={{ width: dim, height: dim, borderRadius: dim * 0.23, backgroundColor: color.fg, alignItems: 'center', justifyContent: 'center' }}>
+    <View style={{ width: dim, height: dim, borderRadius: round ? dim / 2 : dim * 0.23, backgroundColor: color.fg, alignItems: 'center', justifyContent: 'center' }}>
       <Animated.Text style={{ color: color.warmWhite, fontSize: dim * 0.62, fontWeight: '700', lineHeight: dim * 0.75, opacity: pulse, fontFamily: font.display }}>M</Animated.Text>
     </View>
   )
@@ -106,7 +106,62 @@ export function ThreadRow({ glyph, tone = 'meta', spin, title, time, unread, pre
   )
 }
 
-/** A date separator in a thread (「9月29日」 in a routine's runs, the day line when reading back in 今日). */
+/**
+ * A teammate's avatar (§9.1): a monochrome circle with one character, the Mark for MyWork. While it works a thin ring
+ * turns around it; the ring's room is always reserved so nothing shifts when it starts.
+ */
+export function Avatar({ char, isDefault, dim = 36, working }: { char: string; isDefault?: boolean; dim?: number; working?: boolean }) {
+  const spin = useRef(new Animated.Value(0)).current
+  useEffect(() => {
+    if (!working) { spin.setValue(0); return }
+    const loop = Animated.loop(Animated.timing(spin, { toValue: 1, duration: 1100, easing: Easing.linear, useNativeDriver: true }))
+    loop.start(); return () => loop.stop()
+  }, [working, spin])
+  const outer = dim + 8
+  const rotate = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] })
+  return (
+    <View style={{ width: outer, height: outer, alignItems: 'center', justifyContent: 'center' }}>
+      {working ? <Animated.View style={{ position: 'absolute', width: outer, height: outer, borderRadius: outer / 2, borderWidth: 1.5, borderColor: color.borderSoft, borderTopColor: color.fg, borderRightColor: color.fg, transform: [{ rotate }] }} /> : null}
+      {isDefault ? <Mark dim={dim} round /> : (
+        <View style={{ width: dim, height: dim, borderRadius: dim / 2, backgroundColor: color.surface2, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ fontSize: dim * 0.44, lineHeight: dim * 0.6, color: color.fg, fontWeight: '500' }}>{char}</Text>
+        </View>
+      )}
+    </View>
+  )
+}
+
+/**
+ * The teammates list's one row (§9.4): avatar (ring while it works) · name (600 when unread) · time · unread dot · one
+ * line underneath (最近一句 / 在干活 · 步骤 / 等你答 · 问题). Rows carry no actions; opening the row is all it does.
+ */
+export function MateRow({ char, isDefault, working, waiting, name, time, unread, sub, onPress }: { char: string; isDefault?: boolean; working?: boolean; waiting?: boolean; name: string; time?: string; unread?: boolean; sub?: string; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button" style={({ pressed }) => [styles.mrow, pressed && { backgroundColor: color.surface }]}>
+      <Avatar char={char} isDefault={isDefault} working={working} dim={40} />
+      <View style={styles.trowMain}>
+        <View style={styles.trowLine}>
+          <Text style={[styles.mrowName, unread && { fontWeight: '600' }]} numberOfLines={1}>{name}</Text>
+          {time ? <Text style={styles.trowTime}>{time}</Text> : null}
+          {unread ? <View style={styles.trowDot} /> : null}
+        </View>
+        {sub ? <Text style={[styles.trowSub, waiting && { color: color.warn }]} numberOfLines={1}>{sub}</Text> : null}
+      </View>
+    </Pressable>
+  )
+}
+
+/** A centred small line in a conversation: a routine's marker 「每日日报 · 19:00」, 「已安排 · …」, 已停止. */
+export function CenterLine({ text, icon, onPress, lit }: { text: string; icon?: IconName; onPress?: () => void; lit?: boolean }) {
+  return (
+    <Pressable onPress={onPress} disabled={!onPress} style={({ pressed }) => [styles.center, lit && { backgroundColor: color.surface }, pressed && { opacity: 0.7 }]}>
+      {icon ? <Ionicons name={icon} size={12} color={color.meta} /> : null}
+      <Text style={styles.centerText} numberOfLines={2}>{text}</Text>
+    </Pressable>
+  )
+}
+
+/** A date separator in a conversation: one before the first run of every day but today. */
 export function DateLine({ text }: { text: string }) {
   return <View style={styles.dateLine}><View style={styles.dateRule} /><Text style={styles.dateText}>{text}</Text><View style={styles.dateRule} /></View>
 }
@@ -169,33 +224,12 @@ export function Bubble({ text }: { text: string }) {
   return <View style={styles.bubbleWrap}><View style={styles.bubble}><Text style={styles.bubbleText}>{text}</Text></View></View>
 }
 export function Reply({ markdown }: { markdown: string }) { return <View style={styles.reply}><Prose markdown={markdown} /></View> }
-/** One pulsing line while something runs: 「在想…」 in 今日, 「在做 · 步骤 · 耗时」 (no ellipsis) in a task. */
+/** One pulsing line while a run works: 「在干活 · 步骤 · 耗时」 (no ellipsis). */
 export function Thinking({ text = '在想', tail = '…' }: { text?: string; tail?: string }) {
   const op = useRef(new Animated.Value(0.35)).current
   useEffect(() => { const loop = Animated.loop(Animated.sequence([Animated.timing(op, { toValue: 1, duration: 800, useNativeDriver: true }), Animated.timing(op, { toValue: 0.35, duration: 800, useNativeDriver: true })])); loop.start(); return () => loop.stop() }, [op])
   return <Animated.Text style={[styles.body, { color: color.muted, opacity: op, fontVariant: ['tabular-nums'] }]}>{text}{tail}</Animated.Text>
 }
-/**
- * A hand-off row in the 今日 line: what the assistant handed to a task or a routine, with the task's live state as its
- * second line (查阅 · 40s → ✓ 已交付 · 已核验). It is the delivery card too: opening it is the task thread. The one
- * button it may carry is 再来一次 after a failure.
- */
-export function HandoffChip({ label, sub, glyph = 'time-outline', spin, tone = 'live', onPress, action, actionLabel = '再来一次', busy }: { label: string; sub?: string; glyph?: IconName; spin?: boolean; tone?: Tone; onPress: () => void; action?: () => void; actionLabel?: string; busy?: boolean }) {
-  return (
-    <View style={styles.handoff}>
-      <Pressable onPress={onPress} style={({ pressed }) => [styles.handoffMain, pressed && { backgroundColor: color.surface }]}>
-        <View style={styles.handoffIc}>{spin ? <ActivityIndicator size="small" color={color.fg2} /> : <Ionicons name={glyph} size={15} color={toneColor[tone]} />}</View>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={styles.handoffTitle} numberOfLines={1}>{label}</Text>
-          {sub ? <Text style={[styles.handoffSub, tone === 'danger' && { color: color.danger }]} numberOfLines={1}>{sub}</Text> : null}
-        </View>
-        <Ionicons name="chevron-forward" size={14} color={color.meta} />
-      </Pressable>
-      {action ? <Btn label={actionLabel} onPress={action} disabled={busy} /> : null}
-    </View>
-  )
-}
-
 /** Markdown at reading size. Titles in the serif, like the web. */
 export function Prose({ markdown }: { markdown: string }) {
   return <Markdown style={mdStyles}>{markdown || ''}</Markdown>
@@ -235,7 +269,14 @@ export function Btn({ label, onPress, kind = 'ghost', icon, disabled, style }: {
   )
 }
 
-export function Field({ value, onChange, placeholder, icon, autoFocus, onSubmit, mono, clearable, style }: { value: string; onChange: (v: string) => void; placeholder: string; icon?: IconName; autoFocus?: boolean; onSubmit?: () => void; mono?: boolean; clearable?: boolean; style?: ViewStyle }) {
+export function Field({ value, onChange, placeholder, icon, autoFocus, onSubmit, mono, clearable, multiline, style }: { value: string; onChange: (v: string) => void; placeholder: string; icon?: IconName; autoFocus?: boolean; onSubmit?: () => void; mono?: boolean; clearable?: boolean; multiline?: boolean; style?: ViewStyle }) {
+  if (multiline) {
+    return (
+      <View style={[styles.field, styles.fieldMulti, style]}>
+        <TextInput value={value} onChangeText={onChange} placeholder={placeholder} placeholderTextColor={color.meta} autoFocus={autoFocus} multiline textAlignVertical="top" style={[styles.fieldInput, { minHeight: 72, maxHeight: 200, lineHeight: 22 }]} />
+      </View>
+    )
+  }
   return (
     <View style={[styles.field, style]}>
       {icon ? <Ionicons name={icon} size={16} color={color.meta} /> : null}
@@ -245,16 +286,39 @@ export function Field({ value, onChange, placeholder, icon, autoFocus, onSubmit,
   )
 }
 
-/** A bottom sheet for the few places that need a choice: the ··· menu, a delete confirm, 等你看. */
+const SHEET_MS = 150
+
+/**
+ * A bottom sheet for the few places that need a choice: the ··· menu, a delete confirm, a routine. It rises and fades its
+ * backdrop in 150ms (the platform's slide takes ~300ms); a tap outside or back slides it down first, then calls onClose.
+ */
 export function Sheet({ open, onClose, title, children }: { open: boolean; onClose: () => void; title?: string; children: React.ReactNode }) {
+  const [shown, setShown] = useState(open)
+  const height = Dimensions.get('window').height // off the bottom edge whatever the sheet's own height
+  const p = useRef(new Animated.Value(0)).current // 0 = down and clear, 1 = up
+  const up = useRef(false)
+  const run = (to: 0 | 1, then?: () => void) => {
+    Animated.timing(p, { toValue: to, duration: SHEET_MS, easing: to ? Easing.out(Easing.cubic) : Easing.in(Easing.cubic), useNativeDriver: true }).start(({ finished }) => { if (finished && then) then() })
+  }
+  useEffect(() => {
+    if (open && !up.current) { up.current = true; setShown(true); p.setValue(0); run(1) }
+    else if (!open && up.current) { up.current = false; run(0, () => setShown(false)) }
+  }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
+  const dismiss = () => {
+    if (!up.current) return
+    up.current = false
+    run(0, () => { setShown(false); onClose() })
+  }
+  const translateY = p.interpolate({ inputRange: [0, 1], outputRange: [height, 0] })
   return (
-    <Modal visible={open} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.sheetBackdrop} onPress={onClose} />
-      <View style={styles.sheet}>
+    <Modal visible={shown} transparent animationType="none" onRequestClose={dismiss}>
+      <Animated.View style={[StyleSheet.absoluteFill, styles.sheetShade, { opacity: p }]} />
+      <Pressable style={styles.sheetBackdrop} onPress={dismiss} />
+      <Animated.View style={[styles.sheet, { transform: [{ translateY }] }]}>
         <View style={styles.sheetHandle} />
         {title ? <Text style={styles.sheetTitle}>{title}</Text> : null}
         {children}
-      </View>
+      </Animated.View>
     </Modal>
   )
 }
@@ -303,6 +367,10 @@ const styles = StyleSheet.create({
   trowTime: { marginLeft: 8, fontSize: 11.5, lineHeight: 22, color: color.meta, fontVariant: ['tabular-nums'], textAlign: 'right' },
   trowDot: { width: 6, height: 6, borderRadius: 3, marginLeft: 6, backgroundColor: color.fg },
   trowSub: { fontSize: size.meta, lineHeight: 18, color: color.muted },
+  mrow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 60, paddingVertical: 6, paddingHorizontal: 8, borderRadius: radius.lg },
+  mrowName: { flex: 1, minWidth: 0, fontSize: size.body, lineHeight: 22, fontWeight: '400', color: color.fg },
+  center: { flexDirection: 'row', alignSelf: 'center', alignItems: 'center', gap: 5, paddingVertical: 3, paddingHorizontal: 10, borderRadius: 10, maxWidth: '90%' },
+  centerText: { fontSize: size.small, lineHeight: 18, color: color.meta, textAlign: 'center', fontVariant: ['tabular-nums'] },
   // thread pieces
   dateLine: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
   dateRule: { flex: 1, height: 1, backgroundColor: color.borderSoft },
@@ -322,11 +390,6 @@ const styles = StyleSheet.create({
   bubble: { maxWidth: '82%', paddingVertical: 10, paddingHorizontal: 16, borderRadius: radius.xl, backgroundColor: color.surface },
   bubbleText: { fontSize: size.body, lineHeight: 25, color: color.fg },
   reply: { paddingRight: 8 },
-  handoff: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  handoffMain: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, paddingLeft: 10, paddingRight: 8, borderWidth: 1, borderColor: color.border, borderRadius: radius.lg, backgroundColor: color.bg },
-  handoffIc: { width: 20, alignItems: 'center' },
-  handoffTitle: { fontSize: size.ui, lineHeight: 20, color: color.fg },
-  handoffSub: { fontSize: size.meta, lineHeight: 18, color: color.muted, fontVariant: ['tabular-nums'] },
   composer: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, borderWidth: 1, borderColor: color.border, borderRadius: 24, backgroundColor: color.bg, paddingVertical: 6, paddingLeft: 18, paddingRight: 6, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
   composerBig: { alignItems: 'flex-end', borderRadius: 18, paddingTop: 10 },
   composerInput: { flex: 1, minHeight: 36, maxHeight: 160, fontSize: size.body, lineHeight: 24, paddingVertical: 6, color: color.fg },
@@ -338,8 +401,10 @@ const styles = StyleSheet.create({
   btnGhost: { backgroundColor: 'transparent', paddingHorizontal: 8 },
   btnText: { fontSize: 14, fontWeight: '500' },
   field: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 40, paddingHorizontal: 12, borderWidth: 1, borderColor: color.border, borderRadius: radius.md, backgroundColor: color.bg },
+  fieldMulti: { height: undefined, alignItems: 'flex-start', paddingVertical: 10 },
   fieldInput: { flex: 1, fontSize: size.ui, color: color.fg, paddingVertical: 0 },
-  sheetBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.25)' },
+  sheetShade: { backgroundColor: 'rgba(0,0,0,0.25)' },
+  sheetBackdrop: { flex: 1 },
   sheet: { backgroundColor: color.bg, borderTopLeftRadius: 16, borderTopRightRadius: 16, paddingHorizontal: 12, paddingTop: 8, paddingBottom: 28 },
   sheetHandle: { alignSelf: 'center', width: 36, height: 4, borderRadius: 2, backgroundColor: color.surface2, marginBottom: 8 },
   sheetTitle: { fontSize: size.ui, color: color.muted, paddingHorizontal: 12, paddingVertical: 8 },

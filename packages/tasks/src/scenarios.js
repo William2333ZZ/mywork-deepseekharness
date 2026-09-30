@@ -1,9 +1,11 @@
 /**
- * dsh-mywork-tasks — scenario registry.
+ * dsh-mywork-tasks — scenario registry, step names and the verifier.
  *
- * A scenario is how one class of tasks gets done. Scenario plugins register
- * through the `myworkTasks` service; this module holds the registry plus the
- * built-in generic scenario used when nothing more specific is chosen.
+ * In the teammate model (design/v2/TEAMMATES.md §9) a teammate's persona and working rules live in its generated
+ * agent preset, so a scenario no longer composes prompts for runs. What remains used: `toolStepMap` of every
+ * registered scenario (tool → the step word shown as 在干活 · <step>), `verifyPrompt` / `verify: false` of the general
+ * scenario, and the registry itself (packs still register through the `myworkTasks` service). GENERAL.compose is kept
+ * for packs that build on it.
  *
  * Scenario {
  *   id, label, intro, examples: string[],
@@ -16,8 +18,6 @@
  *   model: { provider, model } | undefined      optional model override
  *   permission: string | undefined              optional permission preset override
  *   homeWidget: string | undefined              client slot id for the 今日 page (phase 4)
- *   ask: false | undefined                      false = this scenario's tasks may never stop to ask (mywork_ask errors);
- *                                               routine runs and the 今日 assistant refuse regardless (§2.7)
  * }
  */
 
@@ -25,7 +25,10 @@
 export const GENERIC_STEPS = [
   [/^deliver$/, '交付'],
   [/^mywork_ask$/, '提问'],
-  [/^(mywork_task_)/, '派生任务'],
+  [/^mywork_routine_create$/, '安排例行'],
+  [/^mywork_routine/, '看例行'],
+  [/^mywork_remember$/, '记住'],
+  [/^mywork_mate_update$/, '起名'],
   [/^(browser|open_url|quick_links|web_|deepseek_search|fetch|search|http)/i, '查阅'],
   [/^(read|grep|glob|list|ls|cat|view|find)/i, '读取'],
   [/^(write|edit|create|apply_patch|patch|save|mkdir|move|copy)/i, '整理'],
@@ -80,52 +83,7 @@ export const GENERAL = {
   },
 }
 
-/**
- * The assistant behind 今日's conversation. It answers what can be answered, hands real work to
- * a background task (mywork_task_create), turns timed requests into routines
- * (mywork_routine_create), sends a follow-up into an existing task (mywork_task_say), and keeps
- * its own replies short. Hidden from the packs list.
- *
- * §8.3 助理的连续性: `context.memory` (feed.js assistantMemory, injected by index.js) is what makes one assistant
- * across days — { recent: [{ id, title, status }], history: '9/29 用户：…\n9/29 你：…', results: [title] }.
- * It goes into the prompt as facts; nothing here says the assistant cannot see earlier days.
- */
-export const ASSISTANT = {
-  id: 'assistant',
-  label: '助理',
-  intro: '',
-  examples: [],
-  hidden: true,
-  agentPreset: 'mywork-assistant', // presets/mywork-assistant: no shell, files or web; answer or hand off only
-  toolStepMap: { mywork_task_create: '交办', mywork_routine_create: '安排', mywork_task_say: '追问' },
-  deliverableKinds: [],
-  deliverable: false,
-  verify: false,
-  compose(input, context) {
-    const today = (context && context.today) || {}
-    const memory = (context && context.memory) || {}
-    const lines = [
-      '你是 MyWork 里的助理，和用户在「今日」页上说话。用户随口说，你来判断怎么处理，不要反问用户想要哪种。',
-      '',
-      '四种处理：',
-      '1. 一句两句能答的（解释、建议、算一下、改一段话）：直接答，像同事说话，不铺垫。',
-      '2. 要干活的（查资料、比较、写文档、做表、整理文件、任何要用几分钟以上的）：调用 mywork_task_create 交给后台，input 写清楚要的结果；然后只回一句，说明交给后台了、大概会得到什么，不要自己动手做。',
-      '3. 带时间的（每天 / 每周 / 工作日 / 几点 / 多久之后 / 提醒我）：调用 mywork_routine_create，然后按返回的 kind 回一句：是例行任务就说到点 MyWork 会做好交给用户（比如「每周五提醒我写周报」= 每周五 MyWork 写好周报），是提醒就说到点会提醒。',
-      '4. 追问已有任务（「再短一点」「上一份改成英文」「刚才那个加个表」这类对已有结果的修改或补充）：调用 mywork_task_say，id 用下面「最近的任务」里对应任务的 id，text 用用户的原话；然后只回一句，说明已经让它接着改。不要为此新建任务。',
-      '',
-      '只用 mywork_task_create、mywork_routine_create 和 mywork_task_say 这三个工具；不要用 reminder、automation、bash、文件、搜索等任何别的工具，也不要在这个对话里调用 deliver。一件事只安排一次：工具返回后就回话，不要再补提醒或再查一遍。回复保持简短，可以用 Markdown 但不要标题和长列表。',
-      today.summary ? '\n今天的情况：' + today.summary : '',
-      Array.isArray(memory.recent) && memory.recent.length ? '\n最近的任务（追问时用它的 id）：\n' + memory.recent.map((x) => `- ${x.id} · ${x.title} · ${x.status}`).join('\n') : '',
-      memory.history ? '\n前几天的对话：\n' + memory.history : '',
-      Array.isArray(memory.results) && memory.results.length ? '\n最近的结果：' + memory.results.map((x) => '《' + x + '》').join('') : '',
-      context && context.date ? '\n今天是 ' + context.date + '。' : '',
-      '', '用户说：', input,
-    ]
-    return lines.filter((x) => x !== undefined).join('\n')
-  },
-}
-
-export const BUILTIN_SCENARIOS = [GENERAL, ASSISTANT]
+export const BUILTIN_SCENARIOS = [GENERAL]
 
 export function createScenarioRegistry() {
   const map = new Map()
@@ -152,6 +110,8 @@ export function createScenarioRegistry() {
       return map.get('general') || null
     },
     list() { return [...map.values()].filter((s) => !s.hidden).map(publicView) },
+    /** Every registered scenario's tool → step words, later registrations winning. */
+    stepMap() { const out = {}; for (const s of map.values()) Object.assign(out, s.toolStepMap || {}); return out },
     subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn) },
   }
 }
@@ -168,16 +128,16 @@ export function defaultVerifyPrompt(task, deliverables, activity) {
   // What the user said after the first line (follow-ups, answers to the task's questions) changes the
   // requirement: 「只写草稿，不要发送」 overrides 「写好后直接发给他」. The verifier judges against all of it.
   const later = (activity || []).filter((a) => a.kind === 'user' && !a.auto && String(a.text || '').trim()).map((a) => '- ' + String(a.text).slice(0, 500)).slice(-10)
-  const asked = (activity || []).filter((a) => a.kind === 'ask' && a.status === 'answered').map((a) => `- 任务问：${String(a.question || '').slice(0, 200)}\n  用户答：${String(a.answer || '').slice(0, 500)}`).slice(-4)
+  const asked = (activity || []).filter((a) => a.kind === 'ask' && a.status === 'answered').map((a) => `- 同事问：${String(a.question || '').slice(0, 200)}\n  用户答：${String(a.answer || '').slice(0, 500)}`).slice(-4)
   return [
-    '你是核验员。下面是一个后台任务、它执行时调用过的工具，以及它交付的内容。请只做核对，不要重做任务，不要调用会修改东西的工具。',
-    '', '## 任务', task.input, '',
-    later.length || asked.length ? '## 用户后来补充的话（与任务原文冲突时，以后说的为准）\n' + [...asked, ...later].join('\n') + '\n' : '',
+    '你是核验员。下面是用户交给一位同事的一件事、它做这件事时调用过的工具，以及它交付的内容。请只做核对，不要重做，不要调用会修改东西的工具。',
+    '', '## 用户要的', task.input || '（见后来补充的话）', '',
+    later.length || asked.length ? '## 用户后来补充的话（与原话冲突时，以后说的为准）\n' + [...asked, ...later].join('\n') + '\n' : '',
     '## 执行时调用的工具', tools.length ? tools.join('\n') : '（没有调用工具）', '',
-    task.material ? '## 任务拿到的素材（系统从自己的记录里给的，视为已核实）\n' + String(task.material).slice(0, 8000) + '\n' : '',
+    task.material ? '## 同事拿到的素材（系统从自己的记录里给的，视为已核实）\n' + String(task.material).slice(0, 8000) + '\n' : '',
     '## 交付内容', docs, '',
     '## 核对什么',
-    '1. 交付内容是否回答了任务要求（含用户后来补充的话）；有没有承诺了但没做的事。',
+    '1. 交付内容是否回答了用户的要求（含用户后来补充的话）；有没有承诺了但没做的事。',
     task.material ? '2. 交付里的关键事实和数字，是否能对应到上面的素材或工具调用（素材里没有、也没调用工具就给出的具体数据，视为未核实）。' : '2. 交付里的关键事实和数字，是否能对应到上面的工具调用（没有调用工具却给出具体数据的，视为未核实）。',
     '3. 有没有明显的自相矛盾或格式问题。',
     '', '最后只输出一个 JSON 对象，不要别的：{"passed": true 或 false, "checked": 核对过的要点数, "issues": 发现的问题数, "notes": "两三句话的结论"}',

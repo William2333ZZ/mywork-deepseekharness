@@ -1,64 +1,81 @@
 /**
- * MyWork v2 sidebar: one column of conversations (the Rakazo shape). A search field and
- * a "+" on top; then 今日 pinned, then every routine and user task in one list by last
- * activity; 交付物 and 设置 at the bottom. Rows carry no actions: opening a row is the only
- * thing it does, and nothing appears on hover.
+ * MyWork v2 sidebar (TEAMMATES §9.4): the column is teammates. On top a search field, the bell (a count of what needs
+ * you + what is working; a dropdown of 需要你 / 在干活 / 刚完成) and 「+」 for a new teammate. In the middle only
+ * teammates — pinned first (MyWork is pinned by default), the rest by their last conversation; state never changes the
+ * order. At the bottom 文件 and 设置. Rows carry no actions: opening a row is the only thing it does.
  *
- * Data comes from dsh-mywork-tasks (/mywork-tasks/api/tasks, /routines, /search); navigation
- * into that plugin's pages goes through window events so neither package imports the other:
- * the column dispatches mywork:open-thread and listens for mywork:thread-opened.
+ * Data comes from dsh-mywork-tasks (/mywork-tasks/api/mates, /activity, /search); navigation into that plugin's pages
+ * goes through window events so neither package imports the other: the column dispatches mywork:open-thread and
+ * listens for mywork:thread-opened (the highlight) and mywork:mates-updated (the page's own poll, shared).
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactElement, type ReactNode } from 'react'
-import { CircleCheck, CircleX, FileText, Files, History, Loader, MessageCircle, PanelLeft, Plus, Repeat, Search } from 'lucide-react'
+import { Bell, FileText, Files, MessageCircle, PanelLeft, Plus, Repeat, Search } from 'lucide-react'
 import type { CodexSidebarProps } from './CodexSidebar.tsx'
 
 export const V2_STORAGE_KEY = 'dsh-mywork:v2'
 export function v2Active(): boolean { try { return localStorage.getItem(V2_STORAGE_KEY) !== 'off' } catch { return true } }
 
-export const MYWORK_PANELS = { today: 'mywork-today', create: 'mywork-new', tasks: 'mywork-tasks', deliverables: 'mywork-deliverables', routines: 'mywork-routines', scenarios: 'mywork-scenarios' } as const
+export const MYWORK_PANELS = { mate: 'mywork-mate', files: 'mywork-files' } as const
 const API = '/mywork-tasks/api'
 const FAST_MS = 4000
 const SLOW_MS = 30000
 const SEARCH_DEBOUNCE_MS = 200
-const MAX_ROWS = 80
 
-type SidebarTask = { id: string; title: string; status: string; statusLabel?: string; error?: string; currentStep?: string; finishedAt?: string; createdAt?: string; scenario?: string; routineId?: string; quiet?: boolean; verification?: { passed?: boolean } | null; preview?: string; lastAt?: string; unread?: boolean }
-type SidebarRoutine = { id: string; title: string; scheduleLabel?: string; createdAt?: string; lastRunAt?: string; lastRun?: { at?: string } | null; preview?: string; lastAt?: string; unread?: boolean; lastRunSummary?: string }
-type Reminder = { routineId?: string; at?: string }
-type RowKind = 'today' | 'task' | 'routine' | 'deliverable'
+/** GET /mates → items (the §9.8 contract; only the fields the column reads). */
+type Mate = { id: string; name: string; title?: string; pinned?: boolean; isDefault?: boolean; createdAt?: string; lastAt?: string; preview?: string; unread?: boolean; state?: 'idle' | 'working' | 'waiting'; step?: string; ask?: { question?: string } | null }
+/** GET /activity → { needs, working, recent } of these. */
+type ActivityItem = { mateId: string; mateName?: string; runId?: string; at?: string; text?: string; kind?: string }
+type Activity = { needs: ActivityItem[]; working: ActivityItem[]; recent: ActivityItem[] }
+/** The teammate the tasks page has open (its sticky nav, shared through sessionStorage). */
+const MATE_KEY = 'dsh-mywork:mate'
+function storedMate(): string { try { return window.sessionStorage.getItem(MATE_KEY) ?? '' } catch { return '' } }
+function storeMate(id: string): void { try { if (id !== '') window.sessionStorage.setItem(MATE_KEY, id); else window.sessionStorage.removeItem(MATE_KEY) } catch { /* private mode */ } }
+
 /** What a row opens; the contract with dsh-mywork-tasks' web client (mywork:open-thread). */
-type ThreadKind = 'today' | 'task' | 'routine' | 'new' | 'deliverables' | 'settings'
-type Row = { key: string; kind: RowKind; id: string; title: string; preview: string; lastAt: string; unread: boolean; status?: string; failed?: boolean; taskId?: string }
+type Target = { kind: 'mate'; id?: string; runId?: string } | { kind: 'new-mate' } | { kind: 'files'; id?: string } | { kind: 'routine'; id: string; mateId?: string }
+type ResultRow = { key: string; glyph: 'mate' | 'message' | 'file' | 'routine'; mate?: Mate; title: string; sub: string; at: string; target: Target }
 type SidebarProps = Pick<CodexSidebarProps, 'selectPanel' | 'usePanelInfo' | 'collapsed' | 'width' | 'toggleSidebar' | 'renderSlot' | 't'>
 
 const useLegacyPanelInfo = <T,>(selector: (info: { activePanelId: string | null }) => T): T => selector({ activePanelId: null })
+const EMPTY_ACTIVITY: Activity = { needs: [], working: [], recent: [] }
 
 const stylesheet = `
 /* Tokens: design/v2/DESIGN.md §2. The column is --surface beside a --bg page; rows step to --surface-2. */
-.mws{--bg:#ffffff;--surface:#f6f5f4;--surface-2:#efedeb;--fg:rgba(0,0,0,.92);--fg-2:#31302e;--muted:#615d59;--meta:#75706a;--border:rgba(0,0,0,.1);--border-soft:rgba(0,0,0,.06);--border-strong:rgba(0,0,0,.22);--success:#127e28;--warn:#b5480a;--danger:#c0392b;--focus-ring:0 0 0 3px rgba(0,117,222,.25);--motion-fast:150ms;--ease-standard:cubic-bezier(.2,0,0,1);position:relative;width:100%;height:100%;min-width:0;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;background:var(--surface);color:var(--fg);box-shadow:inset -1px 0 var(--border-soft);font:14px/20px -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei UI",sans-serif;-webkit-font-smoothing:antialiased}
-body[data-ds-dark-theme] .mws{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a;--fg:rgba(255,255,255,.9);--fg-2:#e6e4e0;--muted:#9b9893;--meta:#8a867f;--border:rgba(255,255,255,.1);--border-soft:rgba(255,255,255,.06);--border-strong:rgba(255,255,255,.22);--success:#4dab7a;--warn:#e08a3c;--danger:#e26e63;--focus-ring:0 0 0 3px rgba(82,156,202,.35)}
+.mws{--bg:#ffffff;--surface:#f6f5f4;--surface-2:#efedeb;--fg:rgba(0,0,0,.92);--fg-2:#31302e;--muted:#615d59;--meta:#75706a;--border:rgba(0,0,0,.1);--border-soft:rgba(0,0,0,.06);--border-strong:rgba(0,0,0,.22);--warn:#b5480a;--focus-ring:0 0 0 3px rgba(0,117,222,.25);--elev-raised:rgba(0,0,0,.04) 0 4px 18px,rgba(0,0,0,.027) 0 2px 7.85px,rgba(0,0,0,.02) 0 .8px 2.93px;--motion-fast:150ms;--ease-standard:cubic-bezier(.2,0,0,1);position:relative;width:100%;height:100%;min-width:0;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;background:var(--surface);color:var(--fg);box-shadow:inset -1px 0 var(--border-soft);font:14px/20px -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei UI",sans-serif;-webkit-font-smoothing:antialiased}
+body[data-ds-dark-theme] .mws{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a;--fg:rgba(255,255,255,.9);--fg-2:#e6e4e0;--muted:#9b9893;--meta:#8a867f;--border:rgba(255,255,255,.1);--border-soft:rgba(255,255,255,.06);--border-strong:rgba(255,255,255,.22);--warn:#e08a3c;--focus-ring:0 0 0 3px rgba(82,156,202,.35);--elev-raised:rgba(0,0,0,.35) 0 4px 18px,rgba(0,0,0,.25) 0 2px 8px}
 .mws *{box-sizing:border-box}
 .mws button{font-family:inherit;transition:background-color var(--motion-fast) var(--ease-standard),color var(--motion-fast) var(--ease-standard),transform var(--motion-fast) var(--ease-standard)}
 .mws button:active{transform:scale(.98)}
 .mws :focus-visible{outline:none;box-shadow:var(--focus-ring)}
 @media (prefers-reduced-motion:reduce){.mws *{transition:none!important;animation:none!important}}
-.mws-head{display:flex;align-items:center;gap:4px;flex:none;padding:12px 8px 8px}
-.mws-search{flex:1;min-width:0;display:flex;align-items:center;gap:8px;height:32px;padding:0 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--meta);transition:border-color var(--motion-fast) var(--ease-standard)}
+.mws-head{position:relative;display:flex;align-items:center;gap:2px;flex:none;padding:12px 8px 8px}
+.mws-search{flex:1;min-width:0;display:flex;align-items:center;gap:8px;height:32px;margin-right:4px;padding:0 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--meta);transition:border-color var(--motion-fast) var(--ease-standard)}
 .mws-search:focus-within{border-color:var(--border-strong)}
 .mws-search svg{flex:none}
 .mws-search input{flex:1;min-width:0;height:100%;margin:0;padding:0;border:0;background:transparent;color:var(--fg);font:inherit;font-size:13px;outline:none}
 .mws-search input::placeholder{color:var(--meta)}
 .mws-search input:focus-visible{box-shadow:none}
-.mws-icon{appearance:none;display:inline-grid;place-items:center;flex:none;width:32px;height:32px;border:0;border-radius:6px;background:transparent;color:var(--muted);cursor:pointer}
-.mws-icon:hover{background:var(--surface-2);color:var(--fg)}
+.mws-icon{appearance:none;position:relative;display:inline-grid;place-items:center;flex:none;width:32px;height:32px;border:0;border-radius:6px;background:transparent;color:var(--muted);cursor:pointer}
+.mws-icon:hover,.mws-icon[aria-expanded=true]{background:var(--surface-2);color:var(--fg)}
+.mws-count{position:absolute;top:3px;right:2px;min-width:15px;height:15px;padding:0 4px;border-radius:8px;background:var(--fg);color:var(--bg);font-size:10px;line-height:15px;font-weight:600;font-variant-numeric:tabular-nums;text-align:center;pointer-events:none}
+/* The bell's panel: under the header, over the list. */
+.mws-drop{position:absolute;top:calc(100% - 2px);left:8px;right:8px;z-index:20;max-height:min(420px,calc(100vh - 120px));overflow:auto;padding:6px;border:1px solid var(--border);border-radius:12px;background:var(--bg);box-shadow:var(--elev-raised)}
+.mws-drop h3{margin:6px 8px 2px;font-size:12px;line-height:16px;font-weight:500;color:var(--muted)}
+.mws-drop .mws-row{min-height:44px;border-radius:8px}
+.mws-drop .mws-row:hover{background:var(--surface)}
 .mws-list{flex:1;min-height:0;overflow:auto;padding:0 8px 8px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
-.mws-row{appearance:none;display:grid;grid-template-columns:20px minmax(0,1fr);column-gap:10px;align-items:center;width:100%;min-height:48px;padding:5px 10px;border:0;border-radius:12px;background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
-.mws-row-flat{min-height:44px;padding:12px 10px}
+.mws-row{appearance:none;display:grid;grid-template-columns:28px minmax(0,1fr);column-gap:10px;align-items:center;width:100%;min-height:52px;padding:6px 10px;border:0;border-radius:12px;background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
+.mws-row-flat{grid-template-columns:20px minmax(0,1fr);min-height:44px;padding:12px 10px}
 .mws-row:hover,.mws-row[aria-current=page]{background:var(--surface-2)}
 .mws-glyph{display:inline-grid;place-items:center;width:20px;height:20px;color:var(--meta)}
+.mws-glyph.wide{width:28px;height:28px}
 .mws-glyph svg{display:block}
-.mws-glyph[data-s=running] svg,.mws-glyph[data-s=delivering] svg,.mws-glyph[data-s=verifying] svg{animation:mws-spin 1.6s linear infinite;color:var(--fg-2)}
-.mws-glyph[data-s=ok]{color:var(--success)}.mws-glyph[data-s=err]{color:var(--danger)}.mws-glyph[data-s=waiting]{color:var(--warn)}
+.mws-av{position:relative;display:inline-grid;place-items:center;flex:none;width:28px;height:28px;border-radius:50%;background:var(--surface-2);color:var(--fg-2);font-size:13px;line-height:1;font-weight:500;user-select:none}
+.mws-row:hover .mws-av,.mws-row[aria-current=page] .mws-av{background:var(--bg)}
+.mws-av.small{width:22px;height:22px;font-size:11px}
+.mws-av .mws-mark{width:100%;height:100%;border-radius:50%}
+.mws-ring{position:absolute;inset:-3px;width:calc(100% + 6px);height:calc(100% + 6px);color:var(--fg-2);pointer-events:none;animation:mws-spin 1.6s linear infinite}
+@media (prefers-reduced-motion:reduce){.mws-ring circle{stroke-dasharray:none}}
 @keyframes mws-spin{to{transform:rotate(360deg)}}
 .mws-main{min-width:0}
 .mws-line{display:flex;align-items:center;min-width:0}
@@ -67,6 +84,7 @@ body[data-ds-dark-theme] .mws{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 .mws-time{flex:none;margin-left:8px;color:var(--meta);font-size:11.5px;line-height:20px;font-variant-numeric:tabular-nums;text-align:right}
 .mws-unread{flex:none;width:6px;height:6px;margin-left:6px;border-radius:50%;background:var(--fg)}
 .mws-sub{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:12.5px;line-height:18px}
+.mws-sub[data-tone=warn]{color:var(--warn)}
 .mws-empty{padding:12px 10px;color:var(--muted);font-size:12.5px;line-height:18px}
 .mws-mark{display:inline-grid;place-items:center;flex:none;border-radius:5px;background:var(--fg);color:var(--bg)}
 .mws-mark svg{display:block}
@@ -75,7 +93,7 @@ body[data-ds-dark-theme] .mws{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 @keyframes mws-draw{0%{stroke-dashoffset:60}55%{stroke-dashoffset:0}80%{stroke-dashoffset:0;opacity:1}100%{stroke-dashoffset:0;opacity:.35}}
 @media (prefers-reduced-motion:reduce){.mws-mark[data-live=true] path{animation:none}}
 .mws-foot{flex:none;padding:8px 8px 0;border-top:1px solid var(--border-soft)}
-/* The settings entry is dsh's own trigger, kept outside the footer so it stays mounted across collapse; it wears the same row recipe as 交付物 above it. */
+/* The settings entry is dsh's own trigger, kept outside the footer so it stays mounted across collapse; it wears the same row recipe as 文件 above it. */
 .mws-settings{flex:none;padding:0 8px 12px}
 .mws-settings .dcu-settings-trigger{height:44px;min-height:44px;padding:0 10px;border-radius:12px;color:var(--fg);font-family:inherit;font-size:14px;line-height:20px;transition:background-color var(--motion-fast) var(--ease-standard),color var(--motion-fast) var(--ease-standard),transform var(--motion-fast) var(--ease-standard)}
 .mws-settings .dcu-settings-trigger:hover{background:var(--surface-2);color:var(--fg)}
@@ -90,7 +108,6 @@ body[data-ds-dark-theme] .mws{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 
 const str = (v: unknown): string => typeof v === 'string' ? v : ''
 const ms = (iso: string): number => { const n = Date.parse(iso); return Number.isFinite(n) ? n : 0 }
-const byLastAt = (a: Row, b: Row): number => ms(b.lastAt) - ms(a.lastAt)
 const sameDay = (a: Date, b: Date): boolean => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
 /** HH:MM today, M/D otherwise. */
 function fmtWhen(iso: string, now: Date): string {
@@ -100,72 +117,96 @@ function fmtWhen(iso: string, now: Date): string {
   if (sameDay(d, now)) return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
   return `${d.getMonth() + 1}/${d.getDate()}`
 }
-function visual(status: string, failed: boolean): string { return status !== 'done' ? status : failed ? 'err' : 'ok' }
-/** Server fields (preview / lastAt / unread) with fallbacks so the column also reads the current payload. */
-function taskRow(task: SidebarTask): Row {
-  return { key: 'task:' + task.id, kind: 'task', id: task.id, title: str(task.title), preview: str(task.preview) || str(task.currentStep) || str(task.statusLabel), lastAt: str(task.lastAt) || str(task.finishedAt) || str(task.createdAt), unread: task.unread === true, status: str(task.status), failed: str(task.error) !== '' }
+const isPinned = (m: Mate): boolean => m.pinned === true || (m.isDefault === true && m.pinned !== false)
+/** The column's one order rule: pinned first (MyWork first among them), then the newest conversation. State never moves a row. */
+export function orderMates(mates: Mate[]): Mate[] {
+  return mates.filter(m => str(m.id) !== '').slice().sort((a, b) =>
+    Number(isPinned(b)) - Number(isPinned(a))
+    || (isPinned(a) && isPinned(b) ? Number(b.isDefault === true) - Number(a.isDefault === true) : 0)
+    || ms(str(b.lastAt) || str(b.createdAt)) - ms(str(a.lastAt) || str(a.createdAt))
+    || (a.id < b.id ? -1 : 1))
 }
-function routineRow(routine: SidebarRoutine): Row {
-  const preview = str(routine.preview) || [str(routine.scheduleLabel), str(routine.lastRunSummary)].filter(x => x !== '').join(' · ')
-  return { key: 'routine:' + routine.id, kind: 'routine', id: routine.id, title: str(routine.title), preview, lastAt: str(routine.lastAt) || str(routine.lastRun?.at) || str(routine.lastRunAt) || str(routine.createdAt), unread: routine.unread === true }
+function initialOf(name: string): string { const s = name.trim(); return s === '' ? '·' : Array.from(s)[0].toUpperCase() }
+function asMates(v: unknown): Mate[] { return Array.isArray(v) ? v.filter((x): x is Mate => x !== null && typeof x === 'object' && str((x as Mate).id) !== '') : [] }
+function asItems(v: unknown): ActivityItem[] { return Array.isArray(v) ? v.filter((x): x is ActivityItem => x !== null && typeof x === 'object' && str((x as ActivityItem).mateId) !== '') : [] }
+function asActivity(v: unknown): Activity | undefined {
+  if (v === null || typeof v !== 'object') return undefined
+  const a = v as Record<string, unknown>
+  return { needs: asItems(a.needs), working: asItems(a.working), recent: asItems(a.recent) }
 }
-/** GET /search?q= results. Preferred: { items: [{ type: 'task' | 'routine' | 'deliverable', id, title, preview, lastAt, taskId? }] };
- *  plain { tasks, routines, deliverables } arrays are read too, and an item's own fields settle its kind when `type` is absent. */
-function parseSearch(data: unknown): Row[] {
+/** GET /search?q= → { mates, messages, files, routines }: one row shape, told apart by the glyph. */
+function parseSearch(data: unknown, byId: Map<string, Mate>): ResultRow[] {
   if (data === null || typeof data !== 'object') return []
   const body = data as Record<string, unknown>
-  const out: Row[] = []
-  const push = (fallback: RowKind, raw: unknown): void => {
-    if (raw === null || typeof raw !== 'object') return
-    const v = raw as Record<string, unknown>
-    const id = str(v.id)
-    if (id === '') return
-    const typed = str(v.type)
-    const kind: RowKind = typed === 'task' || typed === 'routine' || typed === 'deliverable' ? typed
-      : v.scheduleLabel !== undefined || v.schedule !== undefined || Array.isArray(v.runs) ? 'routine'
-        : typeof v.status === 'string' ? 'task'
-          : typeof v.taskId === 'string' ? 'deliverable'
-            : fallback
-    if (kind === 'task') { out.push(taskRow(v as unknown as SidebarTask)); return }
-    if (kind === 'routine') { out.push(routineRow(v as unknown as SidebarRoutine)); return }
-    out.push({ key: 'deliverable:' + id, kind: 'deliverable', id, title: str(v.title), preview: str(v.preview) || str(v.summary), lastAt: str(v.lastAt) || str(v.createdAt), unread: false, taskId: str(v.taskId) || undefined })
+  const list = (k: string): Record<string, unknown>[] => (Array.isArray(body[k]) ? (body[k] as unknown[]).filter((x): x is Record<string, unknown> => x !== null && typeof x === 'object') : [])
+  const out: ResultRow[] = []
+  for (const m of asMates(body.mates)) out.push({ key: 'mate:' + m.id, glyph: 'mate', mate: byId.get(m.id) ?? m, title: str(m.name), sub: str(m.title) || str(m.preview), at: str(m.lastAt), target: { kind: 'mate', id: m.id } })
+  list('messages').forEach((x, i) => {
+    const mateId = str(x.mateId)
+    if (mateId === '') return
+    out.push({ key: `msg:${mateId}:${str(x.runId)}:${i}`, glyph: 'message', title: byId.get(mateId)?.name ?? str(x.mateName), sub: str(x.text), at: str(x.at), target: { kind: 'mate', id: mateId, runId: str(x.runId) || undefined } })
+  })
+  for (const x of list('files')) {
+    const id = str(x.id)
+    if (id === '') continue
+    out.push({ key: 'file:' + id, glyph: 'file', title: str(x.title), sub: byId.get(str(x.mateId))?.name ?? '', at: str(x.createdAt), target: { kind: 'files', id } })
   }
-  if (Array.isArray(body.items)) for (const x of body.items) push('task', x)
-  if (Array.isArray(body.tasks)) for (const x of body.tasks) push('task', x)
-  if (Array.isArray(body.routines)) for (const x of body.routines) push('routine', x)
-  if (Array.isArray(body.deliverables)) for (const x of body.deliverables) push('deliverable', x)
+  for (const x of list('routines')) {
+    const id = str(x.id)
+    if (id === '') continue
+    const owner = byId.get(str(x.mateId))?.name ?? ''
+    out.push({ key: 'routine:' + id, glyph: 'routine', title: str(x.title), sub: [str(x.scheduleLabel), owner].filter(s => s !== '').join(' · '), at: str(x.lastAt) || str(x.nextRunAt), target: { kind: 'routine', id, mateId: str(x.mateId) || undefined } })
+  }
   return out
 }
 function fire(name: string, detail: Record<string, unknown>, cancelable = false): boolean {
   try { return !window.dispatchEvent(new CustomEvent(name, { detail, cancelable })) } catch { return false }
 }
 
-/** The MyWork mark: an M whose last stroke turns into a check. While something runs it draws itself, Grok style. */
-export function BrandMark({ live, size = 22 }: { live?: boolean; size?: number }): ReactElement {
-  const box: CSSProperties = { width: size, height: size }
-  const glyph = Math.round(size * 0.72)
+/** The MyWork mark: an M whose last stroke turns into a check. While something runs it draws itself. */
+export function BrandMark({ live, size = 22, round }: { live?: boolean; size?: number; round?: boolean }): ReactElement {
+  const box: CSSProperties = { width: size, height: size, borderRadius: round === true ? '50%' : undefined }
+  const glyph = Math.round(size * (round === true ? 0.62 : 0.72))
   return <span className="mws-mark" style={box} data-live={live ? 'true' : undefined} aria-hidden="true">
     <svg viewBox="0 0 24 24" width={glyph} height={glyph} fill="none"><path d="M4.5 18.5V7l5.5 6.5L15.5 7M10.5 17l3 3 6-6" stroke="currentColor" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
   </span>
 }
 
-function Glyph({ row, live }: { row: Row; live: boolean }): ReactElement {
-  if (row.kind === 'today') return <BrandMark live={live} size={20} />
-  if (row.kind === 'routine') return <span className="mws-glyph"><Repeat size={16} strokeWidth={1.5} /></span>
-  if (row.kind === 'deliverable') return <span className="mws-glyph"><FileText size={16} strokeWidth={1.5} /></span>
-  const v = visual(row.status ?? 'done', row.failed === true)
-  // 等你答 (waiting): the task stopped on a question; the preview line under the title already carries it.
-  const Icon = v === 'ok' ? CircleCheck : v === 'err' ? CircleX : v === 'queued' ? History : v === 'waiting' ? MessageCircle : Loader
-  return <span className="mws-glyph" data-s={v}><Icon size={16} strokeWidth={1.5} /></span>
+/** A teammate's round glyph: the first character of its name (MyWork wears the mark); working draws a turning ring. */
+function MateAvatar({ mate, small }: { mate: Mate; small?: boolean }): ReactElement {
+  const working = mate.state === 'working'
+  return <span className={'mws-av' + (small === true ? ' small' : '')} aria-hidden="true">
+    {mate.isDefault === true ? <BrandMark size={small === true ? 22 : 28} round /> : initialOf(str(mate.name))}
+    {working && <svg className="mws-ring" viewBox="0 0 34 34" fill="none"><circle cx="17" cy="17" r="16" stroke="currentColor" strokeWidth="1.5" strokeDasharray="22 9" strokeLinecap="round" /></svg>}
+  </span>
 }
 
-/** One row shape for everything: glyph · title · time · unread dot, and one line of preview. */
-function ListRow({ row, time, current, unread, live, onOpen }: { row: Row; time: string; current: boolean; unread: boolean; live: boolean; onOpen: () => void }): ReactElement {
+/** The second line: 等你答 · question / 在干活 · step / the last thing said. */
+function secondLine(mate: Mate, t: SidebarProps['t']): { text: string; tone?: 'warn' } {
+  if (mate.state === 'waiting') { const q = str(mate.ask?.question).replace(/\*\*|__|`/g, ''); return { text: [t('v2.waitingAsk'), q].filter(s => s !== '').join(' · '), tone: 'warn' } }
+  if (mate.state === 'working') return { text: [t('v2.working'), str(mate.step)].filter(s => s !== '').join(' · ') }
+  return { text: str(mate.preview) || str(mate.title) }
+}
+
+function MateRow({ mate, time, current, unread, t, onOpen }: { mate: Mate; time: string; current: boolean; unread: boolean; t: SidebarProps['t']; onOpen: () => void }): ReactElement {
+  const sub = secondLine(mate, t)
   return <button type="button" className="mws-row" aria-current={current ? 'page' : undefined} data-unread={unread ? 'true' : undefined} onClick={onOpen}>
-    <Glyph row={row} live={live} />
+    <MateAvatar mate={mate} />
     <span className="mws-main">
-      <span className="mws-line"><span className="mws-title">{row.title}</span>{time !== '' && <span className="mws-time">{time}</span>}{unread && <i className="mws-unread" aria-hidden="true" />}</span>
-      <span className="mws-sub">{row.preview}</span>
+      <span className="mws-line"><span className="mws-title">{mate.name}</span>{time !== '' && <span className="mws-time">{time}</span>}{unread && <i className="mws-unread" aria-hidden="true" />}</span>
+      <span className="mws-sub" data-tone={sub.tone}>{sub.text}</span>
+    </span>
+  </button>
+}
+
+function ResultItem({ row, time, onOpen }: { row: ResultRow; time: string; onOpen: () => void }): ReactElement {
+  const glyph = row.glyph === 'mate' && row.mate !== undefined ? <MateAvatar mate={row.mate} />
+    : <span className="mws-glyph wide">{row.glyph === 'message' ? <MessageCircle size={16} strokeWidth={1.5} /> : row.glyph === 'file' ? <FileText size={16} strokeWidth={1.5} /> : <Repeat size={16} strokeWidth={1.5} />}</span>
+  return <button type="button" className="mws-row" onClick={onOpen}>
+    {glyph}
+    <span className="mws-main">
+      <span className="mws-line"><span className="mws-title">{row.title}</span>{time !== '' && <span className="mws-time">{time}</span>}</span>
+      <span className="mws-sub">{row.sub}</span>
     </span>
   </button>
 }
@@ -180,117 +221,115 @@ function FlatRow({ label, icon, current, onOpen }: { label: string; icon: ReactN
 export function MyworkSidebar({ selectPanel, usePanelInfo = useLegacyPanelInfo, collapsed, width, toggleSidebar, renderSlot, t }: SidebarProps): ReactElement {
   const activePanelId = usePanelInfo(info => info.activePanelId)
   const compact = collapsed || width < 80
-  const [tasks, setTasks] = useState<SidebarTask[]>([])
-  const [routines, setRoutines] = useState<SidebarRoutine[]>([])
-  const [reminders, setReminders] = useState<Reminder[]>([])
+  const [mates, setMates] = useState<Mate[]>([])
+  const [activity, setActivity] = useState<Activity>(EMPTY_ACTIVITY)
   const [query, setQuery] = useState('')
-  const [remote, setRemote] = useState<Row[]>([])
-  const [opened, setOpened] = useState('')
-  // Rows the user has opened, with the lastAt they had then: the dot stays off until new activity moves lastAt.
+  const [remote, setRemote] = useState<ResultRow[] | null>(null)
+  // The open teammate survives a remount (collapse / expand): the tasks page keeps it in sessionStorage too.
+  const [opened, setOpened] = useState(() => { const id = storedMate(); return id !== '' ? 'mate:' + id : '' })
+  const [bellOpen, setBellOpen] = useState(false)
+  // Teammates opened here, with the lastAt they had then: the dot stays off until new activity moves lastAt.
   const [seen, setSeen] = useState<Record<string, string>>({})
   const timer = useRef<number | undefined>(undefined)
   const searchSeq = useRef(0)
-  const rowsRef = useRef<Map<string, Row>>(new Map())
+  const matesRef = useRef<Mate[]>([])
+  matesRef.current = mates
+  const headRef = useRef<HTMLDivElement | null>(null)
 
-  const load = useCallback((): void => {
-    const tasksReq = fetch(`${API}/tasks`).then(r => (r.ok ? r.json() : null))
-    const routinesReq = fetch(`${API}/routines`).then(r => (r.ok ? r.json() : null)).catch(() => null)
-    Promise.all([tasksReq, routinesReq]).then(([d, rd]: [{ items?: SidebarTask[]; reminders?: Reminder[]; routines?: SidebarRoutine[] } | null, { items?: SidebarRoutine[] } | null]) => {
-      const items = d !== null && Array.isArray(d.items) ? d.items : undefined
-      if (items !== undefined) { setTasks(items); setReminders(d !== null && Array.isArray(d.reminders) ? d.reminders : []) }
-      const routineItems = rd !== null && Array.isArray(rd.items) ? rd.items : d !== null && Array.isArray(d.routines) ? d.routines : undefined
-      if (routineItems !== undefined) setRoutines(routineItems)
-      window.clearTimeout(timer.current)
-      timer.current = window.setTimeout(load, (items ?? []).some(x => x.status !== 'done' && x.status !== 'waiting') ? FAST_MS : SLOW_MS)
-    }).catch(() => { window.clearTimeout(timer.current); timer.current = window.setTimeout(load, SLOW_MS) })
+  const schedule = useCallback((list: Mate[]): void => {
+    window.clearTimeout(timer.current)
+    timer.current = window.setTimeout(() => { load() }, list.some(m => m.state === 'working') ? FAST_MS : SLOW_MS)
   }, [])
-  const markSeen = useCallback((key: string): void => {
-    const row = rowsRef.current.get(key)
-    setSeen(prev => (prev[key] === (row?.lastAt ?? '') ? prev : { ...prev, [key]: row?.lastAt ?? '' }))
+  const load = useCallback((): void => {
+    const matesReq = fetch(`${API}/mates`).then(r => (r.ok ? r.json() : null))
+    const activityReq = fetch(`${API}/activity`).then(r => (r.ok ? r.json() : null)).catch(() => null)
+    Promise.all([matesReq, activityReq]).then(([m, a]: [unknown, unknown]) => {
+      const items = m !== null && typeof m === 'object' ? asMates((m as { items?: unknown }).items) : undefined
+      if (items !== undefined) setMates(items)
+      const next = asActivity(a)
+      if (next !== undefined) setActivity(next)
+      schedule(items ?? matesRef.current)
+    }).catch(() => { window.clearTimeout(timer.current); timer.current = window.setTimeout(() => { load() }, SLOW_MS) })
+  }, [schedule])
+  const markSeen = useCallback((id: string): void => {
+    const mate = matesRef.current.find(m => m.id === id)
+    setSeen(prev => (prev[id] === str(mate?.lastAt) ? prev : { ...prev, [id]: str(mate?.lastAt) }))
   }, [])
   useEffect(() => {
     load()
     const onFocus = (): void => { load() }
-    // The pages poll faster while something runs; reuse their snapshots instead of a second fast poll.
+    // The page polls on its own; reuse its snapshot the moment it lands.
     const onUpdated = (event: Event): void => {
-      const items = (event as CustomEvent<{ items?: SidebarTask[] }>).detail?.items
-      if (Array.isArray(items)) setTasks(items)
+      const detail = (event as CustomEvent<{ items?: unknown; activity?: unknown }>).detail
+      if (Array.isArray(detail?.items)) { const list = asMates(detail.items); setMates(list); schedule(list) }
+      const next = asActivity(detail?.activity)
+      if (next !== undefined) setActivity(next)
     }
     // The page tells the column what it shows; the column highlights that row and drops its dot (POST /seen is the page's).
     const onOpened = (event: Event): void => {
       const detail = (event as CustomEvent<{ kind?: string; id?: string }>).detail
       const kind = str(detail?.kind)
       const id = str(detail?.id)
-      const key = kind === 'today' ? 'today' : (kind === 'task' || kind === 'routine') && id !== '' ? `${kind}:${id}` : kind === 'deliverables' ? 'deliverables' : ''
-      setOpened(key)
-      if (key === 'today' || key.includes(':')) markSeen(key)
+      if (kind === 'mate' && id !== '') { setOpened('mate:' + id); markSeen(id) }
+      else if (kind === 'files') setOpened('files')
     }
     window.addEventListener('focus', onFocus)
-    window.addEventListener('mywork:tasks-updated', onUpdated)
+    window.addEventListener('mywork:mates-updated', onUpdated)
     window.addEventListener('mywork:thread-opened', onOpened)
-    return () => { window.clearTimeout(timer.current); window.removeEventListener('focus', onFocus); window.removeEventListener('mywork:tasks-updated', onUpdated); window.removeEventListener('mywork:thread-opened', onOpened) }
-  }, [load, markSeen])
+    return () => { window.clearTimeout(timer.current); window.removeEventListener('focus', onFocus); window.removeEventListener('mywork:mates-updated', onUpdated); window.removeEventListener('mywork:thread-opened', onOpened) }
+  }, [load, markSeen, schedule])
 
-  // Search: local title / preview matches first, then what the server finds in deliverables and content.
+  // The bell's panel closes on a click outside the header or on Escape.
+  useEffect(() => {
+    if (!bellOpen) return undefined
+    const onDoc = (event: MouseEvent): void => { if (headRef.current !== null && event.target instanceof Node && !headRef.current.contains(event.target)) setBellOpen(false) }
+    const onKey = (event: KeyboardEvent): void => { if (event.key === 'Escape') setBellOpen(false) }
+    document.addEventListener('mousedown', onDoc)
+    document.addEventListener('keydown', onKey)
+    return () => { document.removeEventListener('mousedown', onDoc); document.removeEventListener('keydown', onKey) }
+  }, [bellOpen])
+
+  // Search: while the field has text, the list is GET /search's results (teammates matched by name show at once).
   const needle = query.trim()
+  const byId = useMemo(() => new Map(mates.map(m => [m.id, m])), [mates])
   useEffect(() => {
     const seq = ++searchSeq.current
-    if (needle === '') { setRemote([]); return }
+    if (needle === '') { setRemote(null); return }
     const id = window.setTimeout(() => {
       fetch(`${API}/search?q=${encodeURIComponent(needle)}`).then(r => (r.ok ? r.json() : null))
-        .then((d: unknown) => { if (seq === searchSeq.current) setRemote(parseSearch(d)) })
+        .then((d: unknown) => { if (seq === searchSeq.current) setRemote(parseSearch(d, byId)) })
         .catch(() => { if (seq === searchSeq.current) setRemote([]) })
     }, SEARCH_DEBOUNCE_MS)
     return () => { window.clearTimeout(id) }
   }, [needle])
-
-  // Only what the user asked for: the day's conversation is the 今日 row, routine runs live behind their routine.
-  const mine = useMemo(() => tasks.filter(x => x.scenario !== 'assistant' && !x.routineId), [tasks])
-  const live = tasks.some(x => x.status !== 'done' && x.status !== 'waiting')
-  const now = new Date()
-  const today = useMemo((): Row => {
-    const assistant = tasks.filter(x => x.scenario === 'assistant').map(taskRow).sort(byLastAt)[0]
-    const running = mine.filter(x => x.status !== 'done' && x.status !== 'waiting').length
-    const dayStart = new Date(); dayStart.setHours(0, 0, 0, 0)
-    // 等你看 = reminders + tasks waiting for an answer + today's failures and verification issues
-    const waiting = reminders.length + mine.filter(x => x.status === 'waiting').length + mine.filter(x => x.status === 'done' && ms(str(x.finishedAt) || str(x.createdAt)) >= dayStart.getTime()
-      && ((str(x.error) !== '' && !/已取消/.test(str(x.error))) || x.verification?.passed === false)).length
-    const counts = [running > 0 ? `${running} ${t('v2.running1')}` : '', waiting > 0 ? `${waiting} ${t('v2.waiting1')}` : ''].filter(x => x !== '').join(' · ')
-    const thinking = assistant !== undefined && assistant.status !== 'done' ? assistant.preview : ''
-    const preview = counts !== '' ? counts : assistant === undefined ? '' : (str(tasks.find(x => x.id === assistant.id)?.preview) || thinking)
-    return { key: 'today', kind: 'today', id: '', title: t('v2.today'), preview, lastAt: assistant?.lastAt ?? '', unread: assistant?.unread === true }
-  }, [tasks, mine, reminders, t])
-  const merged = useMemo(() => [...mine.map(taskRow), ...routines.map(routineRow)].sort(byLastAt), [mine, routines])
-  const results = useMemo((): Row[] => {
+  const results = useMemo((): ResultRow[] => {
     if (needle === '') return []
     const q = needle.toLowerCase()
-    const local = merged.filter(r => r.title.toLowerCase().includes(q) || r.preview.toLowerCase().includes(q))
+    const local: ResultRow[] = orderMates(mates).filter(m => str(m.name).toLowerCase().includes(q) || str(m.title).toLowerCase().includes(q))
+      .map(m => ({ key: 'mate:' + m.id, glyph: 'mate', mate: m, title: m.name, sub: str(m.title) || str(m.preview), at: str(m.lastAt), target: { kind: 'mate', id: m.id } }))
     const keys = new Set(local.map(r => r.key))
-    return [...local, ...remote.filter(r => !keys.has(r.key))]
-  }, [needle, merged, remote])
-  const rows = needle === '' ? [today, ...merged.slice(0, MAX_ROWS)] : results
-  rowsRef.current = new Map(rows.map(r => [r.key, r]))
+    return [...local, ...(remote ?? []).filter(r => !keys.has(r.key))]
+  }, [needle, mates, remote])
 
-  const go = (id: string): void => { if (selectPanel !== undefined) selectPanel(id) }
-  /** mywork:open-thread is the contract; until the web client handles it (preventDefault), the current pages' events follow. */
-  const openThread = (kind: ThreadKind, id?: string): void => {
-    if (kind === 'today') { setOpened('today'); markSeen('today') }
-    else if ((kind === 'task' || kind === 'routine') && id !== undefined) { setOpened(`${kind}:${id}`); markSeen(`${kind}:${id}`) }
-    else if (kind === 'deliverables') setOpened('deliverables')
-    const handled = fire('mywork:open-thread', id === undefined ? { kind } : { kind, id }, true)
-    if (handled) return
-    if (kind === 'today') go(MYWORK_PANELS.today)
-    else if (kind === 'new') fire('mywork:new-task', {})
-    else if (kind === 'task') { go(MYWORK_PANELS.tasks); fire('mywork:open-task', { id }) }
-    else if (kind === 'routine') { go(MYWORK_PANELS.routines); window.setTimeout(() => { fire('mywork:open-routine', { id }) }, 0) }
-    else if (kind === 'deliverables') { if (id === undefined) go(MYWORK_PANELS.deliverables); else fire('mywork:open-deliverable', { id }) }
+  const ordered = useMemo(() => orderMates(mates), [mates])
+  const live = mates.some(m => m.state === 'working')
+  const count = activity.needs.length + activity.working.length
+  const now = new Date()
+
+  /** mywork:open-thread is the contract; if nothing handled it (the tasks client is not loaded yet), its page is selected. */
+  const open = (target: Target): void => {
+    setBellOpen(false)
+    if (target.kind === 'mate' && target.id !== undefined && target.id !== '') { setOpened('mate:' + target.id); markSeen(target.id) }
+    else if (target.kind === 'files') setOpened('files')
+    // Written before the event, so a tasks page that mounts only now (not loaded yet) still opens this teammate.
+    if (target.kind === 'mate') storeMate(target.id !== undefined ? target.id : '')
+    const handled = fire('mywork:open-thread', { ...target }, true)
+    if (!handled && selectPanel !== undefined) selectPanel(target.kind === 'files' ? MYWORK_PANELS.files : MYWORK_PANELS.mate)
   }
-  const openRow = (row: Row): void => {
-    if (row.kind === 'today') openThread('today')
-    else if (row.kind === 'deliverable') { if (row.taskId !== undefined) openThread('task', row.taskId); else openThread('deliverables', row.id) }
-    else openThread(row.kind, row.id)
-  }
-  const highlighted = activePanelId === MYWORK_PANELS.today ? 'today' : activePanelId === MYWORK_PANELS.deliverables ? 'deliverables' : activePanelId === MYWORK_PANELS.create ? '' : opened
+  const highlighted = activePanelId === MYWORK_PANELS.files ? 'files'
+    : activePanelId === null || activePanelId === MYWORK_PANELS.mate ? opened
+      : ''
+  const groups: Array<[string, ActivityItem[]]> = [[t('v2.needs'), activity.needs], [t('v2.working'), activity.working], [t('v2.recent'), activity.recent]]
 
   return <div className={'mws' + (compact ? ' compact' : '')} data-mywork-sidebar="v2">
     <style>{stylesheet}</style>
@@ -298,17 +337,38 @@ export function MyworkSidebar({ selectPanel, usePanelInfo = useLegacyPanelInfo, 
       <BrandMark live={live} />
       <button type="button" className="mws-icon" aria-label={t('sidebar.expand')} onClick={toggleSidebar}><PanelLeft size={16} strokeWidth={1.5} /></button>
     </> : <>
-      <div className="mws-head">
+      <div className="mws-head" ref={headRef}>
         <label className="mws-search"><Search size={14} strokeWidth={1.5} aria-hidden="true" /><input type="text" value={query} placeholder={t('v2.search')} aria-label={t('v2.search')} autoComplete="off" spellCheck={false} onChange={event => { setQuery(event.target.value) }} onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); setQuery('') } }} /></label>
-        <button type="button" className="mws-icon" aria-label={t('v2.newTask')} onClick={() => { openThread('new') }}><Plus size={16} strokeWidth={1.5} /></button>
+        <button type="button" className="mws-icon" aria-label={t('v2.bell')} aria-haspopup="true" aria-expanded={bellOpen} onClick={() => { setBellOpen(!bellOpen) }}>
+          <Bell size={16} strokeWidth={1.5} />{count > 0 && <span className="mws-count">{count > 99 ? '99' : count}</span>}
+        </button>
+        <button type="button" className="mws-icon" aria-label={t('v2.newMate')} onClick={() => { open({ kind: 'new-mate' }) }}><Plus size={16} strokeWidth={1.5} /></button>
         <button type="button" className="mws-icon" aria-label={t('sidebar.collapse')} onClick={toggleSidebar}><PanelLeft size={16} strokeWidth={1.5} /></button>
+        {bellOpen && <div className="mws-drop" role="dialog" aria-label={t('v2.bell')}>
+          {groups.every(([, items]) => items.length === 0) && <div className="mws-empty">{t('v2.quiet')}</div>}
+          {groups.map(([label, items]) => items.length === 0 ? null : <div key={label}>
+            <h3>{label}</h3>
+            {items.map((item, i) => {
+              const mate = byId.get(item.mateId) ?? { id: item.mateId, name: str(item.mateName) }
+              return <button key={`${item.mateId}:${str(item.runId)}:${i}`} type="button" className="mws-row" onClick={() => { open({ kind: 'mate', id: item.mateId, runId: str(item.runId) || undefined }) }}>
+                <MateAvatar mate={mate} />
+                <span className="mws-main">
+                  <span className="mws-line"><span className="mws-title">{str(mate.name) || str(item.mateName)}</span><span className="mws-time">{fmtWhen(str(item.at), now)}</span></span>
+                  <span className="mws-sub">{str(item.text)}</span>
+                </span>
+              </button>
+            })}
+          </div>)}
+        </div>}
       </div>
       <div className="mws-list">
-        {rows.map(row => <ListRow key={row.key} row={row} time={fmtWhen(row.lastAt, now)} current={highlighted === row.key} unread={row.unread && seen[row.key] !== row.lastAt} live={live} onOpen={() => { openRow(row) }} />)}
-        {needle !== '' && rows.length === 0 && <div className="mws-empty">{t('v2.noResults')}</div>}
+        {needle === ''
+          ? ordered.map(mate => <MateRow key={mate.id} mate={mate} t={t} time={fmtWhen(str(mate.lastAt), now)} current={highlighted === 'mate:' + mate.id} unread={mate.unread === true && seen[mate.id] !== str(mate.lastAt) && highlighted !== 'mate:' + mate.id} onOpen={() => { open({ kind: 'mate', id: mate.id }) }} />)
+          : results.map(row => <ResultItem key={row.key} row={row} time={fmtWhen(row.at, now)} onOpen={() => { open(row.target) }} />)}
+        {needle !== '' && remote !== null && results.length === 0 && <div className="mws-empty">{t('v2.noResults')}</div>}
       </div>
       <footer className="mws-foot">
-        <FlatRow label={t('v2.deliverables')} icon={<Files size={16} strokeWidth={1.5} />} current={highlighted === 'deliverables'} onOpen={() => { openThread('deliverables') }} />
+        <FlatRow label={t('v2.files')} icon={<Files size={16} strokeWidth={1.5} />} current={highlighted === 'files'} onOpen={() => { open({ kind: 'files' }) }} />
       </footer>
     </>}
     <div className="mws-settings">{renderSlot('sidebar.settings', { wide: !compact })}</div>

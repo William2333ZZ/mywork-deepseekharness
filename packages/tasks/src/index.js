@@ -1,383 +1,759 @@
 /**
- * dsh-mywork-tasks — host half: the task engine of MyWork Kit v2.
+ * dsh-mywork-tasks — host half: the teammate model of MyWork Kit v2 (design/v2/TEAMMATES.md §9).
  *
- *   一句话 → 任务（后台会话）→ 交付物 → 通知
+ *   同事 = 一条永远的对话（一个 dsh 会话）+ 自己的文件夹 + 自己的例行 + 自己的记忆（文件夹里的 AGENTS.md）
  *
- *   • service `myworkTasks`: scenario plugins register { id, label, intro, examples, compose, toolStepMap, … }
- *     and can create / list tasks (ctx.provide, so `inject: ['myworkTasks']` works in cordis).
- *   • tools: deliver({ title, markdown, kind?, data? }) and mywork_ask({ question, askKind?, options?, detail? }) inside a task session;
- *            mywork_task_create({ input, scenario? }) and mywork_tasks() from any session;
- *            mywork_task_say({ id, text }) from the day's assistant session only (a follow-up into an existing task).
- *   • HTTP: /mywork-tasks/api/{tasks, task, create, cancel, rerun, verify, say, answer, scenarios, deliverables, deliverable, rate,
- *           today[?day=YYYY-MM-DD], feed?before=&limit=, seen, search?q=}
- *   • events: ctx.emit('mywork/task', { kind: queued|started|step|deliverable|verifying|waiting|done, task, deliverable? })
+ *   • stores: mates.json, tasks.json (runs), deliverables.json, routines.json, seen.json under $DSH_HOME/mywork
+ *   • engine (engine.js): one session per teammate, runs from its session events, background verification
+ *   • tools (host-level, refused outside teammate sessions): deliver, mywork_ask, mywork_routine_create,
+ *     mywork_routines, mywork_routine_cancel, mywork_remember, mywork_mate_update
+ *   • HTTP under /mywork-tasks/api: the §9.8 contract (see README)
+ *   • events: ctx.emit('mywork/task', { kind, run, mate, deliverable?, routine? }) — kinds queued | started | step | text |
+ *     deliverable | verifying | verified | waiting | done | remind | routine | mate
  *
- * Every task and routine view carries what the conversation column shows: lastAt, preview, attentionAt
- * and unread (read state lives in $DSH_HOME/mywork/seen.json, written by POST /seen).
+ * createMyWork() holds everything that does not need cordis (tests drive it with a fake host); apply() wires it into dsh.
  */
-import { join } from 'node:path'
-import { ASK_TEXT, createEngine } from './engine.js'
-import { assistantMemory, buildFeed } from './feed.js'
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync, appendFileSync } from 'node:fs'
+import { homedir } from 'node:os'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { ASK_TEXT, bad, createEngine, mateSessionId, notFound } from './engine.js'
 import { configSchema, defineRawTool, rejectUntrusted } from './harness.js'
 import { BUILTIN_SCENARIOS, createScenarioRegistry } from './scenarios.js'
-import { DeliverableStore, myworkDir, searchAll, SeenStore, TaskStore, taskView, STATUS_LABELS } from './store.js'
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { dirname } from 'node:path'
-import { fileURLToPath } from 'node:url'
-
-/** Install the package's agent presets into <DSH_HOME>/.agent-presets so sessions can name them (idempotent). */
-function installPresets(log) {
-  const src = join(dirname(fileURLToPath(import.meta.url)), '..', 'presets')
-  const root = join(myworkDir(), '..', '.agent-presets')
-  for (const id of ['mywork-assistant']) {
-    try {
-      const body = readFileSync(join(src, id, 'agent.cordis.yml'), 'utf8')
-      const dir = join(root, id)
-      const file = join(dir, 'agent.cordis.yml')
-      if (existsSync(file) && readFileSync(file, 'utf8') === body) continue
-      mkdirSync(dir, { recursive: true })
-      writeFileSync(file, body)
-      log(`installed agent preset ${id} → ${file}`)
-    } catch (e) { log(`agent preset ${id} not installed: ${e && e.message}`) }
-  }
-}
-
+import {
+  askView, attentionOf, cleanName, clip, currentStepOf, DEFAULT_MATE_ID, deliverableSummary, DeliverableStore, glyphOf,
+  isLiveRun, isQuietRun, isThreadEntry, lastAtOf, lastLineOf, later, MATE_DESCRIPTION_MAX, MATE_TITLE_MAX, MateStore, migrate,
+  pendingAsk, plainLine, plainText, SeenStore, TaskStore, ts,
+} from './store.js'
 import { describeSchedule, parseSchedule, routineLastAt, RoutineStore, routineView } from './routines.js'
 
 export const name = 'dsh-mywork-tasks'
 export const inject = ['tools', 'agents', 'sessions', 'workspaceRegistry', 'agentDefaultModel', 'agentPresets', 'permissionPresets']
 
-/** Config (all optional): concurrency, timeoutMinutes, permission, agentPreset, cwd, tools, verify */
-export const Config = configSchema({ concurrency: 2, timeoutMinutes: 20, permission: 'workspace-write', agentPreset: 'standard', cwd: '', tools: true, verify: true })
+/** Config (all optional): concurrency (teammates working at once), timeoutMinutes (per run), permission, agentPreset (base of the verifier), tools, verify */
+export const Config = configSchema({ concurrency: 2, timeoutMinutes: 20, permission: 'workspace-write', agentPreset: 'standard', tools: true, verify: true })
 
-export function apply(ctx, config = {}) {
-  const log = (m) => console.log('[dsh-mywork-tasks] ' + m)
-  installPresets(log)
-  const dir = myworkDir()
+const PACKAGE_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
+const MEMORY_FILE = 'AGENTS.md'
+export const REMEMBER_MAX = 300
+const THREAD_LIMIT = 20
+const THREAD_LIMIT_MAX = 100
+
+// ── the teammate's generated preset ─────────────────────────────────────────
+
+/** The persona of one teammate plus MyWork's working rules: the preset's persona prefix. */
+export function personaPrefix(mate) {
+  const who = mate.name ? `你是「${mate.name}」` : '你是一位刚加入的同事（还没有名字）'
+  const lines = [
+    `${who}，在 MyWork 里替用户干活${mate.title ? '，头衔：' + mate.title : ''}。你和用户在一条长期的对话里共事：用户说一句，你就做，做完用中文简短回话，像同事说话，不铺垫、不用客套。`,
+    '',
+    '你的职责：',
+    String(mate.description || '').trim() || '（用户还没写，按用户说的做）',
+    '',
+    '工作规矩：',
+    '- 你的工作目录是你自己的文件夹（你的电脑），产出的文件放在这里。',
+    '- 做出一份成果（报告、清单、比较、方案、表格、文档）时，用 deliver 交付：title 一句话，markdown 先结论后依据；正文里有数字、清单或表格时必须同时给 summary（2 到 6 行 { label, value }，value 只放数字和最短的限定词）。交付后用一两句话回话，不要把正文再贴一遍。回答问题就直接说，不用交付。',
+    '- 默认按合理假设把事做完，假设写进结果。只在四种情况用 mywork_ask 停下来问：缺关键信息且没法合理假设 / 必须由用户拍板 / 动作有后果（发消息、付费、删除、对外提交）/ 需要密码、验证码或扫码。每一轮最多问 2 次，一次只问一件事，问完立刻结束这一轮；用户的回答以「回答：」开头送回来。',
+    '- 用户说带时间的事（每天 / 每周 / 工作日 / 几点 / 多久之后 / 提醒我），用 mywork_routine_create 安排成你的例行，一件事只安排一次；mywork_routines 查看，mywork_routine_cancel 取消。不要用 schedule_create、reminder_* 或 automation_* 这些别的定时工具。例行到点时你会收到「这是例行任务…」开头的消息，照要求做完回话；那时不要提问，也不要再建例行。',
+    '- 用户告诉你的长期偏好或事实（称呼、口味、固定的格式、常用的账号名），用 mywork_remember 记一行；它写进你文件夹里的 AGENTS.md，以后每一轮都会读到。一次性的事不要记。',
+    '- 用户在你干活时插话，是在改这件事的要求，接着做，按最新的话为准。',
+  ]
+  // Persona text is interpolated ({{model}}, {{cwd}}): a brace pair in what the user wrote must not become a variable.
+  return lines.join('\n').replace(/\{\{/g, '{ {').replace(/\}\}/g, '} }')
+}
+
+/** The persona row as YAML (a literal block, so any text the user wrote is safe). */
+function personaRow(mate) {
+  const body = personaPrefix(mate).split('\n').map((l) => (l ? '      ' + l : '')).join('\n')
+  return [
+    '- id: persona',
+    "  name: '@deepseek-ai/dsh-persona'",
+    '  config:',
+    '    suffix: 你的工作目录（你的文件夹）是 {{cwd}}。',
+    '    prefix: |-',
+    body,
+    '',
+  ].join('\n')
+}
+
+/** Replace (or drop) one top-level row `- id: <id>` of a composition: the row runs to the next column-0 line. */
+function spliceRow(lines, id, replacement) {
+  const start = lines.findIndex((l) => new RegExp('^- id: ' + id + '\\s*$').test(l))
+  if (start < 0) return false
+  let end = start + 1
+  while (end < lines.length && !/^[-#]/.test(lines[end])) end += 1
+  // trailing blank lines stay with the next row
+  let cut = end
+  while (cut > start + 1 && lines[cut - 1].trim() === '') cut -= 1
+  lines.splice(start, cut - start, ...(replacement === null ? [] : replacement.replace(/\n$/, '').split('\n')))
+  return true
+}
+
+/**
+ * The teammate's composition: dsh's shipped 'standard' preset (persona, agent-instructions, shell, fs, jobs, skills,
+ * plan mode, compaction, delegation, todo, web, present …) with the persona row replaced by the teammate's, and without
+ * dsh's ask_user (it holds a turn open waiting for a client; teammates ask with mywork_ask instead).
+ */
+export function mateComposition(baseText, mate) {
+  const lines = String(baseText || '').split('\n')
+  const header = [`# Generated by dsh-mywork-tasks for the teammate ${mate.id} (${mate.name || '未命名'}). Rewritten when the teammate changes; do not edit.`, '']
+  if (!spliceRow(lines, 'persona', personaRow(mate))) lines.unshift(...personaRow(mate).split('\n'))
+  spliceRow(lines, 'tool-ask-user', null)
+  return header.join('\n') + '\n' + lines.join('\n').replace(/\n*$/, '\n')
+}
+
+// ── the service ─────────────────────────────────────────────────────────────
+
+/**
+ * Everything but the cordis wiring. `ctx` is the dsh plugin context (or a fake), `home` the DSH_HOME, `controller()`
+ * the session controller, `hostEmit(payload)` where 'mywork/task' events go.
+ */
+export function createMyWork({ ctx, config = {}, home, log = () => {}, controller = () => null, hostEmit = () => {} }) {
+  const dshHome = home || process.env.DSH_HOME || join(homedir(), '.dsh')
+  const dir = join(dshHome, 'mywork')
+  const presetRoot = join(dshHome, '.agent-presets')
   const store = new TaskStore(join(dir, 'tasks.json'))
   const deliverables = new DeliverableStore(join(dir, 'deliverables.json'))
   const routines = new RoutineStore(join(dir, 'routines.json'))
   const seen = new SeenStore(join(dir, 'seen.json'))
-  // Every task / routine leaves here through one of these, so unread always reflects the current seen.json.
-  const view = (t) => taskView(t, deliverables, seen)
-  const rview = (r) => routineView(r, seen)
+  const mates = new MateStore(join(dir, 'mates.json'), { matesDir: join(dir, 'mates') })
+  const defaultMate = mates.ensureDefault()
+  const migrated = migrate({ runs: store, routines, deliverables, since: (defaultMate && defaultMate.createdAt) || (mates.get(DEFAULT_MATE_ID) || {}).createdAt })
+  if (migrated) log(`migrated ${migrated} records to the teammate model`)
   const scenarios = createScenarioRegistry()
-  // §8.3 助理的连续性: the assistant composes with the recent tasks, earlier days' lines and the last results (feed.js).
-  for (const s of BUILTIN_SCENARIOS) scenarios.register(s.id === 'assistant' ? { ...s, compose: (input, context) => s.compose(input, { ...context, memory: assistantMemory({ store, deliverables, today: dayKey() }) }) } : s)
+  for (const s of BUILTIN_SCENARIOS) scenarios.register(s)
   const listeners = new Set()
-  const emit = (kind, task, deliverable, extra) => {
-    const payload = { kind, task: task ? view(task) : null, ...(deliverable ? { deliverable: { id: deliverable.id, title: deliverable.title, kind: deliverable.kind, taskId: deliverable.taskId } } : {}), ...(extra || {}) }
-    for (const fn of listeners) { try { fn(payload) } catch (e) { log('listener error: ' + (e && e.message)) } }
-    try { ctx.emit('mywork/task', payload) } catch {}
-  }
-  let controller = null
-  ctx.inject(['sessionController'], (sctx) => { controller = sctx.sessionController; sctx.effect(() => () => { controller = null }, 'dsh-mywork-tasks: controller') })
-  /** What this machine can do, read from the tool registry at task time (members come and go). */
-  const hasTool = (name) => { try { return !!ctx.tools.get(name) } catch { return false } }
-  const capabilities = () => ({ browser: hasTool('open_url') || hasTool('browser_navigate'), office: hasTool('univer_new'), im: hasTool('im_send') })
-  const engine = createEngine({
-    ctx, store, deliverables, scenarios, log, emit, controller: () => controller, capabilities, routines, todaySummary: () => todaySummary(), workRecord: (days) => workRecord(days),
-    config: { concurrency: Number(config.concurrency) || 2, timeoutMs: Math.max(1, Number(config.timeoutMinutes) || 20) * 60000, permission: String(config.permission || 'workspace-write'), agentPreset: config.agentPreset === '' ? undefined : (config.agentPreset || 'standard'), cwd: String(config.cwd || ''), verify: config.verify !== false },
-  })
 
-  const create = ({ input, scenario, title, source, routineId }) => {
-    // The user never picks: a pack claims the input through match(), otherwise 通用 decides for itself.
-    const s = scenario ? scenarios.resolve(scenario) : scenarios.route(input)
-    const task = store.create({ input, scenario: s ? s.id : 'general', title, source, routineId })
-    log(`task ${task.id} queued (${task.scenario}): ${task.title}`)
-    emit('queued', task)
-    engine.pump()
-    return view(task)
-  }
-  /** Routines: a sentence with a time becomes a standing thing instead of a one-off task. */
-  const createRoutine = ({ input, schedule, kind, title }) => {
-    let parsed = null
-    if (!schedule) { parsed = parseSchedule(input); if (!parsed) throw new Error('没看出时间。写法如「每天 9 点…」「每周一 8:30…」「工作日 18 点…」「明天 8 点提醒我…」「30 分钟后提醒我…」') }
-    const finalKind = kind || (parsed ? parsed.kind : 'task')
-    const finalTitle = finalKind === 'task' ? String(title || '').replace(/(的)?提醒$/, '').trim() : title // 「写周报提醒」 is a report MyWork writes, so the title is the report
-    const r = routines.create({ kind: finalKind, title: finalTitle, input: parsed ? parsed.text : input, schedule: schedule || parsed.schedule })
-    log(`routine ${r.id} ${r.kind} ${describeSchedule(r.schedule)}: ${r.title}`)
-    emit('routine', null, undefined, { routine: rview(r) })
-    return rview(r)
-  }
-  const runRoutine = (id) => {
-    const r = routines.get(id)
-    if (!r) throw new Error('routine not found')
-    if (r.kind === 'remind') { routines.fire(id); routines.ran(id, { fired: true }); emit('remind', null, undefined, { routine: rview(routines.get(id)) }); return rview(routines.get(id)) }
-    const task = create({ input: r.input, title: r.title, source: 'routine', routineId: r.id })
-    routines.ran(id, { taskId: task.id })
-    return rview(routines.get(id))
-  }
-  // Scheduler: every 30 s run what is due. A run that fires while the server was down runs once on start.
-  // The same tick resumes waiting tasks nobody answered in 24 h (§2.7), on their own assumptions.
-  ctx.effect(() => {
-    const tick = () => {
-      try { for (const r of routines.due()) runRoutine(r.id) } catch (e) { log('scheduler: ' + (e && e.message)) }
-      engine.expireAsks().catch((e) => log('ask expiry: ' + (e && e.message)))
+  // ── views ──
+  const docsIndex = () => { const m = new Map(); for (const d of deliverables.items) { const l = m.get(d.taskId); if (l) l.push(d); else m.set(d.taskId, [d]) } return m }
+  const mateName = (id) => { const m = mates.get(id); return m ? (m.name || '新同事') : '' }
+
+  /** A synthetic reminder run's card: { routineId, title, at, acked } (the same fields as its one activity entry). */
+  const remindOfRun = (t) => { const e = (t.activity || []).find((a) => a && a.kind === 'remind') || {}; return { routineId: t.routineId || '', title: e.title || t.routineTitle || '', at: e.at || t.createdAt, acked: !!e.acked } }
+
+  function runView(t, docs) {
+    const list = docs || deliverables.forTask(t.id)
+    const ask = t.status === 'waiting' ? pendingAsk(t) : null
+    return {
+      id: t.id, mateId: t.mateId, trigger: t.trigger, routineId: t.routineId || '', routineTitle: t.routineTitle || (t.routineId && routines.get(t.routineId) ? routines.get(t.routineId).title : ''),
+      status: t.status === 'queued' ? 'running' : t.status, queued: t.status === 'queued',
+      input: t.trigger === 'system' ? '' : t.input, title: t.title || '', summary: t.summary || '',
+      activity: (Array.isArray(t.activity) ? t.activity : []).map(({ requestId: _r, ...a }) => a),
+      deliverables: list.map(deliverableSummary),
+      verification: t.verification || null, verifying: !!t.verifying,
+      ask: ask ? askView(ask) : null, error: t.error || '', quiet: !!t.quiet, migrated: !!t.migrated, remind: t.remind ? remindOfRun(t) : null,
+      step: t.status === 'running' ? currentStepOf(t) : '',
+      createdAt: t.createdAt, startedAt: t.startedAt || '', finishedAt: t.finishedAt || '',
     }
-    const id = setInterval(tick, 30000); const first = setTimeout(tick, 5000)
-    return () => { clearInterval(id); clearTimeout(first) }
-  }, 'dsh-mywork-tasks: scheduler')
-
-  /** 今日's conversation: one assistant task per day, created on the first message, continued with say(). */
-  const dayKey = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') }
-  const todayThread = () => store.items.find((t) => t.scenario === 'assistant' && t.dayKey === dayKey()) || null
-  /** An earlier day's thread, to read back: the newest assistant task of that day (a restart can leave two). */
-  const threadFor = (day) => { if (day === dayKey()) return todayThread(); for (let i = store.items.length - 1; i >= 0; i -= 1) { const t = store.items[i]; if (t.scenario === 'assistant' && t.dayKey === day) return t } return null }
-  const todaySummary = () => {
-    const today = new Date().toISOString().slice(0, 10)
-    const running = store.items.filter((t) => t.status !== 'done' && t.status !== 'waiting' && t.scenario !== 'assistant').map((t) => t.title)
-    const waiting = store.items.filter((t) => t.status === 'waiting' && t.scenario !== 'assistant').map((t) => t.title)
-    const done = store.items.filter((t) => t.status === 'done' && t.scenario !== 'assistant' && String(t.finishedAt).slice(0, 10) === today).map((t) => t.title + (t.error ? '（失败）' : ''))
-    const upcoming = routines.items.filter((r) => r.enabled).map((r) => r.title + ' ' + describeSchedule(r.schedule))
-    return [running.length ? '在跑：' + running.join('；') : '', waiting.length ? '等你答：' + waiting.join('；') : '', done.length ? '今天完成：' + done.join('；') : '', upcoming.length ? '例行：' + upcoming.join('；') : ''].filter(Boolean).join('\n')
   }
-  /** What happened in the last N calendar days (today counts as one): tasks, deliverables, and the questions asked on
-   *  今日. The material for 日报 / 周报 style routines: a 日报 is written from the day's questions and work, not invented. */
-  const workRecord = (days) => {
+
+  function mateView(m, index) {
+    const docs = index || docsIndex()
+    const runs = store.forMate(m.id)
+    const live = runs.filter(isLiveRun)
+    const running = live.find((r) => r.status === 'running') || null
+    const waiting = [...runs].reverse().find((r) => r.status === 'waiting' && pendingAsk(r)) || null
+    const state = live.length ? 'working' : waiting ? 'waiting' : 'idle'
+    const step = running ? currentStepOf(running) : live.length ? '排队' : ''
+    const pending = waiting ? pendingAsk(waiting) : null
+    let lastAt = ''
+    let attentionAt = ''
+    for (const r of runs) {
+      if (isQuietRun(r)) continue
+      lastAt = later(lastAt, lastAtOf(r, docs.get(r.id) || []))
+      attentionAt = later(attentionAt, attentionOf(r))
+    }
+    let preview = ''
+    if (state === 'working') preview = clip('在干活' + (step ? ' · ' + step : ''))
+    else if (state === 'waiting') preview = clip('等你答 · ' + plainLine(pending.question))
+    else { const line = lastLineOf(runs); preview = line ? clip((line.you ? '你：' : '') + line.text) : '' }
+    return {
+      id: m.id, name: m.name || '新同事', named: !!m.name, title: m.title || '', description: m.description || '', glyph: m.glyph || glyphOf(m.name),
+      pinned: !!m.pinned, isDefault: !!m.isDefault, notify: m.notify !== false, createdAt: m.createdAt,
+      lastAt: lastAt || m.createdAt, preview, unread: seen.unread(m.id, attentionAt), attentionAt,
+      state, step, since: running ? (running.startedAt || running.createdAt) : live.length ? live[0].createdAt : pending ? pending.at : '',
+      ask: pending ? { ...askView(pending), runId: waiting.id } : null,
+      routineCount: routines.forMate(m.id).length, dir: m.dir,
+    }
+  }
+  const mateViewById = (id) => { const m = mates.get(id); return m ? mateView(m) : null }
+
+  /** Sidebar order: pinned first (the default teammate first of them), the rest by their last conversation; state never reorders. */
+  function listMates() {
+    const index = docsIndex()
+    const views = mates.items.map((m) => mateView(m, index))
+    const pinned = views.filter((v) => v.pinned).sort((a, b) => (b.isDefault - a.isDefault) || (ts(a.createdAt) - ts(b.createdAt)))
+    const rest = views.filter((v) => !v.pinned).sort((a, b) => ts(b.lastAt) - ts(a.lastAt))
+    return [...pinned, ...rest]
+  }
+
+  const rview = (r) => ({ ...routineView(r, seen), mateId: r.mateId || DEFAULT_MATE_ID, mateName: mateName(r.mateId || DEFAULT_MATE_ID) })
+
+  // ── events ──
+  const emit = (kind, run, extra) => {
+    const mate = run ? mates.get(run.mateId) : extra && extra.mateId ? mates.get(extra.mateId) : null
+    const { mateId: _m, ...rest } = extra || {}
+    // A removed teammate is gone from the store by now: the event still says which one it was.
+    const mateOut = mate ? { id: mate.id, name: mate.name || '新同事', glyph: mate.glyph || '', notify: mate.notify !== false } : extra && extra.mateId ? { id: extra.mateId } : null
+    const payload = { kind, run: run ? runView(run) : null, mate: mateOut, ...rest }
+    if (payload.deliverable) payload.deliverable = deliverableSummary(payload.deliverable)
+    for (const fn of listeners) { try { fn(payload) } catch (e) { log('listener error: ' + (e && e.message)) } }
+    try { hostEmit(payload) } catch {}
+  }
+
+  // ── presets ──
+  let baseText = null
+  async function standardText() {
+    if (baseText) return baseText
+    try {
+      const found = ctx.agentPresets && typeof ctx.agentPresets.resolve === 'function' ? await ctx.agentPresets.resolve('standard') : null
+      if (found && found.path && existsSync(found.path)) baseText = readFileSync(found.path, 'utf8')
+    } catch (e) { log(`standard preset not readable (${e && e.message}); using the packaged copy`) }
+    if (!baseText) baseText = readFileSync(join(PACKAGE_ROOT, 'presets', 'mate-base', 'agent.cordis.yml'), 'utf8')
+    return baseText
+  }
+  /** Write $DSH_HOME/.agent-presets/mate-<id>/agent.cordis.yml (and preset.yml) when it differs; returns the preset id. */
+  async function presetFor(mate) {
+    const id = 'mate-' + mate.id
+    const folder = join(presetRoot, id)
+    const file = join(folder, 'agent.cordis.yml')
+    const body = mateComposition(await standardText(), mate)
+    if (!existsSync(file) || readFileSync(file, 'utf8') !== body) {
+      mkdirSync(folder, { recursive: true })
+      writeFileSync(file, body)
+      writeFileSync(join(folder, 'preset.yml'), `name: ${JSON.stringify('同事 · ' + (mate.name || '未命名'))}\ndescription: ${JSON.stringify('MyWork 同事的会话预设（自动生成）')}\norder: 90\n`)
+      log(`preset ${id} written`)
+    }
+    return id
+  }
+
+  /**
+   * A rewritten preset reaches the live session only by re-linking it: dsh keeps a joined session on the generation it
+   * started with, and a teammate's session stays live for the whole process. recompose() moves the agent to the
+   * current generation of 'mate-<id>' (only the persona row differs, so the tool set is the same). Mid-turn the switch
+   * waits for the turn's end (afterTurn).
+   */
+  const stalePresets = new Set()
+  async function relink(mateId) {
+    const agent = ctx.agents && typeof ctx.agents.get === 'function' ? ctx.agents.get(mateSessionId(mateId)) : null
+    if (!agent || !agent.ctx || !ctx.agentPresets || typeof ctx.agentPresets.recompose !== 'function') return false
+    try { await ctx.agentPresets.recompose(agent.ctx, 'mate-' + mateId); log(`teammate ${mateId} re-linked to its rewritten preset`); return true } catch (e) { log(`recompose mate-${mateId}: ${e && e.message}`); return false }
+  }
+  const refreshing = new Map() // mateId → the last refresh (one at a time per teammate, the newest identity wins)
+
+  // ── 日报 / 周报 material ──
+  /** What every teammate did in the last N calendar days (today counts as one): what was said, replies, files, failures. */
+  function workRecord(days) {
     const start = new Date(); start.setHours(0, 0, 0, 0); start.setDate(start.getDate() - Math.max(0, days - 1))
     const since = start.getTime()
     const stamp = (iso) => { const d = new Date(iso); return (d.getMonth() + 1) + '/' + d.getDate() + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') }
-    const clip = (text, n) => { const t = String(text || '').replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n) + '…' : t }
-    const work = []
-    const asked = []
-    for (const t of store.items) {
-      if (t.scenario === 'assistant') {
-        // The hand-off line is the fact; the assistant's wording of it can be stale (a routine renamed or removed since).
-        let handedOff = false
+    const index = docsIndex()
+    const out = []
+    for (const m of mates.items) {
+      const mine = []
+      for (const t of store.forMate(m.id)) {
+        if (isQuietRun(t) || t.trigger === 'system') continue
+        const at = ts(t.finishedAt || t.startedAt || t.createdAt)
+        if (!(at >= since)) continue
+        if (t.remind) { mine.push(`- ${stamp(t.createdAt)} 提醒：${clip(t.routineTitle || t.input, 80)}`); continue }
+        mine.push(t.trigger === 'routine' ? `- ${stamp(t.createdAt)} 例行《${t.routineTitle || t.title}》` : `- ${stamp(t.createdAt)} 用户：${plainText(t.input, 200)}`)
+        let reply = ''
+        const flush = () => { if (reply) mine.push('  答：' + plainText(reply, 160)); reply = '' }
         for (const a of t.activity || []) {
-          if (new Date(a.at).getTime() < since) continue
-          if (a.kind === 'user') { handedOff = false; asked.push(`- ${stamp(a.at)} 问：${clip(a.text, 200)}`) }
-          else if (a.kind === 'handoff') { handedOff = true; asked.push(`  → ${a.target === 'routine' ? '安排了例行' : '交给了后台'}：${a.title}${a.schedule ? '（' + a.schedule + '）' : ''}`) }
-          else if (a.kind === 'text' && !handedOff) asked.push(`  答：${clip(a.text, 160)}`)
+          if (a.kind === 'user' && !a.auto) { flush(); mine.push('  用户：' + plainText(a.text, 200)) } else if (a.kind === 'text') reply = a.text
         }
-        continue
+        flush()
+        for (const d of index.get(t.id) || []) {
+          const v = d.verification
+          mine.push(`  交付：${d.title}${v ? (v.passed ? '，核对通过' : v.passed === false ? '，核对有问题' : '') : ''}${d.rating ? '，评价 ' + d.rating : ''}`)
+          const body = plainText(d.markdown, 240)
+          if (body) mine.push('  ' + body)
+        }
+        if (t.error) mine.push('  失败：' + clip(t.error, 80))
+        if (t.status === 'waiting') mine.push('  （在等用户回答）')
       }
-      if (t.quiet) continue
-      const at = new Date(t.finishedAt || t.startedAt || t.createdAt).getTime()
-      if (!(at >= since)) continue
-      const state = t.status === 'done' ? (t.error ? '失败：' + clip(t.error, 80) : '完成') : t.status === 'waiting' ? '等你答' : (STATUS_LABELS[t.status] || t.status) + '中'
-      work.push(`- ${stamp(at)} ${t.title}（${state}${t.routineId ? '，例行' : ''}）`)
-      for (const dl of deliverables.forTask(t.id)) {
-        const v = dl.verification
-        work.push(`  交付：${dl.title}${v ? (v.passed ? '，核对通过' : '，核对有问题') : ''}${dl.rating ? '，评价 ' + dl.rating : ''}`)
-        const body = clip(dl.markdown, 240)
-        if (body) work.push('  ' + body)
+      if (mine.length) out.push(`【${m.name || '新同事'}】\n` + mine.slice(-60).join('\n'))
+    }
+    const standing = routines.items.filter((r) => r.enabled).map((r) => `- ${r.title}：${describeSchedule(r.schedule)}${r.kind === 'remind' ? '（提醒）' : ''} · ${mateName(r.mateId || DEFAULT_MATE_ID)}`)
+    return [out.length ? '同事们做过的事（按同事分）：\n' + out.join('\n\n') : '', '现在有效的例行（以此为准，别的说法都过时了）：\n' + (standing.join('\n') || '- 无')].filter(Boolean).join('\n\n')
+  }
+
+  const engine = createEngine({
+    ctx, store, deliverables, mates, routines, scenarios, log, emit, controller, presetFor, workRecord,
+    afterTurn: (mateId) => { if (stalePresets.delete(mateId)) relink(mateId) },
+    config: {
+      concurrency: Number(config.concurrency) || 2, timeoutMs: Math.max(1, Number(config.timeoutMinutes) || 20) * 60000,
+      permission: String(config.permission || 'workspace-write'), agentPreset: config.agentPreset === '' ? undefined : (config.agentPreset || 'standard'),
+      verify: config.verify !== false, workbench: join(dir, 'workbench'),
+    },
+  })
+  // Restart repair runs now, before any route or pump can hand a new message over; the wake-up nudge comes later.
+  engine.repair()
+
+  // ── teammates ──
+  function createMate(b) {
+    const description = String((b && b.description) || '').trim()
+    if (!description) throw bad('写一句它负责什么。')
+    const mate = mates.create({ description, name: b.name, title: b.title })
+    try { mkdirSync(mate.dir, { recursive: true }) } catch {}
+    // The hidden intro run: it names itself when it has no name, sets up a timed duty, and says how it understood its job.
+    const intro = store.create({ mateId: mate.id, trigger: 'system', input: '', title: '自我介绍' })
+    log(`teammate ${mate.id} created (${mate.name || 'unnamed'})`)
+    emit('mate', null, { mateId: mate.id })
+    emit('queued', intro)
+    engine.pump()
+    return mateView(mates.get(mate.id))
+  }
+
+  /**
+   * The teammate's name, title or duty changed: rewrite its preset and re-link the live session to it (now when idle,
+   * at the end of the turn otherwise); the session title and its dsh workspace follow the name.
+   */
+  function refreshPreset(mate, nameChanged) {
+    const id = mate.id
+    const prev = refreshing.get(id) || Promise.resolve()
+    const next = prev.then(async () => {
+      const current = mates.get(id)
+      if (!current) return
+      try { await presetFor(current) } catch (e) { log(`preset ${id} not rewritten: ${e && e.message}`); return }
+      if (engine.activeRun(id)) stalePresets.add(id)
+      else { stalePresets.delete(id); await relink(id) }
+      if (nameChanged) {
+        try { const ws = ctx.workspaceRegistry && typeof ctx.workspaceRegistry.resolveByPath === 'function' ? await ctx.workspaceRegistry.resolveByPath(current.dir) : null; if (ws && typeof ws.setTitle === 'function') await ws.setTitle(current.name || '同事') } catch (e) { log(`workspace title ${id}: ${e && e.message}`) }
+      }
+    })
+    const settled = next.catch(() => {})
+    refreshing.set(id, settled)
+    settled.then(() => { if (refreshing.get(id) === settled) refreshing.delete(id) })
+    try { const titles = ctx.get && ctx.get('sessionTitle'); if (titles && mate.sessionId && ctx.agents && typeof ctx.agents.get === 'function') { const agent = ctx.agents.get(mate.sessionId); if (agent && typeof titles.rename === 'function') titles.rename(agent.session, mate.name || '同事') } } catch {}
+    return settled
+  }
+
+  function updateMate(b) {
+    const m = mates.get(String((b && b.id) || ''))
+    if (!m) throw notFound('同事不存在。')
+    const patch = {}
+    if (b.name !== undefined) { const n = cleanName(b.name); if (!n) throw bad('名字不能为空。'); patch.name = n; if (!m.isDefault) patch.glyph = glyphOf(n) }
+    if (b.title !== undefined) patch.title = clip(b.title, MATE_TITLE_MAX)
+    if (b.description !== undefined) { const d = String(b.description || '').trim(); if (!d) throw bad('职责不能为空。'); patch.description = d.slice(0, MATE_DESCRIPTION_MAX) }
+    if (b.pinned !== undefined) patch.pinned = !!b.pinned
+    if (b.notify !== undefined) patch.notify = !!b.notify
+    const identity = ['name', 'title', 'description'].some((k) => k in patch && patch[k] !== m[k])
+    const nameChanged = 'name' in patch && patch.name !== m.name
+    mates.update(m.id, patch)
+    if (identity) refreshPreset(mates.get(m.id), nameChanged)
+    emit('mate', null, { mateId: m.id })
+    return mateView(mates.get(m.id))
+  }
+
+  function removeMate(id) {
+    const m = mates.get(id)
+    if (!m) throw notFound('同事不存在。')
+    if (m.isDefault) throw bad('默认同事 MyWork 不能删除。')
+    engine.forget(m.id)
+    stalePresets.delete(m.id)
+    const runIds = new Set(store.forMate(m.id).map((r) => r.id))
+    store.items = store.items.filter((r) => r.mateId !== m.id); store.save()
+    deliverables.items = deliverables.items.filter((d) => d.mateId !== m.id && !runIds.has(d.taskId)); deliverables.save()
+    routines.items = routines.items.filter((r) => (r.mateId || DEFAULT_MATE_ID) !== m.id); routines.save()
+    seen.forget(m.id)
+    mates.remove(m.id)
+    try { rmSync(join(presetRoot, 'mate-' + m.id), { recursive: true, force: true }) } catch {}
+    log(`teammate ${m.id} removed (its folder ${m.dir} is kept)`)
+    emit('mate', null, { mateId: m.id, removed: true })
+    return true
+  }
+
+  /** The teammate's thread: its runs ascending by createdAt, the newest `limit` before `before`; quiet routine runs and empty system runs left out. */
+  function thread(id, before, limit) {
+    const m = mates.get(String(id || ''))
+    if (!m) throw notFound('同事不存在。')
+    const index = docsIndex()
+    const visible = (r) => {
+      if (isQuietRun(r)) return false
+      if (r.trigger === 'system' && r.status === 'done' && !r.error && !(r.activity || []).some(isThreadEntry) && !(index.get(r.id) || []).length) return false
+      return true
+    }
+    const runs = store.forMate(m.id).filter(visible).map((r, i) => ({ r, i })).sort((a, b) => (ts(a.r.createdAt) - ts(b.r.createdAt)) || (a.i - b.i)).map((x) => x.r)
+    const b = String(before || '').trim()
+    if (b && !Number.isFinite(Date.parse(b))) throw bad('before must be an ISO date')
+    const cut = b ? ts(b) : Infinity
+    const eligible = cut === Infinity ? runs : runs.filter((r) => ts(r.createdAt) < cut)
+    const n = Math.max(1, Math.min(THREAD_LIMIT_MAX, Math.floor(Number(limit)) || THREAD_LIMIT))
+    let start = Math.max(0, eligible.length - n)
+    while (start > 0 && ts(eligible[start - 1].createdAt) === ts(eligible[start].createdAt)) start -= 1
+    const page = eligible.slice(start)
+    return { runs: page.map((r) => runView(r, index.get(r.id) || [])), nextBefore: start > 0 && page.length ? page[0].createdAt : null }
+  }
+
+  /** The newest files in the teammate's folder (its 电脑 when no browser is in use). */
+  function folder(id) {
+    const m = mates.get(String(id || ''))
+    if (!m) throw notFound('同事不存在。')
+    const items = []
+    const walk = (base, rel, depth) => {
+      let names = []
+      try { names = readdirSync(join(base, rel)) } catch { return }
+      for (const n of names) {
+        if (n.startsWith('.')) continue
+        const p = rel ? join(rel, n) : n
+        let st
+        try { st = statSync(join(base, p)) } catch { continue }
+        if (st.isDirectory()) { if (depth < 3) walk(base, p, depth + 1) } else items.push({ name: n, path: p, size: st.size, modifiedAt: st.mtime.toISOString() })
       }
     }
-    const standing = routines.items.filter((r) => r.enabled).map((r) => `- ${r.title}：${describeSchedule(r.schedule)}${r.kind === 'remind' ? '（提醒）' : ''}`)
-    return [asked.length ? '用户在「今日」问过 / 说过：\n' + asked.slice(-80).join('\n') : '', work.length ? '后台做过的任务：\n' + work.slice(-60).join('\n') : '', '现在有效的例行（以此为准，别的说法都过时了）：\n' + (standing.join('\n') || '- 无')].filter(Boolean).join('\n\n')
+    walk(m.dir, '', 0)
+    items.sort((a, b) => ts(b.modifiedAt) - ts(a.modifiedAt))
+    return { dir: m.dir, items: items.slice(0, 30) }
   }
-  const todaySay = async (text) => {
-    const body = String(text || '').trim()
-    if (!body) throw new Error('text is required')
-    let t = todayThread()
-    if (t && t.status !== 'done' && !engine.isLive(t.id)) t = null // a thread interrupted by a restart: start a fresh one
-    if (!t) {
-      t = store.create({ input: body, scenario: 'assistant', title: '今天的对话 ' + dayKey().slice(5).replace('-', '/'), source: 'today' })
-      store.update(t.id, { dayKey: dayKey() })
-      store.activity(t.id, { kind: 'user', text: body }) // the first line of the day shows like every later one
-      emit('queued', t)
-      engine.pump()
-      return view(store.get(t.id))
+
+  // ── routines ──
+  /** A sentence with a time becomes a routine of one teammate. */
+  function createRoutine({ mateId, input, schedule, kind, title }) {
+    const mate = mates.get(String(mateId || DEFAULT_MATE_ID))
+    if (!mate) throw notFound('同事不存在。')
+    const text = String(input || '').trim()
+    if (!text) throw bad('input is required')
+    let parsed = null
+    if (!schedule) { parsed = parseSchedule(text); if (!parsed) throw bad('没看出时间。写法如「每天 9 点…」「每周一 8:30…」「工作日 18 点…」「明天 8 点提醒我…」「30 分钟后提醒我…」') }
+    const finalKind = kind || (parsed ? parsed.kind : 'task')
+    const finalTitle = finalKind === 'task' ? String(title || '').replace(/(的)?提醒$/, '').trim() : title // 「写周报提醒」 is a report the teammate writes
+    const r = routines.create({ mateId: mate.id, kind: finalKind, title: finalTitle, input: parsed ? parsed.text : text, schedule: schedule || parsed.schedule })
+    log(`routine ${r.id} (${mate.id}) ${r.kind} ${describeSchedule(r.schedule)}: ${r.title}`)
+    emit('routine', null, { mateId: mate.id, routine: rview(r) })
+    return rview(r)
+  }
+  function updateRoutine({ id, input, schedule, kind, title }) {
+    const r = routines.get(String(id || ''))
+    if (!r) throw notFound('routine not found')
+    const text = String(input || '').trim()
+    const parsed = text && !schedule ? parseSchedule(text) : null
+    const next = parsed ? { input: parsed.text, schedule: parsed.schedule, kind: kind || parsed.kind, title: title || '' } : { input: text, schedule, kind, title }
+    if (next.input && !next.title) next.title = String(next.input).split('\n')[0].slice(0, 60)
+    routines.edit(r.id, next)
+    emit('routine', null, { mateId: r.mateId, routine: rview(routines.get(r.id)) })
+    return rview(routines.get(r.id))
+  }
+  /**
+   * Run a routine now (the scheduler, or 现在跑一次). A task routine prompts its teammate (a run with trigger 'routine',
+   * queued like any other). A reminder does not run the teammate: it fires (fired[] as before) and posts a synthetic
+   * done run into the teammate's thread whose activity is one { kind: 'remind', routineId, title, at, acked } entry.
+   */
+  function runRoutine(id) {
+    const r = routines.get(String(id || ''))
+    if (!r) throw notFound('routine not found')
+    const mateId = mates.get(r.mateId) ? r.mateId : DEFAULT_MATE_ID
+    if (r.kind === 'remind') {
+      routines.fire(r.id)
+      const at = routines.get(r.id).fired[0].at
+      const run = store.create({ mateId, trigger: 'routine', routineId: r.id, routineTitle: r.title, input: r.input, status: 'done' })
+      store.update(run.id, { remind: true, dispatched: true, createdAt: at, startedAt: at, finishedAt: at, summary: r.title, activity: [{ kind: 'remind', routineId: r.id, title: r.title, at, acked: false }] })
+      routines.ran(r.id, { fired: true, runId: run.id })
+      emit('remind', store.get(run.id), { routine: rview(routines.get(r.id)) })
+      return { routine: rview(routines.get(r.id)), runId: run.id }
     }
-    return view(await engine.say(t.id, body))
+    const run = store.create({ mateId, trigger: 'routine', routineId: r.id, routineTitle: r.title, input: r.input })
+    routines.ran(r.id, { taskId: run.id })
+    emit('queued', run)
+    engine.pump()
+    return { routine: rview(routines.get(r.id)), runId: run.id }
   }
-  const api = {
-    register: (s) => scenarios.register(s),
-    today: () => { const t = todayThread(); return t ? view(t) : null },
-    todaySay,
-    routines: () => routines.list().map(rview),
-    routine: (id) => { const r = routines.get(id); return r ? rview(r) : null },
-    createRoutine,
-    runRoutine,
-    scenarios: () => scenarios.list(),
-    create,
-    list: () => store.list().map((t) => view(t)),
-    get: (id) => { const t = store.get(id); return t ? view(t) : null },
-    cancel: (id) => view(engine.cancel(id)),
-    verify: (id) => view(engine.reverify(id)),
-    say: async (id, text) => view(await engine.say(id, text)),
-    deliverables: () => deliverables.list(),
-    deliverable: (id) => deliverables.get(id),
-    on: (fn) => { listeners.add(fn); return () => listeners.delete(fn) },
+  function ackRoutine(id, at) {
+    const r = routines.ack(String(id || ''), at)
+    if (!r) throw notFound('routine not found')
+    for (const t of store.items) {
+      if (t.routineId !== r.id || !t.remind) continue
+      let hit = false
+      for (const a of t.activity || []) if (a.kind === 'remind' && !a.acked && (!at || a.at === at)) { a.acked = true; hit = true }
+      if (hit) store.save()
+    }
+    return rview(r)
   }
-  try { ctx.provide('myworkTasks', api) } catch (e) { log('ctx.provide(myworkTasks) failed, scenarios must register through the HTTP API: ' + (e && e.message)) }
+  function removeRoutine(id) {
+    const removed = routines.remove(String(id || ''))
+    return removed
+  }
 
-  ctx.effect(() => ctx.on('session/event', (...args) => { engine.onSessionEvent(args[0], args[1]) }, { global: true }), 'dsh-mywork-tasks: session watcher')
-  ctx.effect(() => { const t = setTimeout(() => { try { engine.recover() } catch (e) { log('recover: ' + (e && e.message)) } }, 3000); return () => clearTimeout(t) }, 'dsh-mywork-tasks: recover')
+  // ── the bell, files, search ──
+  function activity() {
+    const index = docsIndex()
+    const needs = []; const working = []; const recent = []
+    const weekAgo = Date.now() - 7 * 86400000
+    for (const m of mates.items) {
+      const name = m.name || '新同事'
+      const seenAt = seen.get(m.id)
+      for (const t of store.forMate(m.id)) {
+        const item = (kind, at, text) => ({ mateId: m.id, mateName: name, runId: t.id, at, text: clip(text, 120), kind })
+        if (isLiveRun(t)) { working.push(item('working', t.startedAt || t.createdAt, currentStepOf(t) || (t.trigger === 'routine' ? t.routineTitle : t.trigger === 'system' ? '自我介绍' : plainLine(t.input)) || '在干活')); continue }
+        if (t.status === 'waiting') { const a = pendingAsk(t); if (a) needs.push(item('ask', a.at, a.question)); continue }
+        if (t.remind) { for (const a of t.activity || []) if (a.kind === 'remind' && !a.acked) needs.push(item('remind', a.at, a.title || t.routineTitle)); continue }
+        if (t.status !== 'done' || isQuietRun(t) || ts(t.finishedAt) < weekAgo) continue
+        if (t.error) {
+          if (t.error !== '已停止。' && (!seenAt || ts(t.finishedAt) > ts(seenAt)) && ts(t.finishedAt) >= ts(seen.since)) needs.push(item('failed', t.finishedAt, t.error))
+          else recent.push(item('failed', t.finishedAt, t.error))
+          continue
+        }
+        const reply = [...(t.activity || [])].reverse().find((a) => a.kind === 'text')
+        const docs = index.get(t.id) || []
+        const text = reply ? plainLine(reply.text) : docs.length ? docs[docs.length - 1].title : t.summary
+        if (text) recent.push(item('done', t.finishedAt, text))
+      }
+    }
+    const desc = (a, b) => ts(b.at) - ts(a.at)
+    return { needs: needs.sort(desc), working: working.sort((a, b) => ts(a.at) - ts(b.at)), recent: recent.sort(desc).slice(0, 20) }
+  }
 
-  /** When a tool call inside a task creates something, note it on that task's activity so the conversation can link to it. */
-  const handoff = (exec, entry) => { try { const sid = exec && exec.agent && exec.agent.session ? exec.agent.session.id : ''; const caller = sid ? store.bySession(String(sid)) : null; if (caller) { store.activity(caller.id, entry); emit('step', store.get(caller.id)) } } catch (e) { log('handoff note: ' + (e && e.message)) } }
-  if (config.tools !== false) {
-    ctx.tools.register(defineRawTool({
+  /** A file of a quiet routine run (变化：无) never shows: that run is not in the thread either (§9.3). */
+  const shownFile = (d) => { const run = store.get(d.taskId); return !(run && isQuietRun(run)) }
+
+  function files({ mate, q, since } = {}) {
+    const needle = String(q || '').trim().toLowerCase()
+    const after = since ? ts(since) : -Infinity
+    if (since && !Number.isFinite(after)) throw bad('since must be an ISO date')
+    const items = deliverables.items
+      .filter((d) => (!mate || (d.mateId || DEFAULT_MATE_ID) === mate) && ts(d.createdAt) >= after && shownFile(d))
+      .filter((d) => !needle || String(d.title || '').toLowerCase().includes(needle) || String(d.markdown || '').slice(0, 4000).toLowerCase().includes(needle))
+      .sort((a, b) => ts(b.createdAt) - ts(a.createdAt))
+      .slice(0, 200)
+    return { items: items.map(deliverableSummary) }
+  }
+
+  function search(q) {
+    const needle = String(q || '').trim().toLowerCase()
+    if (!needle) return { mates: [], messages: [], files: [], routines: [] }
+    const has = (s) => String(s || '').toLowerCase().includes(needle)
+    const index = docsIndex()
+    const foundMates = mates.items.filter((m) => has(m.name) || has(m.title) || has(m.description)).map((m) => mateView(m, index))
+    const messages = []
+    for (const t of store.items) {
+      if (isQuietRun(t) || !mates.get(t.mateId)) continue
+      if (t.trigger === 'user' && has(t.input)) messages.push({ mateId: t.mateId, runId: t.id, at: t.createdAt, text: plainText(t.input, 120) })
+      for (const a of t.activity || []) if ((a.kind === 'user' || a.kind === 'text') && !a.auto && has(a.text)) messages.push({ mateId: t.mateId, runId: t.id, at: a.at, text: plainText(a.text, 120) })
+    }
+    messages.sort((a, b) => ts(b.at) - ts(a.at))
+    const fileHits = deliverables.items.filter((d) => shownFile(d) && (has(d.title) || has(String(d.markdown || '').slice(0, 2000)))).sort((a, b) => ts(b.createdAt) - ts(a.createdAt)).slice(0, 20).map(deliverableSummary)
+    const routineHits = routines.items.filter((r) => has(r.title) || has(r.input)).sort((a, b) => ts(routineLastAt(b)) - ts(routineLastAt(a))).slice(0, 20).map(rview)
+    return { mates: foundMates.slice(0, 20), messages: messages.slice(0, 20), files: fileHits, routines: routineHits }
+  }
+
+  // ── tools ──
+  const callerOf = (exec) => engine.caller(exec && exec.agent && exec.agent.session ? String(exec.agent.session.id) : '')
+  const mateOnly = (exec, tool) => { const c = callerOf(exec); if (!c) throw new Error(`${tool} 只在 MyWork 同事的会话里可用。`); return c }
+  const tools = [
+    {
       name: 'deliver',
-      description: '交付一份交付物（只在 MyWork 后台任务会话里可用）。任务做完后调用一次：title 是一句话标题，markdown 是完整正文（先结论，再依据）。kind 缺省 markdown；data 可选，放结构化数据（表格行、数值等）。交付后再用一两句话总结。',
+      description: '交付一份成果（只在 MyWork 同事的会话里可用）。做出报告、清单、比较、方案、表格、文档时调用一次：title 是一句话标题，markdown 是完整正文（先结论，再依据）。kind 缺省 markdown；data 可选，放结构化数据。交付后再用一两句话回话。',
       parameters: {
         title: { type: 'string', required: true, description: '一句话标题' },
-        markdown: { type: 'string', required: true, description: '交付物正文（Markdown）' },
-        kind: { type: 'string', description: '交付物类型：markdown（默认）| report | table | summary' },
+        markdown: { type: 'string', required: true, description: '正文（Markdown）' },
+        kind: { type: 'string', description: '类型：markdown（默认）| report | table | summary' },
         data: { type: 'object', description: '可选的结构化数据' },
-        summary: { type: 'array', items: { type: 'object', properties: { label: { type: 'string' }, value: { type: 'string' } }, required: ['label', 'value'] }, description: '结果的可数摘要，2 到 6 行 { label, value }。label 是名目（≤10 字），value 只放数字、单位和最短的限定词（≤20 字，不带括号说明，口径和依据写进正文），例如 { label: "包", value: "8 个" }、{ label: "源文件", value: "57 个 · 18,420 行" }。正文里有数字、清单、表格时必须给；纯说明文才省略。' },
+        summary: { type: 'array', items: { type: 'object', properties: { label: { type: 'string' }, value: { type: 'string' } }, required: ['label', 'value'] }, description: '结果的可数摘要，2 到 6 行 { label, value }。label 是名目（≤10 字），value 只放数字、单位和最短的限定词（≤20 字，不带括号说明，口径和依据写进正文），例如 { label: "包", value: "8 个" }。正文里有数字、清单、表格时必须给；纯说明文才省略。' },
       },
-      async execute(args, exec) {
-        const sessionId = exec && exec.agent && exec.agent.session ? exec.agent.session.id : ''
-        const d = engine.deliver(sessionId, args)
+      execute(args, exec) {
+        const sid = exec && exec.agent && exec.agent.session ? exec.agent.session.id : ''
+        const d = engine.deliver(sid, args)
         return { delivered: true, id: d.id, title: d.title, kind: d.kind }
       },
       render: (_a, v) => [{ type: 'text', text: `已交付：${v.title}（${v.id}）` }],
-    }))
-    // 找人 (design/v2/TEAMMATES.md §2.7): the task stops on a question at the end of its turn; engine.finish() parks it as waiting.
-    ctx.tools.register(defineRawTool({
+    },
+    {
       name: 'mywork_ask',
-      description: '停下来问用户一个问题（只在 MyWork 后台任务会话里可用）。默认不要问：按合理假设把事做完，假设写进结果。只在四种情况用它：缺关键信息且没法合理假设 / 必须由用户拍板 / 动作有后果（发消息、付费、删除、对外提交）/ 需要密码、验证码或扫码。每个任务最多问 2 次，一次只问一件事。调用后立刻结束本轮，不要再做别的；用户回答后会在同一会话里继续，回答以「回答：」开头（approval 是 允许 / 拒绝，takeover 是 我做完了）。',
+      description: '停下来问用户一个问题（只在 MyWork 同事的会话里可用）。默认不要问：按合理假设把事做完，假设写进结果。只在四种情况用它：缺关键信息且没法合理假设 / 必须由用户拍板 / 动作有后果（发消息、付费、删除、对外提交）/ 需要密码、验证码或扫码。每一轮最多问 2 次，一次只问一件事。调用后立刻结束本轮，不要再做别的；用户回答后会在同一会话里继续，回答以「回答：」开头（approval 是 允许 / 拒绝，takeover 是 我做完了）。例行运行和自我介绍时不能问。',
       parameters: {
         question: { type: 'string', required: true, description: '问题本身，≤120 字，直接可答' },
         askKind: { type: 'string', enum: ['text', 'choice', 'approval', 'takeover'], description: 'text（自由回答，默认）| choice（给 2–4 个选项）| approval（要用户允许一次或拒绝一个有后果的动作，question 写清要做什么）| takeover（要用户去电脑上亲自操作，如登录、扫码，question 写清去哪做什么）' },
         options: { type: 'array', items: { type: 'string' }, description: 'choice 时必填：2 到 4 个选项，每个 ≤12 字' },
         detail: { type: 'string', description: '可选，≤500 字：要用户确认的原文（如邮件正文、要提交的内容），按等宽原样展示' },
       },
-      async execute(args, exec) {
-        const sessionId = exec && exec.agent && exec.agent.session ? exec.agent.session.id : ''
-        const a = engine.ask(sessionId, args)
+      execute(args, exec) {
+        const sid = exec && exec.agent && exec.agent.session ? exec.agent.session.id : ''
+        const a = engine.ask(sid, args)
         return { asked: true, id: a.id, question: a.question, askKind: a.askKind, note: ASK_TEXT.asked }
       },
       render: () => [{ type: 'text', text: ASK_TEXT.asked }],
-    }))
-    ctx.tools.register(defineRawTool({
-      name: 'mywork_task_create',
-      description: '把一件事交给 MyWork 在后台做：创建一个任务，它会在独立会话里执行并交付一份交付物，用户在「任务」页看结果。适合用户说"帮我在后台做…""跑一个任务…"，或者一件事太长不适合在当前对话里做。input 写清楚要的结果；scenario 可选（mywork_tasks 可查已装场景）。',
-      parameters: {
-        input: { type: 'string', required: true, description: '要的结果，一句话或几句话' },
-        scenario: { type: 'string', description: '场景 id，缺省 general' },
-        title: { type: 'string', description: '可选标题' },
-      },
-      async execute(args, exec) { const t = create({ input: args.input, scenario: args.scenario, title: args.title, source: 'chat' }); handoff(exec, { kind: 'handoff', target: 'task', id: t.id, title: t.title }); return { id: t.id, title: t.title, status: t.status } },
-      render: (_a, v) => [{ type: 'text', text: `已创建后台任务「${v.title}」（${v.id}），完成后在「任务」页查看。` }],
-    }))
-    ctx.tools.register(defineRawTool({
+    },
+    {
       name: 'mywork_routine_create',
-      description: '给用户安排一件例行的事或一个提醒：「每天 9 点…」「每周一 8:30…」「工作日 18 点…」「每 2 小时…」是例行任务（每次到点后台跑一遍，交付物里先说变化）；「提醒我喝水 / 开会 / 交周报」这类只有用户自己能做的事是提醒（到点在首页和 IM 提示，不跑 agent）；「提醒我写周报 / 整理 / 汇总…」这类 MyWork 自己能做的事不是提醒，到点 MyWork 自己做完交给用户（周报、日报会拿 MyWork 这段时间的工作记录当素材）。schedule 用自然语言写在 input 里即可，分类由解析器决定，返回值里的 kind 告诉你结果。用户说"每天/每周/到点提醒我"时用它，不要自己去写 cron。',
+      description: '给自己安排一件例行的事或一个提醒（只在 MyWork 同事的会话里可用；例行归你，结果回到你和用户的对话里）。「每天 9 点…」「每周一 8:30…」「工作日 18 点…」「每 2 小时…」是例行（到点你会收到一条「这是例行任务…」的消息，照做后回话，第一段先说变化）；「提醒我喝水 / 开会 / 交周报」这类只有用户自己能做的事是提醒（到点在对话里出提醒卡、发通知，你不会被叫醒）；「提醒我写周报 / 整理 / 汇总…」这类你自己能做的事不是提醒，到点你做完交给用户（周报、日报会拿到所有同事这段时间的工作记录当素材）。时间用自然语言写在 input 里，分类由解析器决定，返回值里的 kind 告诉你结果。例行运行时不能用。',
       parameters: { input: { type: 'string', required: true, description: '含时间的一句话，例如"每天 9 点给我一份 Node 生态简报"或"明天 8 点提醒我交周报"' }, title: { type: 'string', description: '可选标题' } },
-      async execute(args, exec) { const r = createRoutine({ input: args.input, title: args.title }); handoff(exec, { kind: 'handoff', target: 'routine', id: r.id, title: r.title, schedule: r.scheduleLabel }); return { id: r.id, kind: r.kind, title: r.title, schedule: r.scheduleLabel, nextRunAt: r.nextRunAt } },
-      render: (_a, v) => [{ type: 'text', text: v.kind === 'remind' ? `已安排提醒「${v.title}」：${v.schedule}，下次 ${v.nextRunAt ? new Date(v.nextRunAt).toLocaleString() : '—'}，到点在首页和 IM 提示。` : `已安排例行任务「${v.title}」：${v.schedule}，下次 ${v.nextRunAt ? new Date(v.nextRunAt).toLocaleString() : '—'}。到点 MyWork 自己做完交给用户，不需要再加提醒，直接回话。` }],
-    }))
-    ctx.tools.register(defineRawTool({
-      name: 'mywork_tasks',
-      description: '列出 MyWork 的后台任务（最近 20 条：状态、当前步骤、交付物）、例行任务与提醒、已装的领域包。',
-      parameters: {},
-      async execute() { return { routines: api.routines().map((r) => ({ id: r.id, kind: r.kind, title: r.title, schedule: r.scheduleLabel, enabled: r.enabled, nextRunAt: r.nextRunAt })), scenarios: scenarios.list().map((s) => ({ id: s.id, label: s.label })), tasks: api.list().slice(0, 20).map((t) => ({ id: t.id, title: t.title, status: t.statusLabel, step: t.currentStep, deliverables: t.deliverables.map((d) => d.title), error: t.error })) } },
-    }))
-    // §8.3 助理的连续性: a follow-up into an existing task, from the day's assistant session only. engine.say() queues the
-    // words into the live agent or resumes the task's persisted session and returns at once; the run finishes in the
-    // background, and the hand-off row this leaves on 今日 (followup: true) updates in place from the polled task.
-    ctx.tools.register(defineRawTool({
-      name: 'mywork_task_say',
-      description: '追问一个已有的后台任务（只在「今日」的助理会话里可用）：把用户的话送进那个任务自己的会话，它接着改、再交付。用户对已有结果提修改或补充（「再短一点」「上一份改成英文」「刚才那个加个表」）时用它，不要为此新建任务。id 取「最近的任务」里对应任务的 id，text 用用户的原话。',
-      parameters: { id: { type: 'string', required: true, description: '任务 id（「最近的任务」里的）' }, text: { type: 'string', required: true, description: '要对那个任务说的话，用用户的原话' } },
-      async execute(args, exec) {
-        const sid = exec && exec.agent && exec.agent.session ? String(exec.agent.session.id) : ''
-        const caller = sid ? store.bySession(sid) : null
-        if (!caller || caller.scenario !== 'assistant') throw new Error('mywork_task_say 只能在「今日」的助理会话里调用。')
-        const target = store.get(String(args.id || '').trim())
-        if (!target) throw new Error('没有这个任务：' + String(args.id || ''))
-        if (target.scenario === 'assistant') throw new Error('这是今日的对话本身，直接回答即可。')
-        const t = await engine.say(target.id, args.text)
-        handoff(exec, { kind: 'handoff', target: 'task', id: t.id, title: t.title, followup: true })
-        return { id: t.id, title: t.title, status: t.status }
+      execute(args, exec) {
+        const c = mateOnly(exec, 'mywork_routine_create')
+        if (c.run && c.run.trigger === 'routine') throw new Error('例行运行时不能新建例行。')
+        const r = createRoutine({ mateId: c.mate.id, input: args.input, title: args.title })
+        if (c.run) store.activity(c.run.id, { kind: 'routine', action: 'created', routineId: r.id, title: r.title, scheduleLabel: r.scheduleLabel })
+        return { id: r.id, kind: r.kind, title: r.title, schedule: r.scheduleLabel, nextRunAt: r.nextRunAt }
       },
-      render: (_a, v) => [{ type: 'text', text: `已把话送进任务「${v.title}」（${v.id}），它接着改；改完在今日线里原地更新，不必再建任务。` }],
-    }))
+      render: (_a, v) => [{ type: 'text', text: v.kind === 'remind' ? `已安排提醒「${v.title}」：${v.schedule}，下次 ${v.nextRunAt ? new Date(v.nextRunAt).toLocaleString() : '—'}，到点在对话里出提醒卡并通知用户。直接回话，不要再加别的提醒。` : `已安排例行「${v.title}」：${v.schedule}，下次 ${v.nextRunAt ? new Date(v.nextRunAt).toLocaleString() : '—'}。到点你会收到这条例行，做完交给用户；不需要再加提醒，直接回话。` }],
+    },
+    {
+      name: 'mywork_routines',
+      description: '列出你的例行和提醒（只在 MyWork 同事的会话里可用）：id、标题、计划、是否启用、下次时间。',
+      parameters: {},
+      execute(_args, exec) {
+        const c = mateOnly(exec, 'mywork_routines')
+        return { items: routines.forMate(c.mate.id).map((r) => ({ id: r.id, kind: r.kind, title: r.title, input: r.input, schedule: describeSchedule(r.schedule), enabled: r.enabled, nextRunAt: r.nextRunAt })) }
+      },
+    },
+    {
+      name: 'mywork_routine_cancel',
+      description: '取消（删除）你的一条例行或提醒（只在 MyWork 同事的会话里可用）。用 id，或用标题（不确定就先调 mywork_routines 看列表）。',
+      parameters: { id: { type: 'string', description: '例行 id' }, title: { type: 'string', description: '例行标题（或其中一段）' } },
+      execute(args, exec) {
+        const c = mateOnly(exec, 'mywork_routine_cancel')
+        const mine = routines.forMate(c.mate.id)
+        const id = String(args.id || '').trim()
+        const title = String(args.title || '').trim()
+        if (!id && !title) throw new Error('给 id 或 title。')
+        let hits = id ? mine.filter((r) => r.id === id) : mine.filter((r) => r.title === title)
+        if (!hits.length && title) hits = mine.filter((r) => r.title.includes(title) || r.input.includes(title))
+        if (!hits.length) throw new Error('你没有这条例行。先调 mywork_routines 看列表。')
+        if (hits.length > 1) throw new Error('有好几条对得上：' + hits.map((r) => `${r.id}（${r.title}）`).join('、') + '。用 id。')
+        routines.remove(hits[0].id)
+        emit('routine', null, { mateId: c.mate.id, routine: null, removedRoutineId: hits[0].id })
+        return { removed: true, id: hits[0].id, title: hits[0].title }
+      },
+    },
+    {
+      name: 'mywork_remember',
+      description: '记住一条用户的长期偏好或事实（只在 MyWork 同事的会话里可用）：写成一行追加到你文件夹里的 AGENTS.md，以后每一轮都会读到。≤300 字，一次一条；一次性的事不要记。',
+      parameters: { fact: { type: 'string', required: true, description: '要记住的一句话，例如「周报用表格，按项目分」' } },
+      execute(args, exec) {
+        const c = mateOnly(exec, 'mywork_remember')
+        const fact = String(args.fact || '').replace(/\s+/g, ' ').trim()
+        if (!fact) throw new Error('fact 不能为空。')
+        if (fact.length > REMEMBER_MAX) throw new Error(`太长了（${fact.length} 字）：一条 ≤${REMEMBER_MAX} 字。`)
+        const file = join(c.mate.dir, MEMORY_FILE)
+        mkdirSync(c.mate.dir, { recursive: true })
+        if (!existsSync(file)) writeFileSync(file, `# ${c.mate.name || '同事'} 记住的事\n\n用户的长期偏好与事实，一行一条（mywork_remember 追加）。\n\n`)
+        const d = new Date()
+        const line = `- ${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${fact}`
+        appendFileSync(file, line + '\n')
+        return { remembered: true, line }
+      },
+      render: (_a, v) => [{ type: 'text', text: '已记住：' + v.line }],
+    },
+    {
+      name: 'mywork_mate_update',
+      description: '改你自己的名字或头衔（只在 MyWork 同事的会话里可用）。新同事没有名字时先用它给自己起名：2 到 4 个汉字，贴合职责；title 是一行头衔，可空。',
+      parameters: { name: { type: 'string', description: '名字，2 到 4 个汉字' }, title: { type: 'string', description: '一行头衔' } },
+      execute(args, exec) {
+        const c = mateOnly(exec, 'mywork_mate_update')
+        const patch = { id: c.mate.id }
+        if (args.name !== undefined && String(args.name).trim()) patch.name = args.name
+        if (args.title !== undefined) patch.title = args.title
+        if (!('name' in patch) && !('title' in patch)) throw new Error('给 name 或 title。')
+        const v = updateMate(patch)
+        return { name: v.name, title: v.title }
+      },
+      render: (_a, v) => [{ type: 'text', text: `好了：${v.name}${v.title ? ' · ' + v.title : ''}` }],
+    },
+  ]
+
+  // ── HTTP ──
+  const idOf = (b) => String((b && b.id) || '').trim()
+  const routes = {
+    '/mates': { GET: () => ({ items: listMates() }) },
+    '/mates/create': { POST: (_q, b) => ({ mate: createMate(b) }) },
+    '/mates/update': { POST: (_q, b) => ({ mate: updateMate(b) }) },
+    '/mates/remove': { POST: (_q, b) => ({ removed: removeMate(idOf(b)) }) },
+    '/mates/thread': { GET: (q) => thread(q.get('id'), q.get('before'), q.get('limit')) },
+    '/mates/folder': { GET: (q) => folder(q.get('id')) },
+    '/mates/say': {
+      POST: async (_q, b) => {
+        if (!String((b && b.text) || '').trim()) throw bad('text is required')
+        const r = await engine.say(idOf(b), b.text)
+        return { mate: mateViewById(idOf(b)), runId: r.runId, mode: r.mode }
+      },
+    },
+    '/mates/stop': { POST: (_q, b) => { if (!mates.get(idOf(b))) throw notFound('同事不存在。'); engine.stop(idOf(b)); return { mate: mateViewById(idOf(b)) } } },
+    '/answer': { POST: (_q, b) => ({ run: runView(engine.answer(idOf(b), b.askId === undefined || b.askId === null ? '' : String(b.askId), b.answer)) }) },
+    '/routines': { GET: (q) => { const mate = String(q.get('mate') || '').trim(); const list = mate ? routines.forMate(mate) : routines.items; return { items: list.slice().reverse().map(rview), pending: routines.pending() } } },
+    '/routines/create': { POST: (_q, b) => ({ routine: createRoutine({ mateId: b.mateId || DEFAULT_MATE_ID, input: b.input, schedule: b.schedule, kind: b.kind, title: b.title }) }) },
+    '/routines/update': { POST: (_q, b) => ({ routine: updateRoutine(b) }) },
+    '/routines/run': { POST: (_q, b) => runRoutine(idOf(b)) },
+    '/routines/enable': { POST: (_q, b) => { const r = routines.setEnabled(idOf(b), b.enabled !== false); if (!r) throw notFound('routine not found'); return { routine: rview(r) } } },
+    '/routines/remove': { POST: (_q, b) => ({ removed: removeRoutine(idOf(b)) }) },
+    '/routines/ack': { POST: (_q, b) => ({ routine: ackRoutine(idOf(b), b.at), pending: routines.pending() }) },
+    '/activity': { GET: () => activity() },
+    '/files': { GET: (q) => files({ mate: String(q.get('mate') || '').trim(), q: q.get('q'), since: String(q.get('since') || '').trim() }) },
+    '/deliverable': { GET: (q) => { const d = deliverables.get(String(q.get('id') || '')); if (!d) throw notFound('deliverable not found'); const run = store.get(d.taskId); return { deliverable: { ...d, mateId: d.mateId || DEFAULT_MATE_ID, runId: d.taskId }, run: run ? runView(run) : null } } },
+    '/rate': { POST: (_q, b) => { const d = deliverables.update(idOf(b), { rating: b.rating === null ? null : Number(b.rating) || 0 }); if (!d) throw notFound('deliverable not found'); return { deliverable: { ...d, mateId: d.mateId || DEFAULT_MATE_ID, runId: d.taskId } } } },
+    '/seen': {
+      POST: (_q, b) => {
+        const ids = [...(Array.isArray(b.ids) ? b.ids : []), ...(b.id !== undefined && b.id !== null ? [b.id] : [])].map((x) => String(x || '').trim().slice(0, 100)).filter(Boolean)
+        if (!ids.length) throw bad('id is required')
+        return { id: ids[0], ids, seenAt: seen.mark(ids) }
+      },
+    },
+    '/search': { GET: (q) => search(q.get('q')) },
   }
+  /** One request: { status, body }. `query` is URLSearchParams or a plain object. */
+  async function handle(method, path, query, body) {
+    const route = routes[path]
+    if (!route) return { status: 404, body: { error: 'not found' } }
+    const fn = route[method]
+    if (!fn) return { status: 405, body: { error: Object.keys(route).join(' / ') + ' only' } }
+    const q = query instanceof URLSearchParams ? query : new URLSearchParams(query || {})
+    try { return { status: 200, body: await fn(q, body && typeof body === 'object' ? body : {}) } } catch (e) {
+      const status = e && (e.status === 400 || e.status === 404) ? e.status : 500
+      return { status, body: { error: e instanceof Error ? e.message : String(e) } }
+    }
+  }
+
+  /** The scheduler tick: due routines run, questions nobody answered in 24 h resume on assumptions. */
+  function tick() {
+    try { for (const r of routines.due()) runRoutine(r.id) } catch (e) { log('scheduler: ' + (e && e.message)) }
+    try { engine.expireAsks() } catch (e) { log('ask expiry: ' + (e && e.message)) }
+  }
+
+  const api = {
+    register: (s) => scenarios.register(s),
+    mates: () => listMates(),
+    mate: (id) => mateViewById(id),
+    createMate, updateMate, removeMate, thread,
+    say: (id, text) => engine.say(id, text),
+    routines: (mateId) => (mateId ? routines.forMate(mateId) : routines.items).map(rview),
+    createRoutine, runRoutine,
+    files: (o) => files(o).items,
+    deliverable: (id) => deliverables.get(id),
+    on: (fn) => { listeners.add(fn); return () => listeners.delete(fn) },
+  }
+
+  return { store, deliverables, routines, seen, mates, scenarios, engine, api, tools, routes, handle, tick, runView, mateView: mateViewById, listMates, thread, activity, files, search, workRecord, presetFor, createMate, updateMate, removeMate, createRoutine, updateRoutine, runRoutine, ackRoutine, dir, presetRoot }
+}
+
+export function apply(ctx, config = {}) {
+  const log = (m) => console.log('[dsh-mywork-tasks] ' + m)
+  let controller = null
+  ctx.inject(['sessionController'], (sctx) => { controller = sctx.sessionController; sctx.effect(() => () => { controller = null }, 'dsh-mywork-tasks: controller') })
+  const mw = createMyWork({ ctx, config, log, controller: () => controller, hostEmit: (payload) => ctx.emit('mywork/task', payload) })
+  try { ctx.provide('myworkTasks', mw.api) } catch (e) { log('ctx.provide(myworkTasks) failed: ' + (e && e.message)) }
+
+  ctx.effect(() => ctx.on('session/event', (...args) => { mw.engine.onSessionEvent(args[0], args[1]) }, { global: true }), 'dsh-mywork-tasks: session watcher')
+  // The status repair already ran inside createMyWork(); what is left is waking teammates with work handed over before the restart.
+  ctx.effect(() => { const t = setTimeout(() => { mw.engine.recover().catch((e) => log('recover: ' + (e && e.message))) }, 3000); return () => clearTimeout(t) }, 'dsh-mywork-tasks: recover')
+  // Scheduler: every 30 s run what is due. A run that fell due while the server was down runs once on start.
+  ctx.effect(() => { const id = setInterval(mw.tick, 30000); const first = setTimeout(mw.tick, 5000); return () => { clearInterval(id); clearTimeout(first) } }, 'dsh-mywork-tasks: scheduler')
+
+  if (config.tools !== false) for (const t of mw.tools) ctx.tools.register(defineRawTool(t))
 
   ctx.inject(['webServer'], (wctx) => {
     const json = (res, body, status = 200) => { res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }); res.end(JSON.stringify(body)) }
     const readBody = (req) => new Promise((resolve, reject) => { let d = ''; let n = 0; req.on('data', (c) => { n += c.length; if (n > 256 * 1024) { reject(new Error('body too large')); req.destroy(); return } d += c }); req.on('end', () => { try { resolve(d ? JSON.parse(d) : {}) } catch (e) { reject(e) } }); req.on('error', reject) })
-    const query = (req) => new URL(req.url || '/', 'http://localhost').searchParams
-    const route = (path, handler) => wctx.webServer.register({ kind: 'exact', path: '/mywork-tasks/api' + path, handler: (req, res) => rejectUntrusted(ctx, req, res, json) || Promise.resolve(handler(req, res)).catch((e) => json(res, { error: e instanceof Error ? e.message : String(e) }, 500)) })
-    const post = (path, handler) => route(path, async (req, res) => { if (req.method !== 'POST') return json(res, { error: 'POST only' }, 405); return handler(await readBody(req), res, req) })
-    const deliverableSummary = (d) => ({ id: d.id, taskId: d.taskId, title: d.title, kind: d.kind, scenario: d.scenario, createdAt: d.createdAt, rating: d.rating, verification: d.verification, summary: d.summary || null })
-    // One payload feeds 今日, the sidebar and the lists: tasks without their activity, recent deliverables, packs, capabilities.
-    const routineRow = (r) => ({ id: r.id, kind: r.kind, title: r.title, scheduleLabel: r.scheduleLabel, enabled: r.enabled, nextRunAt: r.nextRunAt, once: r.schedule && r.schedule.type === 'once', lastTaskId: ((r.runs || []).find((x) => x.taskId) || {}).taskId || '', lastAt: r.lastAt, lastRunSummary: r.lastRunSummary, preview: r.preview, attentionAt: r.attentionAt, unread: r.unread })
-    route('/tasks', async (_req, res) => json(res, { items: api.list().map(({ activity: _a, ...t }) => t), deliverables: deliverables.list().slice(0, 60).map(deliverableSummary), reminders: routines.pending(), routines: api.routines().map(routineRow), scenarios: scenarios.list(), capabilities: capabilities() }))
-    route('/task', async (req, res) => { const t = api.get(query(req).get('id') || ''); if (!t) return json(res, { error: 'task not found' }, 404); json(res, { task: t, deliverables: deliverables.forTask(t.id) }) })
-    post('/create', async (b, res) => {
-      if (!String(b.input || '').trim()) return json(res, { error: 'input is required' }, 400)
-      if (!b.scenario && b.routine !== false && parseSchedule(b.input)) return json(res, { routine: createRoutine({ input: b.input }) })
-      json(res, { task: create({ input: b.input, scenario: b.scenario, title: b.title, source: 'ui' }) })
-    })
-    route('/routines', async (_req, res) => json(res, { items: api.routines(), pending: routines.pending() }))
-    post('/routines/create', async (b, res) => json(res, { routine: createRoutine({ input: b.input, schedule: b.schedule, kind: b.kind, title: b.title }) }))
-    post('/routines/run', async (b, res) => json(res, { routine: runRoutine(String(b.id || '')) }))
-    post('/routines/enable', async (b, res) => { const r = routines.setEnabled(String(b.id || ''), b.enabled !== false); if (!r) return json(res, { error: 'routine not found' }, 404); json(res, { routine: rview(r) }) })
-    post('/routines/remove', async (b, res) => { const id = String(b.id || ''); const removed = routines.remove(id); if (removed) seen.forget(id); json(res, { removed }) })
-    // 知道了 on a reminder is also having seen its row: the dot goes with the card.
-    post('/routines/ack', async (b, res) => { const r = routines.ack(String(b.id || ''), b.at); if (!r) return json(res, { error: 'routine not found' }, 404); seen.mark([r.id]); json(res, { routine: rview(r), pending: routines.pending() }) })
-    post('/cancel', async (b, res) => json(res, { task: api.cancel(String(b.id || '')) }))
-    post('/verify', async (b, res) => json(res, { task: api.verify(String(b.id || '')) }))
-    // Today's thread, or with ?day=YYYY-MM-DD (local date, the dayKey format) an earlier day's, to read back.
-    route('/today', async (req, res) => {
-      const day = String(query(req).get('day') || '').trim()
-      if (!day) return json(res, { thread: api.today() })
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return json(res, { error: 'day must be YYYY-MM-DD' }, 400)
-      const t = threadFor(day)
-      json(res, { thread: t ? view(t) : null, day, readOnly: day !== dayKey() })
-    })
-    post('/today/say', async (b, res) => { if (!String(b.text || '').trim()) return json(res, { error: 'text is required' }, 400); json(res, { thread: await todaySay(b.text) }) })
-    // §8.3 今日线程: the line across days, paged by time (feed.js). ?before=<ISO> pages back; ?limit= 1..200, default 60.
-    route('/feed', async (req, res) => {
-      const q = query(req)
-      const before = String(q.get('before') || '').trim()
-      if (before && !Number.isFinite(Date.parse(before))) return json(res, { error: 'before must be an ISO date' }, 400)
-      const limit = q.get('limit') === null || q.get('limit') === '' ? undefined : Number(q.get('limit'))
-      if (limit !== undefined && !Number.isFinite(limit)) return json(res, { error: 'limit must be a number' }, 400)
-      json(res, buildFeed({ store, deliverables, routines, before: before || undefined, limit, today: dayKey() }))
-    })
-    post('/say', async (b, res) => { if (!String(b.text || '').trim()) return json(res, { error: 'text is required' }, 400); json(res, { task: await api.say(String(b.id || ''), b.text) }) })
-    // 找人 (§2.7): answer the question a waiting task stopped on. { id, askId?, answer } → the ask is marked answered and the
-    // task resumes in its own session with 「回答：<answer>」 (approval: 允许 / 拒绝; takeover: 我做完了). 400 when nothing is
-    // pending, the askId is not the newest pending one, or the answer is empty. (POST /say on a waiting task takes the same path.)
-    post('/answer', async (b, res) => {
-      const t = store.get(String(b.id || ''))
-      if (!t) return json(res, { error: 'task not found' }, 404)
-      try { json(res, { task: view(await engine.answer(t.id, b.askId === undefined || b.askId === null ? '' : String(b.askId), b.answer)) }) } catch (e) { if (e && e.status === 400) return json(res, { error: e.message }, 400); throw e }
-    })
-    // History is the user's: rename a task, or delete it with its deliverables (a running one is cancelled first).
-    post('/rename', async (b, res) => { const t = store.get(String(b.id || '')); if (!t) return json(res, { error: 'task not found' }, 404); const title = String(b.title || '').trim().slice(0, 200); if (!title) return json(res, { error: 'title is required' }, 400); store.update(t.id, { title }); json(res, { task: view(store.get(t.id)) }) })
-    post('/remove', async (b, res) => {
-      const t = store.get(String(b.id || '')); if (!t) return json(res, { error: 'task not found' }, 404)
-      if (t.status !== 'done') { try { engine.cancel(t.id) } catch {} }
-      for (const d of deliverables.forTask(t.id)) deliverables.remove(d.id)
-      routines.forgetTask(t.id)
-      store.remove(t.id)
-      seen.forget(t.id)
-      log(`task ${t.id} removed by the user: ${t.title}`)
-      json(res, { removed: true })
-    })
-    post('/rerun', async (b, res) => { const t = store.get(String(b.id || '')); if (!t) return json(res, { error: 'task not found' }, 404); json(res, { task: create({ input: t.input, scenario: t.scenario, title: t.title, source: 'rerun' }) }) })
-    route('/scenarios', async (_req, res) => json(res, { items: scenarios.list(), capabilities: capabilities() }))
-    route('/deliverables', async (_req, res) => json(res, { items: deliverables.list().map(deliverableSummary) }))
-    route('/deliverable', async (req, res) => { const d = deliverables.get(query(req).get('id') || ''); if (!d) return json(res, { error: 'deliverable not found' }, 404); json(res, { deliverable: d, task: api.get(d.taskId) }) })
-    post('/rate', async (b, res) => { const d = deliverables.update(String(b.id || ''), { rating: b.rating === null ? null : Number(b.rating) || 0 }); if (!d) return json(res, { error: 'deliverable not found' }, 404); json(res, { deliverable: d }) })
-    // Read state of the conversation column: { id } or { ids: [...] } of tasks and / or routines → seenAt = now.
-    post('/seen', async (b, res) => {
-      const ids = [...(Array.isArray(b.ids) ? b.ids : []), ...(b.id !== undefined && b.id !== null ? [b.id] : [])].map((x) => String(x || '').trim().slice(0, 100)).filter(Boolean)
-      if (!ids.length) return json(res, { error: 'id is required' }, 400)
-      const seenAt = seen.mark(ids)
-      json(res, { id: ids[0], ids, seenAt })
-    })
-    // Search across tasks (title / input, or a deliverable body that leads to the task), routines and deliverables; ≤20 each, newest first.
-    route('/search', async (req, res) => {
-      const found = searchAll(query(req).get('q') || '', { tasks: store.items, deliverables: deliverables.items, routines: routines.items }, { routineAt: routineLastAt })
-      json(res, { tasks: found.tasks.map((t) => { const { activity: _a, ...v } = view(t); return v }), routines: found.routines.map(rview), deliverables: found.deliverables })
-    })
+    for (const path of Object.keys(mw.routes)) {
+      wctx.webServer.register({
+        kind: 'exact', path: '/mywork-tasks/api' + path,
+        handler: (req, res) => rejectUntrusted(ctx, req, res, json) || (async () => {
+          try {
+            const body = req.method === 'POST' ? await readBody(req) : {}
+            const out = await mw.handle(req.method, path, new URL(req.url || '/', 'http://localhost').searchParams, body)
+            json(res, out.body, out.status)
+          } catch (e) { json(res, { error: e instanceof Error ? e.message : String(e) }, 500) }
+        })(),
+      })
+    }
   })
 
-  ctx.inject(['systemPrompt'], (sctx) => {
-    try {
-      sctx.systemPrompt.section({ name: 'mywork-tasks', order: 905, interpolate: false, text: '这台机器上装了 MyWork 任务引擎：用户要的结果可以交给后台任务（mywork_task_create），完成后成为「任务」页里的交付物。后台任务会话里必须用 deliver 交付。' })
-    } catch (e) { log('system prompt section skipped: ' + (e && e.message)) }
-  })
-
-  log(`ready (${store.items.length} tasks, ${deliverables.items.length} deliverables, ${routines.items.length} routines, ${scenarios.list().length} scenario)`)
+  log(`ready (${mw.mates.items.length} teammates, ${mw.store.items.length} runs, ${mw.deliverables.items.length} files, ${mw.routines.items.length} routines)`)
 }

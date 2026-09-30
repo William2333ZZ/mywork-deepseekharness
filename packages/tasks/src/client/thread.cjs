@@ -1,47 +1,63 @@
 /**
- * The task page as one thread: what you said, what came back, in time order.
- * Pure CommonJS (no React, no locale) so the client bundle inlines it as a prelude
- * and node tests can require it.
+ * A teammate's conversation (§9): one thread made of runs. Each run is one turn of work — what you said (or what a
+ * routine said for you), what came back — and renders as its own block in time order. Pure CommonJS (no React, no
+ * locale) so the client bundle inlines it as a prelude and node tests can require it.
  *
- *   threadOf(task, deliverables) → [{ kind, key, at, ... }]
+ *   threadOf(run, deliverables?) → [{ kind, key, at, ... }]        one run's entries
  *
  * Entry kinds, in the order they appear:
- *   user      { text }                     task.input first, then every activity entry of kind 'user' (follow-ups)
- *   deliver   { d, verify }                one per deliverable, at its createdAt; `verify` is verifyState(task), read live
- *   text      { text }                     a reply: activity text AFTER the last deliverable (or question) of its run; a
- *                                          run without either shows only its final text; text before them stays in 过程
+ *   routine   { title, routineId }             a routine run opens with a centred line 「<routineTitle> · HH:MM」 (at = createdAt)
+ *   user      { text }                         run.input first — unless the run's trigger is 'system' (the hidden intro) or
+ *                                              'routine' — then every activity entry of kind 'user' (a message that steered
+ *                                              the run while it worked)
+ *   deliver   { d, verify }                    one per deliverable, at its createdAt; `verify` is verifyState(run), read live
+ *   text      { text }                         a reply: activity text AFTER the last deliverable (or question) of its
+ *                                              segment; a segment without either shows only its final text
  *   ask       { id, status, question, askKind, options, detail, answer, answerable }
- *                                          a question the task stopped on (§2.7 找人), at its time in its run. status:
- *                                          pending | answered | superseded | expired; an older pending one reads as
- *                                          superseded. answerable = the newest pending question of a waiting task.
- *   auto      {}                           the 24 h resume (the user line with auto: true): one muted line
- *   thinking  { step }                     one line while the task works (not done, not waiting); the caller renders the time
- *   failed    { reason }                   a done task with an error
+ *                                              a question the run stopped on; status pending | answered | superseded |
+ *                                              expired; answerable = the newest pending question of a waiting run
+ *   scheduled { routineId, title, scheduleLabel }  activity { kind:'routine', action:'created' }: 「已安排 · 每天 19:00 写日报」
+ *   remind    { routineId, title, acked }      a reminder card (activity { kind:'remind' }, or a whole synthetic remind run)
+ *   auto      {}                               the 24 h resume (the user line with auto: true): one muted line
+ *   thinking  { step }                         one line while the run works (status running, not queued); the caller adds the time
+ *   queued    {}                               the run has not started: it waits behind the teammate's current run
+ *   stopped   {}                               a done run you stopped (error 已停止 / 已取消): a centred 「已停止」, not a failure
+ *   failed    { reason }                       a done run with any other error
  *
- * A run is what one user line started: task.input opens the first, each follow-up the next. The line that answers a
- * question (askId) and the 24 h resume (auto) do not open a run and are not bubbles: the question shows its answer.
- * Deliverables belong to the run whose window (its user line up to the next) holds their createdAt, so old tasks whose
- * activity was trimmed still show the bubble and every deliverable under it.
+ * A segment is what one user line started: the run's input opens the first, each steer the next. The line that answers
+ * a question (askId) and the 24 h resume (auto) do not open a segment and are not bubbles: the question shows its answer.
+ * Deliverables belong to the segment whose window holds their createdAt.
  */
 'use strict'
 
 const time = (iso) => { const n = iso ? new Date(iso).getTime() : NaN; return Number.isFinite(n) ? n : 0 }
+const str = (v) => (v === undefined || v === null ? '' : String(v))
+
+/** Working: not done and not stopped on a question (a queued run counts: it is about to work). */
+function isLive(run) { const s = run && run.status; return !!s && s !== 'done' && s !== 'waiting' }
+/** Waiting its turn: the server sends a queued run as status 'running' with queued: true. */
+function isQueued(run) { return !!run && (run.status === 'queued' || (run.queued === true && run.status !== 'done' && run.status !== 'waiting')) }
+/** Ended by 停止 (engine STOPPED 「已停止。」, or a cancel), which is not a failure. */
+function isStopped(error) { return /已停止|已取消|cancel/i.test(str(error)) }
 
 /**
- * What the meta line under a deliverable may say about verification, read from the task (the live copy), never from a
- * stale deliverable: a deliverable must not read 已核验 before the verifier has stamped it.
- *   verifying  task.status is 'verifying', or nothing is stamped yet and the task is not done
+ * What the meta line under a deliverable may say about verification, read from the run (the live copy), never from a
+ * stale deliverable. Verification runs in the background after the run is done (§9.7): the server flags the run
+ * `verifying: true` while the verifier works, then stamps `verification`. A stamp that says it is still going
+ * ({ status: 'verifying' | 'running' | 'pending' } or { pending: true }) also reads 核验中.
+ *   verifying  run.verifying (or a stamp still going)
  *   passed     { checked, issues, notes }
  *   issues     { checked, issues, notes }
  *   none       the verifier could not decide (passed === null)
- *   ''         a done task that was never verified (verification switched off): no verdict word at all
+ *   ''         nothing verifying and nothing stamped (a run still working, or one never verified): no word at all
  */
-function verifyState(task) {
-  const t = task || {}
+function verifyState(run) {
+  const t = run || {}
   const v = t.verification && typeof t.verification === 'object' ? t.verification : null
-  const done = t.status === 'done'
-  if (t.status === 'verifying') return { kind: 'verifying', checked: 0, issues: 0, notes: '' }
-  if (!v) return done ? { kind: '', checked: 0, issues: 0, notes: '' } : { kind: 'verifying', checked: 0, issues: 0, notes: '' }
+  const going = { kind: 'verifying', checked: 0, issues: 0, notes: '' }
+  if (t.verifying === true || t.status === 'verifying') return going
+  if (!v) return { kind: '', checked: 0, issues: 0, notes: '' }
+  if (v.pending === true || v.status === 'verifying' || v.status === 'running' || v.status === 'pending' || v.status === 'queued') return going
   const checked = Number(v.checked) || 0
   const issues = Number(v.issues) || 0
   const notes = typeof v.notes === 'string' ? v.notes : ''
@@ -50,122 +66,170 @@ function verifyState(task) {
   return { kind: 'none', checked, issues, notes }
 }
 
-function threadOf(task, deliverables) {
-  const t = task || {}
-  const activity = Array.isArray(t.activity) ? t.activity : []
-  const done = t.status === 'done'
-  const docs = (Array.isArray(deliverables) && deliverables.length ? deliverables : Array.isArray(t.deliverables) ? t.deliverables : [])
+/** A run that is only a reminder firing (the server may send it as its own synthetic run). */
+function remindOf(run) {
+  const r = run || {}
+  if (r.kind === 'remind' || (r.remind && typeof r.remind === 'object') || r.trigger === 'remind') {
+    const x = r.remind && typeof r.remind === 'object' ? r.remind : {}
+    return { routineId: str(x.routineId || r.routineId), title: str(x.title || r.routineTitle || x.text || r.input), at: str(x.at || r.createdAt), acked: !!(x.acked || x.ackedAt || r.acked || r.ackedAt) }
+  }
+  return null
+}
+
+function threadOf(run, deliverables) {
+  const r = run || {}
+  const out = []
+  const synthetic = remindOf(r)
+  if (synthetic) { out.push({ kind: 'remind', key: 'rm', ...synthetic }); return out }
+  const activity = Array.isArray(r.activity) ? r.activity : []
+  const done = r.status === 'done'
+  const waiting = r.status === 'waiting'
+  const trigger = r.trigger || 'user'
+  const docs = (Array.isArray(deliverables) && deliverables.length ? deliverables : Array.isArray(r.deliverables) ? r.deliverables : [])
     .filter((d) => d && typeof d === 'object').slice().sort((a, b) => time(a.createdAt) - time(b.createdAt))
-  const verify = verifyState(t)
-  const waiting = t.status === 'waiting'
-  // The one question that can still be answered: the newest pending ask, and only while the task waits on it.
+  const verify = verifyState(r)
+  // The one question that can still be answered: the newest pending ask, and only while the run waits on it.
   let newestPending = null
   for (const e of activity) if (e && e.kind === 'ask' && askStatus(e) === 'pending') newestPending = e
 
-  // Split the activity into runs, each opened by a user line (an answer or the 24 h resume continues the run it answers).
-  const runs = [{ at: t.createdAt || '', text: String(t.input || ''), entries: [] }]
+  if (trigger === 'routine') out.push({ kind: 'routine', key: 'rt', at: str(r.createdAt), title: str(r.routineTitle), routineId: str(r.routineId) })
+
+  // Split the activity into segments, each opened by a user line (an answer or the 24 h resume continues its segment).
+  const segs = [{ at: str(r.createdAt), text: str(r.input), bubble: trigger === 'user' && !!str(r.input).trim(), entries: [] }]
   for (const e of activity) {
     if (!e || typeof e !== 'object') continue
-    if (e.kind === 'user' && !e.askId && !e.auto) { runs.push({ at: e.at || '', text: String(e.text || ''), entries: [] }); continue }
-    runs[runs.length - 1].entries.push(e)
+    if (e.kind === 'user' && !e.askId && !e.auto) { segs.push({ at: str(e.at), text: str(e.text), bubble: true, entries: [] }); continue }
+    segs[segs.length - 1].entries.push(e)
   }
 
-  const out = []
   let seq = 0
-  runs.forEach((run, i) => {
-    const last = i === runs.length - 1
-    const start = time(run.at)
-    const end = last ? Infinity : time(runs[i + 1].at)
-    out.push({ kind: 'user', key: 'u' + i, at: run.at, text: run.text })
+  segs.forEach((seg, i) => {
+    const last = i === segs.length - 1
+    const start = time(seg.at)
+    const end = last ? Infinity : time(segs[i + 1].at)
+    if (seg.bubble) out.push({ kind: 'user', key: 'u' + i, at: seg.at, text: seg.text })
     const body = []
-    // Deliverables of this run: the first run also takes anything stamped before its own line (trimmed history, clock skew).
+    // Deliverables of this segment: the first also takes anything stamped before its own line (clock skew, trimmed history).
     const mine = docs.filter((d) => { const c = time(d.createdAt); return (i === 0 || c >= start) && c < end })
-    for (const d of mine) body.push({ kind: 'deliver', key: 'd' + (d.id || seq++), at: d.createdAt || run.at, d, verify })
-    const asks = run.entries.filter((e) => e.kind === 'ask')
+    for (const d of mine) body.push({ kind: 'deliver', key: 'd' + (d.id || seq++), at: d.createdAt || seg.at, d, verify })
+    const asks = seg.entries.filter((e) => e.kind === 'ask')
     for (const a of asks) {
       let status = askStatus(a)
       if (status === 'pending' && a !== newestPending) status = 'superseded' // only the newest question is open
       body.push({
-        kind: 'ask', key: 'a' + (a.id || seq++), at: a.at || '', id: String(a.id || ''), status,
-        question: String(a.question || a.text || ''), askKind: a.askKind || 'text', options: Array.isArray(a.options) ? a.options.map(String) : [],
-        detail: typeof a.detail === 'string' ? a.detail : '', answer: a.answer === undefined || a.answer === null ? '' : String(a.answer),
+        kind: 'ask', key: 'a' + (a.id || seq++), at: str(a.at), id: str(a.id), status,
+        question: str(a.question || a.text), askKind: a.askKind || 'text', options: Array.isArray(a.options) ? a.options.map(String) : [],
+        detail: typeof a.detail === 'string' ? a.detail : '', answer: str(a.answer),
         answerable: status === 'pending' && waiting,
       })
     }
-    for (const e of run.entries) if (e.kind === 'user' && e.auto) body.push({ kind: 'auto', key: 'r' + seq++, at: e.at || '' })
-    // Text before the run's last deliverable or question is narration (过程); what comes after it is the reply.
+    for (const e of seg.entries) {
+      if (e.kind === 'user' && e.auto) body.push({ kind: 'auto', key: 'r' + seq++, at: str(e.at) })
+      else if (e.kind === 'routine' && (e.action === 'created' || !e.action)) body.push({ kind: 'scheduled', key: 's' + (e.routineId || seq++), at: str(e.at), routineId: str(e.routineId || e.id), title: str(e.title), scheduleLabel: str(e.scheduleLabel) })
+      else if (e.kind === 'remind') body.push({ kind: 'remind', key: 'm' + seq++, at: str(e.at), routineId: str(e.routineId || e.id), title: str(e.title || e.text), acked: !!(e.acked || e.ackedAt) })
+    }
+    // Text before the segment's last deliverable or question is narration (过程); what comes after it is the reply.
     const cut = Math.max(mine.length ? time(mine[mine.length - 1].createdAt) : -Infinity, asks.length ? time(asks[asks.length - 1].at) : -Infinity)
-    const texts = run.entries.filter((e) => e.kind === 'text' && String(e.text || '').trim())
+    const texts = seg.entries.filter((e) => e.kind === 'text' && str(e.text).trim())
     if (mine.length) {
-      for (const e of texts) if (time(e.at) > cut) body.push({ kind: 'text', key: 't' + seq++, at: e.at, text: String(e.text) })
+      for (const e of texts) if (time(e.at) > cut) body.push({ kind: 'text', key: 't' + seq++, at: e.at, text: str(e.text) })
     } else if (!(last && !done)) {
-      // No deliverable: the reply is the run's final text. While the last run is still going, the thinking line speaks instead.
+      // No deliverable: the reply is the segment's final text. While the last segment is still going, the working line speaks.
       const final = texts[texts.length - 1]
-      if (final && time(final.at) > cut) body.push({ kind: 'text', key: 't' + seq++, at: final.at, text: String(final.text) })
-      else if (!final && i === 0 && last && done && !t.error && !docs.length && !activity.some((e) => e && e.kind === 'text') && String(t.summary || '').trim()) {
-        body.push({ kind: 'text', key: 't' + seq++, at: t.finishedAt || run.at, text: String(t.summary) }) // old task whose activity was trimmed: what is left of the answer
+      if (final && time(final.at) > cut) body.push({ kind: 'text', key: 't' + seq++, at: final.at, text: str(final.text) })
+      else if (!final && i === 0 && last && done && !r.error && !docs.length && !activity.some((e) => e && e.kind === 'text') && str(r.summary).trim()) {
+        body.push({ kind: 'text', key: 't' + seq++, at: r.finishedAt || seg.at, text: str(r.summary) }) // a migrated task whose activity was trimmed
       }
     }
-    // In time order; entries stamped at the same moment keep the order above (deliverable, question, resume, reply).
+    // In time order; entries stamped at the same moment keep the order above.
     body.map((e, n) => ({ e, n, at: time(e.at) })).sort((a, b) => a.at - b.at || a.n - b.n).forEach((x) => out.push(x.e))
   })
 
-  if (!done && !waiting) out.push({ kind: 'thinking', key: 'thinking', at: '', step: String(t.currentStep || t.statusLabel || '') })
-  else if (done && t.error) out.push({ kind: 'failed', key: 'failed', at: t.finishedAt || '', reason: String(t.error) })
+  if (!done && !waiting) {
+    if (isQueued(r)) out.push({ kind: 'queued', key: 'queued', at: '' })
+    else out.push({ kind: 'thinking', key: 'thinking', at: '', step: str(r.step || r.currentStep || r.statusLabel) })
+  } else if (done && r.error) {
+    if (isStopped(r.error)) out.push({ kind: 'stopped', key: 'stopped', at: str(r.finishedAt) })
+    else out.push({ kind: 'failed', key: 'failed', at: str(r.finishedAt), reason: str(r.error) })
+  }
   return out
 }
 
-/** An ask entry's status; legacy entries without one are open until they carry an answer (store.isPendingAsk). */
+/** An ask entry's status; legacy entries without one are open until they carry an answer. */
 function askStatus(a) {
   if (a.status === 'pending' || a.status === 'answered' || a.status === 'superseded' || a.status === 'expired') return a.status
   return a.answer ? 'answered' : 'pending'
 }
 
-// ---- 今日's line (§8.3): the client's side of GET /feed ------------------------------------------------------------
-// Entries come from the server ascending by `at` with no date entries; the client keeps everything it has fetched,
-// shows from a cut-off (`from`, local midnight of the oldest day revealed) and draws the separators itself.
+// ---- the thread as a whole -------------------------------------------------------------------------------------------
 
-const pad2 = (n) => String(n).padStart(2, '0')
-/** Local calendar day of an ISO stamp as YYYY-MM-DD ('' when unparsable): what separators and 「今天」 compare by. */
-function localDay(iso) { const d = new Date(iso); if (!Number.isFinite(d.getTime())) return ''; return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) }
-const parts = (day) => String(day || '').split('-').map(Number)
-/** Local midnight that starts a YYYY-MM-DD day, as ISO. */
-function dayStartIso(day) { const [y, m, d] = parts(day); return new Date(y || 1970, (m || 1) - 1, d || 1).toISOString() }
-/** The YYYY-MM-DD day `n` days after `day`. */
-function shiftDay(day, n) { const [y, m, d] = parts(day); return localDay(new Date(y || 1970, (m || 1) - 1, (d || 1) + n).toISOString()) }
-/** 「9/29」 for a YYYY-MM-DD day. */
-function shortDay(day) { const [, m, d] = parts(day); return (m || 0) + '/' + (d || 0) }
-/** Identity of a feed entry across pages and polls: kind, stamp and the thing it points at. */
-function feedKey(e) { return e.kind + '|' + (e.at || '') + '|' + (e.id || e.routineId || e.taskId || '') }
-/** Merge a page into what is loaded: the same key replaces (a reminder's ack lands this way), the rest joins; ascending by at. */
-function mergeFeed(existing, incoming) {
+/** Merge a page of runs into what is loaded: the same id replaces, the rest joins; ascending by createdAt. */
+function mergeRuns(existing, incoming) {
   const map = new Map()
-  for (const e of existing || []) if (e) map.set(feedKey(e), e)
-  for (const e of incoming || []) if (e) map.set(feedKey(e), e)
-  return [...map.values()].sort((a, b) => time(a.at) - time(b.at))
+  for (const r of existing || []) if (r && r.id) map.set(r.id, r)
+  for (const r of incoming || []) if (r && r.id) map.set(r.id, r)
+  return [...map.values()].sort((a, b) => time(a.createdAt) - time(b.createdAt) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
 }
-/** The day of the newest loaded entry before `from` (ISO): what 「加载昨天」 reveals next; '' when nothing is loaded there. */
-function olderDayOf(entries, from) {
-  const cut = time(from)
-  let best = null
-  for (const e of entries || []) { if (!e) continue; const t = time(e.at); if (t < cut && (!best || t > time(best.at))) best = e }
-  return best ? localDay(best.at) : ''
-}
+
 /**
- * What the line renders: the entries from `from` on, each with its key and a `today` flag, and one date separator
- * before the first entry of every day but today — 「昨天 · 9/29」, then 「9/28」.
+ * The run that is actually working right now, or null: the newest one running (not queued), else the newest waiting on
+ * you, else the newest queued. A message sent while a routine run works is queued behind it; the routine run stays the
+ * one on screen (电脑, the avatar ring) until it ends.
  */
-function feedRows(entries, from, today, yesterdayWord) {
-  const cut = time(from)
-  const out = []
-  let day = ''
-  for (const e of entries || []) {
-    if (!e || time(e.at) < cut) continue
-    const d = localDay(e.at)
-    if (d !== day) { day = d; if (d && d !== today) out.push({ kind: 'date', key: 'date|' + d, at: e.at, day: d, label: d === shiftDay(today, -1) ? String(yesterdayWord || '') + ' · ' + shortDay(d) : shortDay(d) }) }
-    out.push({ ...e, key: feedKey(e), today: d === today })
-  }
+function activeRun(runs) {
+  const list = (runs || []).filter((r) => r && r.status && r.status !== 'done')
+  const newest = (pred) => { for (let i = list.length - 1; i >= 0; i--) if (pred(list[i])) return list[i]; return null }
+  return newest((r) => r.status !== 'waiting' && !isQueued(r)) || newest((r) => r.status === 'waiting') || newest(isQueued)
+}
+
+/** The text question the dock answers: the newest run waits on an ask of kind text. */
+function textAskOf(runs) {
+  const list = runs || []
+  const r = list[list.length - 1]
+  if (!r || r.status !== 'waiting' || !r.ask || typeof r.ask !== 'object') return null
+  return (r.ask.askKind || 'text') === 'text' ? r.ask : null
+}
+
+/** The column's one order rule (§9.4): pinned first (the default mate counts as pinned unless unpinned), then newest lastAt. */
+function mateOrder(mates) {
+  const pinned = (m) => m.pinned === true || (!!m.isDefault && m.pinned !== false)
+  return (mates || []).filter((m) => m && m.id).slice().sort((a, b) =>
+    (pinned(b) ? 1 : 0) - (pinned(a) ? 1 : 0)
+    || (pinned(a) && pinned(b) ? (b.isDefault ? 1 : 0) - (a.isDefault ? 1 : 0) : 0)
+    || time(b.lastAt || b.createdAt) - time(a.lastAt || a.createdAt)
+    || (a.id < b.id ? -1 : 1))
+}
+
+/**
+ * One routine run receipt as the right panel's run rows say it: result (jumps to the run) | quiet | failed | fired |
+ * running. A receipt starts as { at, taskId } when the run is queued and is settled with `changed` (and `error`) when it
+ * ends; one that is not settled yet is still running.
+ */
+function routineRunKind(x) {
+  if (!x || typeof x !== 'object') return 'quiet'
+  if (x.error) return 'failed'
+  if (x.fired) return 'fired'
+  if (x.quiet === true || x.changed === false) return 'quiet'
+  if ((x.status && x.status !== 'done') || (!('changed' in x) && (x.runId || x.taskId))) return 'running'
+  return 'result'
+}
+
+/** The first character of a name, whole (a surrogate pair stays one character). */
+function initialOf(name) { const s = str(name).trim(); return s ? Array.from(s)[0].toUpperCase() : '·' }
+
+/**
+ * Which runs of one teammate's thread render folded (the user line, then one compact file row per deliverable): every
+ * migrated run, and every finished run older than the newest `keep` finished runs. Live, waiting and queued runs never fold.
+ */
+function foldedRunIds(runs, keep) {
+  const n = Number.isFinite(keep) ? keep : 5
+  const done = (runs || []).filter((r) => r && r.status === 'done')
+  const recent = new Set(done.slice(Math.max(0, done.length - n)).map((r) => r.id))
+  const out = new Set()
+  for (const r of done) if (r.migrated === true || !recent.has(r.id)) out.add(r.id)
   return out
 }
 
-module.exports = { threadOf, verifyState, localDay, dayStartIso, shiftDay, shortDay, feedKey, mergeFeed, olderDayOf, feedRows }
+module.exports = {
+  foldedRunIds, threadOf, verifyState, isLive, isQueued, isStopped, remindOf, mergeRuns, activeRun, textAskOf, mateOrder, routineRunKind, initialOf,
+}

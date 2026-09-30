@@ -55,37 +55,45 @@ export function apply(ctx, config = {}) {
   let notifyConfig = readNotifyConfig()
   const watcher = createAutomationWatcher({ getConfig: () => notifyConfig, send, log })
   ctx.effect(() => ctx.on('session/event', (...args) => { watcher(args[0], args[1]) }, { global: true }), 'dsh-mywork-im: automation watcher')
-  // MyWork tasks (dsh-mywork-tasks) → IM: a finished task goes to the default notification target, if one is set.
+  // MyWork teammates (dsh-mywork-tasks, the teammate model) → IM, to the default notification target when one is set and the
+  // teammate's 通知 is on. What goes out: a fired reminder, a question the teammate stopped on (even under 仅失败), a routine
+  // run that has news, a failed run, and a user run that took long enough that you probably walked away. Chat replies, the
+  // intro and quiet routine runs never do.
+  const LONG_RUN_MS = 2 * 60000
   ctx.effect(() => ctx.on('mywork/task', (payload) => {
     try {
-      if (!payload) return
+      if (!payload || !payload.run) return
       const rule = notifyConfig.automation.default
       if (!rule) return
-      if (payload.kind === 'remind' && payload.routine) {
-        const r = payload.routine
-        Promise.resolve(send(rule.target, `【提醒】${r.title}` + (r.input && r.input !== r.title ? '\n\n' + r.input : ''))).then(() => log(`reminder ${r.id} → IM`)).catch((e) => log(`reminder ${r.id} → IM failed: ${e && e.message}`))
+      const mate = payload.mate || null
+      if (mate && mate.notify === false) return
+      const who = mate && mate.name ? mate.name : 'MyWork'
+      const run = payload.run
+      const out = (text, what) => Promise.resolve(send(rule.target, text)).then(() => log(`${what} → IM`)).catch((e) => log(`${what} → IM failed: ${e && e.message}`))
+      const line = (s, n) => { const t = String(s || '').replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n - 1) + '…' : t }
+      if (payload.kind === 'remind') {
+        const r = payload.routine || { title: run.routineTitle, input: run.input }
+        out(`【${who}】提醒 · ${r.title}` + (r.input && r.input !== r.title ? '\n\n' + r.input : ''), `reminder ${run.routineId}`)
         return
       }
-      // 找人 (dsh-mywork-tasks §2.7): a task stopped on a question needs the person, so it goes out even under the 仅失败 rule.
-      if (payload.kind === 'waiting' && payload.task) {
-        const task = payload.task
-        const question = task.ask && task.ask.question ? String(task.ask.question) : ''
-        Promise.resolve(send(rule.target, `【任务】${task.title} · 等你答` + (question ? ' · ' + question : ''))).then(() => log(`task ${task.id} waiting → IM notified`)).catch((e) => log(`task ${task.id} waiting → IM notify failed: ${e && e.message}`))
+      if (payload.kind === 'waiting') {
+        const question = run.ask && run.ask.question ? String(run.ask.question) : ''
+        out(`【${who}】等你答` + (question ? ' · ' + question : ''), `run ${run.id} waiting`)
         return
       }
-      if (payload.kind !== 'done' || !payload.task) return
-      const task = payload.task
-      const failed = !!task.error
+      if (payload.kind !== 'done' || run.remind || run.trigger === 'system') return
+      const failed = !!run.error
+      if (failed && run.error === '已停止。') return
       if (rule.when === 'failed' && !failed) return
-      // A routine run that found nothing new stays quiet (goal-tracking logic: only changes interrupt).
-      if (task.quiet && !failed) return
-      const v = task.verification
-      const badge = v ? (v.passed === true ? '已核验' : v.passed === false ? `核验发现 ${v.issues || 0} 处问题` : '未能核验') : ''
-      const body = failed ? task.error : (task.summary || (task.deliverables && task.deliverables[0] ? task.deliverables[0].title : ''))
-      const text = `【${task.routineId ? '例行' : '任务'}】${task.title} · ${failed ? '失败' : '完成'}${badge ? ' · ' + badge : ''}` + (body ? '\n\n' + String(body).slice(0, notifyConfig.automation.maxChars) : '')
-      Promise.resolve(send(rule.target, text)).then(() => log(`task ${task.id} → IM notified`)).catch((e) => log(`task ${task.id} → IM notify failed: ${e && e.message}`))
-    } catch (e) { log('task notify error: ' + (e && e.message)) }
-  }, { global: true }), 'dsh-mywork-im: task notifier')
+      if (run.quiet && !failed) return // a routine run that found nothing new stays quiet
+      const took = Date.parse(run.finishedAt) - Date.parse(run.startedAt || run.createdAt)
+      if (run.trigger === 'user' && !failed && !(took >= LONG_RUN_MS)) return // a chat reply: you are looking at it
+      const reply = [...(run.activity || [])].reverse().find((a) => a && a.kind === 'text')
+      const body = failed ? run.error : (reply ? reply.text : run.deliverables && run.deliverables[0] ? run.deliverables[0].title : run.summary)
+      const what = run.trigger === 'routine' ? (run.routineTitle || '例行') : line(run.input, 30)
+      out(`【${who}】${what} · ${failed ? '失败' : '完成'}` + (body ? '\n\n' + String(body).slice(0, notifyConfig.automation.maxChars) : ''), `run ${run.id}`)
+    } catch (e) { log('teammate notify error: ' + (e && e.message)) }
+  }, { global: true }), 'dsh-mywork-im: teammate notifier')
 
   if (config.tools !== false) {
     ctx.tools.register(defineRawTool({

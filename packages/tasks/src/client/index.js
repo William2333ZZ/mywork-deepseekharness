@@ -2,272 +2,206 @@
  * dsh-mywork-tasks — browser half (CommonJS; wrapped by scripts/build-client.mjs with
  * src/md.cjs, src/client/thread.cjs and client-icons.cjs inlined as preludes).
  *
- * 会话即一切: every page is a thread. A task page is the conversation that made it (your line in a
- * bubble, the deliverable as plain text with one verification line under it, the reply as text, a
- * working line while it runs, 过程 folded at the end, the composer docked). 今日 is the day's thread
- * with a sticky 等你看 bar under its title.
+ * 同事模型 (design/v2/TEAMMATES.md §9): the unit is a teammate. Each teammate is one endless conversation made of runs
+ * (threadOf in thread.cjs): your line in a bubble on the right, the reply as plain text, a delivery as text with one
+ * verification line under it, the question it stopped on, a routine run's centred line, 「已安排」 and reminder cards,
+ * a working line while it runs, 过程 folded per run, the composer docked.
  *
  * Pages (main slot):
- *   mywork-today         今日：标题 + 日期 + 状态词；等你看栏（可展开的清单）；GET /feed 的线（今天，「加载昨天」只读回看）；dock
- *   mywork-tasks         任务：列表；任务页 = 线程（threadOf in thread.cjs）
- *   mywork-deliverables  交付物：全部交付物，按场景筛，查看器
- *   mywork-routines      例行：列表；例行条目页
- *   mywork-scenarios     领域：已装领域包
- * Overlay (shell.overlay): completion toasts, 「需要你」 toasts when a task stops to ask, browser notifications; keeps
- * polling while any page is hidden.
+ *   mywork-mate       one teammate: header (avatar · name · title · ···), the thread (GET /mates/thread, 「加载更早」),
+ *                     the dock (POST /mates/say); the right panel (电脑 · 例行 · 设置, or the 「新同事」 form)
+ *   mywork-files      文件: every teammate's files, chips per teammate, search, preview in place
+ * Overlay (shell.overlay): toasts when a run finishes or needs you (from GET /activity), keyed by teammate; keeps the
+ * poll alive for the sidebar.
  *
- * Child slot `mywork.thread.aside` (declared on the 任务 page entry, list): 这台电脑, the aside beside a task thread.
- *   ctx.slots.inject('mywork.thread.aside', () => ctx.slots.register({ name: 'mywork.thread.aside', id: 'screen', order: 10,
- *     label: '画面', title: '画面', when }, Object.assign(Component, { when, title: '画面' })))
- *   `when(task)` gets the task detail (with activity); only entries it accepts show, and only the first of them. dsh
- *   0.1.6 keeps just id / order / label on `options`, so `when` / `title` are read from options, then from the component.
- *   Props: { task, deliverables, live } (live = not done and not waiting). No entry → no monitor button, no frame.
+ * Child slot `mywork.thread.aside` (declared on the mate page entry, list): the 电脑 section of the right panel.
+ *   `when(run)` gets the teammate's current (working or waiting) run with its activity; the first entry that accepts it
+ *   renders with props { task: run, deliverables, live }. dsh 0.1.6 keeps just id / order / label on `options`, so
+ *   `when` / `title` are read from options, then from the entry, then from the component.
  *
- * Window events (for the sidebar in dsh-mywork-codex-ui and other members):
- *   in:  mywork:open-thread {kind: 'today'|'task'|'routine'|'new'|'deliverables', id?}   the one navigation contract
- *        mywork:new-task {text?, scenario?}  mywork:open-task {id}  mywork:open-deliverable {id}  mywork:open-routine {id}
- *        mywork:panel-home {id}  (the active nav item tapped again: back to that page's list)
- *   out: mywork:thread-opened {kind, id}  when 今日, a task page or a routine page mounts or changes item (+ POST /seen {id})
- *        mywork:tasks-updated {items}     every poll, so the sidebar shares the snapshot
- * The dsh conversation behind a task is reachable only through 「原始对话」 (mywork:open-session).
+ * Window events (the sidebar in dsh-mywork-codex-ui and other members):
+ *   in:  mywork:open-thread { kind: 'mate', id?, runId? }   id empty → the default teammate; runId → scroll to it + highlight
+ *                           { kind: 'new-mate' }            the right panel's 「新同事」 form
+ *                           { kind: 'files', id? }          the files page (id → that file's preview)
+ *                           { kind: 'routine', id, mateId? } the owning teammate + its routine expanded in the right panel
+ *        (every handled kind is preventDefault()ed: the sidebar dispatches it cancelable)
+ *   out: mywork:thread-opened { kind: 'mate', id } | { kind: 'files' }   (+ POST /seen { id } for a teammate)
+ *        mywork:mates-updated { items, activity }   every poll, so the column can share the snapshot
  */
 'use strict'
 
 const React = require('react')
 const md = require('./md.cjs')
-const { threadOf, verifyState, localDay, dayStartIso, shiftDay, shortDay, mergeFeed, olderDayOf, feedRows } = require('./thread.cjs')
+const { foldedRunIds, threadOf, verifyState, isLive, isQueued, mergeRuns, activeRun, textAskOf, mateOrder, routineRunKind, initialOf } = require('./thread.cjs')
 const icons = require('./client-icons.cjs')
-// Two lucide line icons this bundle needs that the shared set does not carry (the prelude is this bundle's own copy).
-if (icons.PATHS && !icons.PATHS['message-circle']) icons.PATHS['message-circle'] = ['M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719']
-if (icons.PATHS && !icons.PATHS.monitor) icons.PATHS.monitor = ['M4 3h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z', 'M8 21h8', 'M12 17v4']
+// Lucide line icons this bundle needs that the shared set does not carry (the prelude is this bundle's own copy).
+const EXTRA_ICONS = {
+  'message-circle': ['M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719'],
+  monitor: ['M4 3h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z', 'M8 21h8', 'M12 17v4'],
+  repeat: ['m17 2 4 4-4 4', 'M3 11v-1a4 4 0 0 1 4-4h14', 'm7 22-4-4 4-4', 'M21 13v1a4 4 0 0 1-4 4H3'],
+  square: ['M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z'],
+  file: ['M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z', 'M14 2v4a2 2 0 0 0 2 2h4'],
+}
+if (icons.PATHS) for (const k of Object.keys(EXTRA_ICONS)) if (!icons.PATHS[k]) icons.PATHS[k] = EXTRA_ICONS[k]
 const icon = (name, opts) => icons.icon(name, { strokeWidth: 1.5, ...(opts || {}) })
 
 const h = React.createElement
 const PLUGIN = 'dsh-mywork-tasks'
 const NS = 'mywork.tasks'
 const API = '/mywork-tasks/api'
-/** A routine run that is a report (日报 / 周报): shown as delivered, never as 有变化 / 没有变化. */
-const isReport = (task) => !!(task && (task.report || (task.deliverables || []).some((d) => d.kind === 'report')))
-const PANELS = { today: 'mywork-today', create: 'mywork-new', tasks: 'mywork-tasks', deliverables: 'mywork-deliverables', routines: 'mywork-routines', scenarios: 'mywork-scenarios' }
-const FAST_MS = 3000
-const SLOW_MS = 20000
-/** Entries per GET /feed page (the server's default). */
-const FEED_PAGE = 60
+const PANELS = { mate: 'mywork-mate', files: 'mywork-files' }
+/** Poll /mates and /activity every 4 s while any teammate works, else every 30 s (and on focus). */
+const FAST_MS = 4000
+const SLOW_MS = 30000
+/** Runs per GET /mates/thread page. */
+const THREAD_PAGE = 30
 const V2_KEY = 'dsh-mywork:v2'
-/** 这台电脑 (§8.4): the tasks page's child slot, and where each task's open / closed aside is remembered. */
+/** The right panel: the mate page's child slot for 电脑, and where each teammate's open / closed panel is remembered. */
 const ASIDE_SLOT = 'mywork.thread.aside'
-const ASIDE_KEY = 'dsh-mywork:aside'
-/** The aside is a grid column once the page has room for the reading column (752 + 2 × 28 padding), a 24 gap and 384. */
+const ASIDE_KEY = 'dsh-mywork:mate-aside'
+/**
+ * The panel is a grid column whenever the page has room for a reading column of at least 560 (it shrinks from 752 down
+ * to that), a 24 gap, the 384 panel and the 2 × 28 page padding; only below that is it a slide-over.
+ */
 const ASIDE_W = 384
-const SPLIT_MIN = 752 + 56 + 24 + ASIDE_W
+const COL_MIN = 560
+const SPLIT_GAP = 24
+const SPLIT_MIN = COL_MIN + 56 + SPLIT_GAP + ASIDE_W
+const SPLIT_MAX = 752 + 56 + SPLIT_GAP + ASIDE_W
+/** How long a run jumped to stays highlighted. */
+const HIGHLIGHT_MS = 1200
 
 const zh = {
-  today: '今日', tasks: '任务', deliverables: '交付物', packs: '领域', builtin: '内置', scenarioClear: '不指定，让系统判断',
-  packsLead: '领域包决定一类事怎么做：用什么数据、交付什么、怎么核验。你不用选，说出来就行；装了领域包，它认得的事自动归它。',
-  packsEmpty: '还没有装领域包。交易工作台是第一个。',
-  hero: '你要什么结果？', ask: '今天要做什么',
-  none: '还没有任务。', noneDeliverables: '还没有交付物。',
-  all: '全部', active: '进行中', back: '返回', rerun: '再来一次', cancel: '取消', process: '过程', verifyAgain: '重新核验', rename: '重命名', remove: '删除', removeAsk: '删掉这条记录和它的交付物？', search: '搜索', noMatch: '没有匹配的', times: '次', phases: '步', verifyLabel: '核验', passed: '通过',
-  failedTitle: '失败', create: '创建', openTask: '打开任务',
-  ratingGood: '有用', ratingBad: '没用', exportMd: '导出 Markdown', exportPdf: '导出 PDF', none2: '无',
-  verified: '已核验', verifyIssues: '核验发现问题', verifyFound: '核验发现 {n} 处', verifyNone: '未能核验', verifying: '核验中', checked: '核对', issues: '问题',
-  doneToast: '任务完成', failedToast: '任务失败', open: '打开',
-  toolFailed: '失败',
-  attention: '等你看', needsYou: '等你答', running1: '个在跑', waiting1: '份等你看', deliveredToday: '今天交付', unratedN: '{n} 份还没评价',
-  handedOff: '已交给后台', thinking: '在想', doing: '在做', paused: '已暂停', ended: '已结束', endedN: '已结束的 {n} 项', runs: '运行记录', todayAt: '今天', delivered: '已交付', answered: '已回答', quietDay: '今天没有等你的事。说一句，交给它。', moreRows: '还有 {n} 项', more: '更多', rawProcess: '原始对话', loadFailed: '没连上服务，稍后再试。', retry: '重试',
-  routines: '例行', routinesLead: '还没有例行的事。说一句带时间的话，比如「每天 9 点给我一份简报」。',
-  remindCard: '提醒', gotIt: '知道了', runNow: '现在跑一次', pause: '暂停', resume: '恢复', nextRun: '下次', neverRan: '还没跑过', noChange: '没有变化', changed: '有变化', scheduled: '已安排', kindTask: '例行任务', kindRemind: '提醒',
-  say: '回复',
-  loadYesterday: '加载昨天', loadDay: '加载 {d}', loadEarlier: '加载更早', yesterday: '昨天', reportOut: '已出报告',
-  needsYouToast: '需要你', answerPh: '回答', allowOnce: '允许一次', deny: '拒绝', takeoverGo: '去 Chrome 里处理', takeoverDone: '我做完了',
+  mate: '同事', files: '文件',
+  sayTo: '给 {name} 发消息', answerPh: '回答', send: '发送', more: '更多', stop: '停止', settings: '设置', close: '关闭', back: '返回',
+  working: '在干活', loadEarlier: '加载更早', process: '过程', phases: '步', times: '次', toolFailed: '失败', none2: '无',
+  verified: '已核验', verifyIssues: '核验发现问题', verifyFound: '核验发现 {n} 处', verifyNone: '未能核验', verifying: '核验中', checked: '核对', issues: '问题', verifyLabel: '核验', passed: '通过',
+  ratingGood: '有用', ratingBad: '没用', failedTitle: '失败', stopped: '已停止', queued: '排队',
+  scheduled: '已安排', remindCard: '提醒', gotIt: '知道了', acked: '已知道',
   answeredLine: '已回答：{a}', askClosed: '不再等待', askAuto: '24 小时没有回答，按合理假设继续',
-  justNow: '刚刚', minutesAgo: '{n} 分钟前', hoursAgo: '{n} 小时前', computer: '这台电脑', close: '关闭',
+  allowOnce: '允许一次', deny: '拒绝', takeoverGo: '去 Chrome 里处理', takeoverDone: '我做完了',
+  computer: '电脑', routines: '例行', noFiles: '还没有文件。', folderEmpty: '文件夹是空的', noRoutines: '还没有例行。',
+  newRoutine: '新例行', newRoutinePh: '说一句带时间的话，例如：每天 9 点给我一份简报',
+  nextRun: '下次', paused: '已暂停', ended: '已结束', runNow: '现在跑一次', pause: '暂停', resume: '恢复', remove: '删除', cancel: '取消',
+  removeRoutineAsk: '删除这个例行？', removeMate: '删除同事', removeMateAsk: '删除这位同事、它的对话和例行？',
+  runResult: '有结果', runQuiet: '没有变化', runFailed: '失败', runFired: '提醒', runRunning: '在跑', neverRan: '还没跑过',
+  name: '名字', title: '头衔', duty: '职责', pinned: '置顶', notify: '通知',
+  newMate: '新同事', dutyAsk: '它负责什么', dutyPh: '例如：每天盯三家竞品的价格，有变化告诉我', namePh: '可以不填', create: '创建',
+  search: '搜索', all: '全部', noMatch: '没有匹配的', inThread: '在对话里看', exportMd: '导出 Markdown', exportPdf: '导出 PDF',
+  doneToast: '做完了', failedToast: '失败了', needsYouToast: '需要你', open: '打开',
+  loadFailed: '没连上服务，稍后再试。', retry: '重试', today: '今天',
 }
 const en = {
-  today: 'Today', tasks: 'Tasks', deliverables: 'Deliverables', packs: 'Domains', builtin: 'built in', scenarioClear: 'Let the system decide',
-  packsLead: 'A domain pack defines how one kind of work gets done: which data, what to deliver, how to verify. You never pick; a pack claims the requests it recognises.',
-  packsEmpty: 'No domain packs installed yet. The trading workbench is the first.',
-  hero: 'What do you want done?', ask: 'What needs doing today',
-  none: 'No tasks yet.', noneDeliverables: 'No deliverables yet.',
-  all: 'All', active: 'Active', back: 'Back', rerun: 'Run again', cancel: 'Cancel', process: 'Process', verifyAgain: 'Verify again', rename: 'Rename', remove: 'Delete', removeAsk: 'Delete this record and its deliverables?', search: 'Search', noMatch: 'Nothing matches', times: 'calls', phases: 'steps', verifyLabel: 'Verification', passed: 'passed',
-  failedTitle: 'Failed', create: 'Create', openTask: 'Open task',
-  ratingGood: 'Useful', ratingBad: 'Not useful', exportMd: 'Export Markdown', exportPdf: 'Export PDF', none2: 'none',
-  verified: 'Verified', verifyIssues: 'Issues found', verifyFound: 'Verification found {n}', verifyNone: 'Not verified', verifying: 'Verifying', checked: 'checked', issues: 'issues',
-  doneToast: 'Task finished', failedToast: 'Task failed', open: 'Open',
-  toolFailed: 'failed',
-  attention: 'For you', needsYou: 'Needs you', running1: 'running', waiting1: 'waiting for you', deliveredToday: 'delivered today', unratedN: '{n} not rated yet',
-  handedOff: 'Handed to the background', thinking: 'Thinking', doing: 'Working', paused: 'Paused', ended: 'Ended', endedN: '{n} ended', runs: 'Runs', todayAt: 'today', delivered: 'Delivered', answered: 'Answered', quietDay: 'Nothing waiting for you today. Say something and hand it over.', moreRows: '{n} more', more: 'More', rawProcess: 'Raw conversation', loadFailed: 'Could not reach the service, try again shortly.', retry: 'Retry',
-  routines: 'Routines', routinesLead: 'No routines yet. Say a sentence with a time: “every day at 9…”, “remind me at 6 on weekdays…”.',
-  remindCard: 'Reminder', gotIt: 'Got it', runNow: 'Run now', pause: 'Pause', resume: 'Resume', nextRun: 'Next', neverRan: 'Never ran', noChange: 'No change', changed: 'Changed', scheduled: 'Scheduled', kindTask: 'Routine', kindRemind: 'Reminder',
-  say: 'Reply',
-  loadYesterday: 'Load yesterday', loadDay: 'Load {d}', loadEarlier: 'Load earlier', yesterday: 'Yesterday', reportOut: 'Report ready',
-  needsYouToast: 'Needs you', answerPh: 'Answer', allowOnce: 'Allow once', deny: 'Deny', takeoverGo: 'Handle it in Chrome', takeoverDone: 'Done',
+  mate: 'Teammate', files: 'Files',
+  sayTo: 'Message {name}', answerPh: 'Answer', send: 'Send', more: 'More', stop: 'Stop', settings: 'Settings', close: 'Close', back: 'Back',
+  working: 'Working', loadEarlier: 'Load earlier', process: 'Process', phases: 'steps', times: 'calls', toolFailed: 'failed', none2: 'none',
+  verified: 'Verified', verifyIssues: 'Issues found', verifyFound: 'Verification found {n}', verifyNone: 'Not verified', verifying: 'Verifying', checked: 'checked', issues: 'issues', verifyLabel: 'Verification', passed: 'passed',
+  ratingGood: 'Useful', ratingBad: 'Not useful', failedTitle: 'Failed', stopped: 'Stopped', queued: 'Queued',
+  scheduled: 'Scheduled', remindCard: 'Reminder', gotIt: 'Got it', acked: 'Seen',
   answeredLine: 'Answered: {a}', askClosed: 'No longer waiting', askAuto: 'No answer in 24 hours, continued on reasonable assumptions',
-  justNow: 'just now', minutesAgo: '{n} min ago', hoursAgo: '{n} h ago', computer: 'This computer', close: 'Close',
+  allowOnce: 'Allow once', deny: 'Deny', takeoverGo: 'Handle it in Chrome', takeoverDone: 'Done',
+  computer: 'Computer', routines: 'Routines', noFiles: 'No files yet.', folderEmpty: 'The folder is empty', noRoutines: 'No routines yet.',
+  newRoutine: 'New routine', newRoutinePh: 'A sentence with a time, e.g. every day at 9 send me a brief',
+  nextRun: 'Next', paused: 'Paused', ended: 'Ended', runNow: 'Run now', pause: 'Pause', resume: 'Resume', remove: 'Delete', cancel: 'Cancel',
+  removeRoutineAsk: 'Delete this routine?', removeMate: 'Delete teammate', removeMateAsk: 'Delete this teammate, its conversation and routines?',
+  runResult: 'Result', runQuiet: 'No change', runFailed: 'Failed', runFired: 'Reminder', runRunning: 'Running', neverRan: 'Never ran',
+  name: 'Name', title: 'Title', duty: 'Job', pinned: 'Pinned', notify: 'Notifications',
+  newMate: 'New teammate', dutyAsk: 'What is it responsible for', dutyPh: 'e.g. watch three competitors’ prices every day and tell me when they change', namePh: 'Optional', create: 'Create',
+  search: 'Search', all: 'All', noMatch: 'Nothing matches', inThread: 'See in conversation', exportMd: 'Export Markdown', exportPdf: 'Export PDF',
+  doneToast: 'Done', failedToast: 'Failed', needsYouToast: 'Needs you', open: 'Open',
+  loadFailed: 'Could not reach the service, try again shortly.', retry: 'Retry', today: 'today',
 }
 
 const STYLE = `
 /* Tokens: design/v2/DESIGN.md §2 (Open Design schema names). Light default, dark twin. */
-.mwt{--bg:#ffffff;--surface:#f6f5f4;--surface-2:#efedeb;--fg:rgba(0,0,0,.92);--fg-2:#31302e;--muted:#615d59;--meta:#75706a;--border:rgba(0,0,0,.1);--border-soft:rgba(0,0,0,.06);--border-strong:rgba(0,0,0,.22);--accent:#0075de;--accent-on:#ffffff;--accent-hover:#005bab;--accent-soft:#eef6fd;--success:#127e28;--warn:#b5480a;--danger:#c0392b;--font-body:Geist,-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei UI",sans-serif;--font-mono:"Geist Mono",ui-monospace,"SF Mono",Menlo,monospace;--font-display:"Libre Baskerville","Noto Serif SC",Baskerville,"Songti SC",STSong,"Source Han Serif SC","Noto Serif CJK SC",SimSun,Georgia,serif;--radius-sm:6px;--radius-md:8px;--radius-lg:12px;--elev-raised:rgba(0,0,0,.04) 0 4px 18px,rgba(0,0,0,.027) 0 2px 7.85px,rgba(0,0,0,.02) 0 .8px 2.93px,rgba(0,0,0,.01) 0 .175px 1.04px;--focus-ring:0 0 0 3px rgba(0,117,222,.25);--motion-fast:150ms;--motion-base:200ms;--ease-standard:cubic-bezier(.2,0,0,1);height:100%;overflow:auto;background:var(--bg);color:var(--fg);font:15px/1.6 var(--font-body);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
-/* skeleton */
-.mwt-skeleton .mwt-card{cursor:default}
-.mwt-sk{display:block;border-radius:4px;background:var(--surface-2)}
-.mwt-sk-dot{width:16px;height:16px;border-radius:50%}
-.mwt-sk-line{height:12px;width:60%;margin:3px 0 7px}
-.mwt-sk-line.short{width:35%;height:10px;margin:0}
-.mwt-sk-meta{width:36px;height:10px}
-.mwt-retry{display:flex;align-items:center;gap:10px;color:var(--danger);font-size:14px;padding:8px 2px}
+.mwt{--bg:#ffffff;--surface:#f6f5f4;--surface-2:#efedeb;--fg:rgba(0,0,0,.92);--fg-2:#31302e;--muted:#615d59;--meta:#75706a;--border:rgba(0,0,0,.1);--border-soft:rgba(0,0,0,.06);--border-strong:rgba(0,0,0,.22);--accent:#0075de;--accent-on:#ffffff;--accent-hover:#005bab;--accent-soft:#eef6fd;--success:#127e28;--warn:#b5480a;--danger:#c0392b;--font-body:Geist,-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei UI",sans-serif;--font-mono:"Geist Mono",ui-monospace,"SF Mono",Menlo,monospace;--font-display:"Libre Baskerville","Noto Serif SC",Baskerville,"Songti SC",STSong,"Source Han Serif SC","Noto Serif CJK SC",SimSun,Georgia,serif;--radius-sm:6px;--radius-md:8px;--radius-lg:12px;--elev-raised:rgba(0,0,0,.04) 0 4px 18px,rgba(0,0,0,.027) 0 2px 7.85px,rgba(0,0,0,.02) 0 .8px 2.93px,rgba(0,0,0,.01) 0 .175px 1.04px;--focus-ring:0 0 0 3px rgba(0,117,222,.25);--motion-fast:150ms;--ease-standard:cubic-bezier(.2,0,0,1);height:100%;overflow:auto;background:var(--bg);color:var(--fg);font:15px/1.6 var(--font-body);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 body[data-ds-dark-theme] .mwt{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a;--fg:rgba(255,255,255,.9);--fg-2:#e6e4e0;--muted:#9b9893;--meta:#8a867f;--border:rgba(255,255,255,.1);--border-soft:rgba(255,255,255,.06);--border-strong:rgba(255,255,255,.24);--accent:#529cca;--accent-on:#111111;--accent-hover:#6cb0dd;--accent-soft:rgba(82,156,202,.16);--success:#4dab7a;--warn:#e08a3c;--danger:#e26e63;--elev-raised:rgba(0,0,0,.35) 0 4px 18px,rgba(0,0,0,.25) 0 2px 8px;--focus-ring:0 0 0 3px rgba(82,156,202,.35)}
 .mwt *{box-sizing:border-box}
 .mwt :focus-visible{outline:none;box-shadow:var(--focus-ring);border-radius:var(--radius-sm)}
-/* Text fields: the container border shows focus; the field itself draws nothing. */
-.mwt textarea:focus,.mwt textarea:focus-visible{outline:none!important;box-shadow:none!important}
+.mwt textarea:focus,.mwt textarea:focus-visible,.mwt input:focus,.mwt input:focus-visible{outline:none!important;box-shadow:none!important}
 .mwt button{font-family:inherit;transition:background-color var(--motion-fast) var(--ease-standard),color var(--motion-fast) var(--ease-standard),border-color var(--motion-fast) var(--ease-standard),transform var(--motion-fast) var(--ease-standard),opacity var(--motion-fast) var(--ease-standard)}
 .mwt button:active{transform:scale(.98)}
 @media (prefers-reduced-motion:reduce){.mwt *{transition:none!important;animation:none!important}}
+@keyframes mwt-spin{to{transform:rotate(360deg)}}
+/* skeleton */
+.mwt-sk-rows{display:grid;gap:14px;padding:8px 0}
+.mwt-sk{display:block;border-radius:4px;background:var(--surface-2);height:12px}
+.mwt-sk.short{width:35%}.mwt-sk.mid{width:60%}
+.mwt-retry{display:flex;align-items:center;gap:10px;color:var(--danger);font-size:14px;padding:8px 2px}
+.mwt-empty{color:var(--muted);font-size:14px;padding:6px 2px}
 /* Page */
 .mwt-page{max-width:808px;margin:0 auto;padding:40px 28px 80px}
-.mwt-title{display:flex;align-items:baseline;gap:10px;margin:0 0 24px}
+.mwt-title{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}
 .mwt-title h1{margin:0;font-family:var(--font-display);font-size:26px;line-height:1.35;font-weight:400}
 .mwt-title span{color:var(--meta);font-size:12.5px;font-family:var(--font-mono)}
-.mwt-lead{margin:-12px 0 24px;max-width:65ch;color:var(--muted);font-size:14px;line-height:1.7}
-/* 今日 header: serif title, the date beside it, the status words on the right (nothing when quiet). */
-.mwt-today-head{display:flex;align-items:baseline;gap:12px;margin:0 0 12px}
-.mwt-today-head h1{margin:0;font-family:var(--font-display);font-size:26px;line-height:1.35;font-weight:400}
-.mwt-today-head .date{color:var(--muted);font-size:14px;font-variant-numeric:tabular-nums}
-.mwt-today-head .grow{flex:1}
-.mwt-today-head .words{color:var(--meta);font-size:13px;white-space:nowrap;font-variant-numeric:tabular-nums}
-/* 等你看 bar: 44px, sticky under the header for the whole page; the list opens in place right under it. */
-.mwt-today-bar{position:sticky;top:0;z-index:3;padding:6px 0 8px;background:var(--bg)}
-.mwt-today-bar .head{appearance:none;display:flex;align-items:center;gap:10px;width:100%;height:44px;padding:0 16px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface);color:var(--fg);font:inherit;font-size:14px;font-weight:500;text-align:left;cursor:pointer}
-.mwt-today-bar .head:hover{background:var(--surface-2)}
-.mwt-today-bar .head .grow{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mwt-today-bar .head svg{color:var(--meta);flex:none}
-.mwt-today-bar .head svg.turn{transition:transform var(--motion-fast) var(--ease-standard)}
-.mwt-hero{min-height:calc(100vh - 220px);display:flex;flex-direction:column;justify-content:center;padding:0 0 8vh;text-align:center}
-.mwt-hero h1{margin:0 0 20px;font-family:var(--font-display);font-size:28px;line-height:1.35;font-weight:400}
-@media (max-width:720px){.mwt-hero{min-height:0;padding:24px 0 8px}}
-.mwt-section{margin-top:32px}
-.mwt-section.first{margin-top:0}
-.mwt-section h2{display:flex;align-items:center;gap:6px;margin:0 0 10px 2px;font-size:12.5px;line-height:18px;font-weight:500;letter-spacing:.02em;color:var(--muted)}
-.mwt-section h2 span{color:var(--meta);font-family:var(--font-mono);font-weight:400}
-.mwt-section h2 svg{color:var(--meta)}
-.mwt-empty{color:var(--muted);font-size:15px;padding:8px 2px}
-.mwt-quiet{padding:4px 2px}
-.mwt-quiet p{margin:0 0 4px;color:var(--muted);font-size:15px}
-.mwt-quiet .mwt-chips{margin-top:10px}
-/* Lists: one recipe. Container with a whisper border, rows divided by soft lines. */
-.mwt-cards{display:grid;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;background:var(--bg)}
-.mwt-card{display:grid;align-items:center;column-gap:12px;min-height:44px;padding:12px 16px;border:0;border-top:1px solid var(--border-soft);background:transparent;color:inherit;font:inherit;text-align:left;width:100%;transition:background-color var(--motion-fast) var(--ease-standard)}
-.mwt-cards>:first-child{border-top:0}
-.mwt-card{grid-template-columns:20px minmax(0,1fr) auto;cursor:pointer}
-.mwt-card:hover{background:var(--surface)}
-.mwt-card:focus-visible{box-shadow:inset var(--focus-ring);border-radius:0}
-.mwt-card-title{display:block;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mwt-card-sub{display:block;color:var(--muted);font-size:12.5px;line-height:18px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mwt-card-meta{color:var(--meta);font-size:12px;font-family:var(--font-mono);white-space:nowrap;font-variant-numeric:tabular-nums}
-.mwt-dot{display:inline-flex;width:20px;height:20px;align-items:center;justify-content:center;color:var(--meta)}
-.mwt-dot[data-s=running] svg,.mwt-dot[data-s=delivering] svg,.mwt-dot[data-s=verifying] svg{animation:mwt-spin 1.6s linear infinite;color:var(--fg-2)}
-.mwt-dot[data-s=ok]{color:var(--success)}
-.mwt-dot[data-s=err]{color:var(--danger)}
-.mwt-dot[data-s=waiting]{color:var(--warn)}
-@keyframes mwt-spin{to{transform:rotate(360deg)}}
 /* Buttons */
 .mwt-btn{appearance:none;display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border:0;border-radius:var(--radius-sm);background:var(--surface);color:var(--fg);font:inherit;font-size:14px;font-weight:500;letter-spacing:.01em;cursor:pointer;white-space:nowrap}
 .mwt-btn:hover{background:var(--surface-2)}
 .mwt-btn[disabled]{opacity:.4;cursor:default;transform:none}
 .mwt-btn.send{background:var(--fg);color:var(--bg)}
 .mwt-btn.send:hover{background:var(--fg-2)}
-.mwt-btn.send[disabled]{background:var(--surface-2);color:var(--meta);opacity:1;cursor:default}
+.mwt-btn.send[disabled]{background:var(--surface-2);color:var(--meta);opacity:1}
 .mwt-btn.primary{background:var(--accent);color:var(--accent-on)}
 .mwt-btn.primary:hover{background:var(--accent-hover)}
+.mwt-btn.primary[disabled]{opacity:.45}
 .mwt-btn.round{width:32px;height:32px;padding:0;border-radius:50%;justify-content:center}
 .mwt-btn.ghost{background:transparent;color:var(--muted)}
 .mwt-btn.ghost:hover{background:var(--surface);color:var(--fg)}
-.mwt-chips{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 0}
-.mwt-chips.center{justify-content:center}
-.mwt-chip{appearance:none;border:1px solid transparent;border-radius:var(--radius-md);background:var(--surface);color:var(--muted);padding:6px 12px;font:inherit;font-size:14px;line-height:20px;cursor:pointer;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mwt-btn.outline{background:transparent;box-shadow:inset 0 0 0 1px var(--border-strong)}
+.mwt-btn.outline:hover{background:var(--surface-2)}
+.mwt-btn.danger{color:var(--danger)}
+.mwt-btn.small{height:28px;padding:0 10px;font-size:13px;font-weight:400}
+.mwt-chips{display:flex;flex-wrap:wrap;gap:6px}
+.mwt-chip{appearance:none;border:1px solid transparent;border-radius:var(--radius-md);background:var(--surface);color:var(--muted);padding:5px 12px;font:inherit;font-size:13.5px;line-height:20px;cursor:pointer;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mwt-chip:hover{color:var(--fg);background:var(--surface-2)}
 .mwt-chip[data-on=true]{color:var(--fg-2);background:var(--bg);border-color:var(--border)}
-.mwt-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:9999px;font-size:12px;line-height:16px;font-weight:500;letter-spacing:.02em;color:var(--muted);background:var(--surface)}
-/* Composer: a raised card holding the field. */
-.mwt-ask-wrap{padding:0}
-.mwt-ask{text-align:left;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--bg);padding:14px 12px 10px 16px;transition:border-color var(--motion-fast) var(--ease-standard)}
-.mwt-ask:focus-within{border-color:var(--border-strong)}
-.mwt-ask textarea{display:block;width:100%;min-height:52px;max-height:240px;resize:none;border:0;outline:0;background:transparent;color:inherit;font:inherit;font-size:15px;line-height:1.7;padding:0}
-.mwt-ask textarea::placeholder{color:var(--meta)}
-.mwt-ask-row{display:flex;align-items:center;gap:8px;margin-top:8px}
-.mwt-ask-row .grow{flex:1;min-width:0}
-.mwt-ask-row small{display:block;color:var(--meta);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mwt-page-today{display:flex;flex-direction:column;min-height:100%;padding-bottom:0}
-.mwt-page-today>.mwt-today-head,.mwt-page-today>.mwt-today-bar,.mwt-page-today>.mwt-list,.mwt-page-today>.mwt-empty,.mwt-page-today>.mwt-cards,.mwt-page-today>.mwt-retry,.mwt-page-today>.mwt-quiet{flex:none}
-.mwt-dock{position:sticky;bottom:0;margin:32px 0 0;margin-top:auto;padding:12px 0 20px;background:linear-gradient(to top,var(--bg) 70%,transparent)}
-.mwt-ask-wrap.compact .mwt-ask{display:flex;flex-wrap:nowrap;align-items:flex-end;gap:8px;padding:8px 8px 8px 20px;border-radius:24px;box-shadow:0 1px 2px color-mix(in srgb,var(--fg) 4%,transparent),0 6px 20px color-mix(in srgb,var(--fg) 5%,transparent)}
-.mwt-ask-wrap.compact textarea{flex:1 1 0;min-width:0;min-height:36px;font-size:16px;line-height:26px;padding:5px 0}
-.mwt-ask-wrap.compact .mwt-btn.round{flex:none}
-.mwt-ask-wrap.compact .mwt-ask-row{display:contents}
-.mwt-ask-wrap.compact .mwt-ask-row .grow{display:none}
-.mwt-ask-wrap.compact .mwt-ask-row small.grow{display:block;flex-basis:100%;order:3;color:var(--danger);font-size:12.5px;padding:0 0 4px 2px}
-.mwt-ask-wrap.compact .mwt-ask-row .mwt-chip{order:1}
-.mwt-ask-wrap.compact .mwt-ask-row .mwt-btn.round{order:2}
-.mwt-ask-wrap.compact .mwt-chips{display:none}
-/* One row shape for 今日 and 任务 */
-.mwt-list{display:grid;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;background:var(--bg)}
-.mwt-row{display:grid;grid-template-columns:20px minmax(0,1fr) auto;align-items:center;column-gap:12px;min-height:52px;padding:14px 18px;border:0;border-top:1px solid var(--border-soft);background:transparent;color:inherit;font:inherit;text-align:left;width:100%;cursor:pointer;transition:background-color var(--motion-fast) var(--ease-standard)}
-.mwt-row:first-child{border-top:0}
-.mwt-row:hover{background:var(--surface)}
-.mwt-row:focus-visible{box-shadow:inset var(--focus-ring);border-radius:0}
-.mwt-row-main{min-width:0;display:grid}
-.mwt-row-title{font-size:15px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mwt-row-sub{color:var(--muted);font-size:13px;line-height:18px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mwt-row-state{color:var(--meta);font-size:13px;white-space:nowrap;font-variant-numeric:tabular-nums;display:inline-flex;align-items:center;gap:6px}
-.mwt-row-state[data-tone=danger]{color:var(--danger)}
-.mwt-row-state[data-tone=warn]{color:var(--warn)}
-.mwt-row-more .mwt-row-title{font-weight:400;color:var(--muted)}
-.mwt-spent{margin:16px 0 0}
-/* Conversation, the Grok shape: the user's words in a bubble on the right, the reply as plain text on the left. */
-.mwt-thread{margin-top:40px;display:flex;flex-direction:column;gap:26px}
+/* Avatar: a round monochrome glyph (the first character); MyWork wears the mark. Working: a 1.5px ring whose dash turns. */
+.mwt-av{position:relative;display:inline-grid;place-items:center;flex:none;border-radius:50%;background:var(--surface-2);color:var(--fg-2);font-weight:500;line-height:1;user-select:none}
+.mwt-av.mark{background:var(--fg);color:var(--bg)}
+.mwt-av svg.glyph{display:block}
+.mwt-av-ring{position:absolute;inset:-3px;width:calc(100% + 6px);height:calc(100% + 6px);color:var(--fg-2);pointer-events:none;animation:mwt-spin 1.6s linear infinite}
+@media (prefers-reduced-motion:reduce){.mwt-av-ring circle{stroke-dasharray:none}}
+/* The mate page: header, thread, dock in one column that fills the height. */
+.mwt-page.mate{display:flex;min-height:100%;padding:0 28px}
+.mwt-page.mate>.mwt-col{flex:1}
+.mwt-col{min-width:0;display:flex;flex-direction:column;min-height:100%}
+.mwt-page.mate.split{display:grid;max-width:${SPLIT_MAX}px;grid-template-columns:minmax(${COL_MIN}px,752px) ${ASIDE_W}px;column-gap:${SPLIT_GAP}px;align-items:stretch}
+.mwt-head{position:sticky;top:0;z-index:4;display:flex;align-items:center;gap:8px;padding:14px 0 10px;background:var(--bg)}
+.mwt-head .grow{flex:1}
+.mwt-who{appearance:none;display:flex;align-items:center;gap:10px;min-width:0;padding:4px 10px 4px 4px;border:0;border-radius:var(--radius-md);background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
+.mwt-who:hover{background:var(--surface)}
+.mwt-who[aria-expanded=true]{background:var(--surface)}
+.mwt-who .name{font-family:var(--font-display);font-size:20px;line-height:28px;font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mwt-who .ttl{color:var(--muted);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+/* Conversation: your words in a bubble on the right, the reply as plain text. One block per run. */
+.mwt-thread{display:flex;flex-direction:column;gap:26px;padding:20px 0 8px;overflow-anchor:none}
+.mwt-run{display:flex;flex-direction:column;gap:26px;min-width:0;border-radius:var(--radius-lg);transition:background-color var(--motion-fast) var(--ease-standard),box-shadow var(--motion-fast) var(--ease-standard)}
+.mwt-run.folded{gap:10px}
+.mwt-fold{border:1px solid var(--border-soft);min-height:36px}
+.mwt-run.hl{background:var(--accent-soft);box-shadow:0 0 0 12px var(--accent-soft)}
 .mwt-turn{min-width:0}
-.mwt-thread-end{scroll-margin-bottom:96px} /* the docked composer covers the last lines otherwise */
 .mwt-turn.user{display:flex;justify-content:flex-end}
 .mwt-bubble{max-width:78%;padding:11px 18px;border-radius:22px;background:var(--surface);color:var(--fg);font-size:16px;line-height:1.6;white-space:pre-wrap;word-break:break-word}
 .mwt-turn.ai{font-size:16px;line-height:1.75}
 .mwt-turn.ai .mwt-md>:first-child{margin-top:0}
 .mwt-turn.ai .mwt-md>:last-child{margin-bottom:0}
-.mwt-turn.ai .mwt-handoff{margin:0}
-.mwt-thinking span{display:inline-block;color:var(--muted);background:linear-gradient(90deg,var(--muted) 0%,var(--fg) 50%,var(--muted) 100%);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:mwt-shimmer 1.8s linear infinite}
-@keyframes mwt-shimmer{to{background-position:-200% 0}}
-@media (prefers-reduced-motion:reduce){.mwt-thinking span{animation:none;background:none;-webkit-text-fill-color:currentColor}}
-.mwt-handoff{appearance:none;display:inline-flex;align-items:center;gap:6px;margin:0 0 14px;padding:5px 10px 5px 8px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--bg);color:var(--fg-2);font:inherit;font-size:13px;cursor:pointer}
-/* A hand-off in the thread: one row per task that updates in place — running step · time, ✓ 已交付 · 已核验, 已回答, or 失败 with the one allowed button. */
-.mwt-handoff-row{display:flex;align-items:center;gap:8px;max-width:560px}
-.mwt-handoff-row .main{appearance:none;flex:1;min-width:0;display:grid;grid-template-columns:20px minmax(0,1fr) auto;column-gap:12px;align-items:center;min-height:44px;padding:7px 12px 7px 14px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface);color:var(--fg);font:inherit;text-align:left;cursor:pointer}
-.mwt-handoff-row .main:hover{background:var(--surface-2)}
-.mwt-handoff-row .ic{display:flex;align-items:center;justify-content:center;color:var(--meta)}
-.mwt-handoff-row[data-tone=success] .ic{color:var(--success)}
-.mwt-handoff-row[data-tone=danger] .ic{color:var(--danger)}
-.mwt-handoff-row[data-tone=live] .ic{color:var(--fg-2)}
-.mwt-handoff-row[data-tone=warn] .ic{color:var(--warn)}
-.mwt-handoff-row .ic .spin{animation:mwt-spin 1.6s linear infinite}
-.mwt-handoff-row .body{min-width:0;display:grid}
-.mwt-handoff-row .title{font-size:14px;line-height:20px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mwt-handoff-row .sub{font-size:12.5px;line-height:18px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:tabular-nums}
-/* 今日's line across days: 「加载昨天」 at the top, a centred date before each earlier day, a reminder or a routine change as one plain line (no card). */
-.mwt-thread{overflow-anchor:none} /* the scroller is re-placed by hand when earlier days are prepended */
-.mwt-older{appearance:none;align-self:center;margin:0 0 -8px;padding:4px 10px;border:0;border-radius:var(--radius-sm);background:transparent;color:var(--muted);font:inherit;font-size:13px;cursor:pointer}
+.mwt-older{appearance:none;align-self:center;padding:4px 10px;border:0;border-radius:var(--radius-sm);background:transparent;color:var(--muted);font:inherit;font-size:13px;cursor:pointer}
 .mwt-older:hover{color:var(--fg);background:var(--surface)}
 .mwt-older[disabled]{opacity:.5;cursor:default}
-.mwt-date{align-self:center;margin:6px 0 -8px;color:var(--meta);font-size:12px;line-height:16px;font-variant-numeric:tabular-nums}
-.mwt-line{display:flex;align-items:center;gap:8px;max-width:560px;min-height:28px;color:var(--fg-2);font-size:14px;line-height:20px;font-variant-numeric:tabular-nums}
-.mwt-line .ic{display:flex;flex:none;color:var(--meta)}
-.mwt-line .txt{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mwt-line .mwt-btn{flex:none;height:28px;padding:0 10px;font-size:13px}
-button.mwt-line{appearance:none;padding:0;border:0;background:transparent;font:inherit;text-align:left;cursor:pointer}
-button.mwt-line:hover{color:var(--fg)}
-/* The task page thread: same shapes as 今日, tighter under the title. */
-.mwt-thread.task{margin-top:8px}
-/* A delivery in the thread: ✓ summary rows as a plain list, the document as text, one meta line under it. No box. */
+.mwt-center{align-self:center;max-width:100%;color:var(--meta);font-size:12px;line-height:16px;font-variant-numeric:tabular-nums;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+button.mwt-center{appearance:none;padding:2px 8px;border:0;border-radius:var(--radius-sm);background:transparent;font:inherit;font-size:12px;cursor:pointer}
+button.mwt-center:hover{color:var(--fg);background:var(--surface)}
+.mwt-thinking span{display:inline-block;color:var(--muted);background:linear-gradient(90deg,var(--muted) 0%,var(--fg) 50%,var(--muted) 100%);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:mwt-shimmer 1.8s linear infinite;font-variant-numeric:tabular-nums}
+@keyframes mwt-shimmer{to{background-position:-200% 0}}
+@media (prefers-reduced-motion:reduce){.mwt-thinking span{animation:none;background:none;-webkit-text-fill-color:currentColor}}
+.mwt-failed{color:var(--danger);font-size:14px;line-height:1.6}
+.mwt-queued{color:var(--meta);font-size:14px;line-height:1.6}
+/* A delivery (文件卡): its title (opens the file), ✓ summary rows, the document as text, one meta line under it. No box. */
 .mwt-deliver{min-width:0}
+.mwt-file-title{appearance:none;display:inline-flex;align-items:center;gap:8px;max-width:100%;margin:0 0 12px;padding:0;border:0;background:transparent;color:var(--fg);font-family:var(--font-display);font-size:17px;line-height:1.45;font-weight:400;text-align:left;cursor:pointer}
+.mwt-file-title svg{flex:none;color:var(--meta)}
+.mwt-file-title span{min-width:0;text-decoration:underline;text-underline-offset:4px;text-decoration-color:transparent;transition:text-decoration-color var(--motion-fast) var(--ease-standard)}
+.mwt-file-title:hover span{text-decoration-color:var(--border-strong)}
 .mwt-sum{display:grid;gap:2px;margin:0 0 16px}
 .mwt-sum-row{display:grid;grid-template-columns:16px auto minmax(0,1fr);column-gap:10px;align-items:baseline;min-height:26px;font-size:15px;line-height:24px}
 .mwt-sum-row svg{color:var(--success);align-self:center}
@@ -279,14 +213,13 @@ button.mwt-line:hover{color:var(--fg)}
 .mwt-deliver-meta .verdict[data-notes=true]:hover{color:var(--fg)}
 .mwt-deliver-meta .verdict svg{color:var(--meta);flex:none}
 .mwt-deliver-meta .verdict[data-tone=success] svg{color:var(--success)}
-.mwt-deliver-meta .verdict[data-tone=warn]{color:var(--warn)}
-.mwt-deliver-meta .verdict[data-tone=warn] svg{color:var(--warn)}
+.mwt-deliver-meta .verdict[data-tone=warn],.mwt-deliver-meta .verdict[data-tone=warn] svg{color:var(--warn)}
 .mwt-deliver-meta .verdict[data-tone=live] svg{animation:mwt-spin 1.6s linear infinite}
 .mwt-deliver-meta .sep{color:var(--meta)}
 .mwt-deliver-meta .mwt-btn{height:28px;padding:0 10px;font-size:13px;font-weight:400}
 .mwt-deliver-meta .mwt-btn[aria-pressed=true]{color:var(--fg);background:var(--surface)}
 .mwt-notes{margin:10px 0 0;font-size:13px;line-height:1.7;color:var(--muted);border-left:2px solid var(--border);padding:2px 12px;white-space:pre-wrap;word-break:break-word}
-/* 需要你 (§3.3): the question a task stopped on. The one card a task puts in its own thread; settled, it is one line. */
+/* 找你卡: the question a run stopped on; settled, it is one line. */
 .mwt-askcard{max-width:560px;padding:16px 16px 14px;border:1px solid var(--border-strong);border-radius:var(--radius-lg);background:var(--surface)}
 .mwt-askcard .q{font-size:15px;line-height:1.6;color:var(--fg);word-break:break-word}
 .mwt-askcard .q code{font-family:var(--font-mono);font-size:12.5px;background:var(--surface-2);padding:1px 5px;border-radius:4px}
@@ -300,8 +233,6 @@ button.mwt-line:hover{color:var(--fg)}
 .mwt-askcard .row{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:14px 0 0}
 .mwt-askcard .row .grow{flex:1;min-width:0}
 .mwt-askcard .row .mwt-btn{height:36px}
-.mwt-btn.outline{background:transparent;box-shadow:inset 0 0 0 1px var(--border-strong)}
-.mwt-btn.outline:hover{background:var(--surface-2)}
 .mwt-askcard .go{appearance:none;display:inline-flex;align-items:center;gap:6px;padding:0;border:0;background:transparent;color:var(--fg-2);font:inherit;font-size:14px;line-height:20px;cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--border-strong)}
 .mwt-askcard .go:hover{color:var(--fg)}
 .mwt-askcard .go.plain{cursor:default;text-decoration:none;color:var(--muted)}
@@ -309,52 +240,17 @@ button.mwt-line:hover{color:var(--fg)}
 .mwt-askline{display:flex;align-items:center;gap:6px;max-width:560px;min-height:20px;color:var(--meta);font-size:13px;line-height:20px}
 .mwt-askline[data-tone=success]{color:var(--success)}
 .mwt-askline span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-/* 这台电脑 (§8.4): beside the thread as a grid column when the page has room, else a slide-over at its right edge (no mask). */
-.mwt-page.split{max-width:${SPLIT_MIN}px;display:grid;grid-template-columns:minmax(0,752px) ${ASIDE_W}px;column-gap:24px;align-items:start}
-.mwt-col{min-width:0}
-.mwt-aside{display:flex;flex-direction:column;min-height:0;background:var(--bg)}
-.mwt-aside.col{position:sticky;top:16px;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
-.mwt-aside-head{display:flex;align-items:center;gap:8px;flex:none;height:44px;padding:0 8px 0 14px;border-bottom:1px solid var(--border-soft)}
-.mwt-aside-head .title{flex:1;min-width:0;color:var(--muted);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mwt-aside-head .mwt-btn.round{width:28px;height:28px}
-.mwt-aside-body{flex:1;min-height:0;overflow:auto;padding:12px 14px 14px}
-.mwt-aside-dock{position:sticky;top:0;height:0;z-index:6}
-.mwt-aside-clip{position:absolute;top:0;right:0;display:flex;justify-content:flex-end;width:min(${ASIDE_W + 24}px,100%);overflow:hidden;pointer-events:none}
-.mwt-aside.over{width:min(${ASIDE_W}px,100%);height:100%;border-left:1px solid var(--border);box-shadow:var(--elev-raised);pointer-events:auto;transform:translateX(100%);visibility:hidden;transition:transform var(--motion-fast) var(--ease-standard),visibility 0s linear var(--motion-fast)}
-.mwt-aside.over[data-open=true]{transform:none;visibility:visible;transition:transform var(--motion-fast) var(--ease-standard),visibility 0s}
-.mwt-toolbar .mwt-btn[aria-pressed=true]{background:var(--surface);color:var(--fg)}
-/* A failed run: one line and the one allowed button. */
-.mwt-failed{display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;color:var(--danger);font-size:14px;line-height:1.6}
-.mwt-failed .mwt-btn{height:28px;padding:0 10px;font-size:13px}
-.mwt-handoff:hover{background:var(--surface)}
-.mwt-handoff[disabled]{cursor:default}
-.mwt-row-static{cursor:default}
-.mwt-row-static:hover{background:transparent}
-.mwt-row[data-off=true] .mwt-row-title,.mwt-row[data-off=true] .mwt-dot{color:var(--meta)}
-.mwt-row .mwt-menu .mwt-btn{height:28px;width:28px}
-.mwt-task-title{margin:4px 0 6px;font-family:var(--font-display);font-size:26px;line-height:1.35;font-weight:400}
-.mwt-task-title.edit{display:block;width:100%;box-sizing:border-box;padding:0 0 2px;border:0;border-bottom:1px solid var(--border-strong);border-radius:0;outline:0;background:transparent;color:inherit;font:inherit;font-family:var(--font-display);font-size:26px;line-height:1.35;font-weight:400}
-.mwt-confirm{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 16px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface);font-size:13.5px}
-.mwt-confirm>span{flex:1;min-width:160px}
-.mwt-btn.danger{color:var(--danger);border-color:color-mix(in srgb,var(--danger) 40%,transparent)}
-.mwt-filters{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 12px}
-.mwt-search{display:flex;align-items:center;gap:6px;flex:1 1 180px;min-width:0;max-width:320px;height:30px;padding:0 10px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--bg);color:var(--meta)}
-.mwt-search input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:var(--fg);font:inherit;font-size:13.5px}
-.mwt-search input::-webkit-search-cancel-button{-webkit-appearance:none}
-.mwt-task-meta{margin:0 0 22px;color:var(--meta);font-size:13px;font-variant-numeric:tabular-nums}
-.mwt-proc{margin:24px 0 0;border-top:1px solid var(--border-soft)}
-.mwt-proc-head{appearance:none;display:flex;align-items:center;gap:10px;width:100%;padding:12px 0;border:0;background:transparent;color:var(--muted);font:inherit;font-size:13px;text-align:left;cursor:pointer}
+/* 提醒卡: only you can do it; one 知道了. */
+.mwt-remind{display:flex;align-items:center;gap:10px;max-width:560px;min-height:52px;padding:10px 10px 10px 16px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface)}
+.mwt-remind .ic{display:flex;color:var(--fg-2)}
+.mwt-remind .txt{flex:1;min-width:0;font-size:15px;line-height:22px;word-break:break-word}
+/* 过程: folded per run. */
+.mwt-proc{margin:-8px 0 0}
+.mwt-proc-head{appearance:none;display:inline-flex;align-items:center;gap:8px;max-width:100%;padding:4px 0;border:0;background:transparent;color:var(--meta);font:inherit;font-size:12.5px;text-align:left;cursor:pointer}
 .mwt-proc-head:hover{color:var(--fg)}
-.mwt-proc-head .grow{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mwt-menu{position:relative}
-.mwt-menu-pop{position:absolute;right:0;top:36px;min-width:160px;padding:4px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--bg);box-shadow:var(--elev-raised);z-index:5;display:grid}
-.mwt-menu-pop button{appearance:none;display:flex;align-items:center;gap:8px;height:32px;padding:0 10px;border:0;border-radius:var(--radius-sm);background:transparent;color:var(--fg);font:inherit;font-size:13px;text-align:left;cursor:pointer}
-.mwt-menu-pop button:hover{background:var(--surface)}
-/* Task page */
-.mwt-toolbar{display:flex;align-items:center;gap:4px;margin:0 0 12px}
-.mwt-toolbar .grow{flex:1}
-.mwt-actions{display:flex;gap:2px;flex-wrap:wrap}
-.mwt-phases{padding:0 0 10px}
+.mwt-proc-head .grow{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:tabular-nums}
+.mwt-proc-head svg.live{animation:mwt-spin 1.6s linear infinite}
+.mwt-phases{padding:6px 0 4px}
 .mwt-phase-head{appearance:none;display:grid;grid-template-columns:18px auto auto minmax(0,1fr);column-gap:10px;align-items:center;width:100%;min-height:30px;padding:3px 0;border:0;background:transparent;color:var(--fg);font:inherit;font-size:13px;line-height:20px;text-align:left;cursor:default}
 button.mwt-phase-head{cursor:pointer}
 button.mwt-phase-head:hover .verb,button.mwt-phase-head:hover .obj{color:var(--fg)}
@@ -366,13 +262,12 @@ button.mwt-phase-head:hover .verb,button.mwt-phase-head:hover .obj{color:var(--f
 .mwt-phase-head .meta{color:var(--meta);font-variant-numeric:tabular-nums;white-space:nowrap}
 .mwt-phase-head .obj{min-width:0;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mwt-phase-body{margin:2px 0 10px 8px;padding-left:19px;border-left:1px solid var(--border-soft)}
-.mwt-phase-body .mwt-ev{padding:2px 0}
 .mwt-phase-note{display:grid;grid-template-columns:18px minmax(0,1fr);column-gap:10px;padding:5px 0;font-size:13px;line-height:1.6;color:var(--fg);cursor:pointer}
 .mwt-phase-note .ic{display:flex;justify-content:center;padding-top:2px;color:var(--meta)}
 .mwt-phase-note .body{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-wrap;word-break:break-word;color:var(--muted)}
 .mwt-phase-note.open .body{display:block;color:var(--fg)}
 .mwt-phase-note .lbl{color:var(--fg-2);font-weight:500}
-.mwt-ev{position:relative;display:grid;grid-template-columns:18px minmax(0,1fr);column-gap:12px;padding:4px 0;font-size:13px;line-height:20px}
+.mwt-ev{display:grid;grid-template-columns:18px minmax(0,1fr);column-gap:12px;padding:2px 0;font-size:13px;line-height:20px}
 .mwt-ev .ic{display:flex;align-items:center;justify-content:center;height:20px;color:var(--meta)}
 .mwt-ev[data-ok=true] .ic{color:var(--success)}
 .mwt-ev[data-ok=false] .ic{color:var(--danger)}
@@ -380,20 +275,82 @@ button.mwt-phase-head:hover .verb,button.mwt-phase-head:hover .obj{color:var(--f
 .mwt-ev .verb{font-weight:500;color:var(--fg-2)}
 .mwt-ev .obj{color:var(--muted);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
 .mwt-ev .result{color:var(--danger);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mwt-ev.text{padding:8px 0 10px}
-.mwt-ev.text .body{white-space:pre-wrap;word-break:break-word;color:var(--fg);font-size:14px;line-height:1.7}
-.mwt-ev.text .ic{color:var(--muted)}
-.mwt-ev.user{padding:6px 0 8px}
-.mwt-ev.user .body{display:inline-block;max-width:100%;padding:6px 12px;border-radius:var(--radius-lg);background:var(--surface);color:var(--fg);white-space:pre-wrap;word-break:break-word;font-size:14px;line-height:1.6}
-.mwt-ev.user .ic{color:var(--meta)}
-.mwt-say{margin:12px 0 0}
-.mwt-say-inner{display:flex;align-items:flex-end;gap:8px;border:1px solid var(--border);border-radius:24px;background:var(--bg);padding:8px 8px 8px 20px;box-shadow:0 1px 2px color-mix(in srgb,var(--fg) 4%,transparent),0 6px 20px color-mix(in srgb,var(--fg) 5%,transparent);transition:border-color var(--motion-fast) var(--ease-standard)}
-.mwt-say-inner:focus-within{border-color:var(--border-strong)}
-.mwt-say textarea{flex:1 1 0;min-width:0;display:block;min-height:34px;max-height:160px;resize:none;border:0;outline:0;background:transparent;color:inherit;font:inherit;font-size:16px;line-height:26px;padding:5px 0}
+/* Dock: a raised pill holding the field. It never changes colour. */
+.mwt-dock{position:sticky;bottom:0;z-index:3;margin-top:auto;padding:12px 0 20px;background:linear-gradient(to top,var(--bg) 70%,transparent)}
+.mwt-say{display:flex;align-items:flex-end;gap:8px;border:1px solid var(--border);border-radius:24px;background:var(--bg);padding:8px 8px 8px 20px;box-shadow:0 1px 2px color-mix(in srgb,var(--fg) 4%,transparent),0 6px 20px color-mix(in srgb,var(--fg) 5%,transparent)}
+.mwt-say textarea{flex:1 1 0;min-width:0;display:block;min-height:36px;max-height:200px;resize:none;border:0;outline:0;background:transparent;color:inherit;font:inherit;font-size:16px;line-height:26px;padding:5px 0}
 .mwt-say textarea::placeholder{color:var(--meta)}
 .mwt-say .mwt-btn.send{flex:none}
 .mwt-say-err{display:block;color:var(--danger);font-size:12.5px;padding:6px 2px 0}
-/* Deliverable: not a card. The document at document typography, full width. */
+/* Menu (the header's ···). */
+.mwt-menu{position:relative}
+.mwt-menu-pop{position:absolute;right:0;top:36px;min-width:160px;padding:4px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--bg);box-shadow:var(--elev-raised);z-index:6;display:grid}
+.mwt-menu-pop button{appearance:none;display:flex;align-items:center;gap:8px;height:32px;padding:0 10px;border:0;border-radius:var(--radius-sm);background:transparent;color:var(--fg);font:inherit;font-size:13px;text-align:left;cursor:pointer}
+.mwt-menu-pop button:hover{background:var(--surface)}
+/* Right panel: beside the thread as a grid column when the page has room, else a slide-over at its right edge (no mask). */
+.mwt-aside{display:flex;flex-direction:column;min-height:0;background:var(--bg)}
+.mwt-aside.col{position:sticky;top:16px;align-self:start;margin-top:16px;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
+.mwt-aside-head{display:flex;align-items:center;gap:8px;flex:none;height:44px;padding:0 8px 0 14px;border-bottom:1px solid var(--border-soft)}
+.mwt-aside-head .title{flex:1;min-width:0;color:var(--muted);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mwt-aside-head .mwt-btn.round{width:28px;height:28px}
+.mwt-aside-body{flex:1;min-height:0;overflow:auto;padding:10px 14px 16px}
+.mwt-aside-dock{position:sticky;top:0;height:0;z-index:6}
+.mwt-aside-clip{position:absolute;top:0;right:0;display:flex;justify-content:flex-end;width:min(${ASIDE_W + 24}px,100%);overflow:hidden;pointer-events:none}
+.mwt-aside.over{width:min(${ASIDE_W}px,100%);height:100%;border-left:1px solid var(--border);box-shadow:var(--elev-raised);pointer-events:auto;transform:translateX(100%);visibility:hidden;transition:transform var(--motion-fast) var(--ease-standard),visibility 0s linear var(--motion-fast)}
+.mwt-aside.over[data-open=true]{transform:none;visibility:visible;transition:transform var(--motion-fast) var(--ease-standard),visibility 0s}
+.mwt-sec{padding:6px 0 14px}
+.mwt-sec+.mwt-sec{border-top:1px solid var(--border-soft);padding-top:14px}
+.mwt-sec h2{display:flex;align-items:center;gap:6px;margin:0 0 6px 2px;font-size:12.5px;line-height:18px;font-weight:500;letter-spacing:.02em;color:var(--muted)}
+.mwt-alist{display:grid}
+.mwt-arow{appearance:none;display:grid;grid-template-columns:18px minmax(0,1fr) auto;column-gap:10px;align-items:center;width:100%;min-height:40px;padding:7px 8px;border:0;border-radius:var(--radius-md);background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
+.mwt-arow:hover,.mwt-arow[aria-expanded=true]{background:var(--surface)}
+.mwt-arow.static{cursor:default}
+.mwt-arow.static:hover{background:transparent}
+.mwt-arow .ic{display:flex;align-items:center;justify-content:center;color:var(--meta)}
+.mwt-arow .ic[data-tone=danger]{color:var(--danger)}
+.mwt-arow .main{min-width:0;display:grid}
+.mwt-arow .t{font-size:14px;line-height:20px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mwt-arow .s{font-size:12.5px;line-height:18px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mwt-arow .m{font-size:12px;color:var(--meta);white-space:nowrap;font-variant-numeric:tabular-nums}
+.mwt-arow[data-off=true] .t{color:var(--meta)}
+.mwt-rdetail{margin:2px 0 8px;padding:10px 10px 8px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--bg)}
+.mwt-rdetail .acts{display:flex;flex-wrap:wrap;gap:4px;margin:8px 0 4px}
+.mwt-rdetail .runs{margin:6px 0 0;border-top:1px solid var(--border-soft);padding-top:6px}
+.mwt-confirm{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:6px 0;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface);font-size:13px}
+.mwt-confirm>span{flex:1;min-width:120px}
+/* Fields */
+.mwt-field{display:grid;gap:4px;margin:0 0 12px}
+.mwt-field>span{font-size:12.5px;line-height:18px;color:var(--muted)}
+.mwt-input{display:block;width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--bg);color:var(--fg);font:inherit;font-size:14px;line-height:20px;transition:border-color var(--motion-fast) var(--ease-standard)}
+.mwt-input:focus{border-color:var(--border-strong)}
+.mwt-input::placeholder{color:var(--meta)}
+textarea.mwt-input{resize:vertical;min-height:72px;line-height:1.6}
+.mwt-switch-row{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:36px;font-size:14px}
+.mwt-switch{appearance:none;position:relative;flex:none;width:32px;height:18px;padding:0;border:0;border-radius:9px;background:var(--border-strong);cursor:pointer}
+.mwt-switch::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--bg);transition:transform var(--motion-fast) var(--ease-standard)}
+.mwt-switch[aria-checked=true]{background:var(--fg)}
+.mwt-switch[aria-checked=true]::after{transform:translateX(14px)}
+.mwt-field-err{color:var(--danger);font-size:12.5px;margin:-6px 0 10px}
+/* Lists on the files page: one row recipe. */
+.mwt-filters{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 14px}
+.mwt-search{display:flex;align-items:center;gap:6px;flex:1 1 180px;min-width:0;max-width:320px;height:32px;padding:0 10px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--bg);color:var(--meta)}
+.mwt-search:focus-within{border-color:var(--border-strong)}
+.mwt-search input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:var(--fg);font:inherit;font-size:13.5px}
+.mwt-search input::-webkit-search-cancel-button{-webkit-appearance:none}
+.mwt-list{display:grid;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;background:var(--bg)}
+.mwt-row{appearance:none;display:grid;grid-template-columns:20px minmax(0,1fr) auto;align-items:center;column-gap:12px;min-height:48px;padding:12px 16px;border:0;border-top:1px solid var(--border-soft);background:transparent;color:inherit;font:inherit;text-align:left;width:100%;cursor:pointer}
+.mwt-row:first-child{border-top:0}
+.mwt-row:hover{background:var(--surface)}
+.mwt-row:focus-visible{box-shadow:inset var(--focus-ring);border-radius:0}
+.mwt-row .ic{display:flex;align-items:center;justify-content:center;color:var(--meta)}
+.mwt-row .ic[data-tone=success]{color:var(--success)}
+.mwt-row .t{min-width:0;font-size:15px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mwt-row .m{color:var(--meta);font-size:13px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.mwt-toolbar{display:flex;align-items:center;gap:4px;margin:0 0 12px}
+.mwt-toolbar .grow{flex:1}
+.mwt-doc-title{margin:4px 0 6px;font-family:var(--font-display);font-size:26px;line-height:1.35;font-weight:400}
+.mwt-doc-meta{margin:0 0 22px;color:var(--meta);font-size:13px;font-variant-numeric:tabular-nums}
+/* Markdown */
 .mwt-md{font-size:16px;line-height:1.75;color:var(--fg)}
 .mwt-md>:first-child{margin-top:0}
 .mwt-md h2,.mwt-md h3,.mwt-md h4{margin:22px 0 8px;font-weight:600;line-height:1.4}
@@ -409,39 +366,27 @@ button.mwt-phase-head:hover .verb,button.mwt-phase-head:hover .obj{color:var(--f
 .mwt-md hr{border:0;border-top:1px solid var(--border-soft);margin:18px 0}
 .mwt-md a{color:var(--fg);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--border)}
 .mwt-md strong{font-weight:600}
-/* 领域 */
-.mwt-scen{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
-.mwt-scen-card{border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--bg);padding:18px 20px 16px;display:flex;flex-direction:column;gap:8px}
-.mwt-scen-card h3{margin:0;font-size:16px;font-weight:600;display:flex;align-items:center}
-.mwt-scen-card p{margin:0;color:var(--muted);font-size:13px;line-height:1.7;flex:1}
-.mwt-scen-card .ex{display:grid;gap:2px;padding-top:6px;border-top:1px solid var(--border-soft)}
-.mwt-scen-card .ex button{appearance:none;border:0;background:transparent;color:var(--muted);font:inherit;font-size:13px;text-align:left;padding:5px 0;cursor:pointer}
-.mwt-scen-card .ex button:hover{color:var(--fg)}
 /* Toasts */
 .mwt-toasts{position:fixed;right:16px;bottom:16px;z-index:10050;display:grid;gap:8px;max-width:380px;padding:0!important;height:auto!important;overflow:visible!important;background:transparent!important}
-.mwt-toast{display:grid;grid-template-columns:20px minmax(0,1fr) auto;column-gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--bg);color:var(--fg);box-shadow:var(--elev-raised);font-size:13px;line-height:18px;animation:mwt-in var(--motion-base) var(--ease-standard)}
+.mwt-toast{display:grid;grid-template-columns:28px minmax(0,1fr) auto;column-gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--bg);color:var(--fg);box-shadow:var(--elev-raised);font-size:13px;line-height:18px;animation:mwt-in var(--motion-fast) var(--ease-standard)}
 @keyframes mwt-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .mwt-toast b{display:block;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mwt-toast span{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
+.mwt-toast span.sub{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
 @media (max-width:720px){
   .mwt-page{padding:20px 12px 56px}
-  .mwt-page-today{padding-bottom:0}
-  .mwt-today-head h1,.mwt-title h1,.mwt-hero h1,.mwt-task-title{font-size:23px}
-  .mwt-today-head{flex-wrap:wrap;gap:6px 10px}
-  .mwt-today-head .words{flex-basis:100%;white-space:normal}
-  .mwt-card{padding:11px 12px;grid-template-columns:18px minmax(0,1fr) auto}
-  .mwt-toolbar{flex-wrap:wrap}
+  .mwt-page.mate{padding:0 12px}
+  .mwt-title h1,.mwt-doc-title{font-size:23px}
   .mwt-md{font-size:15px}
   .mwt-md table{display:block;overflow:auto;max-width:100%}
-  .mwt-scen{grid-template-columns:minmax(0,1fr)}
   .mwt-toasts{left:12px;right:12px;bottom:12px;max-width:none}
-  .mwt-dock{margin:24px 0 0;margin-top:auto;padding:8px 0 calc(8px + env(safe-area-inset-bottom))}
+  .mwt-dock{padding:8px 0 calc(8px + env(safe-area-inset-bottom))}
 }
 `
 
 // ---- state ------------------------------------------------------------------
 // `state` is replaced, never mutated: useSyncExternalStore compares snapshots by identity.
-let state = { items: [], deliverables: [], reminders: [], routines: [], scenarios: [], loadedAt: 0, error: '' }
+const EMPTY_ACTIVITY = { needs: [], working: [], recent: [] }
+let state = { mates: [], activity: EMPTY_ACTIVITY, loadedAt: 0, error: '' }
 const listeners = new Set()
 function setState(patch) { state = { ...state, ...patch }; for (const fn of listeners) fn() }
 function subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn) }
@@ -449,44 +394,55 @@ function getSnapshot() { return state }
 async function api(path, body) {
   const res = await fetch(API + path, body === undefined ? { method: 'GET' } : { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
   const data = await res.json().catch(() => ({}))
-  if (!res.ok || data.error) throw new Error(data.error || ('HTTP ' + res.status))
-  return data
+  if (!res.ok || (data && data.error)) throw new Error((data && data.error) || ('HTTP ' + res.status))
+  return data || {}
 }
+const itemKey = (x) => (x.kind || '') + '|' + (x.runId || '') + '|' + (x.at || '')
+/** Activity items seen so far (toasts fire for the ones a poll brings that were not there before). */
+let seenItems = null
+const itemListeners = new Set() // (item) => void
 let refreshing = null
-const completionListeners = new Set() // (task) => void, fired when a task reaches done
-const waitingListeners = new Set() // (task) => void, fired when a task stops to ask (§2.7)
-const noticeListeners = new Set() // (title, body) => void
-function announce(title, body) { for (const fn of noticeListeners) { try { fn(title, body) } catch {} } }
+let refreshAgain = null
+/**
+ * Fetch /mates and /activity. A call while a fetch is in flight gets one more fetch after it (shared by every caller that
+ * came meanwhile), so whoever just changed something reads a snapshot taken after the change.
+ */
 function refresh() {
-  if (refreshing) return refreshing
-  const before = new Map(state.items.map((t) => [t.id, t.status]))
-  refreshing = api('/tasks').then((d) => {
-    const items = d.items || []
-    setState({ items, deliverables: d.deliverables || [], reminders: d.reminders || [], routines: d.routines || [], scenarios: d.scenarios || [], error: '', loadedAt: Date.now() })
-    fire('mywork:tasks-updated', { items })
-    if (before.size) for (const t of items) {
-      if (!before.has(t.id) || before.get(t.id) === t.status) continue
-      const heard = t.status === 'done' ? completionListeners : t.status === 'waiting' ? waitingListeners : null
-      if (heard) for (const fn of heard) { try { fn(t) } catch {} }
+  if (refreshing) {
+    if (!refreshAgain) refreshAgain = refreshing.then(() => { refreshAgain = null; return refresh() })
+    return refreshAgain
+  }
+  const started = Date.now()
+  refreshing = Promise.all([api('/mates'), api('/activity').catch(() => null)]).then(([m, a]) => {
+    const got = Array.isArray(m.items) ? m.items : []
+    // A teammate added here after this fetch started (just created) stays until a later fetch has it.
+    const mates = [...got, ...state.mates.filter((x) => x.addedAt > started && !got.some((y) => y.id === x.id))]
+    const activity = a && typeof a === 'object' ? { needs: a.needs || [], working: a.working || [], recent: a.recent || [] } : state.activity
+    // loadedAt is when the snapshot was asked for: a navigation made after it may name a teammate it does not have yet.
+    setState({ mates, activity, error: '', loadedAt: started })
+    fire('mywork:mates-updated', { items: mates, activity })
+    const fresh = [...activity.needs, ...activity.recent].filter((x) => x && x.runId)
+    if (seenItems) {
+      for (const x of fresh) if (!seenItems.has(itemKey(x))) for (const fn of itemListeners) { try { fn(x) } catch {} }
     }
+    seenItems = new Set([...(seenItems || []), ...fresh.map(itemKey)])
   }).catch((e) => { setState({ error: e.message || String(e) }) }).finally(() => { refreshing = null })
   return refreshing
 }
-/** Working (not done, not stopped on a question): what keeps the poll fast and the clocks ticking. */
-const working = (t) => !!t && t.status !== 'done' && t.status !== 'waiting'
 let pollTimer = null
 let pollUsers = 0
 function schedulePoll() {
   clearTimeout(pollTimer)
   if (pollUsers <= 0) return
-  const active = state.items.some(working)
-  pollTimer = setTimeout(() => { refresh().then(schedulePoll) }, active ? FAST_MS : SLOW_MS)
+  const busy = state.mates.some((x) => x.state === 'working')
+  pollTimer = setTimeout(() => { refresh().then(schedulePoll) }, busy ? FAST_MS : SLOW_MS)
 }
+const kick = () => refresh().then(schedulePoll)
 function usePolling() {
   React.useEffect(() => {
     pollUsers += 1
-    refresh().then(schedulePoll)
-    const onFocus = () => { refresh().then(schedulePoll) }
+    kick()
+    const onFocus = () => { kick() }
     window.addEventListener('focus', onFocus)
     return () => { pollUsers -= 1; window.removeEventListener('focus', onFocus); if (pollUsers <= 0) clearTimeout(pollTimer) }
   }, [])
@@ -497,6 +453,24 @@ function useTick(on) {
   React.useEffect(() => { if (!on) return; const id = setInterval(() => set((n) => n + 1), 1000); return () => clearInterval(id) }, [on])
 }
 
+// Navigation: one small store the pages read; `seq` moves on every request so a repeat request is heard too.
+// The open teammate is sticky: kept here and in sessionStorage, so a remount (sidebar expanded, page switched) reopens it.
+const MATE_KEY = 'dsh-mywork:mate'
+function storedMate() { try { return sessionStorage.getItem(MATE_KEY) || '' } catch { return '' } }
+function storeMate(id) { try { if (id) sessionStorage.setItem(MATE_KEY, id); else sessionStorage.removeItem(MATE_KEY) } catch {} }
+let nav = { seq: 0, at: 0, mateId: storedMate(), runId: '', aside: null, fileId: '' }
+const navSubs = new Set()
+function setNav(patch) {
+  nav = { mateId: nav.mateId, runId: '', aside: null, fileId: '', ...patch, seq: nav.seq + 1, at: Date.now() }
+  if (patch && 'mateId' in patch) storeMate(nav.mateId)
+  for (const fn of navSubs) { try { fn() } catch {} }
+}
+function subscribeNav(fn) { navSubs.add(fn); return () => navSubs.delete(fn) }
+const getNav = () => nav
+const useNavState = () => React.useSyncExternalStore(subscribeNav, getNav, getNav)
+/** The last nav request a mate page has acted on (so a remount does not replay an old jump). */
+let consumedSeq = 0
+
 // ---- helpers ----------------------------------------------------------------
 function fmtDuration(ms) {
   if (!(ms > 0)) return '0s'
@@ -506,24 +480,27 @@ function fmtDuration(ms) {
   if (m < 60) return m + 'm ' + (s % 60) + 's'
   return Math.floor(m / 60) + 'h ' + (m % 60) + 'm'
 }
-function elapsedOf(t) { return fmtDuration(new Date(t.finishedAt || new Date().toISOString()) - new Date(t.startedAt || t.createdAt)) }
-function fmtTime(iso) { if (!iso) return ''; return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
-function fmtDate(iso) { if (!iso) return ''; const d = new Date(iso); return d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + fmtTime(iso) }
-function isToday(iso) { if (!iso) return false; const d = new Date(iso); const n = new Date(); return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth() && d.getDate() === n.getDate() }
-function visual(t) { return t.status !== 'done' ? t.status : t.error ? 'err' : 'ok' }
-function StatusDot({ task }) {
-  const v = visual(task)
-  const name = v === 'ok' ? 'circle-check' : v === 'err' ? 'circle-x' : v === 'queued' ? 'history' : v === 'waiting' ? 'message-circle' : 'loader'
-  return h('span', { className: 'mwt-dot', 'data-s': v, title: task.statusLabel }, icon(name, { size: 16 }))
+function elapsedOf(r) { return fmtDuration(new Date(r.finishedAt || new Date().toISOString()) - new Date(r.startedAt || r.createdAt)) }
+const pad2 = (n) => String(n).padStart(2, '0')
+function fmtSize(n) {
+  const b = Number(n)
+  if (!Number.isFinite(b) || b < 0) return ''
+  if (b < 1024) return b + ' B'
+  if (b < 1024 * 1024) return (b / 1024).toFixed(b < 10240 ? 1 : 0) + ' KB'
+  return (b / 1024 / 1024).toFixed(1) + ' MB'
 }
+function hhmm(iso) { const d = new Date(iso); return Number.isFinite(d.getTime()) ? pad2(d.getHours()) + ':' + pad2(d.getMinutes()) : '' }
+function isToday(iso) { if (!iso) return false; const d = new Date(iso); const n = new Date(); return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth() && d.getDate() === n.getDate() }
+/** HH:MM today, M/D HH:MM otherwise. */
+function fmtWhen(iso) { if (!iso) return ''; const d = new Date(iso); if (!Number.isFinite(d.getTime())) return ''; return isToday(iso) ? hhmm(iso) : (d.getMonth() + 1) + '/' + d.getDate() + ' ' + hhmm(iso) }
 /** A question as plain words (toasts, notifications, tooltips): the inline Markdown marks go, link text stays. */
 function plainWords(text) { return String(text || '').replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/\*\*|__|`/g, '').replace(/(^|[^*\w])\*([^*\n]+)\*(?!\w)/g, '$1$2') }
-/** Is this task's page on screen right now (the 「需要你」 toast stays quiet for the page you are looking at)? */
-function taskOnScreen(id) {
+function cssEsc(s) { return typeof CSS !== 'undefined' && typeof CSS.escape === 'function' ? CSS.escape(String(s)) : String(s).replace(/["\\]/g, '\\$&') }
+/** Is this teammate's thread on screen right now (its toasts stay quiet)? */
+function mateOnScreen(id) {
   try {
     if (typeof document === 'undefined' || document.visibilityState === 'hidden') return false
-    const sel = typeof CSS !== 'undefined' && typeof CSS.escape === 'function' ? CSS.escape(String(id)) : String(id).replace(/["\\]/g, '\\$&')
-    const el = document.querySelector('[data-mwt-task="' + sel + '"]')
+    const el = document.querySelector('[data-mwt-mate="' + cssEsc(id) + '"]')
     return !!el && el.getClientRects().length > 0
   } catch { return false }
 }
@@ -539,8 +516,7 @@ function asideEntry(e) {
   const title = [o.title, o.label, c.title].find((x) => x !== undefined && x !== null)
   return { id: o.id, order: Number(o.order) || 0, when, title }
 }
-const asideTitle = (x) => { try { const v = typeof x.title === 'function' ? x.title() : x.title; return v === undefined || v === null ? '' : String(v) } catch { return '' } }
-/** Per task: 'open' (auto-opened or opened by hand) or 'closed' (closed by hand, never auto-opened again). */
+/** Per teammate: 'open' or 'closed' (closed by hand: the panel never opens by itself again for it). */
 function asideMemory(id) { try { const m = JSON.parse(localStorage.getItem(ASIDE_KEY) || '{}'); return m && typeof m === 'object' ? m[id] : undefined } catch { return undefined } }
 function rememberAside(id, value) {
   try {
@@ -548,7 +524,7 @@ function rememberAside(id, value) {
     const m = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {}
     delete m[id]; m[id] = value
     const keys = Object.keys(m)
-    for (const k of keys.slice(0, Math.max(0, keys.length - 200))) delete m[k] // the newest 200 tasks are enough
+    for (const k of keys.slice(0, Math.max(0, keys.length - 200))) delete m[k]
     localStorage.setItem(ASIDE_KEY, JSON.stringify(m))
   } catch {}
 }
@@ -567,15 +543,14 @@ function useBox(ref) {
   }, [])
   return box
 }
-/** State coverage: three quiet skeleton rows while the first poll is in flight, one sentence with a retry on error. */
-function Skeleton({ rows }) { return h('div', { className: 'mwt-cards mwt-skeleton', 'aria-busy': 'true' }, Array.from({ length: rows || 3 }, (_, i) => h('div', { key: i, className: 'mwt-card' }, h('span', { className: 'mwt-sk mwt-sk-dot' }), h('span', null, h('span', { className: 'mwt-sk mwt-sk-line' }), h('span', { className: 'mwt-sk mwt-sk-line short' })), h('span', { className: 'mwt-sk mwt-sk-meta' })))) }
+function Skeleton({ rows }) { return h('div', { className: 'mwt-sk-rows', 'aria-busy': 'true' }, Array.from({ length: rows || 3 }, (_, i) => h('span', { key: i, className: 'mwt-sk ' + (i % 2 ? 'short' : 'mid') }))) }
 function fire(name, detail) { try { window.dispatchEvent(new CustomEvent(name, { detail: detail || {} })) } catch {} }
 /** One plain line per tool call: a verb and the thing it touched; the raw arguments stay in the tooltip. */
 function describeTool(name, detail) {
-  // Arguments reach the stream either as a JSON string (dsh serialises tool calls) or as key=value pairs.
   let kv = {}
   const raw = String(detail || '').trim()
   if (raw.startsWith('{')) { try { kv = JSON.parse(raw) } catch { try { kv = JSON.parse(raw.replace(/[,\s]*…?$/, '').replace(/,\s*"[^"]*$/, '') + '}') } catch { kv = {} } } }
+  if (!kv || typeof kv !== 'object') kv = {}
   if (!Object.keys(kv).length) for (const m of raw.matchAll(/(\w+)=("(?:[^"\\]|\\.)*"|\S+)/g)) { let v = m[2]; if (v.startsWith('"')) { try { v = JSON.parse(v) } catch { v = v.slice(1, -1) } } kv[m[1]] = v }
   if (!Object.keys(kv).length && raw.startsWith('{')) { const m = raw.match(/"(url|file_path|path|title|query|command|pattern|description)"\s*:\s*"([^"]{1,200})/); if (m) kv[m[1]] = m[2]; const q = raw.match(/"queries"\s*:\s*\[\s*"([^"]{1,200})/); if (q) kv.queries = q[1] }
   const host = (u) => { try { const x = new URL(String(u)); return x.host.replace(/^www\./, '') + (x.pathname.length > 1 ? x.pathname.replace(/\/$/, '').slice(0, 40) : '') } catch { return String(u).slice(0, 60) } }
@@ -588,6 +563,10 @@ function describeTool(name, detail) {
   if (/^(glob|grep|list|ls|find)$/.test(n)) return { verb: '查找', obj: String(kv.pattern || kv.query || kv.path || '').slice(0, 60) }
   if (/^(bash|shell|run_code|exec)$/.test(n)) return { verb: '执行', obj: String(kv.description || kv.command || '').slice(0, 70) }
   if (n === 'deliver') return { verb: '交付', obj: String(kv.title || '').slice(0, 70) }
+  if (n === 'mywork_routine_create') return { verb: '安排', obj: String(kv.input || kv.title || '').slice(0, 70) }
+  if (n === 'mywork_mate_update') return { verb: '改名片', obj: String(kv.name || kv.title || '').slice(0, 40) }
+  if (n === 'mywork_remember') return { verb: '记下', obj: String(kv.text || kv.note || '').slice(0, 70) }
+  if (n === 'mywork_ask') return { verb: '问你', obj: String(kv.question || '').slice(0, 70) }
   if (/^univer_/.test(n)) return { verb: '文档', obj: String(kv.title || kv.name || kv.action || n.slice(7)).slice(0, 60) }
   if (/^browser_/.test(n)) return { verb: '浏览器', obj: n.slice(8) + (kv.url ? ' ' + host(kv.url) : '') }
   if (/^present/.test(n)) return { verb: '展示', obj: String(kv.title || '').slice(0, 60) }
@@ -609,52 +588,43 @@ function printDoc(d) {
   const w = window.open('', '_blank')
   if (!w) return
   const css = 'body{font:14px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;color:#222;max-width:760px;margin:40px auto;padding:0 24px}h1{font-size:22px;margin:0 0 4px}h2{font-size:17px;margin:18px 0 6px}h3{font-size:15px}table{border-collapse:collapse;font-size:13px}th,td{border:1px solid #ccc;padding:4px 10px}pre{background:#f4f4f4;padding:10px 12px;border-radius:6px;overflow:auto}code{font-family:Menlo,monospace;font-size:12.5px}blockquote{border-left:3px solid #ccc;margin:0;padding:2px 12px;color:#555}.meta{color:#777;font-size:12px;margin:0 0 20px}'
-  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>' + md.esc(d.title) + '</title><style>' + css + '</style></head><body><h1>' + md.esc(d.title) + '</h1><p class="meta">' + md.esc(fmtDate(d.createdAt)) + (d.verification && d.verification.passed === true ? ' · 已核验' : '') + '</p>' + md.render(d.markdown) + '</body></html>')
+  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>' + md.esc(d.title) + '</title><style>' + css + '</style></head><body><h1>' + md.esc(d.title) + '</h1><p class="meta">' + md.esc(fmtWhen(d.createdAt)) + '</p>' + md.render(d.markdown || '') + '</body></html>')
   w.document.close()
   w.focus()
   setTimeout(() => { try { w.print() } catch {} }, 300)
 }
 function safeName(s) { return String(s || 'deliverable').replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 60) || 'deliverable' }
+const defaultMateOf = (mates) => (mates || []).find((m) => m.isDefault) || mateOrder(mates)[0] || null
+const fileGlyph = (d) => (d && (d.kind === 'sheet' || d.kind === 'table') ? 'sheet' : d && d.kind === 'report' ? 'file-text' : 'file')
+
+/** The MyWork mark: an M whose last stroke turns into a check. */
+function markSvg(size) {
+  return h('svg', { className: 'glyph', viewBox: '0 0 24 24', width: size, height: size, fill: 'none', 'aria-hidden': 'true' },
+    h('path', { d: 'M4.5 18.5V7l5.5 6.5L15.5 7M10.5 17l3 3 6-6', stroke: 'currentColor', strokeWidth: 3.4, strokeLinecap: 'round', strokeLinejoin: 'round' }))
+}
+/** A teammate's round glyph; `working` draws the turning ring (static under reduced motion). */
+function Avatar({ mate, size, working }) {
+  const s = size || 28
+  const m = mate || {}
+  return h('span', { className: 'mwt-av' + (m.isDefault ? ' mark' : ''), style: { width: s, height: s, fontSize: Math.round(s * 0.46) }, 'aria-hidden': 'true' },
+    m.isDefault ? markSvg(Math.round(s * 0.62)) : initialOf(m.name),
+    working ? h('svg', { className: 'mwt-av-ring', viewBox: '0 0 34 34', fill: 'none' }, h('circle', { cx: 17, cy: 17, r: 16, stroke: 'currentColor', strokeWidth: 1.5, strokeDasharray: '22 9', strokeLinecap: 'round' })) : null)
+}
 
 // ---- components -------------------------------------------------------------
 function makeComponents(ctx, t) {
   const selectPanel = (id) => { try { if (ctx.layout && typeof ctx.layout.selectPanel === 'function') ctx.layout.selectPanel(id) } catch (e) { console.warn(`[${PLUGIN}] selectPanel`, e) } }
-  const lang = () => {
-    try { const snap = ctx.locale.getSnapshot(); if (snap && typeof snap.active === 'string') return snap.active.toLowerCase().startsWith('zh') ? 'zh' : 'en' } catch {}
-    return (typeof navigator !== 'undefined' && navigator.language || 'zh').toLowerCase().startsWith('zh') ? 'zh' : 'en'
-  }
-  // Navigation: a page that is not mounted yet reads `nav.pending*` when it mounts; a mounted one hears navEmit.
-  const nav = { pendingTask: '', pendingDeliverable: '', pendingRoutine: '', pendingInput: null }
-  const navListeners = new Set()
-  const navEmit = (kind, id) => { for (const fn of navListeners) { try { fn(kind, id) } catch {} } }
-  const useNav = (fn) => { const ref = React.useRef(fn); ref.current = fn; React.useEffect(() => { const on = (k, id) => ref.current(k, id); navListeners.add(on); return () => { navListeners.delete(on) } }, []) }
-  const openToday = () => { selectPanel(PANELS.today) }
-  const openTask = (id) => { nav.pendingTask = id; selectPanel(PANELS.tasks); navEmit('task', id) }
-  const openRoutine = (id) => { nav.pendingRoutine = id; selectPanel(PANELS.routines); navEmit('routine', id); fire('mywork:open-routine', { id }) }
-  const openDeliverables = () => { nav.pendingDeliverable = ''; selectPanel(PANELS.deliverables); navEmit('deliverables', '') }
-  const openDeliverable = (id) => { const d = state.deliverables.find((x) => x.id === id); if (d && d.taskId) openTask(d.taskId); else { nav.pendingDeliverable = id; selectPanel(PANELS.deliverables); navEmit('deliverable', id) } }
-  const newTask = (text, scenario) => { nav.pendingInput = { text: text || '', scenario: scenario || '' }; selectPanel(PANELS.create) }
-  /**
-   * A thread came on screen (今日, a task page, a routine page): tell the sidebar, and mark it seen on the server (a 404
-   * means the route is not there yet). `stamp` changes when new content lands while the thread stays open, so what
-   * you are looking at never lights up as unread.
-   */
-  const useThreadOpened = (kind, id, stamp) => {
-    React.useEffect(() => { fire('mywork:thread-opened', { kind, id: id || '' }) }, [kind, id])
-    React.useEffect(() => { if (id) api('/seen', { id }).catch(() => {}) }, [id, stamp])
-  }
-  /** 「12 分钟前」: how long ago, in the interface language; the date once it is a day old. */
-  const ago = (iso) => {
-    const ms = Date.now() - new Date(iso).getTime()
-    if (!iso || !Number.isFinite(ms)) return ''
-    const m = Math.floor(ms / 60000)
-    if (m < 1) return t('justNow')
-    if (m < 60) return t('minutesAgo').replace('{n}', String(m))
-    if (m < 1440) return t('hoursAgo').replace('{n}', String(Math.floor(m / 60)))
-    return fmtDate(iso)
+
+  const openMate = (id, runId, aside) => { setNav({ mateId: id ? String(id) : '', runId: runId ? String(runId) : '', aside: aside || null }); selectPanel(PANELS.mate) }
+  const openNewMate = () => { setNav({ aside: { mode: 'new-mate' } }); selectPanel(PANELS.mate) }
+  const openFiles = (id) => { setNav({ fileId: id ? String(id) : '' }); selectPanel(PANELS.files) }
+  const openRoutine = (id, mateId) => {
+    const go = (mid) => openMate(mid, '', { mode: 'mate', section: 'routines', routineId: String(id) })
+    if (mateId) { go(mateId); return }
+    api('/routines').then((d) => { const r = (d.items || []).find((x) => x.id === id); go(r && r.mateId ? r.mateId : '') }).catch(() => go(''))
   }
 
-  // 这台电脑: the entries other members register into the tasks page's `mywork.thread.aside` slot, re-read on every change.
+  // 电脑: the entries other members register into the mate page's `mywork.thread.aside` slot, re-read on every change.
   const asideSubs = new Set()
   const readAside = () => {
     let list = []
@@ -668,300 +638,26 @@ function makeComponents(ctx, t) {
     return list
   }
 
-  function Ask({ scenarios, initial, hero, compact, placeholder }) {
-    const [focused, setFocused] = React.useState(false)
-    const [text, setText] = React.useState(initial && initial.text ? initial.text : '')
-    const [scenario, setScenario] = React.useState(initial && initial.scenario ? initial.scenario : '')
-    const [busy, setBusy] = React.useState(false)
-    const [err, setErr] = React.useState('')
-    const ref = React.useRef(null)
-    const examples = (scenario ? (scenarios.find((s) => s.id === scenario) || { examples: [] }).examples : scenarios.flatMap((s) => s.examples.slice(0, s.builtin ? 4 : 2))).slice(0, 6)
-    React.useEffect(() => { if ((initial || hero) && ref.current) ref.current.focus() }, [])
-    React.useEffect(() => {
-      const onNew = (e) => { const d = e.detail || {}; if (d.text !== undefined) setText(String(d.text)); if (d.scenario) setScenario(String(d.scenario)); if (ref.current) ref.current.focus() }
-      window.addEventListener('mywork:new-task', onNew)
-      return () => window.removeEventListener('mywork:new-task', onNew)
-    }, [])
-    const submit = async () => {
-      const input = text.trim()
-      if (!input || busy) return
-      setBusy(true); setErr('')
-      try { const d = await api('/create', scenario ? { input, scenario } : { input }); setText(''); setScenario(''); await refresh(); schedulePoll(); if (d.routine) openRoutine(d.routine.id); else if (d.task) openTask(d.task.id) } catch (e) { setErr(e.message || String(e)) } finally { setBusy(false) }
-    }
-    const grow = () => { const el = ref.current; if (!el) return; el.style.height = 'auto'; el.style.height = Math.min(240, el.scrollHeight) + 'px' }
-    React.useEffect(grow, [text])
-    return h('div', { className: compact ? 'mwt-ask-wrap compact' + (focused || text ? ' open' : '') : 'mwt-ask-wrap' },
-      h('div', { className: 'mwt-ask' },
-        h('textarea', { ref, value: text, placeholder: placeholder || t('ask'), rows: compact ? 1 : 2, onFocus: () => setFocused(true), onBlur: () => setTimeout(() => setFocused(false), 150), onChange: (e) => setText(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); submit() } } }),
-        h('div', { className: 'mwt-ask-row' },
-          scenario ? h('button', { type: 'button', className: 'mwt-chip', 'data-on': true, title: t('scenarioClear'), onClick: () => setScenario('') }, (scenarios.find((s) => s.id === scenario) || { label: scenario }).label, ' ×') : null,
-          err ? h('small', { className: 'grow' }, err) : h('span', { className: 'grow' }),
-          h('button', { type: 'button', className: 'mwt-btn send round', 'aria-label': t('create'), title: t('create'), disabled: busy || !text.trim(), onClick: submit }, icon(busy ? 'loader' : 'arrow-up', { size: 15 })))),
-      examples.length && !compact && !text ? h('div', { className: 'mwt-chips' + (hero ? ' center' : '') }, examples.map((ex) => h('button', { key: ex, type: 'button', className: 'mwt-chip', title: ex, onMouseDown: (e) => e.preventDefault(), onClick: () => { setText(ex); if (ref.current) ref.current.focus() } }, ex))) : null)
-  }
-
   /**
-   * 今日 is one list. Every row is the same shape: glyph, title, one state on the right.
-   * Order (§3.3): reminders, 等你答, failures, verification issues, running, delivered today.
+   * The document itself: ✓ summary rows as a plain list, then the markdown as text. No box, no actions. In the thread
+   * (`titled`) it is a 文件卡: the file's title first, which opens it on the files page.
    */
-  function todayRows(items, deliverables, reminders) {
-    const rows = []
-    const dayStart = new Date(); dayStart.setHours(0, 0, 0, 0)
-    for (const r of reminders || []) rows.push({ key: 'r' + r.routineId + r.at, rank: 0, needs: true, at: r.at, glyph: 'bell', tone: 'fg', title: r.title, state: t('remindCard') + ' · ' + fmtTime(r.at), action: { label: t('gotIt'), run: () => api('/routines/ack', { id: r.routineId, at: r.at }).then(() => refresh()) } })
-    for (const x of items) {
-      if (x.scenario === 'assistant') continue
-      const done = x.status === 'done'
-      const when = new Date(x.finishedAt || x.createdAt)
-      // 等你答: a task stopped on a question. No button on the row: the question is answered on the task page.
-      if (x.status === 'waiting') rows.push({ key: 'a' + x.id, rank: 1, needs: true, at: (x.ask && x.ask.at) || x.attentionAt || x.createdAt, glyph: 'message-circle', tone: 'warn', title: x.title, state: t('needsYou'), open: () => openTask(x.id) })
-      else if (done && x.error && !/已取消/.test(x.error) && when >= dayStart) rows.push({ key: 'f' + x.id, rank: 2, needs: true, at: x.finishedAt, glyph: 'circle-x', tone: 'danger', title: x.title, state: t('failedTitle'), sub: x.error, action: { label: t('rerun'), run: () => api('/rerun', { id: x.id }).then((d) => { refresh(); if (d.task) openTask(d.task.id) }) }, open: () => openTask(x.id) })
-      else if (done && x.verification && x.verification.passed === false && when >= dayStart) rows.push({ key: 'v' + x.id, rank: 3, at: x.finishedAt, glyph: 'circle-x', tone: 'warn', title: x.title, state: t('verifyIssues'), open: () => openTask(x.id) })
-      else if (!done) rows.push({ key: 'l' + x.id, rank: 4, at: x.createdAt, glyph: 'loader', tone: 'live', spin: true, title: x.title, state: (x.currentStep || x.statusLabel) + ' · ' + elapsedOf(x), open: () => openTask(x.id) })
-      else if (done && when >= dayStart) rows.push({ key: 'd' + x.id, rank: 5, at: x.finishedAt, glyph: 'circle-check', tone: 'success', title: x.title, state: x.routineId && !isReport(x) ? (x.quiet ? t('noChange') : t('changed')) : (x.deliverables.length ? t('delivered') : t('answered')), open: () => openTask(x.id) })
-    }
-    rows.sort((a, b) => a.rank - b.rank || new Date(b.at) - new Date(a.at))
-    const unrated = (deliverables || []).filter((d) => d.rating === null || d.rating === undefined).length
-    // The bar's words come from every row, not only the ten shown.
-    const counts = { waiting: rows.filter((r) => r.rank <= 3).length, running: rows.filter((r) => r.rank === 4).length, delivered: rows.filter((r) => r.rank === 5).length, needs: rows.some((r) => r.needs) }
-    return { rows: rows.slice(0, 10), more: Math.max(0, rows.length - 10), unrated, counts }
-  }
-
-  function Row({ row }) {
-    const open = row.open || (() => {})
-    return h('div', { className: 'mwt-row', role: row.open ? 'button' : undefined, tabIndex: row.open ? 0 : undefined, onClick: open, onKeyDown: (e) => { if (e.key === 'Enter' && row.open) open() } },
-      h('span', { className: 'mwt-dot', 'data-s': row.spin ? 'running' : row.tone === 'success' ? 'ok' : row.tone === 'danger' ? 'err' : undefined, style: row.tone === 'warn' ? { color: 'var(--warn)' } : row.tone === 'fg' ? { color: 'var(--fg-2)' } : undefined }, icon(row.glyph, { size: 16 })),
-      h('span', { className: 'mwt-row-main' }, h('span', { className: 'mwt-row-title' }, row.title), row.sub ? h('span', { className: 'mwt-row-sub' }, row.sub) : null),
-      row.action ? h('button', { type: 'button', className: 'mwt-btn', onClick: (e) => { e.stopPropagation(); row.action.run().catch(() => {}) } }, row.action.label) : h('span', { className: 'mwt-row-state', 'data-tone': row.tone }, row.state))
-  }
-
-  /** 「9月30日」 beside the title, in the interface language. */
-  function todayLabel() {
-    const d = new Date()
-    try { return d.toLocaleDateString(lang() === 'zh' ? 'zh-CN' : 'en-US', { month: lang() === 'zh' ? 'long' : 'short', day: 'numeric' }) } catch { return (d.getMonth() + 1) + '/' + d.getDate() }
-  }
-
-  /**
-   * 今日: the title with the date and the day's status words; a sticky 等你看 bar that opens the day's list in place
-   * (open by itself when something needs you: a reminder, a failure, a question); the day's conversation; the dock.
-   */
-  function TodayPage() {
-    const s = usePolling()
-    const active = s.items.filter((x) => working(x) && x.scenario !== 'assistant') // a task waiting on you is not 在跑; the bar counts it
-    useTick(active.length > 0)
-    const { rows, more, unrated, counts } = todayRows(s.items, s.deliverables, s.reminders)
-    const day = useDayFeed(s)
-    const thread = useTodayThread(s.items)
-    useThreadOpened('today', thread ? thread.id : '', day.rows.length ? day.rows[day.rows.length - 1].key : '')
-    // null = follow the rule (open while something needs you); true / false = what you chose, until something new needs you.
-    const [choice, setChoice] = React.useState(null)
-    const needsBefore = React.useRef(counts.needs)
-    React.useEffect(() => { if (counts.needs && !needsBefore.current) setChoice(null); needsBefore.current = counts.needs }, [counts.needs])
-    const expanded = choice === null ? counts.needs : choice
-    const words = [active.length ? `${active.length} ${t('running1')}` : '', counts.waiting ? `${counts.waiting} ${t('waiting1')}` : ''].filter(Boolean).join(' · ')
-    const barText = [counts.waiting ? `${t('attention')} ${counts.waiting}` : '', counts.running ? `${counts.running} ${t('running1')}` : '', counts.delivered ? `${t('deliveredToday')} ${counts.delivered}` : ''].filter(Boolean).join(' · ') || t('unratedN').replace('{n}', String(unrated))
-    const hasBar = rows.length > 0 || unrated > 0
-    const loading = !s.loadedAt && !s.error
-    const failed = !!s.error && !s.items.length
-    const quiet = !loading && !failed && !hasBar && !day.any
-    const foldRow = more || unrated ? h('button', { type: 'button', className: 'mwt-row mwt-row-more', onClick: () => { if (unrated) openDeliverables(); else selectPanel(PANELS.tasks) } },
-      h('span', { className: 'mwt-dot' }, icon(unrated ? 'file-text' : 'list-checks', { size: 16 })),
-      h('span', { className: 'mwt-row-main' }, h('span', { className: 'mwt-row-title' }, [more ? t('moreRows').replace('{n}', String(more)) : '', unrated ? t('unratedN').replace('{n}', String(unrated)) : ''].filter(Boolean).join(' · '))),
-      h('span', { className: 'mwt-row-state' }, icon('arrow-left', { size: 14, style: { transform: 'rotate(180deg)' } }))) : null
-    return h('div', { className: 'mwt mwt-today' }, h('style', null, STYLE), h('div', { className: 'mwt-page mwt-page-today' },
-      h('header', { className: 'mwt-today-head' }, h('h1', null, t('today')), h('span', { className: 'date' }, todayLabel()), h('span', { className: 'grow' }), words ? h('span', { className: 'words' }, words) : null),
-      loading ? h(Skeleton, { rows: 3 })
-        : failed ? h('div', { className: 'mwt-retry' }, h('span', null, t('loadFailed')), h('button', { type: 'button', className: 'mwt-btn', onClick: () => { refresh().then(schedulePoll) } }, t('retry')))
-        : hasBar ? h('div', { className: 'mwt-today-bar' }, h('button', { type: 'button', className: 'head', 'aria-expanded': expanded, onClick: () => setChoice(!expanded) }, h('span', { className: 'grow' }, barText), icon('chevron-down', { size: 15, className: 'turn', style: { transform: expanded ? 'rotate(180deg)' : 'none' } })))
-        : quiet ? h('div', { className: 'mwt-quiet' }, h('p', null, t('quietDay')),
-          h('div', { className: 'mwt-chips' }, s.scenarios.flatMap((sc) => sc.examples.slice(0, sc.builtin ? 3 : 1)).slice(0, 4).map((ex) => h('button', { key: ex, type: 'button', className: 'mwt-chip', onClick: () => newTask(ex) }, ex))))
-        : null,
-      hasBar && expanded ? h('div', { className: 'mwt-list' }, rows.map((row) => h(Row, { key: row.key, row })), foldRow) : null,
-      day.any ? h(Turns, { rows: day.rows, live: day.liveState, items: s.items, older: day.canOlder ? { label: day.olderLabel, busy: day.busy, load: day.loadOlder } : null }) : null,
-      h('div', { className: 'mwt-dock' }, h(TodayAsk))))
-  }
-
-  /** The day's assistant task (its id is what /seen and mywork:thread-opened take); re-read when a day's thread appears or settles. */
-  function useTodayThread(items) {
-    const [thread, setThread] = React.useState(null)
-    const key = items.filter((x) => x.scenario === 'assistant').map((x) => x.id + ':' + x.status).join(',')
-    React.useEffect(() => { let on = true; api('/today').then((d) => { if (on) setThread(d.thread || null) }).catch(() => {}); return () => { on = false } }, [key])
-    return thread
-  }
-
-  /**
-   * The day's line (GET /feed, §8.3): the newest page on every poll, merged by key so nothing doubles; shown from local
-   * midnight today, so the first load is today's entries. 「加载昨天」 reveals one earlier day at a time from what is
-   * loaded, fetching the page before the oldest when nothing older is loaded yet. Earlier days are read-only.
-   */
-  function useDayFeed(s) {
-    const [feed, setFeed] = React.useState({ entries: [], nextBefore: null, today: '', from: '', loaded: false, busy: false })
-    const ref = React.useRef(feed); ref.current = feed
-    React.useEffect(() => {
-      let on = true
-      api('/feed?limit=' + FEED_PAGE).then((d) => {
-        if (!on) return
-        setFeed((prev) => {
-          const today = localDay(new Date().toISOString())
-          const fresh = !prev.loaded || prev.today !== today // first page, or the page was left open past midnight
-          return { ...prev, loaded: true, today, entries: mergeFeed(fresh ? [] : prev.entries, d.entries || []), from: fresh ? dayStartIso(today) : prev.from, nextBefore: fresh ? d.nextBefore : prev.nextBefore }
-        })
-      }).catch(() => {})
-      return () => { on = false }
-    }, [s.loadedAt])
-    const loadOlder = React.useCallback(async () => {
-      const cur = ref.current
-      if (cur.busy) return
-      if (!olderDayOf(cur.entries, cur.from)) {
-        if (!cur.nextBefore) return
-        setFeed((p) => ({ ...p, busy: true }))
-        try {
-          const d = await api('/feed?before=' + encodeURIComponent(cur.nextBefore) + '&limit=' + FEED_PAGE)
-          setFeed((p) => ({ ...p, busy: false, entries: mergeFeed(p.entries, d.entries || []), nextBefore: d.nextBefore }))
-        } catch { setFeed((p) => ({ ...p, busy: false })); return }
-      }
-      setFeed((p) => { const day = olderDayOf(p.entries, p.from); return day ? { ...p, from: dayStartIso(day) } : p })
-    }, [])
-    const live = s.items.find((x) => x.scenario === 'assistant' && x.status !== 'done') || null
-    // What you just sent shows at once, the Grok way, until the server's copy of it arrives.
-    const [pending, setPending] = React.useState('')
-    React.useEffect(() => { const onSaid = (e) => setPending(String(e.detail && e.detail.text || '')); window.addEventListener('mywork:today-said', onSaid); return () => window.removeEventListener('mywork:today-said', onSaid) }, [])
-    const shown = feedRows(feed.entries, feed.from, feed.today, t('yesterday'))
-    React.useEffect(() => { if (pending && shown.some((e) => e.kind === 'user' && e.text === pending)) setPending('') }, [pending, shown.length])
-    const rows = pending ? shown.concat([{ kind: 'user', key: 'pending', at: '', text: pending, today: true }]) : shown
-    const olderDay = olderDayOf(feed.entries, feed.from)
-    const canOlder = !!olderDay || !!feed.nextBefore
-    const olderLabel = olderDay ? (olderDay === shiftDay(feed.today, -1) ? t('loadYesterday') : t('loadDay').replace('{d}', shortDay(olderDay))) : t('loadEarlier')
-    return { rows, live, liveState: live || (pending ? { currentStep: '' } : null), any: rows.length > 0 || !!live || canOlder, canOlder, olderLabel, busy: feed.busy, loadOlder }
-  }
-
-  /**
-   * What a hand-off line says about its task right now: running step · time, 等你答 (the row's chevron opens the task
-   * and its question), ✓ delivered · verified, answered, or failed.
-   */
-  function handoffState(task) {
-    if (!task) return null
-    if (task.status === 'waiting') return { glyph: 'message-circle', tone: 'warn', sub: t('needsYou') }
-    if (task.status !== 'done') return { glyph: 'loader', spin: true, tone: 'live', sub: (task.currentStep || task.statusLabel) + ' · ' + elapsedOf(task) }
-    if (task.error) return { glyph: 'circle-x', tone: 'danger', sub: t('failedTitle') + ' · ' + String(task.error).slice(0, 80), failed: true }
-    const v = task.verification
-    if (task.deliverables && task.deliverables.length) return { glyph: 'check', tone: 'success', sub: t('delivered') + (v ? (v.passed === true ? ' · ' + t('verified') : v.passed === false ? ' · ' + t('verifyIssues') : '') : '') }
-    return { glyph: 'check', tone: 'success', sub: t('answered') }
-  }
-
-  /**
-   * The line itself (rows from feedRows): a date before each earlier day; your words in a bubble; a reply as text; a hand-off
-   * row that reads its task's live state (a follow-up sent with mywork_task_say is the same row); a reminder as bell · title ·
-   * 知道了; a routine's change as one line that opens the run. Earlier days are read-only: only opening a task stays live.
-   */
-  function Turns({ rows, live, items, older }) {
-    const endRef = React.useRef(null)
-    const lastKey = rows.length ? rows[rows.length - 1].key : ''
-    React.useEffect(() => { if (endRef.current && typeof endRef.current.scrollIntoView === 'function') endRef.current.scrollIntoView({ block: 'nearest' }) }, [lastKey, !!live])
-    // Revealing an earlier day prepends above what is on screen: the scroller is put back where it was, so nothing jumps.
-    const firstKey = rows.length ? rows[0].key : ''
-    const keep = React.useRef(null)
-    const remember = () => { const el = endRef.current ? endRef.current.closest('.mwt') : null; if (el) keep.current = { el, height: el.scrollHeight, top: el.scrollTop, at: Date.now() } }
-    React.useLayoutEffect(() => { const k = keep.current; if (!k) return; keep.current = null; if (Date.now() - k.at < 10000) k.el.scrollTop = k.top + (k.el.scrollHeight - k.height) }, [firstKey])
-    const chevron = () => icon('arrow-left', { size: 13, style: { transform: 'rotate(180deg)', color: 'var(--meta)' } })
-    return h('section', { className: 'mwt-thread' },
-      older ? h('button', { type: 'button', className: 'mwt-older', disabled: older.busy, onClick: () => { remember(); older.load() } }, older.label) : null,
-      rows.map((e) => {
-        if (e.kind === 'date') return h('div', { key: e.key, className: 'mwt-date' }, e.label)
-        if (e.kind === 'user') return h('div', { key: e.key, className: 'mwt-turn user' }, h('div', { className: 'mwt-bubble' }, e.text))
-        if (e.kind === 'text') return h('div', { key: e.key, className: 'mwt-turn ai' }, h(Markdown, { text: e.text }))
-        if (e.kind === 'handoff') {
-          const isTask = e.target === 'task'
-          const task = isTask && Array.isArray(items) ? items.find((x) => x.id === e.id) : null
-          const st = isTask ? handoffState(task) : null
-          const glyph = st ? st.glyph : isTask ? 'list-checks' : 'history'
-          const sub = st ? st.sub : isTask ? t('handedOff') : (t('scheduled') + (e.schedule ? ' · ' + e.schedule : ''))
-          return h('div', { key: e.key, className: 'mwt-turn ai' },
-            h('div', { className: 'mwt-handoff-row', 'data-tone': st ? st.tone : undefined },
-              h('button', { type: 'button', className: 'main', onClick: () => { if (isTask) openTask(e.id); else openRoutine(e.id) } },
-                h('span', { className: 'ic' }, icon(glyph, { size: 15, className: st && st.spin ? 'spin' : undefined })),
-                h('span', { className: 'body' }, h('span', { className: 'title' }, e.title), h('span', { className: 'sub' }, sub)),
-                chevron()),
-              e.today && st && st.failed ? h('button', { type: 'button', className: 'mwt-btn ghost', onClick: () => api('/rerun', { id: e.id }).then((d) => { refresh().then(schedulePoll); if (d.task) openTask(d.task.id) }) }, t('rerun')) : null))
-        }
-        if (e.kind === 'remind') return h('div', { key: e.key, className: 'mwt-turn ai' },
-          h('div', { className: 'mwt-line' }, h('span', { className: 'ic' }, icon('bell', { size: 14 })), h('span', { className: 'txt' }, e.title),
-            e.today && !e.acked ? h('button', { type: 'button', className: 'mwt-btn ghost', onClick: () => api('/routines/ack', { id: e.routineId, at: e.at }).then(() => refresh()).catch(() => {}) }, t('gotIt')) : null))
-        if (e.kind === 'change') return h('div', { key: e.key, className: 'mwt-turn ai' },
-          h('button', { type: 'button', className: 'mwt-line', onClick: () => openTask(e.taskId) }, h('span', { className: 'ic' }, icon('history', { size: 14 })), h('span', { className: 'txt' }, [e.title, e.report ? t('reportOut') : t('changed'), fmtTime(e.at)].join(' · ')), chevron()))
-        return null
-      }),
-      live ? h('div', { className: 'mwt-turn ai mwt-thinking' }, h('span', null, (live.currentStep || t('thinking')) + '…')) : null,
-      h('div', { ref: endRef, className: 'mwt-thread-end' }))
-  }
-
-  /** The 今日 composer: talks to the assistant; it decides between answering, a task and a routine. */
-  function TodayAsk() {
-    const [text, setText] = React.useState('')
-    const [busy, setBusy] = React.useState(false)
-    const [err, setErr] = React.useState('')
-    const ref = React.useRef(null)
-    const submit = async () => {
-      const body = text.trim()
-      if (!body || busy) return
-      setBusy(true); setErr('')
-      try { setText(''); fire('mywork:today-said', { text: body }); await api('/today/say', { text: body }); await refresh(); schedulePoll() } catch (e) { setText(body); fire('mywork:today-said', { text: '' }); setErr(e.message || String(e)) } finally { setBusy(false) }
-    }
-    React.useEffect(() => { const el = ref.current; if (!el) return; el.style.height = 'auto'; el.style.height = Math.min(240, el.scrollHeight) + 'px' }, [text])
-    return h('div', { className: 'mwt-ask-wrap compact' },
-      h('div', { className: 'mwt-ask' },
-        h('textarea', { ref, value: text, placeholder: t('ask'), rows: 1, onChange: (e) => setText(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); submit() } } }),
-        h('button', { type: 'button', className: 'mwt-btn send round', 'aria-label': t('create'), disabled: busy || !text.trim(), onClick: submit }, icon(busy ? 'loader' : 'arrow-up', { size: 15 }))),
-      err ? h('small', { className: 'mwt-say-err' }, err) : null)
-  }
-
-  /** 新任务: one screen, one field. Sending lands on the task (or the routine) it created. */
-  function CreatePage() {
-    const s = usePolling()
-    const initial = nav.pendingInput; nav.pendingInput = null
-    return h('div', { className: 'mwt mwt-create' }, h('style', null, STYLE), h('div', { className: 'mwt-page' },
-      h('div', { className: 'mwt-hero' }, h('h1', null, t('hero')), h(Ask, { scenarios: s.scenarios, initial: initial || { text: '', scenario: '' }, hero: true }))))
-  }
-
-  /**
-   * The task's dock. While the task waits on a text question, it answers that question (POST /answer with its askId,
-   * placeholder 回答); otherwise it says the next thing into the task's conversation (POST /say).
-   */
-  function Say({ task, onAnswer }) {
-    const [text, setText] = React.useState('')
-    const [busy, setBusy] = React.useState(false)
-    const [err, setErr] = React.useState('')
-    const ref = React.useRef(null)
-    const blocked = task.status === 'verifying' || task.status === 'queued' || !task.sessionId
-    const textAsk = task.status === 'waiting' && task.ask && task.ask.askKind === 'text' && task.ask.id ? task.ask : null
-    const submit = async () => {
-      const body = text.trim()
-      if (!body || busy || blocked) return
-      setBusy(true); setErr('')
-      try {
-        if (textAsk && onAnswer) await onAnswer(textAsk.id, body)
-        else { await api('/say', { id: task.id, text: body }); await refresh(); schedulePoll() }
-        setText('')
-      } catch (e) { setErr(e.message || String(e)) } finally { setBusy(false) }
-    }
-    const grow = () => { const el = ref.current; if (!el) return; el.style.height = 'auto'; el.style.height = Math.min(160, el.scrollHeight) + 'px' }
-    React.useEffect(grow, [text])
-    if (!task.sessionId) return null
-    return h('div', { className: 'mwt-say' },
-      h('div', { className: 'mwt-say-inner' },
-        h('textarea', { ref, value: text, rows: 1, placeholder: textAsk ? t('answerPh') : t('say'), disabled: blocked, onChange: (e) => setText(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); submit() } } }),
-        h('button', { type: 'button', className: 'mwt-btn send round', 'aria-label': t('create'), disabled: busy || blocked || !text.trim(), onClick: submit }, icon(busy ? 'loader' : 'arrow-up', { size: 13 }))),
-      err ? h('small', { className: 'mwt-say-err' }, err) : null)
-  }
-
-  /** The document itself: ✓ summary rows as a plain list, then the markdown as text. No box, no actions. */
-  function Doc({ d }) {
+  function Doc({ d, titled }) {
     return h('div', { className: 'mwt-deliver' },
+      titled ? h('button', { type: 'button', className: 'mwt-file-title', onClick: () => openFiles(d.id) }, icon(fileGlyph(d), { size: 16 }), h('span', null, d.title || d.id)) : null,
       Array.isArray(d.summary) && d.summary.length ? h('div', { className: 'mwt-sum' }, d.summary.map((r, i) => h('div', { key: i, className: 'mwt-sum-row' }, icon('check', { size: 14 }), h('span', { className: 'label' }, r.label), h('span', { className: 'value' }, r.value)))) : null,
-      h(Markdown, { text: d.markdown }))
+      h(Markdown, { text: d.markdown || '' }))
+  }
+  /** A delivery in the thread: the thread payload may carry only the metadata; the body is fetched once when it does. */
+  function DeliverBody({ d, titled }) {
+    const [full, setFull] = React.useState(null)
+    const need = typeof d.markdown !== 'string' && !!d.id
+    React.useEffect(() => { if (!need) return; let on = true; api('/deliverable?id=' + encodeURIComponent(d.id)).then((x) => { if (on && x && x.deliverable) setFull(x.deliverable) }).catch(() => {}); return () => { on = false } }, [d.id, need])
+    return h(Doc, { titled, d: need ? { ...d, ...(full || {}), markdown: full ? full.markdown : '' } : d })
   }
 
   /**
-   * One meta line under a delivery: the verification word (read live from the task, so nothing reads 已核验 before the
+   * One meta line under a delivery: the verification word (read live from the run, so nothing reads 已核验 before the
    * verifier stamped it), then the rating. 已核验 / 核验发现 / 未能核验 open the verifier's notes when there are any.
    */
   function DeliverMeta({ d, verify, onRate }) {
@@ -983,30 +679,35 @@ function makeComponents(ctx, t) {
       notes && hasNotes ? h('div', { className: 'mwt-notes' }, v.notes) : null)
   }
 
-  function useTaskDetail(id, key) {
-    const [detail, setDetail] = React.useState(null)
-    React.useEffect(() => { let on = true; api('/task?id=' + encodeURIComponent(id)).then((d) => { if (on) setDetail(d) }).catch(() => {}); return () => { on = false } }, [id, key])
-    return [detail, setDetail]
+  /** A folded deliverable: one compact row (glyph · title · verification word · time) that opens the full segment. */
+  function FoldRow({ d, verify, open, onToggle }) {
+    const v = verify || { kind: '' }
+    const word = v.kind === 'passed' ? t('verified') : v.kind === 'issues' ? t('verifyIssues') : v.kind === 'none' ? t('verifyNone') : v.kind === 'verifying' ? t('verifying') : ''
+    return h('button', { type: 'button', className: 'mwt-arow mwt-fold', 'aria-expanded': open, onClick: onToggle },
+      h('span', { className: 'ic' }, icon(fileGlyph(d), { size: 15 })),
+      h('span', { className: 'main' }, h('span', { className: 't' }, d.title || d.id)),
+      h('span', { className: 'm' }, [word, fmtWhen(d.createdAt)].filter(Boolean).join(' · ')))
   }
-  const rateIn = (setDetail) => (d, r) => api('/rate', { id: d.id, rating: d.rating === r ? null : r }).then((x) => setDetail((prev) => prev ? { ...prev, deliverables: prev.deliverables.map((y) => y.id === x.deliverable.id ? x.deliverable : y) } : prev)).catch(() => {})
 
-  /** One line that says what the run did, and a fold that shows how. Folded by default; the thread above says what matters. */
-  function Process({ task, live }) {
+  /** 过程: one line that says what the run did, and a fold that shows how. Folded by default. */
+  function Process({ run, live }) {
     const [open, setOpen] = React.useState(false)
-    const n = phasesOf(task).filter((r) => r.kind === 'phase').length
-    const summary = [t('process'), n ? n + ' ' + t('phases') : '', elapsedOf(task)].filter(Boolean).join(' · ')
+    const rows = React.useMemo(() => phasesOf(run), [run])
+    const n = rows.filter((r) => r.kind === 'phase').length
+    const summary = [t('process'), n ? n + ' ' + t('phases') : '', elapsedOf(run)].filter(Boolean).join(' · ')
     return h('div', { className: 'mwt-proc' },
-      h('button', { type: 'button', className: 'mwt-proc-head', 'aria-expanded': open, onClick: () => setOpen(!open) }, h('span', { className: 'mwt-dot', 'data-s': live ? 'running' : undefined }, icon(live ? 'loader' : 'history', { size: 15 })), h('span', { className: 'grow' }, summary), icon('arrow-left', { size: 14, style: { transform: open ? 'rotate(-90deg)' : 'rotate(180deg)', transition: 'transform 150ms' } })),
-      open ? h(Phases, { task, live }) : null)
+      h('button', { type: 'button', className: 'mwt-proc-head', 'aria-expanded': open, onClick: () => setOpen(!open) },
+        icon(live ? 'loader' : 'history', { size: 13, className: live ? 'live' : undefined }), h('span', { className: 'grow' }, summary),
+        icon('chevron-down', { size: 13, style: { transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 150ms' } })),
+      open ? h(Phases, { run, rows, live }) : null)
   }
 
-  /** The run as phases. Consecutive tool calls with the same verb fold into one line (查阅 · 3 次 · 12s) that opens
-   *  to its calls; a note the agent wrote is its own line; a hand-off opens what it created; verification closes the list. */
-  function phasesOf(task) {
-    const list = Array.isArray(task.activity) ? task.activity : []
+  /** The run as phases: consecutive tool calls with the same verb fold into one line that opens to its calls. */
+  function phasesOf(run) {
+    const list = Array.isArray(run.activity) ? run.activity : []
     const out = []
     for (const e of list) {
-      if (e.kind === 'user') continue // follow-ups are in the conversation above
+      if (!e || typeof e !== 'object') continue
       if (e.kind === 'tool') {
         const d = describeTool(e.name, e.detail)
         const last = out[out.length - 1]
@@ -1014,27 +715,28 @@ function makeComponents(ctx, t) {
         out.push({ kind: 'phase', verb: d.verb, obj: d.obj, items: [e], at: e.at, failed: e.ok === false ? 1 : 0 })
         continue
       }
-      if (e.kind === 'text' || e.kind === 'handoff' || e.kind === 'verify') out.push(e)
+      if (e.kind === 'text' || e.kind === 'verify') out.push(e)
     }
-    const end = task.finishedAt || new Date().toISOString()
+    const end = run.finishedAt || new Date().toISOString()
     for (let i = 0; i < out.length; i++) if (out[i].kind === 'phase') out[i].ms = new Date((out[i + 1] && out[i + 1].at) || end) - new Date(out[i].at)
     return out
   }
+  const hasProcess = (run) => (Array.isArray(run.activity) ? run.activity : []).some((e) => e && (e.kind === 'tool' || e.kind === 'verify'))
 
-  function Phases({ task, live }) {
-    const rows = React.useMemo(() => phasesOf(task), [task])
+  function Phases({ run, rows, live }) {
     const [open, setOpen] = React.useState(-1)
     const lastIdx = rows.length - 1
     React.useEffect(() => { if (live && rows[lastIdx] && rows[lastIdx].kind === 'phase') setOpen(lastIdx) }, [live, rows.length])
-    const v = task.verification
-    if (!rows.length && !v) return h('div', { className: 'mwt-empty' }, live ? task.statusLabel + '…' : t('none2'))
+    const v = run.verification && typeof run.verification === 'object' ? run.verification : null
+    const vs = verifyState(run)
+    if (!rows.length && !v) return h('div', { className: 'mwt-empty' }, t('none2'))
     return h('div', { className: 'mwt-phases' },
       rows.map((r, i) => {
         if (r.kind === 'phase') {
-          const running = live && i === lastIdx && task.status === 'running'
+          const running = live && i === lastIdx
           const n = r.items.length
           const meta = [n > 1 ? n + ' ' + t('times') : '', r.ms > 1500 ? fmtDuration(r.ms) : ''].filter(Boolean).join(' · ')
-          return h('div', { key: i, className: 'mwt-phase' },
+          return h('div', { key: i },
             h('button', { type: 'button', className: 'mwt-phase-head', 'aria-expanded': open === i, 'data-tone': running ? 'live' : r.failed ? 'danger' : undefined, onClick: () => setOpen(open === i ? -1 : i) },
               h('span', { className: 'ic' }, icon(running ? 'loader' : r.failed ? 'circle-x' : 'check', { size: 13 })),
               h('span', { className: 'verb' }, r.verb),
@@ -1042,22 +744,15 @@ function makeComponents(ctx, t) {
               open !== i && r.obj ? h('span', { className: 'obj' }, r.obj) : null),
             open === i ? h('div', { className: 'mwt-phase-body' }, r.items.map((e, j) => { const d = describeTool(e.name, e.detail); return h('div', { key: j, className: 'mwt-ev', 'data-ok': e.ok === undefined ? undefined : e.ok, title: e.name + (e.detail ? ' ' + e.detail : '') }, h('span', { className: 'ic' }, icon(e.ok === false ? 'circle-x' : e.ok === true ? 'check' : 'loader', { size: 13 })), h('div', { className: 'line' }, h('span', { className: 'verb' }, d.verb), d.obj ? h('span', { className: 'obj' }, d.obj) : null, e.ok === false && e.result ? h('div', { className: 'result' }, t('toolFailed') + ' · ' + e.result) : null)) })) : null)
         }
-        if (r.kind === 'handoff') return h('div', { key: i, className: 'mwt-phase-note' }, h('span', { className: 'ic' }, icon(r.target === 'task' ? 'list-checks' : 'history', { size: 13 })), h('div', null, h('button', { type: 'button', className: 'mwt-handoff', style: { margin: 0 }, onClick: () => { if (r.target === 'task') openTask(r.id); else openRoutine(r.id) } }, (r.target === 'task' ? t('handedOff') : t('scheduled')) + '：' + r.title)))
         return h(PhaseNote, { key: i, text: r.text, label: r.kind === 'verify' ? t('verifyLabel') : '' })
       }),
-      task.status === 'verifying' ? h('div', { className: 'mwt-phase-head', 'data-tone': 'live' }, h('span', { className: 'ic' }, icon('loader', { size: 13 })), h('span', { className: 'verb' }, t('verifyLabel')), h('span', { className: 'meta' }, t('verifying')))
-        : v ? h('div', { className: 'mwt-phase-head', 'data-tone': v.passed === false ? 'danger' : undefined }, h('span', { className: 'ic' }, icon(v.passed === false ? 'circle-x' : v.passed === true ? 'check' : 'minus', { size: 13 })), h('span', { className: 'verb' }, t('verifyLabel')), h('span', { className: 'meta' }, [v.passed === true ? t('passed') : v.passed === false ? t('verifyIssues') : t('verifyNone'), v.checked ? t('checked') + ' ' + v.checked : '', v.issues ? t('issues') + ' ' + v.issues : ''].filter(Boolean).join(' · '))) : null)
+      v ? h('div', { className: 'mwt-phase-head', 'data-tone': vs.kind === 'verifying' ? 'live' : vs.kind === 'issues' ? 'danger' : undefined },
+        h('span', { className: 'ic' }, icon(vs.kind === 'verifying' ? 'loader' : vs.kind === 'issues' ? 'circle-x' : vs.kind === 'passed' ? 'check' : 'x', { size: 13 })),
+        h('span', { className: 'verb' }, t('verifyLabel')),
+        h('span', { className: 'meta' }, [vs.kind === 'verifying' ? t('verifying') : vs.kind === 'passed' ? t('passed') : vs.kind === 'issues' ? t('verifyIssues') : t('verifyNone'), vs.checked ? t('checked') + ' ' + vs.checked : '', vs.issues ? t('issues') + ' ' + vs.issues : ''].filter(Boolean).join(' · '))) : null)
   }
 
-  /** The title as a field: Enter saves, Escape or blur leaves it. */
-  function TitleEdit({ value, onDone }) {
-    const [v, setV] = React.useState(value)
-    const ref = React.useRef(null)
-    React.useEffect(() => { if (ref.current) { ref.current.focus(); ref.current.select() } }, [])
-    return h('input', { ref, className: 'mwt-task-title edit', value: v, 'aria-label': t('rename'), onChange: (e) => setV(e.target.value), onBlur: () => onDone(v), onKeyDown: (e) => { if (e.key === 'Enter') { e.preventDefault(); onDone(v) } if (e.key === 'Escape') { e.preventDefault(); onDone(value) } } })
-  }
-
-  /** What the agent said mid-run: two lines, the whole note on tap. */
+  /** What the teammate said mid-run: two lines, the whole note on tap. */
   function PhaseNote({ text, label }) {
     const [open, setOpen] = React.useState(false)
     return h('div', { className: 'mwt-phase-note' + (open ? ' open' : ''), role: 'button', tabIndex: 0, onClick: () => setOpen(!open), onKeyDown: (e) => { if (e.key === 'Enter') setOpen(!open) } },
@@ -1069,23 +764,16 @@ function makeComponents(ctx, t) {
     const [open, setOpen] = React.useState(false)
     const ref = React.useRef(null)
     React.useEffect(() => { if (!open) return; const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }; const onKey = (e) => { if (e.key === 'Escape') setOpen(false) }; document.addEventListener('mousedown', onDoc); document.addEventListener('keydown', onKey); return () => { document.removeEventListener('mousedown', onDoc); document.removeEventListener('keydown', onKey) } }, [open])
+    const list = items.filter(Boolean)
     return h('div', { className: 'mwt-menu', ref },
       h('button', { type: 'button', className: 'mwt-btn ghost round', 'aria-label': t('more'), 'aria-haspopup': 'menu', 'aria-expanded': open, onClick: () => setOpen(!open) }, '···'),
-      open ? h('div', { className: 'mwt-menu-pop', role: 'menu' }, items.filter(Boolean).map((it) => h('button', { key: it.label, type: 'button', role: 'menuitem', onClick: () => { setOpen(false); it.run() } }, icon(it.icon, { size: 14 }), it.label))) : null)
-  }
-
-  /** The verdict word for the meta line under the title. */
-  function verdictWord(task) {
-    const v = task.verification
-    if (task.status === 'verifying') return t('verifying')
-    if (!v) return ''
-    return v.passed === true ? t('verified') : v.passed === false ? t('verifyFound').replace('{n}', String(v.issues || 0)) : t('verifyNone')
+      open ? h('div', { className: 'mwt-menu-pop', role: 'menu' }, list.map((it) => h('button', { key: it.label, type: 'button', role: 'menuitem', onClick: () => { setOpen(false); it.run() } }, icon(it.icon, { size: 14 }), it.label))) : null)
   }
 
   /**
-   * 需要你 (§2.3 row 5, §3.3): the question a task stopped on. choice → full-width options; approval → 允许一次 / 拒绝;
-   * takeover → 「去 Chrome 里处理」 (opens 这台电脑 when the page has it) and 我做完了; text → no controls, the dock
-   * answers it. Only the newest open question can be answered; answered it is one line 「已回答：X」, closed 「不再等待」.
+   * 找你卡: the question a run stopped on. choice → full-width options; approval → 允许一次 / 拒绝; takeover →
+   * 「去 Chrome 里处理」 (opens 电脑) and 我做完了; text → no controls, the dock answers it. Only the newest open question
+   * can be answered; answered it is one line 「已回答：X」, closed 「不再等待」.
    */
   function AskCard({ e, onAnswer, onTakeover }) {
     const [busy, setBusy] = React.useState(false)
@@ -1118,308 +806,561 @@ function makeComponents(ctx, t) {
       err ? h('div', { className: 'mwt-ask-err', role: 'alert' }, err) : null)
   }
 
-  /**
-   * The task page is a thread (threadOf in thread.cjs): your line in a bubble, each delivery as text with one meta line,
-   * the reply as text, a working line while it runs, the question it stopped on, a failure as one line; 过程 folded at
-   * the end; the composer docked. 这台电脑 (the `mywork.thread.aside` slot) sits beside it when an entry wants this task:
-   * a grid column when the page has room, else a slide-over at its right edge; the reading column never shrinks.
-   */
-  function TaskDetail({ id, onBack, renderSlot }) {
+  /** 提醒卡: a reminder firing; one 知道了 (POST /routines/ack). Acknowledged, it is one muted line. */
+  function RemindCard({ e, onAck }) {
+    const [busy, setBusy] = React.useState(false)
+    if (e.acked) return h('div', { className: 'mwt-askline' }, icon('bell', { size: 13 }), h('span', null, [t('remindCard'), e.title, t('acked')].filter(Boolean).join(' · ')))
+    return h('div', { className: 'mwt-remind' },
+      h('span', { className: 'ic' }, icon('bell', { size: 16 })),
+      h('span', { className: 'txt' }, e.title || t('remindCard')),
+      h('button', { type: 'button', className: 'mwt-btn', disabled: busy || !e.routineId, onClick: () => { setBusy(true); Promise.resolve(onAck(e)).finally(() => setBusy(false)) } }, t('gotIt')))
+  }
+
+  // ---- the mate page ------------------------------------------------------------------------------------------------
+
+  /** The loaded runs of one teammate: the newest page on every change of its state, earlier pages on request. */
+  function useThread(mate) {
+    const [th, setTh] = React.useState({ runs: [], nextBefore: null, loaded: false, busy: false, error: '', fetchedFrom: 0 })
+    const [bump, setBump] = React.useState(0)
+    const working = mate.state === 'working'
+    const key = [mate.lastAt || '', mate.state || '', mate.step || '', mate.ask && mate.ask.id ? mate.ask.id : '', working ? Math.floor(Date.now() / FAST_MS) : 0, bump].join('|')
+    React.useEffect(() => {
+      let on = true
+      const started = Date.now()
+      api('/mates/thread?id=' + encodeURIComponent(mate.id) + '&limit=' + THREAD_PAGE).then((d) => {
+        if (!on) return
+        setTh((prev) => ({ ...prev, error: '', loaded: true, fetchedFrom: started, runs: mergeRuns(prev.runs, d.runs || []), nextBefore: prev.loaded ? prev.nextBefore : (d.nextBefore || null) }))
+      }).catch((e) => { if (on) setTh((prev) => ({ ...prev, loaded: true, error: prev.runs.length ? '' : (e.message || String(e)) })) })
+      return () => { on = false }
+    }, [mate.id, key])
+    const ref = React.useRef(th); ref.current = th
+    const loadEarlier = React.useCallback(async () => {
+      const cur = ref.current
+      if (cur.busy || !cur.nextBefore) return false
+      setTh((p) => ({ ...p, busy: true }))
+      try {
+        const d = await api('/mates/thread?id=' + encodeURIComponent(mate.id) + '&before=' + encodeURIComponent(cur.nextBefore) + '&limit=' + THREAD_PAGE)
+        setTh((p) => ({ ...p, busy: false, runs: mergeRuns(p.runs, d.runs || []), nextBefore: d.nextBefore || null }))
+        return true
+      } catch { setTh((p) => ({ ...p, busy: false })); return false }
+    }, [mate.id])
+    const reload = React.useCallback(() => setBump((n) => n + 1), [])
+    const patchRun = React.useCallback((run) => { if (run && run.id) setTh((p) => ({ ...p, runs: mergeRuns(p.runs, [run]) })) }, [])
+    return { ...th, loadEarlier, reload, patchRun, setTh }
+  }
+
+  function MatePage({ renderSlot }) {
     const s = usePolling()
-    const task = s.items.find((x) => x.id === id) || null
-    const live = !!task && task.status !== 'done'
-    const waiting = !!task && task.status === 'waiting'
-    const running = live && !waiting
+    const n = useNavState()
+    const def = defaultMateOf(s.mates)
+    const asked = n.mateId ? s.mates.find((m) => m.id === n.mateId) : null
+    // Asked for a teammate the snapshot does not have yet (just created): fetch, and wait for it instead of showing
+    // another. Only once a snapshot fetched after the request (and one more) still lacks it does the default show.
+    const [misses, setMisses] = React.useState({ id: '', n: 0, at: 0 })
+    React.useEffect(() => {
+      if (!n.mateId || asked || !s.loadedAt) return
+      if (s.loadedAt > n.at && misses.at !== s.loadedAt) setMisses((m) => ({ id: n.mateId, n: (m.id === n.mateId ? m.n : 0) + 1, at: s.loadedAt }))
+    }, [n.mateId, !!asked, s.loadedAt])
+    const gone = !!n.mateId && !asked && misses.id === n.mateId && misses.n >= 2
+    const early = !!n.mateId && !asked && !gone
+    React.useEffect(() => { if (early) kick() }, [n.seq, early, s.loadedAt])
+    // A teammate that is gone (removed elsewhere): forget it, so later remounts do not wait on it.
+    React.useEffect(() => { if (gone && getNav().mateId === n.mateId) { nav = { ...nav, mateId: '' }; storeMate('') } }, [gone])
+    const mate = asked || (early ? null : def)
+    const root = (...children) => h('div', { className: 'mwt mwt-mate' }, h('style', null, STYLE), h('div', { className: 'mwt-page' }, ...children))
+    if (!mate) {
+      if ((!s.loadedAt || early) && !s.error) return root(h(Skeleton, { rows: 4 }))
+      return root(h('div', { className: 'mwt-retry' }, h('span', null, s.error ? t('loadFailed') : t('noMatch')), h('button', { type: 'button', className: 'mwt-btn', onClick: kick }, t('retry'))))
+    }
+    return h(MateView, { key: mate.id, mate, mates: s.mates, nav: n, renderSlot })
+  }
+
+  /**
+   * One teammate: header (avatar + name → the right panel, title, ···), the thread, the dock; the right panel beside it
+   * when the page has room (a grid column), else a slide-over at its right edge. The reading column never shrinks.
+   */
+  function MateView({ mate, mates, nav: n, renderSlot }) {
+    const th = useThread(mate)
+    const runs = React.useMemo(() => th.runs.filter((r) => !(r.quiet && r.trigger === 'routine' && !r.error)), [th.runs])
+    // Migrated runs and finished runs older than the newest five fold to the user line + one row per deliverable.
+    const folded = React.useMemo(() => foldedRunIds(runs, 5), [runs])
+    const [opened, setOpened] = React.useState(() => new Set())
+    const toggleOpen = (id) => setOpened((prev) => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next })
+    const live = activeRun(runs)
+    const running = mate.state === 'working' || (!!live && isLive(live))
     useTick(running)
-    const key = task ? task.status + ':' + task.deliverableIds.length + ':' + (task.ask ? task.ask.id : '') + ':' + (running ? Math.floor(Date.now() / FAST_MS) : 0) : ''
-    const [detail, setDetail] = useTaskDetail(id, key)
     const rootRef = React.useRef(null)
     const box = useBox(rootRef)
-    React.useEffect(() => { if (rootRef.current) rootRef.current.scrollTop = 0 }, [id]) // a task opens at its title
-    useThreadOpened('task', id, task ? (task.lastAt || '') + ':' + task.status + ':' + task.deliverableIds.length : '')
-    const [renaming, setRenaming] = React.useState(false)
-    const [confirm, setConfirm] = React.useState(false)
-    const [busy, setBusy] = React.useState(false)
-    // The live copy (polled) carries status and verification; the detail carries the activity and the documents.
-    const fresh = detail && detail.task && detail.task.id === id ? detail : null // the previous task's detail, for a moment after switching
-    const full = task ? (fresh ? { ...fresh.task, ...task, activity: fresh.task.activity } : task) : null
-    const docs = fresh && Array.isArray(fresh.deliverables) ? fresh.deliverables : []
-    // 这台电脑: the first entry that wants this task (its `when` reads the detail, activity included).
+    // What you just sent shows at once, until a page fetched after the send has it.
+    const [pending, setPending] = React.useState({ text: '', at: 0 })
+    React.useEffect(() => { if (pending.text && pending.at && th.fetchedFrom > pending.at) setPending({ text: '', at: 0 }) }, [th.fetchedFrom])
+    const [hl, setHl] = React.useState('')
+    const atBottom = React.useRef(true)
+    const keep = React.useRef(null)
+    const jump = React.useRef({ id: '', tries: 0 })
+    const [jumpSeq, setJumpSeq] = React.useState(0)
+
+    // The right panel: per teammate, mode 'mate' (电脑 · 例行 · 设置) or 'new-mate' (the form).
+    const [aside, setAside] = React.useState(() => ({ open: asideMemory(mate.id) === 'open', mode: 'mate', section: '', routineId: '', seq: 0 }))
+    const showAside = (open, patch) => { setAside((a) => ({ ...a, open, ...(patch || {}), seq: a.seq + 1 })); if (!patch || patch.mode !== 'new-mate') rememberAside(mate.id, open ? 'open' : 'closed') }
+
+    // Navigation requests (the column, toasts, the bell, search): a run to jump to, the panel to open.
+    React.useEffect(() => {
+      if (n.seq === consumedSeq) return
+      consumedSeq = n.seq
+      if (n.runId) { jump.current = { id: n.runId, tries: 0 }; setJumpSeq((x) => x + 1) }
+      const a = n.aside
+      if (a && a.mode === 'new-mate') showAside(true, { mode: 'new-mate', section: '', routineId: '' })
+      else if (a) showAside(true, { mode: 'mate', section: a.section || '', routineId: a.routineId || '' })
+    }, [n.seq])
+
+    // Tell the column what is on screen; mark it seen now and whenever new content lands while it stays open.
+    React.useEffect(() => { fire('mywork:thread-opened', { kind: 'mate', id: mate.id }) }, [mate.id])
+    React.useEffect(() => { api('/seen', { id: mate.id }).catch(() => {}) }, [mate.id, mate.lastAt || ''])
+
+    // Scroll: the thread opens at its end and follows new content while you are at the end; 「加载更早」 keeps your place.
+    const onScroll = () => {
+      const el = rootRef.current
+      if (!el) return
+      atBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 120
+      // Near the top: the earlier page comes in above, your place kept.
+      if (el.scrollTop < 200 && th.loaded && th.nextBefore && !th.busy && !keep.current && !jump.current.id) loadEarlier()
+    }
+    const lastRun = runs[runs.length - 1]
+    const sig = runs.length + ':' + (runs[0] ? runs[0].id : '') + ':' + (lastRun ? lastRun.id + lastRun.status + (lastRun.activity || []).length + (lastRun.deliverables || []).length : '') + ':' + pending.text
+    React.useLayoutEffect(() => {
+      const el = rootRef.current
+      if (!el) return
+      const k = keep.current
+      if (k) { keep.current = null; el.scrollTop = k.top + (el.scrollHeight - k.height); return }
+      if (atBottom.current && !jump.current.id) el.scrollTop = el.scrollHeight
+    }, [sig])
+    // First load: open at the end (newest), once the thread is on screen — again a frame later for late layout.
+    const firstScrolled = React.useRef(false)
+    React.useLayoutEffect(() => {
+      if (firstScrolled.current || !th.loaded || jump.current.id) return
+      const el = rootRef.current
+      if (!el) return
+      firstScrolled.current = true
+      atBottom.current = true
+      el.scrollTop = el.scrollHeight
+      const id = requestAnimationFrame(() => { if (atBottom.current && rootRef.current) rootRef.current.scrollTop = rootRef.current.scrollHeight })
+      return () => cancelAnimationFrame(id)
+    }, [th.loaded])
+    const loadEarlier = () => {
+      const el = rootRef.current
+      if (el) keep.current = { height: el.scrollHeight, top: el.scrollTop }
+      // Nothing came (busy, failed): drop the kept place so it is not applied to some later change.
+      return th.loadEarlier().then((ok) => { if (!ok) keep.current = null; return ok })
+    }
+    // Jump to a run (and load earlier pages until it is there), then highlight it for a moment.
+    React.useEffect(() => {
+      const j = jump.current
+      if (!j.id || !th.loaded) return
+      const el = rootRef.current && rootRef.current.querySelector('[data-run="' + cssEsc(j.id) + '"]')
+      if (el) {
+        jump.current = { id: '', tries: 0 }
+        atBottom.current = false
+        try { el.scrollIntoView({ block: 'center' }) } catch {}
+        setHl(j.id)
+        return
+      }
+      if (th.nextBefore && !th.busy && j.tries < 10) { j.tries++; th.loadEarlier() }
+      else if (!th.nextBefore) jump.current = { id: '', tries: 0 }
+    }, [jumpSeq, th.loaded, runs.length, th.busy])
+    // The highlight goes after a moment, whatever else re-renders meanwhile.
+    React.useEffect(() => { if (!hl) return undefined; const id = setTimeout(() => setHl(''), HIGHLIGHT_MS); return () => clearTimeout(id) }, [hl, jumpSeq])
+
+    // 电脑: the first slot entry that wants the teammate's current run.
     const entries = useAsideEntries()
-    const aside = renderSlot && full ? entries.find((x) => { if (!x.when) return false; try { return !!x.when(full) } catch { return false } }) || null : null
-    const [asideOpen, setAsideOpen] = React.useState(false)
+    // The live picture only while this teammate's current run is really running (not waiting, not queued) and has used
+    // the browser in that run (the entry's when() checks the run's tools); otherwise its folder.
+    const browsing = !!live && isLive(live) && !isQueued(live)
+    const screen = renderSlot && browsing ? entries.find((x) => { if (!x.when) return false; try { return !!x.when(live) } catch { return false } }) || null : null
     const autoOpened = React.useRef(false)
     React.useEffect(() => {
-      // Opens by itself once while the task works (unless you closed it for this task before); never closes by itself.
-      if (!aside || !running || autoOpened.current) return
+      // Opens by itself once while the teammate browses (unless you closed its panel before); never closes by itself.
+      if (!screen || !running || autoOpened.current) return
       autoOpened.current = true
-      const mem = asideMemory(id)
-      if (mem === 'closed') return
-      setAsideOpen(true)
-      if (!mem) rememberAside(id, 'open')
-    }, [!!aside, running, id])
-    const showAside = (open) => { setAsideOpen(open); rememberAside(id, open ? 'open' : 'closed') }
+      if (asideMemory(mate.id) === 'closed') return
+      setAside((a) => (a.open ? a : { ...a, open: true, mode: 'mate', section: 'computer', seq: a.seq + 1 }))
+    }, [!!screen, running])
     const split = box.w >= SPLIT_MIN
-    const shown = !!aside && asideOpen
+    const shown = aside.open
     React.useEffect(() => {
       if (!shown || split) return undefined
-      // Escape closes the slide-over, except while the key goes to the picture you are driving inside it.
       const onKey = (ev) => { if (ev.key === 'Escape' && !ev.defaultPrevented && !(ev.target && typeof ev.target.closest === 'function' && ev.target.closest('.mwt-aside'))) showAside(false) }
       window.addEventListener('keydown', onKey)
       return () => window.removeEventListener('keydown', onKey)
     }, [shown, split])
-    const root = (...children) => h('div', { ref: rootRef, className: 'mwt mwt-task-screen', 'data-mwt-task': id }, h('style', null, STYLE), ...children)
-    if (!task) return root(h('div', { className: 'mwt-page' }, !s.loadedAt && !s.error ? h(Skeleton, { rows: 3 }) : h('div', { className: 'mwt-empty' }, t('none'))))
-    const scenarioLabel = (s.scenarios.find((x) => x.id === task.scenario) || {}).label || task.scenario
-    const meta = waiting ? [t('needsYou'), ago((task.ask && task.ask.at) || task.attentionAt)].filter(Boolean).join(' · ')
-      : [live ? task.statusLabel : task.error ? t('failedTitle') : verdictWord(task), task.scenario !== 'general' ? scenarioLabel : '', fmtDate(task.finishedAt || task.createdAt)].filter(Boolean).join(' · ')
-    const latest = docs.length ? docs[docs.length - 1] : null
-    const rerun = () => api('/rerun', { id }).then((d) => { refresh().then(schedulePoll); if (d.task) openTask(d.task.id) })
-    const menu = [
-      live ? { icon: 'x', label: t('cancel'), run: () => api('/cancel', { id }).then(() => refresh()) } : { icon: 'rotate-cw', label: t('rerun'), run: rerun },
-      !live && task.deliverableIds.length ? { icon: 'circle-check', label: t('verifyAgain'), run: () => api('/verify', { id }).then(() => refresh().then(schedulePoll)) } : null,
-      task.sessionId ? { icon: 'history', label: t('rawProcess'), run: () => fire('mywork:open-session', { sessionId: task.sessionId }) } : null,
-      { icon: 'pencil', label: t('rename'), run: () => setRenaming(true) },
-      latest ? { icon: 'file-text', label: t('exportMd'), run: () => download(safeName(latest.title) + '.md', '# ' + latest.title + '\n\n' + latest.markdown) } : null,
-      latest ? { icon: 'file-text', label: t('exportPdf'), run: () => printDoc(latest) } : null,
-      { icon: 'trash', label: t('remove'), run: () => setConfirm(true) },
-    ]
-    const saveTitle = (title) => { const v = String(title || '').trim(); setRenaming(false); if (!v || v === task.title) return; api('/rename', { id, title: v }).then(() => refresh()).catch(() => {}) }
-    const remove = () => { if (busy) return; setBusy(true); api('/remove', { id }).then(() => refresh()).then(() => onBack()).catch(() => setBusy(false)) }
-    const onRate = rateIn(setDetail)
-    // 找人: POST /answer, then the returned task (activity included) settles the card at once; the poll brings the new status.
-    const answer = (askId, value) => api('/answer', { id, askId, answer: value }).then((d) => {
-      if (d && d.task && Array.isArray(d.task.activity)) setDetail((prev) => (prev && prev.task && prev.task.id === id ? { ...prev, task: d.task } : prev))
-      refresh().then(schedulePoll)
-    })
-    const takeover = aside ? () => showAside(true) : null
-    const thread = threadOf(full, docs)
-    const title = aside ? asideTitle(aside) || t('computer') : ''
+
+    const answer = (runId) => (askId, value) => api('/answer', { id: runId, askId, answer: value }).then((d) => { if (d && d.run) th.patchRun(d.run); th.reload(); kick() })
+    const rate = (d, r) => api('/rate', { id: d.id, rating: d.rating === r ? null : r }).then((x) => {
+      const nd = x && x.deliverable
+      if (!nd) return
+      th.setTh((p) => ({ ...p, runs: p.runs.map((run) => (Array.isArray(run.deliverables) && run.deliverables.some((y) => y.id === nd.id) ? { ...run, deliverables: run.deliverables.map((y) => (y.id === nd.id ? { ...y, rating: nd.rating } : y)) } : run)) }))
+    }).catch(() => {})
+    const ack = (e) => api('/routines/ack', { id: e.routineId, at: e.at }).then(() => { th.reload(); kick() }).catch(() => {})
+    const stop = () => api('/mates/stop', { id: mate.id }).then(() => { th.reload(); kick() }).catch(() => {})
+    const takeover = () => showAside(true, { mode: 'mate', section: 'computer' })
+    const textAsk = textAskOf(runs)
+
+    const renderEntry = (run, e) => {
+      if (e.kind === 'routine') return h('div', { key: e.key, className: 'mwt-center' }, [e.title, hhmm(e.at)].filter(Boolean).join(' · '))
+      if (e.kind === 'scheduled') return h('button', { key: e.key, type: 'button', className: 'mwt-center', onClick: () => showAside(true, { mode: 'mate', section: 'routines', routineId: e.routineId }) }, t('scheduled') + ' · ' + [e.scheduleLabel, e.title].filter(Boolean).join(' '))
+      if (e.kind === 'remind') return h('div', { key: e.key, className: 'mwt-turn ai' }, h(RemindCard, { e, onAck: ack }))
+      if (e.kind === 'user') return h('div', { key: e.key, className: 'mwt-turn user' }, h('div', { className: 'mwt-bubble' }, e.text))
+      if (e.kind === 'deliver') return h('div', { key: e.key, className: 'mwt-turn ai' }, h(DeliverBody, { d: e.d, titled: true }), h(DeliverMeta, { d: e.d, verify: e.verify, onRate: rate }))
+      if (e.kind === 'text') return h('div', { key: e.key, className: 'mwt-turn ai' }, h(Markdown, { text: e.text }))
+      if (e.kind === 'ask') return h('div', { key: e.key, className: 'mwt-turn ai' }, h(AskCard, { e, onAnswer: answer(run.id), onTakeover: takeover }))
+      if (e.kind === 'auto') return h('div', { key: e.key, className: 'mwt-turn ai' }, h('div', { className: 'mwt-askline' }, h('span', null, t('askAuto'))))
+      if (e.kind === 'thinking') return h('div', { key: e.key, className: 'mwt-turn ai mwt-thinking' }, h('span', null, [t('working'), e.step, elapsedOf(run)].filter(Boolean).join(' · ')))
+      if (e.kind === 'queued') return h('div', { key: e.key, className: 'mwt-turn ai mwt-queued' }, t('queued'))
+      if (e.kind === 'stopped') return h('div', { key: e.key, className: 'mwt-center' }, t('stopped'))
+      if (e.kind === 'failed') return h('div', { key: e.key, className: 'mwt-turn ai mwt-failed' }, t('failedTitle') + ' · ' + e.reason)
+      return null
+    }
+
+    const title = aside.mode === 'new-mate' ? t('newMate') : mate.name
+    const asideBody = () => aside.mode === 'new-mate'
+      ? h(NewMateForm, { onCreated: (m) => { setAside((a) => ({ ...a, open: false, mode: 'mate', seq: a.seq + 1 })); if (getNav().mateId !== m.id) openMate(m.id) } })
+      : h(MatePanel, { mate, live, screen, renderSlot, section: aside.section, routineId: aside.routineId, seq: aside.seq, onJump: (runId) => { jump.current = { id: runId, tries: 0 }; setJumpSeq((x) => x + 1) } })
     const asidePanel = (mode) => h('aside', { className: 'mwt-aside ' + mode, 'data-open': mode === 'over' ? shown : undefined, 'aria-label': title, 'aria-hidden': mode === 'over' && !shown ? 'true' : undefined, style: mode === 'col' && box.h ? { maxHeight: Math.max(240, box.h - 32) } : undefined },
       h('div', { className: 'mwt-aside-head' },
         h('span', { className: 'title' }, title),
         h('button', { type: 'button', className: 'mwt-btn ghost round', 'aria-label': t('close'), onClick: () => showAside(false) }, icon('x', { size: 14 }))),
-      shown ? h('div', { className: 'mwt-aside-body' }, renderSlot(ASIDE_SLOT, { task: full, deliverables: docs, live: running }, { only: aside.id })) : null)
-    return root(
-      aside && !split ? h('div', { className: 'mwt-aside-dock' }, h('div', { className: 'mwt-aside-clip', style: box.h ? { height: box.h } : undefined }, asidePanel('over'))) : null,
-      h('div', { className: 'mwt-page' + (shown && split ? ' split' : '') },
+      shown ? h('div', { className: 'mwt-aside-body' }, asideBody()) : null)
+    const menu = [
+      running || mate.state === 'waiting' ? { icon: 'square', label: t('stop'), run: stop } : null,
+      { icon: 'settings', label: t('settings'), run: () => showAside(true, { mode: 'mate', section: 'settings' }) },
+    ]
+    const empty = th.loaded && !runs.length && !pending.text
+    return h('div', { ref: rootRef, className: 'mwt mwt-mate', 'data-mwt-mate': mate.id, onScroll },
+      h('style', null, STYLE),
+      !split ? h('div', { className: 'mwt-aside-dock' }, h('div', { className: 'mwt-aside-clip', style: box.h ? { height: box.h } : undefined }, asidePanel('over'))) : null,
+      h('div', { className: 'mwt-page mate' + (shown && split ? ' split' : '') },
         h('div', { className: 'mwt-col' },
-          h('div', { className: 'mwt-toolbar' },
-            h('button', { type: 'button', className: 'mwt-btn ghost round', 'aria-label': t('back'), onClick: onBack }, icon('arrow-left', { size: 15 })),
+          h('header', { className: 'mwt-head' },
+            h('button', { type: 'button', className: 'mwt-who', 'aria-expanded': shown && aside.mode === 'mate', onClick: () => showAside(!(shown && aside.mode === 'mate'), { mode: 'mate', section: '', routineId: '' }) },
+              h(Avatar, { mate, size: 28, working: running }),
+              h('span', { className: 'name' }, mate.name),
+              mate.title ? h('span', { className: 'ttl' }, mate.title) : null),
             h('span', { className: 'grow' }),
-            aside ? h('button', { type: 'button', className: 'mwt-btn ghost round', 'aria-label': t('computer'), 'aria-pressed': shown, onClick: () => showAside(!shown) }, icon('monitor', { size: 15 })) : null,
             h(Menu, { items: menu })),
-          renaming ? h(TitleEdit, { value: task.title, onDone: saveTitle }) : h('h1', { className: 'mwt-task-title' }, task.title),
-          h('p', { className: 'mwt-task-meta' }, meta),
-          confirm ? h('div', { className: 'mwt-confirm', role: 'alertdialog' }, h('span', null, t('removeAsk')), h('button', { type: 'button', className: 'mwt-btn danger', disabled: busy, onClick: remove }, t('remove')), h('button', { type: 'button', className: 'mwt-btn ghost', onClick: () => setConfirm(false) }, t('cancel'))) : null,
-          h('section', { className: 'mwt-thread task' }, thread.map((e) => {
-            if (e.kind === 'user') return h('div', { key: e.key, className: 'mwt-turn user' }, h('div', { className: 'mwt-bubble' }, e.text))
-            if (e.kind === 'deliver') return h('div', { key: e.key, className: 'mwt-turn ai' }, h(Doc, { d: e.d }), h(DeliverMeta, { d: e.d, verify: e.verify, onRate }))
-            if (e.kind === 'text') return h('div', { key: e.key, className: 'mwt-turn ai' }, h(Markdown, { text: e.text }))
-            if (e.kind === 'ask') return h('div', { key: e.key, className: 'mwt-turn ai' }, h(AskCard, { e, onAnswer: answer, onTakeover: takeover }))
-            if (e.kind === 'auto') return h('div', { key: e.key, className: 'mwt-turn ai' }, h('div', { className: 'mwt-askline' }, h('span', null, t('askAuto'))))
-            if (e.kind === 'thinking') return h('div', { key: e.key, className: 'mwt-turn ai mwt-thinking' }, h('span', null, [t('doing'), e.step, elapsedOf(task)].filter(Boolean).join(' · ')))
-            if (e.kind === 'failed') return h('div', { key: e.key, className: 'mwt-turn ai' }, h('div', { className: 'mwt-failed' }, h('span', null, t('failedTitle') + ' · ' + e.reason), h('button', { type: 'button', className: 'mwt-btn ghost', onClick: rerun }, t('rerun'))))
-            return null
-          })),
-          h(Process, { task: full, live: running }),
-          h(Say, { task, onAnswer: answer })),
+          !th.loaded ? h(Skeleton, { rows: 3 })
+            : th.error ? h('div', { className: 'mwt-retry' }, h('span', null, t('loadFailed')), h('button', { type: 'button', className: 'mwt-btn', onClick: th.reload }, t('retry')))
+            : empty ? null
+            : h('section', { className: 'mwt-thread' },
+              th.nextBefore ? h('button', { type: 'button', className: 'mwt-older', disabled: th.busy, onClick: loadEarlier }, t('loadEarlier')) : null,
+              runs.map((run) => {
+                const list = threadOf(run)
+                if (folded.has(run.id) && list.some((e) => e.kind === 'deliver')) {
+                  return h('div', { key: run.id, className: 'mwt-run folded' + (hl === run.id ? ' hl' : ''), 'data-run': run.id },
+                    list.map((e) => {
+                      if (e.kind === 'user' || e.kind === 'routine') return renderEntry(run, e)
+                      if (e.kind !== 'deliver') return null
+                      const open = opened.has(e.d.id)
+                      return h('div', { key: e.key, className: 'mwt-turn ai' },
+                        h(FoldRow, { d: e.d, verify: e.verify, open, onToggle: () => toggleOpen(e.d.id) }),
+                        open ? h(DeliverBody, { d: e.d, titled: false }) : null,
+                        open ? h(DeliverMeta, { d: e.d, verify: e.verify, onRate: rate }) : null)
+                    }))
+                }
+                return h('div', { key: run.id, className: 'mwt-run' + (hl === run.id ? ' hl' : ''), 'data-run': run.id },
+                  list.map((e) => renderEntry(run, e)),
+                  hasProcess(run) ? h(Process, { run, live: isLive(run) }) : null)
+              }),
+              pending.text ? h('div', { className: 'mwt-turn user' }, h('div', { className: 'mwt-bubble' }, pending.text)) : null),
+          h('div', { className: 'mwt-dock' }, h(Dock, { key: mate.id, mate, targetId: mate.id, textAsk, answering: mate.state === 'waiting' || !!textAsk, onPending: (text) => { atBottom.current = true; setPending({ text, at: text ? Date.now() : 0 }) }, onSent: () => { th.reload(); kick() } }))),
         shown && split ? asidePanel('col') : null))
   }
 
-  function TasksPage({ renderSlot }) {
-    const s = usePolling()
-    const [filter, setFilter] = React.useState('all')
-    const [q, setQ] = React.useState('')
-    const [open, setOpen] = React.useState(() => { const id = nav.pendingTask; nav.pendingTask = ''; return id })
-    useNav((kind, id) => { if (kind === 'task' && id) { nav.pendingTask = ''; setOpen(String(id)) } })
-    React.useEffect(() => {
-      const onOpen = (e) => { const id = e.detail && e.detail.id; if (id) setOpen(String(id)) }
-      const onHome = (e) => { if (e.detail && e.detail.id === PANELS.tasks) setOpen('') } // 任务 in the sidebar, tapped again: back to the list
-      window.addEventListener('mywork:open-task', onOpen)
-      window.addEventListener('mywork:panel-home', onHome)
-      if (nav.pendingTask) { setOpen(nav.pendingTask); nav.pendingTask = '' }
-      return () => { window.removeEventListener('mywork:open-task', onOpen); window.removeEventListener('mywork:panel-home', onHome) }
-    }, [])
-    useTick(!open && s.items.some(working))
-    // A task page is its own screen (its root holds the aside); keyed so each task starts closed and at its title.
-    if (open) return h(TaskDetail, { key: open, id: open, onBack: () => setOpen(''), renderSlot })
-    const needle = q.trim().toLowerCase()
-    const hit = (x) => !needle || String(x.title || '').toLowerCase().includes(needle) || String(x.input || '').toLowerCase().includes(needle) || (x.deliverables || []).some((d) => String(d.title || '').toLowerCase().includes(needle))
-    const items = s.items.filter((x) => (filter === 'all' ? true : filter === 'active' ? x.status !== 'done' : filter === 'delivered' ? x.deliverables.length > 0 : x.status === 'done') && hit(x))
-    const state = (x) => x.status !== 'done' ? (x.currentStep || x.statusLabel) : x.error ? t('failedTitle') : x.verification && x.verification.passed === false ? t('verifyIssues') : x.deliverables.length ? (x.verification && x.verification.passed ? t('verified') : t('delivered')) : t('answered')
-    const glyphOf = (x) => x.status === 'waiting' ? { glyph: 'message-circle', spin: false, tone: 'warn' } : x.status !== 'done' ? { glyph: 'loader', spin: true, tone: 'live' } : x.error ? { glyph: 'circle-x', spin: false, tone: 'danger' } : { glyph: 'circle-check', spin: false, tone: 'success' }
-    return h('div', { className: 'mwt' }, h('style', null, STYLE), h('div', { className: 'mwt-page' },
-      h('div', { className: 'mwt-title' }, h('h1', null, t('tasks'))),
-      h('div', { className: 'mwt-filters' },
-        h('div', { className: 'mwt-chips', style: { margin: 0 } }, [['all', t('all')], ['active', t('active')], ['delivered', t('deliverables')]].map(([k, label]) => h('button', { key: k, type: 'button', className: 'mwt-chip', 'data-on': filter === k, onClick: () => setFilter(k) }, label))),
-        h('label', { className: 'mwt-search' }, icon('search', { size: 14 }), h('input', { type: 'search', value: q, placeholder: t('search'), 'aria-label': t('search'), onChange: (e) => setQ(e.target.value) }))),
-      !s.loadedAt && !s.error ? h(Skeleton, { rows: 4 })
-        : items.length ? h('div', { className: 'mwt-list' }, items.map((x) => h(Row, { key: x.id, row: { ...glyphOf(x), title: x.title, state: state(x) + ' · ' + fmtTime(x.finishedAt || x.createdAt), open: () => setOpen(x.id) } })))
-        : h('div', { className: 'mwt-empty' }, s.error || (needle ? t('noMatch') : t('none')))))
-  }
-
-  function DeliverablesPage() {
-    const s = usePolling()
-    const [items, setItems] = React.useState([])
-    const [scenario, setScenario] = React.useState('all')
-    const [open, setOpen] = React.useState(() => { const id = nav.pendingDeliverable; nav.pendingDeliverable = ''; return id })
-    const [detail, setDetail] = React.useState(null)
-    React.useEffect(() => { api('/deliverables').then((d) => setItems(d.items || [])).catch(() => {}) }, [s.loadedAt])
-    useNav((kind, id) => { if (kind === 'deliverables') setOpen(''); else if (kind === 'deliverable' && id) { nav.pendingDeliverable = ''; setOpen(String(id)) } })
-    React.useEffect(() => {
-      const onOpen = (e) => { const id = e.detail && e.detail.id; if (id) setOpen(String(id)) }
-      const onHome = (e) => { if (e.detail && e.detail.id === PANELS.deliverables) setOpen('') }
-      window.addEventListener('mywork:open-deliverable', onOpen)
-      window.addEventListener('mywork:panel-home', onHome)
-      return () => { window.removeEventListener('mywork:open-deliverable', onOpen); window.removeEventListener('mywork:panel-home', onHome) }
-    }, [])
-    React.useEffect(() => { if (!open) { setDetail(null); return } let on = true; api('/deliverable?id=' + encodeURIComponent(open)).then((d) => { if (on) setDetail(d) }).catch(() => {}); return () => { on = false } }, [open])
-    const labelOf = (id) => (s.scenarios.find((x) => x.id === id) || {}).label || id
-    const rate = (d, r) => api('/rate', { id: d.id, rating: d.rating === r ? null : r }).then((x) => { setDetail((prev) => prev ? { ...prev, deliverable: x.deliverable } : prev); setItems((prev) => prev.map((y) => y.id === x.deliverable.id ? { ...y, rating: x.deliverable.rating } : y)) }).catch(() => {})
-    const scenariosSeen = [...new Set(items.map((d) => d.scenario))]
-    const list = items.filter((d) => scenario === 'all' || d.scenario === scenario)
-    const cur = detail && detail.deliverable ? detail.deliverable : null
-    // The viewer reads the task's live copy when the list has it (verification stamps land there first), else the stored one.
-    const curTask = cur ? (s.items.find((x) => x.id === cur.taskId) || detail.task || { status: 'done', verification: cur.verification }) : null
-    const curVerify = cur ? verifyState(curTask) : null
-    const viewerMenu = cur ? [
-      detail.task ? { icon: 'list-checks', label: t('openTask'), run: () => openTask(detail.task.id) } : null,
-      { icon: 'file-text', label: t('exportMd'), run: () => download(safeName(cur.title) + '.md', '# ' + cur.title + '\n\n' + cur.markdown) },
-      { icon: 'file-text', label: t('exportPdf'), run: () => printDoc(cur) },
-    ] : []
-    return h('div', { className: 'mwt' }, h('style', null, STYLE), h('div', { className: 'mwt-page' },
-      open ? h(React.Fragment, null,
-        h('div', { className: 'mwt-toolbar' }, h('button', { type: 'button', className: 'mwt-btn ghost round', 'aria-label': t('back'), onClick: () => setOpen('') }, icon('arrow-left', { size: 15 })), h('span', { className: 'grow' }), cur ? h(Menu, { items: viewerMenu }) : null),
-        cur ? h(React.Fragment, null,
-          h('h1', { className: 'mwt-task-title' }, cur.title),
-          h('p', { className: 'mwt-task-meta' }, [labelOf(cur.scenario), fmtDate(cur.createdAt)].filter(Boolean).join(' · ')),
-          h(Doc, { d: cur }), h(DeliverMeta, { d: cur, verify: curVerify, onRate: rate })) : h('div', { className: 'mwt-empty' }, '…'))
-      : h(React.Fragment, null,
-        h('div', { className: 'mwt-title' }, h('h1', null, t('deliverables')), h('span', null, String(items.length))),
-        scenariosSeen.length > 1 ? h('div', { className: 'mwt-chips', style: { margin: '0 0 16px' } }, [['all', t('all')], ...scenariosSeen.map((id) => [id, labelOf(id)])].map(([k, label]) => h('button', { key: k, type: 'button', className: 'mwt-chip', 'data-on': scenario === k, onClick: () => setScenario(k) }, label))) : null,
-        list.length ? h('div', { className: 'mwt-cards' }, list.map((d) => h('button', { key: d.id, type: 'button', className: 'mwt-card', onClick: () => setOpen(d.id) },
-          h('span', { className: 'mwt-dot', 'data-s': d.verification && d.verification.passed === true ? 'ok' : undefined }, icon('file-text', { size: 16 })),
-          h('span', null, h('span', { className: 'mwt-card-title' }, d.title), h('span', { className: 'mwt-card-sub' }, [labelOf(d.scenario), d.verification ? (d.verification.passed === true ? t('verified') : d.verification.passed === false ? t('verifyIssues') : t('verifyNone')) : '', d.rating === 1 ? t('ratingGood') : d.rating === -1 ? t('ratingBad') : ''].filter(Boolean).join(' · '))),
-          h('span', { className: 'mwt-card-meta' }, fmtDate(d.createdAt))))) : h('div', { className: 'mwt-empty' }, t('noneDeliverables')))))
-  }
-
-  function ScenariosPage() {
-    const s = usePolling()
-    const packs = s.scenarios.filter((x) => !x.builtin)
-    const general = s.scenarios.find((x) => x.builtin)
-    const card = (sc) => h('div', { key: sc.id, className: 'mwt-scen-card' },
-      h('h3', null, sc.label, sc.builtin ? h('span', { className: 'mwt-badge', style: { marginLeft: 8 } }, t('builtin')) : null), h('p', null, sc.intro),
-      sc.examples.length ? h('div', { className: 'ex' }, sc.examples.map((ex) => h('button', { key: ex, type: 'button', onClick: () => newTask(ex, sc.builtin ? '' : sc.id) }, '→ ' + ex))) : null)
-    return h('div', { className: 'mwt' }, h('style', null, STYLE), h('div', { className: 'mwt-page' },
-      h('div', { className: 'mwt-title' }, h('h1', null, t('packs')), h('span', null, String(packs.length))),
-      h('p', { className: 'mwt-lead' }, t('packsLead')),
-      h('div', { className: 'mwt-scen' }, general ? card(general) : null, packs.map(card)),
-      packs.length ? null : h('div', { className: 'mwt-empty', style: { marginTop: 16 } }, t('packsEmpty'))))
-  }
-
-  /** 例行: plain rows like everywhere else; a routine opens its own page where it is managed. */
-  function RoutinesPage() {
-    const s = usePolling()
-    const [items, setItems] = React.useState([])
-    const [open, setOpen] = React.useState(() => { const id = nav.pendingRoutine; nav.pendingRoutine = ''; return id })
-    const [showSpent, setShowSpent] = React.useState(false)
-    useNav((kind, id) => { if (kind === 'routine' && id) { nav.pendingRoutine = ''; setOpen(String(id)) } })
-    React.useEffect(() => { const onOpen = (e) => { const id = e.detail && e.detail.id; if (id) setOpen(String(id)) }; const onHome = (e) => { if (e.detail && e.detail.id === PANELS.routines) setOpen('') }; window.addEventListener('mywork:open-routine', onOpen); window.addEventListener('mywork:panel-home', onHome); if (nav.pendingRoutine) { setOpen(nav.pendingRoutine); nav.pendingRoutine = '' }; return () => { window.removeEventListener('mywork:open-routine', onOpen); window.removeEventListener('mywork:panel-home', onHome) } }, [])
-    const load = React.useCallback(() => api('/routines').then((d) => setItems(d.items || [])).catch(() => {}), [])
-    React.useEffect(() => { load() }, [s.loadedAt, load])
-    const spent = items.filter((r) => !r.enabled && r.schedule && r.schedule.type === 'once')
-    const live = items.filter((r) => !spent.includes(r)).sort((x, y) => (x.enabled === y.enabled ? 0 : x.enabled ? -1 : 1) || (new Date(x.nextRunAt || 0) - new Date(y.nextRunAt || 0)))
-    const when = (r) => !r.enabled ? (spent.includes(r) ? t('ended') : t('paused')) : r.nextRunAt ? t('nextRun') + ' ' + (isToday(r.nextRunAt) ? t('todayAt') + ' ' + fmtTime(r.nextRunAt) : fmtDate(r.nextRunAt)) : ''
-    const row = (r) => h('div', { key: r.id, className: 'mwt-row', 'data-off': !r.enabled, role: 'button', tabIndex: 0, onClick: () => setOpen(r.id), onKeyDown: (e) => { if (e.key === 'Enter') setOpen(r.id) } },
-      h('span', { className: 'mwt-dot' }, icon(r.kind === 'remind' ? 'bell' : 'history', { size: 16 })),
-      h('span', { className: 'mwt-row-main' }, h('span', { className: 'mwt-row-title' }, r.title), h('span', { className: 'mwt-row-sub' }, r.scheduleLabel)),
-      h('span', { className: 'mwt-row-state' }, when(r)))
-    const current = open ? items.find((r) => r.id === open) : null
-    return h('div', { className: 'mwt' }, h('style', null, STYLE), h('div', { className: 'mwt-page' },
-      current ? h(RoutineDetail, { r: current, onBack: () => setOpen(''), reload: () => { load(); refresh() } })
-        : h(React.Fragment, null,
-          h('div', { className: 'mwt-title' }, h('h1', null, t('routines'))),
-          !s.loadedAt && !s.error ? h(Skeleton, { rows: 3 })
-            : live.length ? h('div', { className: 'mwt-list' }, live.map(row)) : h('div', { className: 'mwt-empty' }, t('routinesLead')),
-          spent.length ? h('div', { className: 'mwt-spent' },
-            h('button', { type: 'button', className: 'mwt-btn ghost', onClick: () => setShowSpent(!showSpent) }, icon('history', { size: 13 }), t('endedN').replace('{n}', String(spent.length))),
-            showSpent ? h('div', { className: 'mwt-list', style: { marginTop: 8 } }, spent.map(row)) : null) : null)))
-  }
-
-  /** One routine: what it is, when it runs, its runs, and the three things you can do to it. */
-  function RoutineDetail({ r, onBack, reload }) {
-    useThreadOpened('routine', r.id, r.lastAt || '')
-    const act = (path, body, after) => api(path, body).then(() => { reload(); if (after) after() }).catch((e) => console.warn(`[${PLUGIN}]`, e))
-    const once = r.schedule && r.schedule.type === 'once'
-    // A one-off's schedule already is its next run; do not say it twice.
-    const meta = [r.kind === 'remind' ? t('kindRemind') : t('kindTask'), r.scheduleLabel, !r.enabled ? (once ? t('ended') : t('paused')) : r.nextRunAt && !once ? t('nextRun') + ' ' + fmtDate(r.nextRunAt) : ''].filter(Boolean).join(' · ')
-    const runs = Array.isArray(r.runs) ? r.runs : []
-    const runState = (x) => x.fired ? t('remindCard') : x.error ? t('failedTitle') : x.changed === false ? t('noChange') : x.changed === true ? t('changed') : t('delivered')
+  /**
+   * The dock: 「给 <name> 发消息」 (「回答」 while the newest run waits on a text question). POST /mates/say — idle: a new
+   * run; working: steers the run; waiting: answers the question. Enter sends; what you sent shows at once as a bubble,
+   * except an answer (`answering`), which lands as the question's 「已回答」 line when the thread comes back.
+   */
+  function Dock({ mate, targetId, textAsk, answering, onPending, onSent }) {
+    const [text, setText] = React.useState('')
+    const [busy, setBusy] = React.useState(false)
+    const [err, setErr] = React.useState('')
+    const ref = React.useRef(null)
+    const submit = async () => {
+      const body = text.trim()
+      if (!body || busy) return
+      const bubble = !answering
+      setBusy(true); setErr(''); setText(''); if (bubble) onPending(body)
+      // Always the teammate in the header (its id passed explicitly), never whatever nav says by now.
+      const id = targetId || mate.id
+      if (!id) { setText(body); if (bubble) onPending(''); setBusy(false); return }
+      try { await api('/mates/say', { id, text: body }); onSent() } catch (e) { if (bubble) onPending(''); setText(body); setErr(e.message || String(e)) } finally { setBusy(false) }
+    }
+    React.useEffect(() => { const el = ref.current; if (!el) return; el.style.height = 'auto'; el.style.height = Math.min(200, el.scrollHeight) + 'px' }, [text])
     return h('div', null,
-      h('div', { className: 'mwt-toolbar' }, h('button', { type: 'button', className: 'mwt-btn ghost round', 'aria-label': t('back'), onClick: onBack }, icon('arrow-left', { size: 15 }))),
-      h('h1', { className: 'mwt-task-title' }, r.title),
-      h('p', { className: 'mwt-task-meta' }, meta),
-      h('div', { className: 'mwt-actions', style: { margin: '0 0 24px' } },
-        h('button', { type: 'button', className: 'mwt-btn', onClick: () => act('/routines/run', { id: r.id }) }, icon('play', { size: 13 }), t('runNow')),
-        !once || r.enabled ? h('button', { type: 'button', className: 'mwt-btn ghost', onClick: () => act('/routines/enable', { id: r.id, enabled: !r.enabled }) }, icon(r.enabled ? 'pause' : 'play', { size: 13 }), r.enabled ? t('pause') : t('resume')) : null,
-        h('button', { type: 'button', className: 'mwt-btn ghost', onClick: () => act('/routines/remove', { id: r.id }, onBack) }, icon('trash', { size: 13 }), t('remove'))),
-      h('section', { className: 'mwt-section' }, h('h2', null, t('runs')),
-        runs.length ? h('div', { className: 'mwt-list' }, runs.slice(0, 20).map((x, i) => h('div', { key: i, className: 'mwt-row' + (x.taskId ? '' : ' mwt-row-static'), role: x.taskId ? 'button' : undefined, tabIndex: x.taskId ? 0 : undefined, onClick: () => { if (x.taskId) openTask(x.taskId) } },
-          h('span', { className: 'mwt-dot', 'data-s': x.error ? 'err' : x.fired || x.changed !== undefined ? 'ok' : undefined }, icon(x.error ? 'circle-x' : x.fired ? 'bell' : 'circle-check', { size: 16 })),
-          h('span', { className: 'mwt-row-main' }, h('span', { className: 'mwt-row-title' }, runState(x))),
-          h('span', { className: 'mwt-row-state' }, fmtDate(x.at))))) : h('div', { className: 'mwt-empty' }, t('neverRan'))))
+      h('div', { className: 'mwt-say' },
+        h('textarea', { ref, value: text, rows: 1, placeholder: textAsk ? t('answerPh') : t('sayTo').replace('{name}', mate.name || ''), 'aria-label': textAsk ? t('answerPh') : t('sayTo').replace('{name}', mate.name || ''), onChange: (e) => setText(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); submit() } } }),
+        h('button', { type: 'button', className: 'mwt-btn send round', 'aria-label': t('send'), disabled: busy || !text.trim(), onClick: submit }, icon(busy ? 'loader' : 'arrow-up', { size: 15 }))),
+      err ? h('small', { className: 'mwt-say-err' }, err) : null)
   }
 
-  /** Always mounted: completion toasts and browser notifications, and the poll that feeds the sidebar. */
+  // ---- the right panel: 电脑 · 例行 · 设置 -----------------------------------------------------------------------------
+
+  function MatePanel({ mate, live, screen, renderSlot, section, routineId, seq, onJump }) {
+    const ref = React.useRef(null)
+    React.useEffect(() => {
+      if (!section || !ref.current) return
+      const el = ref.current.querySelector('[data-sec="' + section + '"]')
+      if (el && typeof el.scrollIntoView === 'function') { try { el.scrollIntoView({ block: 'start' }) } catch {} }
+    }, [seq])
+    return h('div', { ref },
+      h('section', { className: 'mwt-sec', 'data-sec': 'computer' }, h('h2', null, t('computer')),
+        screen ? renderSlot(ASIDE_SLOT, { task: live, deliverables: (live && live.deliverables) || [], live: isLive(live) }, { only: screen.id }) : h(MateFiles, { mate })),
+      h('section', { className: 'mwt-sec', 'data-sec': 'routines' }, h('h2', null, t('routines')), h(MateRoutines, { mate, expand: routineId, seq, onJump })),
+      h('section', { className: 'mwt-sec', 'data-sec': 'settings' }, h('h2', null, t('settings')), h(MateSettings, { key: mate.id, mate })))
+  }
+
+  /**
+   * 电脑 when no browser is in use: the newest files in the teammate's folder (GET /mates/folder: what it wrote with fs /
+   * bash), up to 8 plain rows (glyph · name · size · time; the path in the tooltip).
+   */
+  function MateFiles({ mate }) {
+    const [items, setItems] = React.useState(null)
+    React.useEffect(() => {
+      let on = true
+      api('/mates/folder?id=' + encodeURIComponent(mate.id)).then((d) => (d && Array.isArray(d.items) ? d.items : [])).catch(() => []).then((rows) => { if (on) setItems(rows) })
+      return () => { on = false }
+    }, [mate.id, mate.lastAt || '', mate.state || ''])
+    if (!items) return h(Skeleton, { rows: 2 })
+    if (!items.length) return h('div', { className: 'mwt-empty' }, t('folderEmpty'))
+    return h('div', { className: 'mwt-alist' }, items.slice(0, 8).map((f) => h('div', { key: f.path || f.name, className: 'mwt-arow static', title: f.path || undefined },
+      h('span', { className: 'ic' }, icon('file', { size: 15 })),
+      h('span', { className: 'main' }, h('span', { className: 't' }, f.name)),
+      h('span', { className: 'm' }, [fmtSize(f.size), fmtWhen(f.modifiedAt)].filter(Boolean).join(' · ')))))
+  }
+
+  /**
+   * 例行: rows (glyph · title · schedule · 下次 / 已暂停). A row opens in place: the sentence (saved on blur), 现在跑一次,
+   * 暂停 / 恢复, 删除 (with a confirm line), the last ten runs (a run with a result jumps to it in the thread). 新例行 below.
+   */
+  function MateRoutines({ mate, expand, seq, onJump }) {
+    const [items, setItems] = React.useState(null)
+    const [open, setOpen] = React.useState(expand || '')
+    const [draft, setDraft] = React.useState('')
+    const [err, setErr] = React.useState('')
+    const [busy, setBusy] = React.useState(false)
+    const listRef = React.useRef(null)
+    const load = React.useCallback(() => api('/routines?mate=' + encodeURIComponent(mate.id)).then((d) => setItems((d.items || []).filter((r) => !r.mateId || r.mateId === mate.id))).catch(() => setItems((p) => p || [])), [mate.id])
+    React.useEffect(() => { load() }, [load, mate.lastAt || '', mate.routineCount])
+    React.useEffect(() => { if (expand) setOpen(expand) }, [expand, seq])
+    React.useEffect(() => {
+      if (!expand || !items || !listRef.current) return
+      const el = listRef.current.querySelector('[data-routine="' + cssEsc(expand) + '"]')
+      if (el && typeof el.scrollIntoView === 'function') { try { el.scrollIntoView({ block: 'nearest' }) } catch {} }
+    }, [expand, seq, !!items])
+    const create = () => {
+      const input = draft.trim()
+      if (!input || busy) return
+      setBusy(true); setErr('')
+      api('/routines/create', { mateId: mate.id, input }).then((d) => { setDraft(''); load(); kick(); if (d && d.routine && d.routine.id) setOpen(d.routine.id) }).catch((e) => setErr(e.message || String(e))).finally(() => setBusy(false))
+    }
+    const state = (r) => !r.enabled ? (r.schedule && r.schedule.type === 'once' ? t('ended') : t('paused')) : r.nextRunAt ? t('nextRun') + ' ' + (isToday(r.nextRunAt) ? hhmm(r.nextRunAt) : fmtWhen(r.nextRunAt)) : ''
+    return h('div', { ref: listRef },
+      !items ? h(Skeleton, { rows: 2 })
+        : items.length ? h('div', { className: 'mwt-alist' }, items.map((r) => h(React.Fragment, { key: r.id },
+          h('button', { type: 'button', className: 'mwt-arow', 'data-routine': r.id, 'data-off': !r.enabled, 'aria-expanded': open === r.id, onClick: () => setOpen(open === r.id ? '' : r.id) },
+            h('span', { className: 'ic' }, icon(r.kind === 'remind' ? 'bell' : 'repeat', { size: 15 })),
+            h('span', { className: 'main' }, h('span', { className: 't' }, r.title), r.scheduleLabel ? h('span', { className: 's' }, r.scheduleLabel) : null),
+            h('span', { className: 'm' }, state(r))),
+          open === r.id ? h(RoutineDetail, { r, reload: () => { load(); kick() }, onRemoved: () => { setOpen(''); load(); kick() }, onJump }) : null)))
+        : h('div', { className: 'mwt-empty' }, t('noRoutines')),
+      h('div', { style: { marginTop: 10 } },
+        h('input', { className: 'mwt-input', value: draft, placeholder: t('newRoutinePh'), 'aria-label': t('newRoutine'), disabled: busy, onChange: (e) => setDraft(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); create() } } }),
+        err ? h('div', { className: 'mwt-field-err', style: { margin: '6px 0 0' } }, err) : null))
+  }
+
+  function RoutineDetail({ r, reload, onRemoved, onJump }) {
+    const [input, setInput] = React.useState(r.input || r.title || '')
+    const [confirm, setConfirm] = React.useState(false)
+    const [err, setErr] = React.useState('')
+    React.useEffect(() => { setInput(r.input || r.title || '') }, [r.id, r.input])
+    const act = (path, body, after) => { setErr(''); return api(path, body).then(() => { (after || reload)() }).catch((e) => setErr(e.message || String(e))) }
+    const save = () => { const v = input.trim(); if (!v || v === (r.input || '')) return; act('/routines/update', { id: r.id, input: v }) }
+    const once = r.schedule && r.schedule.type === 'once'
+    const runs = (Array.isArray(r.runs) ? r.runs : []).slice().sort((a, b) => new Date(b.at || 0) - new Date(a.at || 0)).slice(0, 10)
+    const word = { result: t('runResult'), quiet: t('runQuiet'), failed: t('runFailed'), fired: t('runFired'), running: t('runRunning') }
+    return h('div', { className: 'mwt-rdetail' },
+      h('textarea', { className: 'mwt-input', value: input, rows: 2, 'aria-label': t('routines'), onChange: (e) => setInput(e.target.value), onBlur: save }),
+      h('div', { className: 'acts' },
+        h('button', { type: 'button', className: 'mwt-btn small', onClick: () => act('/routines/run', { id: r.id }) }, icon('play', { size: 13 }), t('runNow')),
+        !once || r.enabled ? h('button', { type: 'button', className: 'mwt-btn small ghost', onClick: () => act('/routines/enable', { id: r.id, enabled: !r.enabled }) }, icon(r.enabled ? 'pause' : 'play', { size: 13 }), r.enabled ? t('pause') : t('resume')) : null,
+        h('button', { type: 'button', className: 'mwt-btn small ghost', onClick: () => setConfirm(true) }, icon('trash', { size: 13 }), t('remove'))),
+      confirm ? h('div', { className: 'mwt-confirm', role: 'alertdialog' }, h('span', null, t('removeRoutineAsk')),
+        h('button', { type: 'button', className: 'mwt-btn small danger', onClick: () => act('/routines/remove', { id: r.id }, onRemoved) }, t('remove')),
+        h('button', { type: 'button', className: 'mwt-btn small ghost', onClick: () => setConfirm(false) }, t('cancel'))) : null,
+      err ? h('div', { className: 'mwt-field-err', style: { margin: '4px 0' } }, err) : null,
+      h('div', { className: 'runs' }, runs.length ? runs.map((x, i) => {
+        const kind = routineRunKind(x)
+        const runId = x.runId || x.taskId || ''
+        // Every run with a place in the thread jumps there (a quiet one has none): a result, a reminder's card, a failure, one still going.
+        const go = kind !== 'quiet' && runId && onJump ? () => onJump(runId) : null
+        return h('button', { key: i, type: 'button', className: 'mwt-arow' + (go ? '' : ' static'), onClick: go || undefined, tabIndex: go ? 0 : -1 },
+          h('span', { className: 'ic', 'data-tone': kind === 'failed' ? 'danger' : undefined }, icon(kind === 'failed' ? 'circle-x' : kind === 'fired' ? 'bell' : kind === 'result' ? 'circle-check' : kind === 'running' ? 'loader' : 'history', { size: 14 })),
+          h('span', { className: 'main' }, h('span', { className: 't', style: { fontSize: 13 } }, fmtWhen(x.at) + ' · ' + word[kind])),
+          h('span', { className: 'm' }))
+      }) : h('div', { className: 'mwt-empty', style: { fontSize: 13 } }, t('neverRan'))))
+  }
+
+  /** 设置: 名字, 头衔, 职责 (saved on blur), 置顶 and 通知 switches, 删除同事 (not for the default teammate). */
+  function MateSettings({ mate }) {
+    const [f, setF] = React.useState({ name: mate.name || '', title: mate.title || '', description: mate.description || '' })
+    const focus = React.useRef('')
+    const [confirm, setConfirm] = React.useState(false)
+    const [err, setErr] = React.useState('')
+    // The server's copy flows in unless you are editing that field.
+    React.useEffect(() => { setF((p) => ({ name: focus.current === 'name' ? p.name : mate.name || '', title: focus.current === 'title' ? p.title : mate.title || '', description: focus.current === 'description' ? p.description : mate.description || '' })) }, [mate.name, mate.title, mate.description])
+    const update = (patch) => { setErr(''); return api('/mates/update', { id: mate.id, ...patch }).then(() => kick()).catch((e) => setErr(e.message || String(e))) }
+    const blur = (k) => () => { focus.current = ''; const v = f[k].trim(); if (k === 'name' && !v) { setF((p) => ({ ...p, name: mate.name || '' })); return } if (v !== String(mate[k] || '')) update({ [k]: v }) }
+    const field = (k, label, multi) => h('label', { className: 'mwt-field' }, h('span', null, label),
+      h(multi ? 'textarea' : 'input', { className: 'mwt-input', value: f[k], rows: multi ? 4 : undefined, onFocus: () => { focus.current = k }, onChange: (e) => { const v = e.target.value; setF((p) => ({ ...p, [k]: v })) }, onBlur: blur(k) }))
+    const sw = (k, label, on) => h('div', { className: 'mwt-switch-row' }, h('span', null, label),
+      h('button', { type: 'button', role: 'switch', className: 'mwt-switch', 'aria-checked': on, 'aria-label': label, onClick: () => update({ [k]: !on }) }))
+    const remove = () => api('/mates/remove', { id: mate.id }).then(() => { kick(); openMate('') }).catch((e) => setErr(e.message || String(e)))
+    return h('div', null,
+      field('name', t('name')), field('title', t('title')), field('description', t('duty'), true),
+      sw('pinned', t('pinned'), mate.pinned === true || (!!mate.isDefault && mate.pinned !== false)),
+      sw('notify', t('notify'), mate.notify !== false),
+      err ? h('div', { className: 'mwt-field-err', style: { margin: '6px 0' } }, err) : null,
+      mate.isDefault ? null : h('div', { style: { marginTop: 12 } },
+        confirm ? h('div', { className: 'mwt-confirm', role: 'alertdialog' }, h('span', null, t('removeMateAsk')),
+          h('button', { type: 'button', className: 'mwt-btn small danger', onClick: remove }, t('remove')),
+          h('button', { type: 'button', className: 'mwt-btn small ghost', onClick: () => setConfirm(false) }, t('cancel')))
+          : h('button', { type: 'button', className: 'mwt-btn small ghost danger', onClick: () => setConfirm(true) }, icon('trash', { size: 13 }), t('removeMate'))))
+  }
+
+  /** 新同事: 「它负责什么」 (required) + 名字 (optional). Created, its thread opens; its intro run comes when the server has it. */
+  function NewMateForm({ onCreated }) {
+    const [description, setDescription] = React.useState('')
+    const [name, setName] = React.useState('')
+    const [busy, setBusy] = React.useState(false)
+    const [err, setErr] = React.useState('')
+    const ref = React.useRef(null)
+    React.useEffect(() => { if (ref.current) ref.current.focus() }, [])
+    const submit = () => {
+      const d = description.trim()
+      if (!d || busy) return
+      setBusy(true); setErr('')
+      api('/mates/create', name.trim() ? { description: d, name: name.trim() } : { description: d })
+        .then((x) => {
+          setDescription(''); setName('')
+          const m = x && x.mate
+          // The new teammate joins the snapshot now, so its page opens on it (not on the default) before the next poll.
+          if (m && m.id && !state.mates.some((y) => y.id === m.id)) setState({ mates: [...state.mates, { ...m, addedAt: Date.now() }] })
+          // Nav moves to the new teammate before any refetch, so no snapshot in between can fall back to another one.
+          if (m && m.id) { openMate(m.id); onCreated(m) }
+          kick()
+        })
+        .catch((e) => setErr(e.message || String(e))).finally(() => setBusy(false))
+    }
+    return h('div', { style: { paddingTop: 6 } },
+      h('label', { className: 'mwt-field' }, h('span', null, t('dutyAsk')),
+        h('textarea', { ref, className: 'mwt-input', rows: 4, value: description, placeholder: t('dutyPh'), required: true, onChange: (e) => setDescription(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); submit() } } })),
+      h('label', { className: 'mwt-field' }, h('span', null, t('name')),
+        h('input', { className: 'mwt-input', value: name, placeholder: t('namePh'), onChange: (e) => setName(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); submit() } } })),
+      err ? h('div', { className: 'mwt-field-err' }, err) : null,
+      h('button', { type: 'button', className: 'mwt-btn primary', disabled: busy || !description.trim(), onClick: submit }, busy ? icon('loader', { size: 14 }) : null, t('create')))
+  }
+
+  // ---- 文件 -----------------------------------------------------------------------------------------------------------
+
+  /** 文件: every teammate's files; chips 全部 + one per teammate; search; a row opens the file in place. */
+  function FilesPage() {
+    const s = usePolling()
+    const n = useNavState()
+    const [q, setQ] = React.useState('')
+    const [needle, setNeedle] = React.useState('')
+    const [who, setWho] = React.useState('all')
+    const [items, setItems] = React.useState(null)
+    const [open, setOpen] = React.useState(() => n.fileId || '')
+    React.useEffect(() => { if (n.fileId) setOpen(n.fileId); else setOpen('') }, [n.seq])
+    React.useEffect(() => { fire('mywork:thread-opened', { kind: 'files', id: '' }) }, [])
+    React.useEffect(() => { const id = setTimeout(() => setNeedle(q.trim()), 200); return () => clearTimeout(id) }, [q])
+    React.useEffect(() => {
+      let on = true
+      const params = [who !== 'all' ? 'mate=' + encodeURIComponent(who) : '', needle ? 'q=' + encodeURIComponent(needle) : ''].filter(Boolean).join('&')
+      api('/files' + (params ? '?' + params : '')).then((d) => { if (on) setItems(d.items || []) }).catch(() => { if (on) setItems((p) => p || []) })
+      return () => { on = false }
+    }, [who, needle, s.loadedAt])
+    const mateName = (id) => (s.mates.find((m) => m.id === id) || {}).name || ''
+    if (open) return h(FilePreview, { id: open, mates: s.mates, onBack: () => setOpen(''), onRated: (d) => setItems((p) => (p || []).map((y) => (y.id === d.id ? { ...y, rating: d.rating } : y))) })
+    const word = (d) => { const v = verifyState({ verifying: d.verifying, verification: d.verification }); return v.kind === 'passed' ? t('verified') : v.kind === 'issues' ? t('verifyIssues') : v.kind === 'none' ? t('verifyNone') : v.kind === 'verifying' ? t('verifying') : '' }
+    return h('div', { className: 'mwt mwt-files' }, h('style', null, STYLE), h('div', { className: 'mwt-page' },
+      h('div', { className: 'mwt-title' }, h('h1', null, t('files')), items ? h('span', null, String(items.length)) : null),
+      h('div', { className: 'mwt-filters' },
+        h('label', { className: 'mwt-search' }, icon('search', { size: 14 }), h('input', { type: 'search', value: q, placeholder: t('search'), 'aria-label': t('search'), onChange: (e) => setQ(e.target.value) })),
+        h('div', { className: 'mwt-chips' }, [['all', t('all')], ...mateOrder(s.mates).map((m) => [m.id, m.name])].map(([k, label]) => h('button', { key: k, type: 'button', className: 'mwt-chip', 'data-on': who === k, onClick: () => setWho(k) }, label)))),
+      !items ? h(Skeleton, { rows: 4 })
+        : items.length ? h('div', { className: 'mwt-list' }, items.map((d) => h('button', { key: d.id, type: 'button', className: 'mwt-row', onClick: () => setOpen(d.id) },
+          h('span', { className: 'ic', 'data-tone': d.verification && d.verification.passed === true ? 'success' : undefined }, icon(fileGlyph(d), { size: 16 })),
+          h('span', { className: 't' }, d.title || d.id),
+          h('span', { className: 'm' }, [word(d), mateName(d.mateId), fmtWhen(d.createdAt)].filter(Boolean).join(' · ')))))
+        : h('div', { className: 'mwt-empty' }, needle ? t('noMatch') : t('noFiles'))))
+  }
+
+  function FilePreview({ id, mates, onBack, onRated }) {
+    const [data, setData] = React.useState(null)
+    React.useEffect(() => { let on = true; api('/deliverable?id=' + encodeURIComponent(id)).then((d) => { if (on) setData(d) }).catch(() => { if (on) setData({}) }); return () => { on = false } }, [id])
+    const d = data && data.deliverable ? data.deliverable : null
+    const run = data && (data.run || data.task) ? (data.run || data.task) : null
+    const mateId = d ? d.mateId || (run && run.mateId) || '' : ''
+    const runId = d ? d.runId || (run && run.id) || '' : ''
+    const mate = mates.find((m) => m.id === mateId)
+    const verify = d ? verifyState(run ? { verifying: run.verifying, verification: run.verification } : { verification: d.verification }) : null
+    const rate = (x, r) => api('/rate', { id: x.id, rating: x.rating === r ? null : r }).then((y) => { if (y && y.deliverable) { setData((p) => ({ ...p, deliverable: { ...p.deliverable, rating: y.deliverable.rating } })); onRated(y.deliverable) } }).catch(() => {})
+    return h('div', { className: 'mwt mwt-files' }, h('style', null, STYLE), h('div', { className: 'mwt-page' },
+      h('div', { className: 'mwt-toolbar' },
+        h('button', { type: 'button', className: 'mwt-btn ghost round', 'aria-label': t('back'), onClick: onBack }, icon('arrow-left', { size: 15 })),
+        h('span', { className: 'grow' }),
+        d && mateId ? h('button', { type: 'button', className: 'mwt-btn ghost', onClick: () => openMate(mateId, runId) }, icon('message-circle', { size: 14 }), t('inThread')) : null,
+        d ? h(Menu, { items: [
+          { icon: 'file-text', label: t('exportMd'), run: () => download(safeName(d.title) + '.md', '# ' + d.title + '\n\n' + (d.markdown || '')) },
+          { icon: 'file-text', label: t('exportPdf'), run: () => printDoc(d) },
+        ] }) : null),
+      !data ? h(Skeleton, { rows: 4 })
+        : d ? h(React.Fragment, null,
+          h('h1', { className: 'mwt-doc-title' }, d.title),
+          h('p', { className: 'mwt-doc-meta' }, [mate ? mate.name : '', fmtWhen(d.createdAt)].filter(Boolean).join(' · ')),
+          h(Doc, { d }), h(DeliverMeta, { d, verify, onRate: rate }))
+          : h('div', { className: 'mwt-empty' }, t('noMatch'))))
+  }
+
+  /** Always mounted: toasts when a run finishes or needs you (one per teammate), browser notifications, the poll. */
   function Overlay() {
-    usePolling()
+    const s = usePolling()
     const [toasts, setToasts] = React.useState([])
+    const matesRef = React.useRef(s.mates); matesRef.current = s.mates
     React.useEffect(() => {
-      const onDone = (task) => {
-        if (task.quiet && !task.error) return
-        setToasts((prev) => [...prev.slice(-3), { id: task.id + ':' + Date.now(), task }])
-        try { if (typeof Notification !== 'undefined' && Notification.permission === 'granted') new Notification((task.error ? t('failedToast') : t('doneToast')) + ' · ' + task.title, { body: task.error || task.summary || '' }) } catch {}
+      const onItem = (x) => {
+        if (!x.mateId || mateOnScreen(x.mateId)) return
+        const mate = matesRef.current.find((m) => m.id === x.mateId) || { id: x.mateId, name: x.mateName || '' }
+        setToasts((prev) => [...prev.filter((y) => y.item.mateId !== x.mateId).slice(-3), { id: itemKey(x) + ':' + Date.now(), item: x, mate }])
+        const word = x.kind === 'ask' ? t('needsYouToast') : x.kind === 'failed' ? t('failedToast') : x.kind === 'remind' ? t('remindCard') : t('doneToast')
+        try { if (mate.notify !== false && typeof Notification !== 'undefined' && Notification.permission === 'granted') new Notification((x.mateName || mate.name || '') + ' · ' + word, { body: plainWords(x.text || '') }) } catch {}
       }
-      completionListeners.add(onDone)
-      // 需要你: a task stopped on a question. One toast per stop, none for the task page you are looking at.
-      const onWaiting = (task) => {
-        if (taskOnScreen(task.id)) return
-        setToasts((prev) => [...prev.filter((x) => !(x.asking && x.asking.id === task.id)).slice(-3), { id: 'w' + task.id + ':' + Date.now(), asking: task }])
-        try { if (typeof Notification !== 'undefined' && Notification.permission === 'granted') new Notification(t('needsYouToast') + ' · ' + task.title, { body: task.ask ? plainWords(task.ask.question) : '' }) } catch {}
-      }
-      waitingListeners.add(onWaiting)
-      const onNotice = (title, body) => setToasts((prev) => [...prev.slice(-3), { id: 'n' + Date.now(), notice: { title, body } }])
-      noticeListeners.add(onNotice)
-      return () => { completionListeners.delete(onDone); waitingListeners.delete(onWaiting); noticeListeners.delete(onNotice) }
+      itemListeners.add(onItem)
+      return () => { itemListeners.delete(onItem) }
     }, [])
-    // Reminders: a new pending reminder pops a toast and a browser notification once.
-    const seen = React.useRef(new Set())
-    const st = React.useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
-    React.useEffect(() => {
-      for (const r of st.reminders || []) {
-        const key = r.routineId + r.at
-        if (seen.current.has(key)) continue
-        seen.current.add(key)
-        if (Date.now() - new Date(r.at) > 3600000) continue
-        setToasts((prev) => [...prev.slice(-3), { id: 'r' + key, notice: { title: t('remindCard') + ' · ' + r.title, body: r.input && r.input !== r.title ? r.input : '' } }])
-        try { if (typeof Notification !== 'undefined' && Notification.permission === 'granted') new Notification(t('remindCard') + ' · ' + r.title, { body: r.input || '' }) } catch {}
-      }
-    }, [st.reminders])
     React.useEffect(() => { if (!toasts.length) return; const id = setTimeout(() => setToasts((prev) => prev.slice(1)), 8000); return () => clearTimeout(id) }, [toasts])
     if (!toasts.length) return null
-    return h('div', { className: 'mwt mwt-toasts' }, h('style', null, STYLE), toasts.map(({ id, task, notice, asking }) => notice
-      ? h('div', { key: id, className: 'mwt-toast' }, h('span', { className: 'mwt-dot' }, icon('bell', { size: 16 })), h('div', null, h('b', null, notice.title), notice.body ? h('span', null, notice.body) : null), h('button', { type: 'button', className: 'mwt-btn', onClick: () => setToasts((prev) => prev.filter((x) => x.id !== id)) }, t('gotIt')))
-      : asking ? h('div', { key: id, className: 'mwt-toast' },
-        h('span', { className: 'mwt-dot', 'data-s': 'waiting' }, icon('message-circle', { size: 16 })),
-        h('div', null, h('b', null, t('needsYouToast') + ' · ' + asking.title), asking.ask && asking.ask.question ? h('span', null, plainWords(asking.ask.question)) : null),
-        h('button', { type: 'button', className: 'mwt-btn', onClick: () => { setToasts((prev) => prev.filter((x) => x.id !== id)); openTask(asking.id) } }, t('open')))
-      : h('div', { key: id, className: 'mwt-toast' },
-        h(StatusDot, { task }), h('div', null, h('b', null, task.title), h('span', null, task.error || task.summary || '')),
-        h('button', { type: 'button', className: 'mwt-btn', onClick: () => { setToasts((prev) => prev.filter((x) => x.id !== id)); openTask(task.id) } }, t('open')))))
+    return h('div', { className: 'mwt mwt-toasts' }, h('style', null, STYLE), toasts.map(({ id, item, mate }) => {
+      const word = item.kind === 'ask' ? t('needsYouToast') : item.kind === 'failed' ? t('failedToast') : item.kind === 'remind' ? t('remindCard') : t('doneToast')
+      return h('div', { key: id, className: 'mwt-toast' },
+        h(Avatar, { mate, size: 28 }),
+        h('div', null, h('b', null, (item.mateName || mate.name || '') + ' · ' + word), item.text ? h('span', { className: 'sub' }, plainWords(item.text)) : null),
+        h('button', { type: 'button', className: 'mwt-btn', onClick: () => { setToasts((prev) => prev.filter((y) => y.id !== id)); openMate(item.mateId, item.runId) } }, t('open')))
+    }))
   }
 
-  return { TodayPage, CreatePage, TasksPage, DeliverablesPage, RoutinesPage, ScenariosPage, Overlay, openToday, openTask, openRoutine, openDeliverable, openDeliverables, newTask, notifyAside }
+  return { MatePage, FilesPage, Overlay, openMate, openNewMate, openFiles, openRoutine, notifyAside }
 }
 
 // ---- plugin -----------------------------------------------------------------
@@ -1430,8 +1371,7 @@ exports.inject = ['slots', 'locale', 'layout']
 exports.apply = function apply(ctx) {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), PLUGIN + ': dictionaries')
   ctx.effect(() => { if (document.querySelector('link[data-mywork-fonts]')) return () => {}; const link = document.createElement('link'); link.rel = 'stylesheet'; link.href = '/mywork-shell/fonts.css'; link.setAttribute('data-mywork-fonts', ''); document.head.appendChild(link); return () => { link.remove() } }, PLUGIN + ': fonts')
-  // CJK display serif for headings (the Manus pairing). Google serves Noto Serif SC in unicode-range slices, so only the slices a heading
-  // uses are fetched; offline it falls back to the system serif (Songti SC / SimSun) named in --font-display. Trying it; if it stays, self-host a subset.
+  // CJK display serif for titles; offline it falls back to the system serif named in --font-display.
   ctx.effect(() => { if (document.querySelector('link[data-mywork-display-cjk]')) return () => {}; const link = document.createElement('link'); link.rel = 'stylesheet'; link.href = 'https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500&display=swap'; link.setAttribute('data-mywork-display-cjk', ''); document.head.appendChild(link); return () => { link.remove() } }, PLUGIN + ': display serif')
   const t = ctx.locale.bind(NS)
   const c = makeComponents(ctx, t)
@@ -1440,48 +1380,32 @@ exports.apply = function apply(ctx) {
     ctx.slots.inject('main', () => ctx.slots.register({ name: 'main', key, locale: NS, inject: () => ({}), ...(children ? { children } : {}) }, function MyworkPage(props) { return h(Component, { renderSlot: props && typeof props.renderSlot === 'function' ? props.renderSlot : null }) }))
     ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({ name: 'sidebar.panellist', id: key, order, locale: NS, label: () => t(label), inject: () => ({}) }, function MyworkPageIcon() { return icon(iconName, { size: 16, strokeWidth: 1.6 }) }))
   }
-  page(PANELS.today, 1, 'today', 'sun', c.TodayPage)
-  ctx.slots.inject('main', () => ctx.slots.register({ name: 'main', key: PANELS.create, locale: NS, inject: () => ({}) }, function MyworkCreate() { return h(c.CreatePage) }))
-  // The 任务 page declares 这台电脑 (list, root scope): other members register the aside's sections into it.
-  page(PANELS.tasks, 2, 'tasks', 'list-checks', c.TasksPage, { [ASIDE_SLOT]: { kind: 'list', scope: 'root' } })
-  ctx.effect(() => { try { return ctx.slots.subscribe(ASIDE_SLOT, c.notifyAside) } catch { return () => {} } }, PLUGIN + ': thread aside entries')
-  page(PANELS.routines, 3, 'routines', 'history', c.RoutinesPage)
-  // Reachable, not navigated: deliverables open through their task; 领域 through 设置.
-  ctx.slots.inject('main', () => ctx.slots.register({ name: 'main', key: PANELS.deliverables, locale: NS, inject: () => ({}) }, function MyworkDeliverables() { return h(c.DeliverablesPage) }))
-  ctx.slots.inject('main', () => ctx.slots.register({ name: 'main', key: PANELS.scenarios, locale: NS, inject: () => ({}) }, function MyworkScenarios() { return h(c.ScenariosPage) }))
+  // The mate page declares 电脑 (list, root scope): other members register the right panel's picture into it.
+  page(PANELS.mate, 1, 'mate', 'message-circle', c.MatePage, { [ASIDE_SLOT]: { kind: 'list', scope: 'root' } })
+  ctx.effect(() => { try { return ctx.slots.subscribe(ASIDE_SLOT, c.notifyAside) } catch { return () => {} } }, PLUGIN + ': right panel entries')
+  page(PANELS.files, 2, 'files', 'file-text', c.FilesPage)
   ctx.slots.inject('shell.overlay', () => ctx.slots.register({ name: 'shell.overlay', id: PLUGIN, order: 45 }, function MyworkOverlay() { return h(c.Overlay) }))
 
-  // Window events from the sidebar (dsh-mywork-codex-ui) and other members. mywork:open-thread is the contract;
-  // the older per-object events keep working.
+  // Window events from the column (dsh-mywork-codex-ui) and other members: mywork:open-thread is the one contract.
   ctx.effect(() => {
-    // The sidebar dispatches it cancelable: an uncancelled event falls through to the legacy events below, so every
-    // kind handled here is cancelled first.
     const onThread = (e) => {
       const d = e.detail || {}
       const id = d.id === undefined || d.id === null ? '' : String(d.id)
-      const handled = d.kind === 'today' || d.kind === 'new' || d.kind === 'deliverables' || ((d.kind === 'task' || d.kind === 'routine') && !!id)
+      const handled = d.kind === 'mate' || d.kind === 'new-mate' || d.kind === 'files' || (d.kind === 'routine' && !!id)
       if (!handled) return
       if (typeof e.preventDefault === 'function') e.preventDefault()
-      if (d.kind === 'today') c.openToday()
-      else if (d.kind === 'task') c.openTask(id)
-      else if (d.kind === 'routine') c.openRoutine(id)
-      else if (d.kind === 'new') c.newTask(d.text, d.scenario)
-      else if (id) c.openDeliverable(id)
-      else c.openDeliverables()
+      if (d.kind === 'mate') c.openMate(id, d.runId ? String(d.runId) : '')
+      else if (d.kind === 'new-mate') c.openNewMate()
+      else if (d.kind === 'files') c.openFiles(id)
+      else c.openRoutine(id, d.mateId ? String(d.mateId) : '')
     }
-    const onNew = (e) => { const d = e.detail || {}; c.newTask(d.text, d.scenario) }
-    const onTask = (e) => { if (e.detail && e.detail.id) c.openTask(String(e.detail.id)) }
-    const onDeliverable = (e) => { if (e.detail && e.detail.id) c.openDeliverable(String(e.detail.id)) }
     window.addEventListener('mywork:open-thread', onThread)
-    window.addEventListener('mywork:new-task', onNew)
-    window.addEventListener('mywork:open-task', onTask)
-    window.addEventListener('mywork:open-deliverable', onDeliverable)
-    return () => { window.removeEventListener('mywork:open-thread', onThread); window.removeEventListener('mywork:new-task', onNew); window.removeEventListener('mywork:open-task', onTask); window.removeEventListener('mywork:open-deliverable', onDeliverable) }
+    return () => { window.removeEventListener('mywork:open-thread', onThread) }
   }, PLUGIN + ': window events')
 
-  // v2: the app opens on 今日, not on a conversation (unless a session deep link is present).
-  // dsh's own landing re-selects the conversation once or twice during startup, so the
-  // selection is re-asserted for a few seconds, and stops as soon as the user touches anything.
+  // The app opens on the default teammate, not on a conversation (unless a session deep link is present). dsh's own
+  // landing re-selects the conversation once or twice during startup, so the selection is re-asserted for a few seconds
+  // and stops as soon as the user touches anything.
   ctx.effect(() => {
     if (!v2Active()) return () => {}
     let touched = false
@@ -1492,9 +1416,9 @@ exports.apply = function apply(ctx) {
     const timer = setInterval(() => {
       try {
         if (touched || Date.now() - started > 6000 || new URL(window.location.href).searchParams.get('session')) { clearInterval(timer); return }
-        if (!document.querySelector('.mwt-today')) ctx.layout.selectPanel(PANELS.today)
+        if (!document.querySelector('.mwt-mate')) ctx.layout.selectPanel(PANELS.mate)
       } catch { /* panel not registered yet: try again */ }
     }, 250)
     return () => { clearInterval(timer); window.removeEventListener('pointerdown', onPointer, true); window.removeEventListener('keydown', onPointer, true) }
-  }, PLUGIN + ': open 今日')
+  }, PLUGIN + ': open the default teammate')
 }

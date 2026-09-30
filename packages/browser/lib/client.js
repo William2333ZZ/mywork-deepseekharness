@@ -142,12 +142,15 @@ function usesBrowser(task) {
   const steps = Array.isArray(task.steps) ? task.steps : []
   return steps.some((s) => s && isBrowserTool(s.tool))
 }
-/** Slot predicate: used the browser, or is running while the model is browsing right now (the feed's last navigation within a minute). */
+/**
+ * Slot predicate: the run is running right now (not done, waiting or queued; the tasks API sends a queued run as status
+ * 'running' with queued: true) AND has used a browser tool in this run. Otherwise the panel shows something else (the
+ * teammate's folder): the shared Chrome's last page may belong to someone else entirely.
+ */
 function asideWhen(task) {
-  if (usesBrowser(task)) return true
   const st = task && task.status
-  const active = !!st && st !== 'done' && st !== 'queued' && st !== 'pending'
-  return active && Date.now() - liveState.modelAt < 60000
+  const active = !!st && st !== 'done' && st !== 'waiting' && st !== 'queued' && st !== 'pending' && st !== 'failed' && st !== 'stopped' && task.queued !== true
+  return active && usesBrowser(task)
 }
 
 const zh = {

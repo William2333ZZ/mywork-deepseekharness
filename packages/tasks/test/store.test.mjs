@@ -1,14 +1,17 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { DeliverableStore, TaskStore, taskView, titleOf } from '../src/store.js'
+import { deliverableSummary, DeliverableStore, MateStore, TaskStore, titleOf } from '../src/store.js'
 import { createScenarioRegistry, GENERAL, stepNameFor } from '../src/scenarios.js'
 import { assistantText, reasonError, userMessage } from '../src/engine.js'
 import { render } from '../src/md.cjs'
 
-test('task lifecycle: create → steps → done', () => {
+test('run lifecycle: create → steps → done', () => {
   const s = new TaskStore(null)
   const t = s.create({ input: '把 README 整理成一页介绍' })
-  assert.equal(t.status, 'queued'); assert.equal(t.scenario, 'general'); assert.equal(t.title, '把 README 整理成一页介绍')
+  assert.equal(t.status, 'queued'); assert.equal(t.title, '把 README 整理成一页介绍')
+  assert.deepEqual([t.mateId, t.trigger, t.dispatched, t.verifying, t.verification], ['mywork', 'user', false, false, null])
+  assert.equal(s.create({ mateId: 'm', trigger: 'system', input: '' }).input, '') // intro and routine runs may start without a line
+  assert.equal(s.create({ input: 'r', routineId: 'rt-1' }).trigger, 'routine')
   s.setStatus(t.id, 'running', { startedAt: 'x' })
   s.step(t.id, '读取', 'read_file'); s.step(t.id, '读取', 'read_file'); s.step(t.id, '整理', 'write_file')
   assert.deepEqual(s.get(t.id).steps.map((x) => [x.name, x.count, !!x.endedAt]), [['读取', 2, true], ['整理', 1, false]])
@@ -18,15 +21,18 @@ test('task lifecycle: create → steps → done', () => {
   assert.throws(() => s.create({ input: '   ' }))
 })
 
-test('deliverables attach to tasks and show in the view', () => {
+test('deliverables belong to a teammate and a run; teammates resolve by session id', () => {
   const s = new TaskStore(null); const d = new DeliverableStore(null)
-  const t = s.create({ input: 'x', title: '标题' })
-  const dd = d.create({ taskId: t.id, markdown: '# 结论\n\n正文', kind: 'report' })
-  s.update(t.id, (x) => { x.deliverableIds.push(dd.id) })
-  assert.equal(dd.title, '结论')
-  const v = taskView(s.get(t.id), d)
-  assert.equal(v.deliverables.length, 1); assert.equal(v.statusLabel, '排队'); assert.equal(v.currentStep, '')
-  assert.equal(s.bySession('nope'), null)
+  const t = s.create({ mateId: 'mate-1', input: 'x', title: '标题' })
+  const dd = d.create({ mateId: 'mate-1', runId: t.id, markdown: '# 结论\n\n正文', kind: 'report', summary: [{ label: '行', value: 3 }, { value: 'no label' }] })
+  assert.equal(dd.title, '结论'); assert.deepEqual(d.forTask(t.id).map((x) => x.id), [dd.id])
+  assert.deepEqual(deliverableSummary(dd), { id: dd.id, mateId: 'mate-1', runId: t.id, title: '结论', kind: 'report', createdAt: dd.createdAt, rating: null, verification: null, summary: [{ label: '行', value: '3' }] })
+  const mates = new MateStore(null, { matesDir: '/tmp/mates' })
+  const def = mates.ensureDefault(); assert.equal(mates.ensureDefault(), def); assert.equal(mates.items.length, 1)
+  const m = mates.create({ name: '  小  二  ', description: '跑腿' })
+  assert.deepEqual([m.name, m.glyph, m.dir, m.isDefault, m.pinned, m.notify], ['小 二', '小', '/tmp/mates/' + m.id, false, false, true])
+  assert.equal(mates.bySession('mywork-mate-' + m.id), m); assert.equal(mates.bySession('mywork-mate-mywork'), def); assert.equal(mates.bySession('mywork-task-x'), null)
+  assert.throws(() => mates.create({ description: ' ' }))
 })
 
 test('scenario registry resolves and validates', () => {
@@ -76,13 +82,12 @@ test('activity stream is capped and trimmed for old tasks', async () => {
 test('verification prompt and verdict parsing', async () => {
   const { defaultVerifyPrompt, parseVerdict, BUILTIN_SCENARIOS } = await import('../src/scenarios.js')
   const { argsPreview, resultPreview } = await import('../src/engine.js')
-  assert.deepEqual(BUILTIN_SCENARIOS.map((s) => s.id), ['general', 'assistant'])
-  assert.equal(BUILTIN_SCENARIOS[1].hidden, true)
+  assert.deepEqual(BUILTIN_SCENARIOS.map((s) => s.id), ['general'])
   assert.equal(BUILTIN_SCENARIOS[0].deliverable, 'auto')
   assert.match(BUILTIN_SCENARIOS[0].compose('x', { capabilities: { browser: true, office: false } }), /open_url[\s\S]*Markdown 表格/)
   assert.match(BUILTIN_SCENARIOS[0].compose('x', { capabilities: {} }), /没有浏览器工具/)
   const p = defaultVerifyPrompt({ input: '做一张表' }, [{ title: 'T', markdown: '| a |' }], [{ kind: 'tool', name: 'open_url', detail: 'url=x', ok: false }])
-  assert.match(p, /做一张表/); assert.match(p, /open_url（失败）/); assert.match(p, /"passed"/)
+  assert.match(p, /做一张表/); assert.match(p, /open_url（失败）/); assert.match(p, /"passed"/); assert.match(p, /同事/)
   assert.deepEqual(parseVerdict('结论如下：\n{"passed": true, "checked": 3, "issues": 0, "notes": "ok"}'), { passed: true, checked: 3, issues: 0, notes: 'ok' })
   assert.equal(parseVerdict('no json here'), null)
   assert.equal(parseVerdict('{"foo":1}'), null)

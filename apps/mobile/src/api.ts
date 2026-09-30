@@ -4,53 +4,68 @@
  * The phone talks to the LAN gateway the desktop opens (设置 → MyWork → 手机): `http://<lan ip>:<port>`.
  * Every request carries the launch token from the QR as `Authorization: Bearer …`; the gateway holds
  * the dsh session for us, so nothing here depends on the platform's cookie jar. The API is the same
- * JSON API the web pages use, under /mywork-tasks/api. The pairing (base URL + token) is kept in the
- * secure store.
+ * JSON API the web pages use, under /mywork-tasks/api (the teammate contract, TEAMMATES.md §9.8). The pairing
+ * (base URL + token) is kept in the secure store.
  */
 import * as SecureStore from 'expo-secure-store'
 
 export type Connection = { base: string; token: string; pairedAt: string }
 
-export type Deliverable = { id: string; title: string; kind: string; createdAt: string; rating: number | null; taskId?: string; scenario?: string; markdown?: string; verification?: Verification | null; summary?: { label: string; value: string }[] | null }
-export type Verification = { passed: boolean | null; checked: number; issues: number; notes: string; at: string }
-export type Step = { name: string; tool?: string; count?: number; startedAt?: string; endedAt?: string }
+/** A file a teammate handed over (§9.1 文件): it hangs off the run that made it; verification lands on it in the background. */
+export type Deliverable = {
+  id: string; title: string; kind: string; createdAt: string; rating: number | null; mateId?: string; runId?: string
+  markdown?: string; verification?: Verification | null; summary?: { label: string; value: string }[] | null
+  /** Set by the server while the background verifier works on it, when it says so. */
+  verifying?: boolean
+}
+export type Verification = { passed: boolean | null; checked: number; issues: number; notes: string; at: string; status?: string; pending?: boolean }
 export type AskKind = 'text' | 'choice' | 'approval' | 'takeover'
-/** The newest pending question a task stopped on (§2.7 找人); the task's status is 'waiting' while it is open. */
+/** The pending question a run stopped on (§9.2 找你卡); the mate's state is 'waiting' while it is open. */
 export type Ask = { id: string; at: string; question: string; askKind: AskKind; options: string[]; detail: string }
 export type AskActivity = { at: string; kind: 'ask'; id: string; status: 'pending' | 'answered' | 'superseded' | 'expired'; question: string; askKind: AskKind; options?: string[]; detail?: string; answer?: string; answeredAt?: string }
+/**
+ * One entry of a run's activity. `user` lines are what was said into the run after it started: a steer (a bubble), an
+ * answer to a question (askId, shown on the card), the 24 h resume (auto) or a hidden system line (system).
+ * `routine` is written when mywork_routine_create succeeds (the centred 「已安排」 line); `remind` is a reminder that fired.
+ */
 export type Activity =
-  | { at: string; kind: 'user'; text: string; askId?: string; auto?: boolean }
+  | { at: string; kind: 'user'; text: string; askId?: string; auto?: boolean; system?: boolean }
   | { at: string; kind: 'text'; text: string }
   | { at: string; kind: 'tool'; name: string; detail?: string; ok?: boolean; result?: string }
-  | { at: string; kind: 'handoff'; target: 'task' | 'routine'; id: string; title: string; schedule?: string }
   | { at: string; kind: 'verify'; text: string }
+  | { at: string; kind: 'routine'; action: 'created' | string; routineId: string; title: string; scheduleLabel?: string }
+  | { at: string; kind: 'remind'; routineId: string; title: string; text?: string; acked?: boolean; ackedAt?: string }
   | AskActivity
-export type Task = {
-  id: string; title: string; scenario: string; input: string; status: 'queued' | 'running' | 'delivering' | 'verifying' | 'waiting' | 'done'
-  statusLabel: string; currentStep: string; error: string; summary?: string; createdAt: string; startedAt?: string; finishedAt?: string
-  routineId?: string; quiet?: boolean; report?: boolean; source?: string; sessionId?: string
-  /** Column fields (2026-09-30): the latest sentence for the row's second line, the last meaningful activity, and whether something arrived unasked since the user last opened it. */
-  preview?: string; lastAt?: string; unread?: boolean; attentionAt?: string; ask?: Ask | null
-  steps: Step[]; activity?: Activity[]; deliverableIds: string[]; deliverables: Deliverable[]; verification?: Verification | null
+export type MateState = 'idle' | 'working' | 'waiting'
+/** A teammate (§9.1): one endless conversation, its own folder, its own routines. */
+export type Mate = {
+  id: string; name: string; title: string; description: string; glyph: string; pinned: boolean; isDefault: boolean; notify: boolean
+  createdAt: string; lastAt: string; preview: string; unread: boolean; state: MateState; step: string; since: string; ask: Ask | null; routineCount: number
 }
-export type RoutineRun = { at: string; taskId?: string; changed?: boolean | null; error?: string; fired?: boolean; quiet?: boolean; report?: boolean }
-export type Routine = { id: string; kind: 'task' | 'remind'; title: string; scheduleLabel: string; enabled: boolean; nextRunAt: string; once?: boolean; lastTaskId?: string; input?: string; runs?: RoutineRun[]; preview?: string; lastAt?: string; unread?: boolean; lastRunSummary?: RoutineRun | null }
-export type SearchResult = { tasks: Task[]; routines: Routine[]; deliverables: { id: string; taskId: string; title: string; createdAt: string; kind: string }[] }
-export type Reminder = { routineId: string; title: string; input: string; at: string }
-export type TasksPayload = { items: Task[]; deliverables: Deliverable[]; reminders: Reminder[]; routines: Routine[] }
-/**
- * GET /feed (the 今日 line across days, server feed.js): the thread entries of every assistant task plus a reminder that
- * fired and a routine run that changed or wrote a report. Entries ascend by `at`, no date entries (the client draws the
- * separators); a page is the newest `limit` before `before`; `nextBefore` is the oldest returned `at`, null when nothing
- * older exists; `today` is the server's local day as YYYY-MM-DD.
- */
-export type FeedEntry =
-  | { at: string; kind: 'user'; text: string; taskId?: string }
-  | { at: string; kind: 'text'; text: string; taskId?: string }
-  | { at: string; kind: 'handoff'; target: 'task' | 'routine'; id: string; title: string; schedule?: string; followup?: boolean; taskId?: string }
-  | { at: string; kind: 'remind'; routineId: string; title: string; acked?: boolean }
-  | { at: string; kind: 'change'; routineId: string; taskId: string; title: string; report?: boolean }
-export type FeedPayload = { entries: FeedEntry[]; nextBefore: string | null; today: string }
+export type RunTrigger = 'user' | 'routine' | 'system'
+/** One round of work inside a teammate's conversation (§9.8). Runs ascend by createdAt; quiet routine runs are left out. */
+export type Run = {
+  id: string; mateId: string; trigger: RunTrigger; routineId?: string; routineTitle?: string; status: 'running' | 'waiting' | 'done'
+  input: string; activity: Activity[]; deliverables: Deliverable[]; verification: Verification | null; ask: Ask | null
+  error: string; quiet?: boolean; step: string; createdAt: string; startedAt?: string; finishedAt?: string
+  /** True while the background verifier works on this run's files (status is already 'done' then). */
+  verifying?: boolean
+  /** Migrated old tasks may carry only a summary. */
+  summary?: string
+}
+export type ThreadPage = { runs: Run[]; nextBefore: string | null }
+/** A routine's run receipt: a task routine's names its run `taskId`, a fired reminder's `runId`; read `runId || taskId`. */
+export type RoutineRun = { at: string; runId?: string; taskId?: string; changed?: boolean | null; error?: string; fired?: boolean; quiet?: boolean; report?: boolean }
+export type Routine = {
+  id: string; mateId: string; kind: 'task' | 'remind'; title: string; input: string; scheduleLabel: string; enabled: boolean
+  nextRunAt: string; lastRunAt?: string; schedule?: { type: string }; runs?: RoutineRun[]
+}
+export type ActivityKind = 'ask' | 'failed' | 'working' | 'done' | 'remind'
+export type ActivityItem = { mateId: string; mateName: string; runId: string; at: string; text: string; kind: ActivityKind }
+/** GET /activity: the bell's three groups. */
+export type ActivityPayload = { needs: ActivityItem[]; working: ActivityItem[]; recent: ActivityItem[] }
+export type SearchMessage = { mateId: string; runId: string; at: string; text: string }
+export type SearchResult = { mates: Mate[]; messages: SearchMessage[]; files: Deliverable[]; routines: Routine[] }
 
 const KEY = 'mywork.connection'
 
@@ -79,7 +94,7 @@ const PREFIX = '/mywork-tasks/api'
 export async function login(c: Connection): Promise<{ ok: boolean; reason: string }> {
   if (!c.token) return { ok: false, reason: '地址里没有令牌' }
   try {
-    const r = await fetch(`${c.base}${PREFIX}/tasks`, { credentials: 'omit', headers: { authorization: `Bearer ${c.token}` } })
+    const r = await fetch(`${c.base}${PREFIX}/mates`, { credentials: 'omit', headers: { authorization: `Bearer ${c.token}` } })
     return r.ok ? { ok: true, reason: '' } : { ok: false, reason: r.status === 401 ? '令牌不对或已过期，重新扫码' : `HTTP ${r.status}` }
   } catch (e) { return { ok: false, reason: e instanceof Error ? e.message : String(e) } }
 }
@@ -95,31 +110,36 @@ export class Api {
     if (!r.ok) throw new ApiError(r.status, (data && data.error) || `HTTP ${r.status}`)
     return data as T
   }
-  tasks() { return this.req<TasksPayload>('/tasks') }
-  task(id: string) { return this.req<{ task: Task; deliverables: Deliverable[] }>('/task?id=' + encodeURIComponent(id)) }
-  create(input: string) { return this.req<{ task?: Task; routine?: Routine }>('/create', { input }) }
-  today(day?: string) { return this.req<{ thread: Task | null }>('/today' + (day ? '?day=' + encodeURIComponent(day) : '')) }
-  /** The 今日 line by day; a 404 means the server still serves /today only, and the caller falls back to it. */
-  feed(before?: string, limit?: number) { const q = [before ? 'before=' + encodeURIComponent(before) : '', limit ? 'limit=' + limit : ''].filter(Boolean).join('&'); return this.req<FeedPayload>('/feed' + (q ? '?' + q : '')) }
-  seen(id: string) { return this.req<{ id: string; seenAt: string }>('/seen', { id }) }
+  // ---- teammates ----
+  mates() { return this.req<{ items: Mate[] }>('/mates') }
+  mateCreate(description: string, name?: string, title?: string) { return this.req<{ mate: Mate }>('/mates/create', { description, ...(name ? { name } : {}), ...(title ? { title } : {}) }) }
+  mateUpdate(id: string, patch: Partial<Pick<Mate, 'name' | 'title' | 'description' | 'pinned' | 'notify'>>) { return this.req<{ mate: Mate }>('/mates/update', { id, ...patch }) }
+  /** The default mate refuses (400). */
+  mateRemove(id: string) { return this.req<{ removed: boolean }>('/mates/remove', { id }) }
+  /** A page of the conversation, runs ascending; `before` is the previous page's nextBefore. */
+  thread(id: string, before?: string | null, limit = 20) { return this.req<ThreadPage>('/mates/thread?' + ['id=' + encodeURIComponent(id), before ? 'before=' + encodeURIComponent(before) : '', 'limit=' + limit].filter(Boolean).join('&')) }
+  /** idle: a new run · working: steers the run (or waits behind a routine run) · waiting: answers the pending question. */
+  say(id: string, text: string) { return this.req<{ mate: Mate; runId: string }>('/mates/say', { id, text }) }
+  /** Cancels the active run; what was sent and not yet read stays queued. */
+  stop(id: string) { return this.req<{ mate: Mate }>('/mates/stop', { id }) }
+  /** An ask card's button: choice → the option, approval → 允许一次 / 拒绝, takeover → 我做完了. 400 when nothing is pending or the askId is stale. */
+  answer(runId: string, askId: string, answer: string) { return this.req<{ run: Run }>('/answer', { id: runId, askId, answer }) }
+  seen(mateId: string) { return this.req<{ id: string; seenAt: string }>('/seen', { id: mateId }) }
+  activity() { return this.req<ActivityPayload>('/activity') }
   search(q: string) { return this.req<SearchResult>('/search?q=' + encodeURIComponent(q)) }
-  todaySay(text: string) { return this.req<{ thread: Task }>('/today/say', { text }) }
-  say(id: string, text: string) { return this.req<{ task: Task }>('/say', { id, text }) }
-  /** Answer the question a waiting task stopped on: choice → the option text, approval → 允许一次 / 拒绝, takeover → 我做完了, text → what was typed. 400 when nothing is pending or the askId is stale. */
-  answer(id: string, askId: string, answer: string) { return this.req<{ task: Task }>('/answer', { id, askId, answer }) }
-  cancel(id: string) { return this.req<{ task: Task }>('/cancel', { id }) }
-  rerun(id: string) { return this.req<{ task: Task }>('/rerun', { id }) }
-  verify(id: string) { return this.req<{ task: Task }>('/verify', { id }) }
-  rename(id: string, title: string) { return this.req<{ task: Task }>('/rename', { id, title }) }
-  remove(id: string) { return this.req<{ removed: boolean }>('/remove', { id }) }
+  // ---- files ----
+  files(opts: { mate?: string; q?: string; since?: string } = {}) { const q = (['mate', 'q', 'since'] as const).filter((k) => opts[k]).map((k) => k + '=' + encodeURIComponent(String(opts[k]))).join('&'); return this.req<{ items: Deliverable[] }>('/files' + (q ? '?' + q : '')) }
+  /** The file (with its body) and the run that made it (for the live verification state). */
+  deliverable(id: string) { return this.req<{ deliverable: Deliverable; run: Run | null }>('/deliverable?id=' + encodeURIComponent(id)) }
   rate(id: string, rating: number | null) { return this.req<{ deliverable: Deliverable }>('/rate', { id, rating }) }
-  deliverables() { return this.req<{ items: Deliverable[] }>('/deliverables') }
-  deliverable(id: string) { return this.req<{ deliverable: Deliverable; task: Task | null }>('/deliverable?id=' + encodeURIComponent(id)) }
-  routines() { return this.req<{ items: Routine[]; pending: Reminder[] }>('/routines') }
-  routineRun(id: string) { return this.req<{ routine: Routine }>('/routines/run', { id }) }
+  // ---- routines (each belongs to one mate) ----
+  routines(mateId: string) { return this.req<{ items: Routine[] }>('/routines?mate=' + encodeURIComponent(mateId)) }
+  routineCreate(mateId: string, input: string) { return this.req<{ routine: Routine }>('/routines/create', { mateId, input }) }
+  routineUpdate(id: string, input: string) { return this.req<{ routine: Routine }>('/routines/update', { id, input }) }
+  routineRun(id: string) { return this.req<{ routine: Routine; runId?: string }>('/routines/run', { id }) }
   routineEnable(id: string, enabled: boolean) { return this.req<{ routine: Routine }>('/routines/enable', { id, enabled }) }
   routineRemove(id: string) { return this.req<{ removed: boolean }>('/routines/remove', { id }) }
-  routineAck(id: string, at: string) { return this.req<{ routine: Routine; pending: Reminder[] }>('/routines/ack', { id, at }) }
+  routineAck(id: string, at: string) { return this.req<{ routine: Routine }>('/routines/ack', { id, at }) }
 }
 
 /** Time helpers shared by the screens. */

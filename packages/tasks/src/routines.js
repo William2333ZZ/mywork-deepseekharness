@@ -1,24 +1,25 @@
 /**
- * dsh-mywork-tasks — routines: standing things the system does for you on a schedule.
+ * dsh-mywork-tasks — routines: a sentence a teammate is sent on a schedule (design/v2/TEAMMATES.md §9.3).
  *
- * Two kinds, created from the same input box by saying the time:
- *   task    「每天 9 点给我一份 Node 生态简报」 → each run is a normal task; the run is told what the
- *           last run delivered and leads with 变化 (memory recall + goal tracking, the OpenMuse /
- *           Muse Code observer logic); a run that reports 变化：无 is stored but stays quiet.
- *   remind  「明天 8 点提醒我交周报」「30 分钟后提醒我喝水」 → no agent, just a nudge that sits in
- *           等你看 until acknowledged, plus toast / browser notification / IM.
- *   「提醒我写周报」 is not a nudge: writing the report is something MyWork can do itself, so it becomes
- *   a task routine that writes it from the week's work record and hands it over at that time.
+ * A routine belongs to one teammate (mateId); its results land in that teammate's thread. Two kinds, created from the
+ * same sentence by saying the time:
+ *   task    「每天 9 点给我一份 Node 生态简报」 → at each run the owning teammate is prompted (in its own session, mode
+ *           queue) with routinePrompt(): what the last run delivered, and lead with 变化; a run that reports 变化：无 is
+ *           kept in the routine's record but stays out of the thread (quiet).
+ *   remind  「明天 8 点提醒我交周报」「30 分钟后提醒我喝水」 → the teammate does not run; a remind card is posted to its
+ *           thread (a synthetic done run, see README) and stays until acknowledged, plus toast / notification / IM.
+ *   「提醒我写周报」 is not a nudge: writing the report is something a teammate can do itself, so it becomes a task
+ *   routine that writes it from the period's work record (every teammate's runs) and hands it over at that time.
  *
- * Schedules are deliberately small: once (at), interval (every N minutes), hourly, daily (HH:MM),
- * weekly (weekday + HH:MM), workdays. Times are the server's local time.
+ * Schedules are deliberately small: once (at), interval (every N minutes), hourly, daily (HH:MM), weekly (weekday +
+ * HH:MM), workdays. Times are the server's local time.
  *
- * Routine { id, kind, title, input, schedule, enabled, createdAt, lastRunAt, nextRunAt,
- *           runs: [{ at, taskId, deliverableId, changed, error, settledAt } | { at, fired }], fired: [{ at, ackAt }] }
+ * Routine { id, mateId, kind, title, input, schedule, enabled, createdAt, lastRunAt, nextRunAt,
+ *           runs: [{ at, taskId, deliverableId, changed, error, settledAt } | { at, fired, taskId? }], fired: [{ at, ackAt }] }
  *
- * A run receipt starts as { at, taskId } when the task is queued and is settled by the engine
- * (markRun) with what it delivered, whether 变化 was 有 / 无 (changed true / false, null when the run
- * gave no verdict) and any error; settledAt is when that happened, which is minutes after `at`.
+ * A run receipt starts as { at, taskId } when the run is queued (taskId is the run id) and is settled by the engine
+ * (markRun) with what it delivered, whether 变化 was 有 / 无 (changed true / false, null when the run gave no verdict)
+ * and any error; settledAt is when that happened.
  */
 import { clip, JsonList, later, newId, titleOf } from './store.js'
 
@@ -162,13 +163,29 @@ export class RoutineStore extends JsonList {
   constructor(file) { super(file, MAX_ROUTINES) }
   /** Drop the run receipts that pointed at a task the user deleted. */
   forgetTask(taskId) { let n = 0; for (const r of this.items) { const before = (r.runs || []).length; r.runs = (r.runs || []).filter((x) => x.taskId !== taskId); n += before - r.runs.length } if (n) this.save(); return n }
-  create({ kind, title, input, schedule }) {
+  create({ mateId, kind, title, input, schedule }) {
     const text = String(input || '').trim()
     if (!text) throw new Error('input is required')
     if (!schedule || !schedule.type) throw new Error('schedule is required')
     const next = nextRun(schedule)
-    return this.add({ id: newId('rt'), kind: kind === 'remind' ? 'remind' : 'task', title: String(title || '').trim() || titleOf(text), input: text, schedule, enabled: true, createdAt: new Date().toISOString(), lastRunAt: '', nextRunAt: next ? next.toISOString() : '', runs: [], fired: [] })
+    return this.add({ id: newId('rt'), mateId: mateId || 'mywork', kind: kind === 'remind' ? 'remind' : 'task', title: String(title || '').trim() || titleOf(text), input: text, schedule, enabled: true, createdAt: new Date().toISOString(), lastRunAt: '', nextRunAt: next ? next.toISOString() : '', runs: [], fired: [] })
   }
+  /** Change what the routine says and, when given, its schedule / kind / title; the next run is recomputed from the schedule. */
+  edit(id, { input, schedule, kind, title }) {
+    return this.update(id, (r) => {
+      const text = String(input === undefined || input === null ? '' : input).trim()
+      if (text) r.input = text
+      if (title !== undefined && String(title).trim()) r.title = String(title).trim()
+      if (kind === 'task' || kind === 'remind') r.kind = kind
+      if (schedule && schedule.type) {
+        r.schedule = schedule
+        const next = nextRun(schedule)
+        r.nextRunAt = next ? next.toISOString() : ''
+        if (next) r.enabled = true
+      }
+    })
+  }
+  forMate(mateId) { return this.items.filter((r) => (r.mateId || 'mywork') === mateId) }
   due(now = new Date()) { return this.items.filter((r) => r.enabled && r.nextRunAt && new Date(r.nextRunAt).getTime() <= now.getTime()) }
   /** Record a run and advance the schedule; a spent once-routine is disabled. */
   ran(id, entry) {
@@ -256,12 +273,12 @@ export function routinePrompt(routine, previous, record) {
     // A report (日报 / 周报 / 总结) is a deliverable every time: no 变化 paragraph, no quiet runs.
     const lines = [
       `这是例行任务《${routine.title}》的这一期，要求如下：`, routine.input, '',
-      'MyWork 这段时间替用户做过的事（这就是素材，按实际写，不要编造没做过的事；记录为空就如实说这段时间没有记录）：',
+      '同事们这段时间替用户做过的事（这就是素材，按实际写，不要编造没做过的事；记录为空就如实说这段时间没有记录）：',
       '----\n' + (record || '（没有记录）') + '\n----',
       previous ? '\n上一期（只用来保持体例和接续，不要照抄）：\n----\n' + String(previous.markdown || '').slice(0, 2500) + '\n----' : '',
       '',
-      '写法：先一句话总结，再按事实写做了什么、结果如何、还没完成什么；这是写给用户本人看的，不要提内部路径、任务 ID 和系统机制。',
-      '交付要求：用 deliver 交付，kind 用 report。不要写「变化」段，也不要在最后输出变化行。',
+      '写法：先一句话总结，再按事实写做了什么、结果如何、还没完成什么；这是写给用户本人看的，不要提内部路径、运行 ID 和系统机制。',
+      '交付要求：用 deliver 交付，kind 用 report；交付后用一两句话回话。不要写「变化」段，也不要在最后输出变化行。例行运行时不要提问，也不要新建例行。',
     ]
     return lines.filter((x) => x !== '').join('\n')
   }
@@ -269,10 +286,10 @@ export function routinePrompt(routine, previous, record) {
     `这是例行任务《${routine.title}》的一次运行，要求如下：`, routine.input, '',
     previous ? '上一次的交付物（供对比，不要照抄）：' : '这是第一次运行，没有上一次可对比。',
     previous ? '----\n' + String(previous.markdown || '').slice(0, 4000) + '\n----' : '',
-    record ? '\nMyWork 这段时间替用户做过的事（写周报、日报、总结时以此为素材，按实际写，不要编造没做过的事；记录为空就如实说这段时间没有记录）：\n----\n' + record + '\n----' : '',
+    record ? '\n同事们这段时间替用户做过的事（写周报、日报、总结时以此为素材，按实际写，不要编造没做过的事；记录为空就如实说这段时间没有记录）：\n----\n' + record + '\n----' : '',
     '',
-    '交付要求：deliver 的 markdown 第一段先写「变化」：和上一次相比什么变了（新出现、消失、数字变动），没有实质变化就写"变化：无"。然后才是本次内容。',
-    '最后单独一行输出 `变化：有` 或 `变化：无`，用于决定要不要打扰用户。',
+    '交付要求：deliver 的 markdown 第一段先写「变化」：和上一次相比什么变了（新出现、消失、数字变动），没有实质变化就写"变化：无"。然后才是本次内容。例行运行时不要提问，也不要新建例行。',
+    '回话的最后单独一行输出 `变化：有` 或 `变化：无`，用于决定要不要打扰用户。',
   ].filter((x) => x !== '')
   return lines.join('\n')
 }
@@ -282,4 +299,11 @@ export function changedVerdict(text) {
   const m = String(text || '').match(/变化[:：]\s*(有|无|没有|none|yes|no)/i)
   if (!m) return null
   return /有|yes/i.test(m[1]) && !/没有/.test(m[1])
+}
+
+/** The reply without its closing `变化：有 / 无` line (that line is for the engine, not the person). */
+export function stripVerdict(text) {
+  const lines = String(text || '').replace(/\s+$/, '').split('\n')
+  if (lines.length && /^\s*`?\s*变化[:：]\s*(有|无|没有)\s*`?\s*[。.]?\s*$/.test(lines[lines.length - 1])) lines.pop()
+  return lines.join('\n').replace(/\s+$/, '')
 }

@@ -1,40 +1,48 @@
 /**
- * dsh-mywork-tasks — run engine: one task = one dsh session, driven headlessly.
+ * dsh-mywork-tasks — run engine of the teammate model (design/v2/TEAMMATES.md §9.7).
  *
- * The recipe mirrors @michengai/dsh-automation's executor (the only other plugin
- * that runs sessions without a client): create an agent outside any initiator
- * scope, mount the agent preset, pin provider/model, set the permission preset
- * and approval policy to unattended, attach the session to a workspace, then
- * hand it the composed prompt and wait for idle. The global `session/event`
- * stream feeds the task's steps (tool/call) and activity (messages, tool calls
- * and results); the final assistant text is the summary; `deliver` tool calls
- * create deliverables. A second, read-only session then verifies the
- * deliverables against the task (phase 3) and stamps each with a verdict.
+ * One teammate = one persistent dsh session, id 'mywork-mate-<mateId>'. The first use creates it with agents.create
+ * (cwd = the teammate's folder, registered as a workspace; preset = the teammate's generated preset; model pinned;
+ * permission preset and approval policy 'never' appended as durable events). Every message after that goes through
+ * dsh's session controller: prompt({ requestId, sessionId, mode, content }), which resumes a cold session by id.
  *
- * 找人 (design/v2/TEAMMATES.md §2.7) is end-of-turn, not a held promise: the
- * `mywork_ask` tool writes a pending ask entry and tells the model to end its
- * turn; finish() sees the pending ask and parks the task as `waiting` (session
- * kept, no verification, no failure, no slot, no timer). POST /answer marks it
- * answered and resumes through say() — the same session-controller path a
- * finished task's follow-up uses. 24 h without an answer resumes it on its own
- * assumptions; a restart leaves it waiting.
+ * Runs are driven by the session's own events, for every 'mywork-mate-' session at all times:
+ *   turn/start … turn/end   one run (a run answered after an ask spans more than one turn)
+ *   user/message            binds the turn to its run: our requestIds carry the run id ('mywork-run-<runId>.<n>');
+ *                           a steer ('mywork-steer-<runId>.<n>') that missed its run's turn opens a continuation run;
+ *                           a line typed into the session elsewhere (source kind 'user') opens a run of its own
+ *   tool/call · tool/result steps and activity;  assistant/message → the reply text
+ *   deliver / mywork_ask    resolved to the teammate's current run
+ * A run is done at turn/end (or waiting when an ask is pending). Deliverables are verified afterwards in a second,
+ * read-only session in the background; the stamp lands on the deliverables and on run.verification.
  *
- * No imports from @deepseek-ai/* here: this package is `link:`ed into the
- * profile, so those specifiers do not resolve from its real path. The two
- * helpers dsh-automation imports (createUserMessage, installModelSelection)
- * are tiny and inlined below.
+ * Messages: while the teammate works on a user run a new message steers that run (mode 'steer'); while only a routine
+ * or system run is active it waits and becomes the next run (mode 'queue', dispatched when the teammate is free);
+ * while a run waits on an ask the text answers it. Per teammate one run is dispatched at a time (dsh serialises turns
+ * anyway); across teammates at most config.concurrency run at once. A message while its own user run is still queued
+joins that run (not dispatched yet: appended to its prompt; dispatched, turn not started: a steer claimed with it).
+Stop = controller.cancel (keeps the inbox) of the bound run; with no run bound, the teammate's queued runs end instead
+(a message already in the session inbox is removed from it, or its turn is cancelled the moment it starts).
+ *
+ * No imports from @deepseek-ai/* here: this package is `link:`ed into the profile, so those specifiers do not resolve
+ * from its real path. The two helpers dsh-automation imports (createUserMessage, installModelSelection) are inlined.
  */
 import { existsSync, mkdirSync } from 'node:fs'
 import { randomUUID } from 'node:crypto'
-import { join } from 'node:path'
-import { ACTIVITY_DETAIL_MAX, ASK_DETAIL_MAX, ASK_EXPIRY_MS, ASK_KINDS, ASK_MAX_PER_TASK, ASK_OPTION_MAX, ASK_OPTIONS_MAX, ASK_OPTIONS_MIN, ASK_QUESTION_MAX, myworkDir, pendingAsk, titleOf, ts } from './store.js'
+import { ACTIVITY_DETAIL_MAX, ASK_DETAIL_MAX, ASK_EXPIRY_MS, ASK_KINDS, ASK_MAX_PER_TASK, ASK_OPTION_MAX, ASK_OPTIONS_MAX, ASK_OPTIONS_MIN, ASK_QUESTION_MAX, MATE_SESSION_PREFIX, pendingAsk, titleOf, ts } from './store.js'
 import { defaultVerifyPrompt, parseVerdict, stepNameFor } from './scenarios.js'
-import { changedVerdict, recordDays, routinePrompt, wantsRecord } from './routines.js'
+import { changedVerdict, parseSchedule, recordDays, routinePrompt, stripVerdict, wantsRecord } from './routines.js'
 
-const CANCEL_CONVERGENCE_MS = 15000
 const VERIFY_TIMEOUT_MS = 5 * 60000
-const TASK_PREFIX = 'mywork-task-'
 const VERIFY_PREFIX = 'mywork-verify-'
+export const RUN_RPC = 'mywork-run-'
+export const STEER_RPC = 'mywork-steer-'
+export const NUDGE_RPC = 'mywork-nudge-'
+export const NUDGE_TEXT = '（MyWork 服务刚重启。接着处理排队的消息。）'
+export const mateSessionId = (id) => MATE_SESSION_PREFIX + id
+const rand = () => randomUUID().slice(0, 8)
+/** The run id inside one of our request ids: '<prefix><runId>.<n>'. */
+export function rpcRunId(rpc, prefix) { const body = String(rpc).slice(prefix.length); const i = body.lastIndexOf('.'); return i > 0 ? body.slice(0, i) : body }
 
 /** @deepseek-ai/dsh-llm createUserMessage: identified, frozen user message. */
 export function userMessage(text, source) {
@@ -59,13 +67,13 @@ export function pinModelSelection(agentCtx, selection) {
   return () => { d1(); d2() }
 }
 
-function settlesWithin(promise, ms) {
-  let timer
-  return Promise.race([promise.then(() => true, () => false), new Promise((r) => { timer = setTimeout(() => r(false), ms) })]).finally(() => clearTimeout(timer))
-}
-
 export function assistantText(event) {
   const blocks = event && event.data && event.data.message && Array.isArray(event.data.message.content) ? event.data.message.content : []
+  return blocks.filter((b) => b && b.type === 'text' && typeof b.text === 'string').map((b) => b.text).join('\n').trim()
+}
+/** Text of a user/message event (its data is the message itself). */
+export function messageText(message) {
+  const blocks = message && Array.isArray(message.content) ? message.content : []
   return blocks.filter((b) => b && b.type === 'text' && typeof b.text === 'string').map((b) => b.text).join('\n').trim()
 }
 
@@ -99,21 +107,24 @@ export function resultPreview(event) {
 export function reasonError(reason) {
   if (!reason) return '会话没有产生完整的一轮。'
   if (reason.kind === 'completed') return ''
+  if (reason.kind === 'aborted') return '已停止。'
   if (reason.kind === 'error') return (reason.error && reason.error.message) ? String(reason.error.message) : '模型调用失败。'
   return `会话以 ${String(reason.kind)} 结束。`
 }
 
-/** The exact words of 找人 (§2.7): what the tool answers, what it refuses with, and the line a resume is sent with. */
+/** The exact words of 找人 (§2.7) and of the engine's refusals. */
 export const ASK_TEXT = {
   asked: '问题已提出。结束本轮，用户回答后会继续。',
   routine: '例行不能提问，把缺的写进结果',
-  assistant: '今日助理不能提问',
-  scenario: '这个场景不能提问，按合理假设做完并写明假设',
-  limit: '这个任务已经问过两次，按合理假设做完并写明假设',
-  notLive: 'mywork_ask 只能在正在运行的后台任务会话里调用。',
+  system: '自我介绍时不能提问，把需要的写进介绍',
+  limit: '这一轮已经问过两次，按合理假设做完并写明假设',
+  notLive: 'mywork_ask 只能在同事正在干活的时候调用。',
+  notMate: 'mywork_ask 只能在 MyWork 同事的会话里调用。',
   expired: '用户 24 小时没有回答，按合理假设继续，并在结果里写明假设',
   answerPrefix: '回答：',
 }
+export const INTERRUPTED = '服务重启，这一轮中断。'
+export const STOPPED = '已停止。'
 /** Fixed option sets: an approval is 允许一次 / 拒绝, a takeover ends with 我做完了. */
 export const APPROVAL_OPTIONS = ['允许一次', '拒绝']
 export const TAKEOVER_OPTIONS = ['我做完了']
@@ -159,40 +170,53 @@ export function answerText(ask, raw) {
   return String(raw === undefined || raw === null || raw === true ? '' : raw).trim()
 }
 
+/** The hidden first message of a new teammate: it names itself if it has no name, sets up a timed duty, and says hello. */
+export function introPrompt(mate) {
+  const lines = ['（这句话是 MyWork 在你刚被创建时替用户发的，用户看不到它，只看得到你的回复。）']
+  if (!mate.name) lines.push('你还没有名字：先调用 mywork_mate_update 给自己起一个 2 到 4 个汉字的名字（贴合你的职责；合适的话同时给一个一行的头衔），再往下做。')
+  if (parseSchedule(mate.description)) lines.push('你的职责里带着时间：调用 mywork_routine_create 把它安排成你的例行（input 用职责里带时间的那句话），然后在介绍里用一句话说已经安排好了、什么时候。')
+  lines.push('然后用两三句话向用户介绍自己：你怎么理解你的职责、接下来会怎么做、需要用户给你什么（资料、账号、偏好）。像同事第一次打招呼，不要标题和列表，不要交付文件，不要调用 mywork_ask。')
+  return lines.join('\n')
+}
+
 /** An error the HTTP layer answers with 400 instead of 500. */
-const bad = (message) => Object.assign(new Error(message), { status: 400 })
+export const bad = (message) => Object.assign(new Error(message), { status: 400 })
+export const notFound = (message) => Object.assign(new Error(message), { status: 404 })
+const errorText = (e) => (e instanceof Error ? e.message : String(e))
+const isNotFound = (e) => /not[-_ ]?found/i.test(String((e && (e.code || e.name)) || '') + ' ' + errorText(e))
 
 /**
  * @param {object} o
  *   ctx           plugin context with agents / sessions / workspaceRegistry / agentDefaultModel / agentPresets / permissionPresets
- *   store         TaskStore, deliverables DeliverableStore, scenarios registry
- *   config        { concurrency, timeoutMs, permission, agentPreset, cwd, verify }
- *   log(msg), emit(kind, task, deliverable?), controller() → dsh sessionController (for follow-up turns on finished tasks)
+ *   store         TaskStore (runs), deliverables DeliverableStore, mates MateStore, routines RoutineStore, scenarios registry
+ *   config        { concurrency, timeoutMs, permission, agentPreset, verify, workbench }
+ *   log(msg), emit(kind, run, extra?), controller() → dsh sessionController
+ *   presetFor(mate) → Promise<preset id> (writes the teammate's generated preset), workRecord(days) → string
+ *   afterTurn(mateId) → called at every turn/end of a teammate (the host re-links a rewritten preset there)
  */
-export function createEngine({ ctx, store, deliverables, scenarios, config, log, emit, controller, capabilities, routines, todaySummary, workRecord }) {
-  const live = new Map()     // taskId → run state
-  const verifying = new Map() // taskId → { text }
+export function createEngine({ ctx, store, deliverables, mates, routines, scenarios, config, log, emit, controller, presetFor, workRecord, afterTurn }) {
+  const turns = new Map()     // mateId → { n, runId, discard, pending: [{ kind: 'steer'|'line', requestId?, fromRunId?, text }] }
+  const live = new Map()      // runId → { text, timer, stopped, timedOut }
+  const handles = new Map()   // mateId → agent handle from agents.create (kept for the process lifetime)
+  const opening = new Map()   // mateId → Promise<sessionId>
+  const verifying = new Map() // runId → { text, handle }
   let pumping = false
+  let repaired = null         // run ids that were handed to a session inbox before the restart (repair() → recover())
+  const cap = () => Math.max(1, Number(config.concurrency) || 2)
+  const control = () => (typeof controller === 'function' ? controller() : null)
+  const stepMap = () => (scenarios && typeof scenarios.stepMap === 'function' ? scenarios.stepMap() : {})
 
-  /**
-   * Where tasks run: config.cwd, else a dedicated $DSH_HOME/mywork/workbench directory that is
-   * registered as a workspace on first use. Never a code repository the user happens to have
-   * open: a task with workspace-write permission would otherwise leave files in it.
-   */
-  async function resolveWorkspace() {
-    const registry = ctx.workspaceRegistry
-    const dir = config.cwd || join(myworkDir(), 'workbench')
-    if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
-    return (await registry.resolveByPath(dir)) || registry.create(dir, 'MyWork 工作台')
+  function selectionFor() {
+    const selection = ctx.agentDefaultModel.currentSelection()
+    if (!selection || !selection.provider || !selection.model) throw new Error('没有可用的模型：先在设置里配置模型和 API key。')
+    return selection
   }
 
-  /**
-   * Create one headless session and return { agent, handle, workspace }.
-   * The caller owns the handle and disposes it.
-   */
-  async function openSession({ sessionId, selection, agentPreset, permission }) {
-    const workspace = await resolveWorkspace()
-    // A scenario may name its own preset (the assistant's tool-less one); fall back to the configured preset when the host cannot resolve it.
+  /** Create one headless session (agents.create) in `cwd`, registered as a workspace; the caller owns the handle. */
+  async function openSession({ sessionId, cwd, workspaceName, selection, agentPreset, permission }) {
+    const registry = ctx.workspaceRegistry
+    if (!existsSync(cwd)) mkdirSync(cwd, { recursive: true })
+    const workspace = (await registry.resolveByPath(cwd)) || (await registry.create(cwd, workspaceName || 'MyWork'))
     if (agentPreset && agentPreset !== config.agentPreset && typeof ctx.agentPresets.resolve === 'function') {
       try { await ctx.agentPresets.resolve(agentPreset) } catch (e) { log(`agent preset ${agentPreset} unavailable (${e && e.message}); using ${config.agentPreset || 'default'}`); agentPreset = config.agentPreset }
     }
@@ -204,400 +228,684 @@ export function createEngine({ ctx, store, deliverables, scenarios, config, log,
         await ctx.agentPresets.mount(agentCtx, agentPreset)
         pinModelSelection(agentCtx, selection)
         const agent = created || agentCtx.agent
-        if (!agent) throw new Error('task setup has no scoped agent')
+        if (!agent) throw new Error('session setup has no scoped agent')
         try { ctx.permissionPresets.set(agent.session, permission) } catch (e) { log(`permission preset ${permission} not applied: ${e && e.message}`) }
         agent.session.append('approval/policy', { policy: 'never' })
       },
     }))
     await handle.agent.whenIdle()
     try { await workspace.attachSession(sessionId) } catch (e) { log(`attachSession: ${e && e.message}`) }
-    return { agent: handle.agent, handle, workspace }
-  }
-
-  /** A routine run stays quiet when it reports 变化：无. A report routine (日报 / 周报) is never quiet: the report is the point. */
-  function quietFor(task, state) {
-    const routine = routines && task.routineId ? routines.get(task.routineId) : null
-    if (routine && wantsRecord(routine)) return false
-    return changedVerdict(state.text) === false
+    return { handle, workspace }
   }
 
   function rename(agent, title) {
     try { const titles = ctx.get('sessionTitle'); if (titles && typeof titles.rename === 'function') titles.rename(agent.session, title) } catch {}
   }
 
-  function selectionFor(scenario) {
-    const selection = (scenario && scenario.model) || ctx.agentDefaultModel.currentSelection()
-    if (!selection || !selection.provider || !selection.model) throw new Error('没有可用的模型：先在设置里配置模型和 API key。')
-    return selection
-  }
-
-  async function run(task) {
-    const scenario = scenarios.resolve(task.scenario)
-    const sessionId = TASK_PREFIX + task.id
-    const state = { handle: null, started: false, text: '', reason: undefined, cancelled: false, timedOut: false, cancel: () => { state.cancelled = true; if (state.handle) state.handle.agent.cancel({ kind: 'hook', reason: 'cancelled by user' }) } }
-    live.set(task.id, state)
-    let timer
-    try {
-      const selection = selectionFor(scenario)
-      store.update(task.id, { sessionId })
-      const opened = await openSession({ sessionId, selection, agentPreset: (scenario && scenario.agentPreset) || config.agentPreset || undefined, permission: (scenario && scenario.permission) || config.permission })
-      state.handle = opened.handle
-      const { agent } = opened
-      if (state.cancelled) { finish(task.id, state); return }
-      rename(agent, '任务 · ' + task.title)
-      state.started = true
-      store.setStatus(task.id, 'running', { startedAt: new Date().toISOString() })
-      emit('started', store.get(task.id))
-      let request = task.input
-      if (task.routineId && routines) {
-        // A routine run is told what the previous run delivered and must lead with 变化.
-        const routine = routines.get(task.routineId)
-        const previousRun = routine ? routine.runs.find((r) => r.taskId && r.taskId !== task.id && r.deliverableId) : null
-        const previous = previousRun ? deliverables.get(previousRun.deliverableId) : null
-        const record = routine && wantsRecord(routine) && typeof workRecord === 'function' ? workRecord(recordDays(routine)) : ''
-        if (record) store.update(task.id, { material: record, report: true }) // the verifier must see the same record, or every fact in the report looks unsourced
-        if (routine) request = routinePrompt(routine, previous, record)
+  /** The teammate's session id, creating the session on first use. A persisted session is resumed by the controller. */
+  async function ensureSession(mate) {
+    if (mate.sessionId) return mate.sessionId
+    if (opening.has(mate.id)) return opening.get(mate.id)
+    const p = (async () => {
+      const sessionId = mateSessionId(mate.id)
+      let agentPreset = config.agentPreset
+      try { if (typeof presetFor === 'function') agentPreset = await presetFor(mate) } catch (e) { log(`preset for ${mate.id} not written (${e && e.message}); using ${config.agentPreset}`) }
+      try {
+        const { handle } = await openSession({ sessionId, cwd: mate.dir, workspaceName: mate.name || '同事', selection: selectionFor(), agentPreset, permission: config.permission })
+        handles.set(mate.id, handle)
+        rename(handle.agent, mate.name || '同事')
+      } catch (e) {
+        // A session with this id may already exist (mates.json lost its stamp): the controller resumes it by id.
+        if (!/exist|already|owned/i.test(errorText(e))) throw e
+        log(`session ${sessionId} exists already; resuming it`)
       }
-      const prompt = scenario.compose(request, { date: new Date().toISOString().slice(0, 10), cwd: opened.workspace.path, task: { id: task.id, title: task.title }, capabilities: typeof capabilities === 'function' ? capabilities() : {}, today: { summary: typeof todaySummary === 'function' ? todaySummary() : '' } })
-      agent.followup(userMessage(prompt, { kind: 'mywork-task', taskId: task.id, scenario: scenario.id }))
-      const idle = agent.whenIdle()
-      const deadline = new Promise((r) => { timer = setTimeout(() => { state.timedOut = true; agent.cancel({ kind: 'hook', reason: 'task timeout' }); r() }, config.timeoutMs) })
-      await Promise.race([idle, deadline])
-      if ((state.timedOut || state.cancelled) && !(await settlesWithin(idle, CANCEL_CONVERGENCE_MS))) log(`task ${task.id}: cancel did not converge`)
-      clearTimeout(timer)
-      try { await ctx.sessions.flush(agent.session) } catch {}
-      finish(task.id, state)
-    } catch (e) {
-      clearTimeout(timer)
-      finish(task.id, state, e instanceof Error ? e.message : String(e))
-    } finally {
-      live.delete(task.id)
-      try { if (state.handle) state.handle.dispose() } catch {}
-      pump()
-    }
+      mates.update(mate.id, { sessionId })
+      log(`teammate ${mate.id} session ${sessionId} ready`)
+      return sessionId
+    })()
+    opening.set(mate.id, p)
+    try { return await p } finally { opening.delete(mate.id) }
   }
 
-  function finish(taskId, state, thrown) {
-    const t = store.get(taskId)
-    if (!t) return
-    store.endSteps(taskId)
-    // A run that never reached its first turn left no session behind: drop the id so 「过程」 does not point at nothing.
-    if (!state.started) store.update(taskId, { sessionId: '' })
-    const scenario = scenarios.resolve(t.scenario)
-    // deliverable: true = the scenario promised a document (missing one is a failure, the text fills in);
-    // 'auto' (default) = the agent decides, an answer in the stream is a fine outcome; false = never.
-    const mode = scenario && scenario.deliverable !== undefined ? scenario.deliverable : 'auto'
-    const summary = state.text ? titleOf(state.text) : ''
-    let error = thrown || (state.cancelled ? '已取消。' : state.timedOut ? '超过最长运行时间。' : reasonError(state.reason))
-    const ask = pendingAsk(t)
-    if (!error && ask) {
-      // 找人 (§2.7): the turn ended on a question. Park the task: session kept (say() resumes it), no verification yet, not a
-      // failure, no deliverable demanded. The concurrency slot and the deadline timer are released by the caller (run()'s
-      // finally / finishFollowup) exactly as for a done task; pump() never counts a waiting task. `verifyFrom` remembers
-      // which deliverables are still unverified so the eventual finish checks them (a resume's follow-up state starts there).
-      store.setStatus(taskId, 'waiting', { error: '', finishedAt: '', verifyFrom: state.followup ? state.deliverablesBefore : 0 })
-      log(`task ${taskId} waiting: ${ask.question}`)
-      emit('waiting', store.get(taskId))
-      return
-    }
-    // A run that failed while a question was open: the question is moot, do not leave it dangling on a failed task.
-    if (error && ask) store.settleAsk(taskId, 'expired')
-    if (!error && mode === true && t.deliverableIds.length === 0 && state.text) {
-      const d = deliverables.create({ taskId, title: t.title, kind: 'markdown', scenario: t.scenario, markdown: state.text })
-      store.update(taskId, (x) => { x.deliverableIds.push(d.id) })
-      emit('deliverable', store.get(taskId), d)
-    }
-    if (!error && mode === true && store.get(taskId).deliverableIds.length === 0) error = '没有产出交付物。'
-    // Follow-up turns only re-verify when they produced a new deliverable.
-    const newDeliverables = state.followup ? store.get(taskId).deliverableIds.length > state.deliverablesBefore : store.get(taskId).deliverableIds.length > 0
-    const wantVerify = !error && config.verify && newDeliverables && !(scenario && scenario.verify === false)
-    if (wantVerify) {
-      store.setStatus(taskId, 'verifying', { summary: summary || '已完成', ...(t.routineId ? { quiet: quietFor(t, state) } : {}) })
-      emit('verifying', store.get(taskId))
-      verify(taskId).catch((e) => log(`verify ${taskId} crashed: ${e && e.message}`))
-      return
-    }
-    store.setStatus(taskId, 'done', { finishedAt: new Date().toISOString(), error, summary: summary || (error ? '' : '已完成'), ...(t.routineId ? { quiet: quietFor(t, state) } : {}) })
-    settleRoutine(taskId)
-    log(`task ${taskId} ${error ? 'failed: ' + error : 'done'}`)
-    emit('done', store.get(taskId))
-  }
-
-  /** Write the run outcome back onto its routine (receipt + what it delivered, for the next run). */
-  function settleRoutine(taskId) {
-    const t = store.get(taskId)
-    if (!t || !t.routineId || !routines) return
-    try { routines.markRun(t.routineId, '', { taskId, deliverableId: t.deliverableIds[t.deliverableIds.length - 1] || '', changed: t.quiet === true ? false : t.quiet === false ? true : null, error: t.error || '' }) } catch (e) { log('routine receipt: ' + (e && e.message)) }
-  }
-
-  /** Second session: read-only check of the deliverables against the task; stamps each deliverable. */
-  async function verify(taskId) {
-    const t = store.get(taskId)
-    if (!t) return
-    const docs = deliverables.forTask(taskId)
-    const scenario = scenarios.resolve(t.scenario)
-    const state = { text: '', handle: null }
-    verifying.set(taskId, state)
-    let timer
-    let verdict = null
-    let failure = ''
+  /** Hand text to the teammate's session: mode 'queue' (its own next turn) or 'steer' (into the running turn). */
+  async function sendPrompt(mateId, text, mode, requestId, retried) {
+    const mate = mates.get(mateId)
+    if (!mate) throw new Error('同事不存在了。')
+    const sessionId = await ensureSession(mate)
+    const c = control()
     try {
-      const selection = (scenario && scenario.verifyModel) || selectionFor(scenario)
-      const prompt = typeof (scenario && scenario.verifyPrompt) === 'function' ? scenario.verifyPrompt(t, docs, t.activity || []) : defaultVerifyPrompt(t, docs, t.activity || [])
-      const sessionId = VERIFY_PREFIX + taskId + '-' + Date.now().toString(36)
-      const opened = await openSession({ sessionId, selection, agentPreset: (scenario && scenario.agentPreset) || config.agentPreset || undefined, permission: 'read-only' })
-      state.handle = opened.handle
-      rename(opened.agent, '核验 · ' + t.title)
-      opened.agent.followup(userMessage(prompt, { kind: 'mywork-verify', taskId }))
-      const idle = opened.agent.whenIdle()
-      const deadline = new Promise((r) => { timer = setTimeout(() => { opened.agent.cancel({ kind: 'hook', reason: 'verify timeout' }); r() }, VERIFY_TIMEOUT_MS) })
-      await Promise.race([idle, deadline])
-      clearTimeout(timer)
-      try { await ctx.sessions.flush(opened.agent.session) } catch {}
-      verdict = parseVerdict(state.text)
-      if (!verdict) failure = state.text ? '核验员没有给出可解析的结论。' : '核验会话没有回复。'
-      store.update(taskId, { verifySessionId: sessionId })
+      if (c) await c.prompt({ requestId, sessionId, mode, content: [{ type: 'text', text }] }, AbortSignal.timeout(30000))
+      else {
+        const h = handles.get(mateId)
+        if (!h) throw new Error('session controller not available')
+        const m = userMessage(text, { kind: 'user', rpcId: requestId })
+        if (mode === 'steer') h.agent.steer(m); else h.agent.followup(m)
+      }
     } catch (e) {
-      clearTimeout(timer)
-      failure = e instanceof Error ? e.message : String(e)
-    } finally {
-      verifying.delete(taskId)
-      try { if (state.handle) state.handle.dispose() } catch {}
+      if (!retried && isNotFound(e) && !handles.has(mateId)) { mates.update(mateId, { sessionId: '' }); return sendPrompt(mateId, text, mode, requestId, true) }
+      throw e
     }
-    const stamp = verdict ? { ...verdict, at: new Date().toISOString() } : { passed: null, checked: 0, issues: 0, notes: '核验失败：' + failure, at: new Date().toISOString() }
-    for (const d of docs) deliverables.update(d.id, { verification: stamp })
-    store.setStatus(taskId, 'done', { finishedAt: new Date().toISOString(), error: '', verification: stamp })
-    settleRoutine(taskId)
-    log(`task ${taskId} done, verified: ${verdict ? (verdict.passed ? 'passed' : 'issues') : 'unavailable'}`)
-    emit('done', store.get(taskId))
   }
 
-  /** Start queued tasks while there is room. A waiting task (§2.7) holds no slot: nothing runs for it until it is answered. */
+  function cancelSession(mateId) {
+    try {
+      const c = control()
+      if (c && typeof c.cancel === 'function') { c.cancel({ sessionId: mateSessionId(mateId) }); return true }
+      const h = handles.get(mateId)
+      if (h) { h.agent.cancel({ kind: 'user' }, { keepInbox: true }); return true }
+    } catch (e) { log(`cancel ${mateId}: ${errorText(e)}`) }
+    return false
+  }
+
+  /** The teammate's live dsh agent (ctx.agents.get, else the handle this process created), or null when cold. */
+  function liveAgent(mateId) {
+    try { const a = ctx.agents && typeof ctx.agents.get === 'function' ? ctx.agents.get(mateSessionId(mateId)) : null; if (a) return a } catch {}
+    const h = handles.get(mateId)
+    return h ? h.agent : null
+  }
+  /** The pending inbox message (next turn or next step) that carries this request id, or null. */
+  function inboxItem(agent, requestId) {
+    const inbox = agent && agent.inbox
+    if (!inbox || !requestId) return null
+    const all = [...(Array.isArray(inbox.nextTurn) ? inbox.nextTurn : []), ...(Array.isArray(inbox.nextStep) ? inbox.nextStep : [])]
+    return all.find((m) => m && m.source && m.source.rpcId === requestId) || null
+  }
+
+  /** The prompt a run is dispatched with: an answer / resume text, the intro, the routine's prompt, or the user's line. */
+  function promptFor(run, mate) {
+    if (run.pendingText) return run.pendingText
+    if (run.trigger === 'system') return introPrompt(mate)
+    if (run.trigger === 'routine' && run.routineId && routines) {
+      const routine = routines.get(run.routineId)
+      if (routine) {
+        const previousRun = (routine.runs || []).find((r) => r.taskId && r.taskId !== run.id && r.deliverableId)
+        const previous = previousRun ? deliverables.get(previousRun.deliverableId) : null
+        const record = wantsRecord(routine) && typeof workRecord === 'function' ? workRecord(recordDays(routine)) : ''
+        if (record) store.update(run.id, { material: record, report: true }) // the verifier must see the same record
+        return routinePrompt(routine, previous, record)
+      }
+    }
+    return run.promptExtra ? run.input + '\n' + run.promptExtra : run.input
+  }
+
+  /** Hand a queued run to its teammate's session. The request id is kept on the run: recovery re-sends exactly it. */
+  function dispatch(run) {
+    const mate = mates.get(run.mateId)
+    if (!mate) { store.setStatus(run.id, 'done', { finishedAt: new Date().toISOString(), error: '同事不存在了。' }); emit('done', store.get(run.id)); return }
+    const requestId = RUN_RPC + run.id + '.' + rand()
+    store.update(run.id, { dispatched: true, dispatchedAt: new Date().toISOString(), sessionId: mateSessionId(mate.id), requestId, handed: false })
+    const text = promptFor(run, mate)
+    sendPrompt(mate.id, text, 'queue', requestId).then(
+      () => {
+        const t = store.get(run.id)
+        if (t && t.status === 'queued' && t.requestId === requestId) store.update(run.id, { handed: true })
+        log(`run ${run.id} → ${mate.id} (${run.trigger})`)
+      },
+      (e) => dispatchFailed(run.id, e),
+    )
+  }
+
+  /**
+   * At a turn/end: a run handed to the session whose message is no longer pending in the inbox, yet never bound a turn,
+   * was lost (a crash before the inbox splice was flushed). It is dispatched again with a fresh request id.
+   */
+  function recheckHanded(mateId) {
+    const agent = liveAgent(mateId)
+    if (!agent || !agent.inbox) return
+    for (const r of store.items) {
+      if (r.mateId !== mateId || r.status !== 'queued' || !r.dispatched || !r.handed) continue
+      if (r.requestId && inboxItem(agent, r.requestId)) continue
+      log(`run ${r.id}: its message is not in the session inbox; dispatching it again`)
+      store.update(r.id, { dispatched: false, handed: false, requestId: '' })
+    }
+  }
+
+  /** Nothing reached the session: an answer goes back to its question, anything else ends as failed. */
+  function dispatchFailed(runId, e) {
+    const t = store.get(runId)
+    if (!t || t.status !== 'queued') return
+    const message = errorText(e)
+    log(`run ${runId} not delivered: ${message}`)
+    if (t.resumeAskId) {
+      store.reopenAsk(runId, t.resumeAskId)
+      store.takeEntry(runId, (a) => a && a.kind === 'user' && a.askId === t.resumeAskId)
+      store.setStatus(runId, 'waiting', { dispatched: false, pendingText: '', resumeAskId: '', dispatchError: message })
+      emit('waiting', store.get(runId))
+    } else {
+      store.setStatus(runId, 'done', { finishedAt: new Date().toISOString(), error: '没能把话送进会话：' + message, dispatched: false })
+      settleRoutine(runId)
+      emit('done', store.get(runId))
+    }
+    pump()
+  }
+
+  /** Dispatch queued runs: one in flight per teammate, config.concurrency teammates at once. */
   function pump() {
     if (pumping) return
     pumping = true
     try {
-      const running = store.items.filter((t) => t.status === 'running' || t.status === 'delivering' || (t.status === 'queued' && live.has(t.id)))
-      let room = Math.max(1, Number(config.concurrency) || 2) - running.length
-      for (const t of store.items) {
-        if (room <= 0) break
-        if (t.status !== 'queued' || live.has(t.id)) continue
-        room -= 1
-        run(t).catch((e) => log(`task ${t.id} crashed: ${e && e.message}`))
+      const busy = new Set(store.items.filter((r) => r.status === 'running' || (r.status === 'queued' && r.dispatched)).map((r) => r.mateId))
+      for (const r of store.items) {
+        if (r.status !== 'queued' || r.dispatched || busy.has(r.mateId)) continue
+        if (busy.size >= cap()) break
+        busy.add(r.mateId)
+        dispatch(r)
       }
     } finally { pumping = false }
   }
 
-  /** Global session/event listener: advance steps, record activity, capture the final text. */
+  // ── session events ───────────────────────────────────────────────────────
+
+  const turnOf = (mateId) => { let t = turns.get(mateId); if (!t) { t = { n: 0, runId: null, discard: false, pending: [] }; turns.set(mateId, t) } return t }
+
+  /** Bind the teammate's current turn to a run: status running, timeout armed; lines claimed before it move into it. */
+  function bindTurn(mateId, runId) {
+    const turn = turnOf(mateId)
+    const run = store.get(runId)
+    if (!run || run.mateId !== mateId) return null
+    if (run.status === 'done') return null // a finished run never takes another turn; the turn becomes its own run
+    if (turn.runId === runId) return run
+    if (turn.runId && live.has(turn.runId)) return store.get(turn.runId) // the turn already belongs to a run: keep it
+    turn.runId = runId
+    absorbPending(turn, runId)
+    const state = { text: '', timer: null, stopped: false, timedOut: false }
+    live.set(runId, state)
+    state.timer = setTimeout(() => { state.timedOut = true; if (!cancelSession(mateId)) finishRun(runId, { kind: 'aborted' }) }, config.timeoutMs)
+    if (state.timer && typeof state.timer.unref === 'function') state.timer.unref()
+    store.setStatus(runId, 'running', { startedAt: run.startedAt || new Date().toISOString(), finishedAt: '', error: '', dispatched: true, pendingText: '', resumeAskId: '' })
+    emit('started', store.get(runId))
+    return store.get(runId)
+  }
+
+  /** Steers and lines claimed before any run was bound go into the run the turn turned out to be. */
+  function absorbPending(turn, runId) {
+    for (const p of turn.pending.splice(0)) {
+      if (p.kind === 'steer') {
+        if (p.fromRunId === runId) continue
+        const entry = store.takeEntry(p.fromRunId, (a) => a && a.kind === 'user' && a.requestId === p.requestId)
+        store.putEntry(runId, entry || { kind: 'user', text: p.text, at: new Date().toISOString() })
+      } else store.activity(runId, { kind: 'user', text: p.text })
+    }
+  }
+
+  /**
+   * The run of the teammate's current turn, binding it when no user line did: a continuation, or an orphan. Our own
+   * messages always carry their run id, so a turn without one (a line typed elsewhere, a dsh reminder) is its own run.
+   */
+  function resolveTurn(mateId) {
+    const turn = turnOf(mateId)
+    if (turn.discard) return null
+    if (turn.runId && live.has(turn.runId)) return store.get(turn.runId)
+    if (turn.pending.length) {
+      // A steer that arrived after its run's turn ended (or a line typed into the session elsewhere) opens a continuation run.
+      const first = turn.pending.shift()
+      if (first.kind === 'steer') store.takeEntry(first.fromRunId, (a) => a && a.kind === 'user' && a.requestId === first.requestId)
+      const input = String(first.text || '').startsWith(ASK_TEXT.answerPrefix) ? String(first.text).slice(ASK_TEXT.answerPrefix.length) : first.text
+      const run = store.create({ mateId, trigger: 'user', input })
+      store.update(run.id, { dispatched: true })
+      return bindTurn(mateId, run.id)
+    }
+    const orphan = store.create({ mateId, trigger: 'system', input: '' })
+    store.update(orphan.id, { dispatched: true })
+    return bindTurn(mateId, orphan.id)
+  }
+
+  function onUserMessage(mateId, message) {
+    const turn = turnOf(mateId)
+    const source = (message && message.source) || {}
+    const rpc = String(source.rpcId || '')
+    const text = messageText(message)
+    if (rpc.startsWith(RUN_RPC)) {
+      const run = store.get(rpcRunId(rpc, RUN_RPC))
+      // Stopped before its turn started (its inbox item could not be withdrawn): the turn is cancelled, nothing is recorded.
+      if (run && run.mateId === mateId && run.status === 'done' && run.stopped && !(turn.runId && live.has(turn.runId))) { turn.discard = true; cancelSession(mateId); return }
+      bindTurn(mateId, run ? run.id : rpcRunId(rpc, RUN_RPC))
+      return
+    }
+    if (rpc.startsWith(NUDGE_RPC)) return
+    if (rpc.startsWith(STEER_RPC)) {
+      const fromRunId = rpcRunId(rpc, STEER_RPC)
+      if (turn.runId === fromRunId && live.has(fromRunId)) return // merged into its own run, as meant
+      if (turn.runId && live.has(turn.runId)) { const entry = store.takeEntry(fromRunId, (a) => a && a.kind === 'user' && a.requestId === rpc); store.putEntry(turn.runId, entry || { kind: 'user', text, at: new Date().toISOString() }); return }
+      turn.pending.push({ kind: 'steer', fromRunId, requestId: rpc, text })
+      return
+    }
+    // A line typed into the teammate's session elsewhere (the dsh session view): part of the thread too.
+    if (source.kind === 'user' && text) {
+      if (turn.runId && live.has(turn.runId)) store.activity(turn.runId, { kind: 'user', text })
+      else turn.pending.push({ kind: 'line', text })
+    }
+  }
+
+  /** Global session/event listener: teammates' turns become runs; verifier sessions hand back their verdict text. */
   function onSessionEvent(session, event) {
     try {
       const id = session && session.id !== undefined ? String(session.id) : ''
       if (!event || typeof event.type !== 'string') return
       if (id.startsWith(VERIFY_PREFIX)) {
-        const taskId = id.slice(VERIFY_PREFIX.length).replace(/-[a-z0-9]+$/, '')
-        const v = verifying.get(taskId)
+        const runId = id.slice(VERIFY_PREFIX.length).replace(/-[a-z0-9]+$/, '')
+        const v = verifying.get(runId)
         if (v && event.type === 'assistant/message') { const text = assistantText(event); if (text) v.text = text }
         return
       }
-      if (!id.startsWith(TASK_PREFIX)) return
-      const taskId = id.slice(TASK_PREFIX.length)
-      const state = live.get(taskId)
-      if (!state) return
-      if (event.type === 'tool/call') {
-        const tool = event.data && event.data.name ? String(event.data.name) : ''
-        const scenario = scenarios.resolve((store.get(taskId) || {}).scenario)
-        store.step(taskId, stepNameFor(tool, scenario && scenario.toolStepMap), tool)
-        store.activity(taskId, { kind: 'tool', name: tool, detail: argsPreview(event.data && event.data.arguments) })
-        emit('step', store.get(taskId))
-        return
+      if (!id.startsWith(MATE_SESSION_PREFIX)) return
+      const mateId = id.slice(MATE_SESSION_PREFIX.length)
+      if (!mates.get(mateId)) return
+      const data = event.data || {}
+      switch (event.type) {
+        case 'turn/start': {
+          const turn = turnOf(mateId)
+          if (turn.runId && live.has(turn.runId)) finishRun(turn.runId, { kind: 'error', error: { message: '上一轮没有正常结束。' } })
+          turns.set(mateId, { n: Number(data.turn) || 0, runId: null, discard: false, pending: [] })
+          return
+        }
+        case 'user/message': onUserMessage(mateId, data); return
+        case 'tool/call': {
+          const run = resolveTurn(mateId)
+          if (!run) return
+          const tool = data.name ? String(data.name) : ''
+          store.step(run.id, stepNameFor(tool, stepMap()), tool)
+          store.activity(run.id, { kind: 'tool', name: tool, detail: argsPreview(data.arguments) })
+          emit('step', store.get(run.id))
+          return
+        }
+        case 'tool/result': {
+          const turn = turnOf(mateId)
+          if (turn.runId && live.has(turn.runId)) store.activityResult(turn.runId, !data.error, resultPreview(event))
+          return
+        }
+        case 'assistant/message': {
+          const text = assistantText(event)
+          if (!text) return
+          const run = resolveTurn(mateId)
+          if (!run) return
+          const state = live.get(run.id)
+          if (state) state.text = text
+          store.activity(run.id, { kind: 'text', text })
+          emit('text', store.get(run.id))
+          return
+        }
+        case 'turn/end': {
+          const turn = turnOf(mateId)
+          const runId = turn.runId && live.has(turn.runId) ? turn.runId : null
+          // Lines claimed by a turn that never produced anything still belong to the thread.
+          if (turn.discard) { /* a stopped run's turn: nothing to record */ }
+          else if (!runId && turn.pending.length) { const run = resolveTurn(mateId); if (run) finishRun(run.id, data.reason) }
+          else if (runId) finishRun(runId, data.reason)
+          turns.set(mateId, { n: turn.n, runId: null, discard: false, pending: [] })
+          recheckHanded(mateId)
+          if (typeof afterTurn === 'function') { try { afterTurn(mateId) } catch (e) { log('afterTurn: ' + errorText(e)) } }
+          pump()
+          return
+        }
+        default:
       }
-      if (event.type === 'tool/result') { store.activityResult(taskId, !(event.data && event.data.error), resultPreview(event)); return }
-      if (event.type === 'assistant/message') {
-        const text = assistantText(event)
-        if (text) { state.text = text; store.activity(taskId, { kind: 'text', text: text.length > 2000 ? text.slice(0, 1999) + '…' : text }) }
-        return
-      }
-      if (event.type === 'turn/end') { state.reason = event.data && event.data.reason; store.endSteps(taskId); if (state.followup) finishFollowup(taskId) }
     } catch (e) { log('event error: ' + (e && e.message)) }
   }
 
-  /** Called by the deliver tool from inside a task session. */
+  /** A routine run stays quiet when it reports 变化：无. A report routine (日报 / 周报) is never quiet: the report is the point. */
+  function quietFor(run, text) {
+    const routine = routines && run.routineId ? routines.get(run.routineId) : null
+    if (routine && wantsRecord(routine)) return false
+    return changedVerdict(text) === false
+  }
+
+  /** End of a run's turn: waiting when it stopped on a question, else done at once; verification follows in the background. */
+  function finishRun(runId, reason) {
+    const run = store.get(runId)
+    const state = live.get(runId) || { text: '' }
+    if (state.timer) clearTimeout(state.timer)
+    live.delete(runId)
+    for (const [mateId, turn] of turns) if (turn.runId === runId) turns.set(mateId, { n: turn.n, runId: null, discard: false, pending: turn.pending })
+    if (!run || run.status === 'done') return
+    store.endSteps(runId)
+    const error = state.stopped ? STOPPED : state.timedOut ? '超过最长运行时间。' : reasonError(reason)
+    const ask = pendingAsk(run)
+    if (!error && ask) {
+      store.setStatus(runId, 'waiting', { error: '', finishedAt: '' })
+      log(`run ${runId} waiting: ${ask.question}`)
+      emit('waiting', store.get(runId))
+      return
+    }
+    if (error && ask) store.settleAsk(runId, 'expired')
+    const quiet = run.trigger === 'routine' && !error ? quietFor(run, state.text) : false
+    if (run.trigger === 'routine') {
+      // The closing 变化 line is for the engine; the thread shows the reply without it.
+      store.update(runId, (x) => { for (let i = x.activity.length - 1; i >= 0; i -= 1) if (x.activity[i].kind === 'text') { const cleaned = stripVerdict(x.activity[i].text); if (cleaned) x.activity[i].text = cleaned; break } })
+    }
+    store.setStatus(runId, 'done', { finishedAt: new Date().toISOString(), error, summary: state.text ? titleOf(stripVerdict(state.text)) : '', quiet })
+    settleRoutine(runId)
+    const done = store.get(runId)
+    const unverified = done.deliverableIds.length > (Number(done.verifiedCount) || 0)
+    if (!error && !quiet && config.verify && unverified) startVerify(runId) // a quiet run is never seen: no verifier for it
+    log(`run ${runId} ${error ? 'failed: ' + error : 'done'}${quiet ? ' (quiet)' : ''}`)
+    emit('done', store.get(runId))
+  }
+
+  /** Write the run outcome back onto its routine (receipt + what it delivered, for the next run). */
+  function settleRoutine(runId) {
+    const t = store.get(runId)
+    if (!t || !t.routineId || !routines || t.remind) return
+    try { routines.markRun(t.routineId, '', { taskId: runId, deliverableId: t.deliverableIds[t.deliverableIds.length - 1] || '', changed: t.quiet === true ? false : t.error ? null : true, error: t.error || '' }) } catch (e) { log('routine receipt: ' + (e && e.message)) }
+  }
+
+  function startVerify(runId) {
+    if (verifying.has(runId)) return
+    store.update(runId, { verifying: true })
+    emit('verifying', store.get(runId))
+    verify(runId).catch((e) => { log(`verify ${runId} crashed: ${e && e.message}`); store.update(runId, { verifying: false }) })
+  }
+
+  /** Second session: a read-only check of the run's new deliverables against what the user said; stamps each one. */
+  async function verify(runId) {
+    const t = store.get(runId)
+    if (!t) return
+    const count = t.deliverableIds.length
+    const from = Math.min(Number(t.verifiedCount) || 0, count)
+    const ids = new Set(t.deliverableIds.slice(from))
+    const docs = deliverables.forTask(runId).filter((d) => ids.has(d.id))
+    const general = scenarios ? scenarios.resolve('general') : null
+    const state = { text: '', handle: null }
+    verifying.set(runId, state)
+    let timer
+    let verdict = null
+    let failure = ''
+    let sessionId = ''
+    try {
+      const prompt = general && typeof general.verifyPrompt === 'function' ? general.verifyPrompt(t, docs, t.activity || []) : defaultVerifyPrompt(t, docs, t.activity || [])
+      sessionId = VERIFY_PREFIX + runId + '-' + Date.now().toString(36)
+      const opened = await openSession({ sessionId, cwd: config.workbench, workspaceName: 'MyWork 核验', selection: selectionFor(), agentPreset: config.agentPreset, permission: 'read-only' })
+      state.handle = opened.handle
+      rename(opened.handle.agent, '核验 · ' + (t.title || t.input || runId))
+      opened.handle.agent.followup(userMessage(prompt, { kind: 'mywork-verify', runId }))
+      const idle = opened.handle.agent.whenIdle()
+      const deadline = new Promise((r) => { timer = setTimeout(() => { opened.handle.agent.cancel({ kind: 'hook', reason: 'verify timeout' }); r() }, VERIFY_TIMEOUT_MS); if (timer.unref) timer.unref() })
+      await Promise.race([idle, deadline])
+      clearTimeout(timer)
+      try { await ctx.sessions.flush(opened.handle.agent.session) } catch {}
+      verdict = parseVerdict(state.text)
+      if (!verdict) failure = state.text ? '核验员没有给出可解析的结论。' : '核验会话没有回复。'
+    } catch (e) {
+      clearTimeout(timer)
+      failure = errorText(e)
+    } finally {
+      verifying.delete(runId)
+      try { if (state.handle) state.handle.dispose() } catch {}
+    }
+    const stamp = verdict ? { ...verdict, at: new Date().toISOString() } : { passed: null, checked: 0, issues: 0, notes: '核验失败：' + failure, at: new Date().toISOString() }
+    for (const d of docs) deliverables.update(d.id, { verification: stamp })
+    if (!store.get(runId)) return
+    store.update(runId, { verification: stamp, verifying: false, verifiedCount: count, ...(sessionId ? { verifySessionId: sessionId } : {}) })
+    log(`run ${runId} verified: ${verdict ? (verdict.passed ? 'passed' : 'issues') : 'unavailable'}`)
+    emit('verified', store.get(runId))
+  }
+
+  // ── what the HTTP layer and the tools call ────────────────────────────────
+
+  /** The teammate and the run a tool call came from, by the calling session's id; null outside teammate sessions. */
+  function caller(sessionId) {
+    const mate = mates.bySession(sessionId)
+    if (!mate) return null
+    const turn = turns.get(mate.id)
+    const run = turn && turn.runId && live.has(turn.runId) ? store.get(turn.runId) : null
+    return { mate, run: run || store.items.find((r) => r.mateId === mate.id && r.status === 'running') || null }
+  }
+
+  /** Called by the deliver tool: a deliverable of the calling teammate's current run. */
   function deliver(sessionId, args) {
-    const t = store.bySession(String(sessionId || ''))
-    if (!t) throw new Error('deliver 只能在后台任务会话里调用（这个会话不属于任何任务）。')
-    const d = deliverables.create({ taskId: t.id, title: args.title, kind: args.kind, scenario: t.scenario, markdown: args.markdown, data: args.data, summary: args.summary })
-    // The tool/call event already recorded the 交付 step; only the status and the link change here.
-    store.update(t.id, (x) => { x.deliverableIds.push(d.id); if (x.status === 'running') x.status = 'delivering' })
-    emit('deliverable', store.get(t.id), d)
+    const c = caller(sessionId)
+    if (!c) throw new Error('deliver 只能在 MyWork 同事的会话里调用（这个会话不属于任何同事）。')
+    if (!c.run) throw new Error('现在没有在干的活，没法交付。')
+    const d = deliverables.create({ mateId: c.mate.id, runId: c.run.id, title: args.title, kind: args.kind, markdown: args.markdown, data: args.data, summary: args.summary })
+    store.update(c.run.id, (x) => { x.deliverableIds.push(d.id) })
+    emit('deliverable', store.get(c.run.id), { deliverable: d })
     return d
   }
 
   /**
-   * Recover from a restart: tasks left running are finished as failed; queued ones start. A waiting task (§8.9 step 7)
-   * stays waiting: nothing of it was in flight, and its persisted session resumes through say() whenever the answer comes.
-   */
-  function recover() {
-    for (const t of store.items) {
-      if (t.status === 'done' || t.status === 'queued' || t.status === 'waiting') continue
-      if (t.status === 'verifying') { store.setStatus(t.id, 'done', { finishedAt: new Date().toISOString(), error: '', verification: { passed: null, checked: 0, issues: 0, notes: '核验被服务重启打断。', at: new Date().toISOString() } }); continue }
-      store.setStatus(t.id, 'done', { finishedAt: new Date().toISOString(), error: '服务重启，任务中断。' })
-    }
-    pump()
-  }
-
-  function cancel(taskId) {
-    const t = store.get(taskId)
-    if (!t) throw new Error('task not found')
-    if (t.status === 'done') return t
-    const state = live.get(taskId)
-    if (state) { state.cancel(); return store.get(taskId) }
-    if (t.status === 'verifying') { const v = verifying.get(taskId); if (v && v.handle) v.handle.agent.cancel({ kind: 'hook', reason: 'cancelled by user' }); return t }
-    // A waiting task is cancelled like a queued one; its open question expires with it, and the column hears about it.
-    const wasWaiting = t.status === 'waiting'
-    if (wasWaiting) store.settleAsk(taskId, 'expired')
-    store.endSteps(taskId)
-    const done = store.setStatus(taskId, 'done', { finishedAt: new Date().toISOString(), error: '已取消。' })
-    if (wasWaiting) { log(`task ${taskId} cancelled while waiting`); emit('done', done) }
-    return done
-  }
-
-  /**
-   * Continue the conversation with a task: while it runs the text is queued into the live
-   * agent; a finished or waiting task gets a new turn in its persisted session through dsh's
-   * session controller (the same path the IM member uses), and the run engine treats that turn
-   * like a run: steps, activity, deliveries, then done (or waiting) again.
-   *
-   * A waiting task with an open question takes whatever is said as the answer (§2.7: the same
-   * path as POST /answer), so a reply typed into the composer is never refused. `extra` is merged
-   * into the thread's user entry (askId of the question answered, auto for the 24 h resume).
-   */
-  async function say(taskId, text, extra) {
-    const body = String(text || '').trim()
-    if (!body) throw new Error('text is required')
-    const t = store.get(taskId)
-    if (!t) throw new Error('task not found')
-    if (t.status === 'verifying') throw new Error('核验中，稍等一下再说。')
-    if (t.status === 'waiting' && pendingAsk(t)) return answer(taskId, '', body)
-    store.activity(taskId, { kind: 'user', text: body, ...(extra || {}) })
-    const liveState = live.get(taskId)
-    if (liveState && liveState.handle) {
-      liveState.handle.agent.followup(userMessage(body, { kind: 'mywork-user', taskId }))
-      emit('step', store.get(taskId))
-      return store.get(taskId)
-    }
-    if (liveState) throw new Error('任务还在启动，稍等一下再说。')
-    if (!t.sessionId) throw new Error('这个任务没有会话可以继续（它没跑起来）。')
-    const control = typeof controller === 'function' ? controller() : null
-    if (!control) throw new Error('session controller not available')
-    // Resuming from waiting: the deliverables since `verifyFrom` were never verified (finish() skipped it), so they count as new.
-    const wasWaiting = t.status === 'waiting'
-    const deliverablesBefore = wasWaiting && Number.isInteger(t.verifyFrom) ? Math.min(t.verifyFrom, t.deliverableIds.length) : t.deliverableIds.length
-    const state = { handle: null, followup: true, started: true, deliverablesBefore, text: '', reason: undefined, cancelled: false, timedOut: false, timer: null, cancel: () => { state.cancelled = true; finishFollowup(taskId) } }
-    live.set(taskId, state)
-    store.setStatus(taskId, 'running', { error: '', finishedAt: '' })
-    emit('started', store.get(taskId))
-    try {
-      await control.prompt({ requestId: 'mywork-task-' + randomUUID(), sessionId: t.sessionId, mode: 'queue', content: [{ type: 'text', text: body }] }, AbortSignal.timeout(30000))
-    } catch (e) {
-      live.delete(taskId)
-      // Nothing reached the session: a waiting task goes back to waiting (the person can try again), a finished one back to done.
-      if (wasWaiting) store.setStatus(taskId, 'waiting', { error: '', finishedAt: '' })
-      else store.setStatus(taskId, 'done', { finishedAt: new Date().toISOString(), error: '' })
-      throw new Error('没能把话送进会话：' + (e instanceof Error ? e.message : String(e)))
-    }
-    state.timer = setTimeout(() => { state.timedOut = true; finishFollowup(taskId) }, config.timeoutMs)
-    return store.get(taskId)
-  }
-
-  /**
-   * 找人 (§2.7), the tool side. Called by mywork_ask from inside a running task session: resolves the task, refuses where
-   * asking is not allowed (routine runs, the 今日 assistant, scenarios with ask: false, a third question), then writes the
-   * pending ask entry (an older pending one is superseded). The model is told to end its turn; finish() does the rest.
+   * 找人 (§2.7), the tool side: the calling teammate's running run writes a pending ask and ends its turn; finishRun()
+   * then parks it as waiting. Routine and system (intro) runs may not ask; at most two asks per run.
    */
   function ask(sessionId, args) {
-    const t = store.bySession(String(sessionId || ''))
-    if (!t) throw new Error('mywork_ask 只能在后台任务会话里调用（这个会话不属于任何任务）。')
-    if (t.scenario === 'assistant') throw new Error(ASK_TEXT.assistant)
-    if (t.source === 'routine' || t.routineId) throw new Error(ASK_TEXT.routine)
-    const scenario = scenarios.resolve(t.scenario)
-    if (scenario && scenario.ask === false) throw new Error(ASK_TEXT.scenario)
-    if (!live.has(t.id)) throw new Error(ASK_TEXT.notLive)
-    if (store.askCount(t.id) >= ASK_MAX_PER_TASK) throw new Error(ASK_TEXT.limit)
+    const c = caller(sessionId)
+    if (!c) throw new Error(ASK_TEXT.notMate)
+    const run = c.run
+    if (!run || run.status !== 'running') throw new Error(ASK_TEXT.notLive)
+    if (run.trigger === 'routine') throw new Error(ASK_TEXT.routine)
+    if (run.trigger === 'system') throw new Error(ASK_TEXT.system)
+    if (store.askCount(run.id) >= ASK_MAX_PER_TASK) throw new Error(ASK_TEXT.limit)
     const fields = normalizeAsk(args)
-    const entry = store.ask(t.id, fields)
-    log(`task ${t.id} asks (${fields.askKind}): ${fields.question}`)
-    emit('step', store.get(t.id))
+    const entry = store.ask(run.id, fields)
+    log(`run ${run.id} asks (${fields.askKind}): ${fields.question}`)
+    emit('step', store.get(run.id))
     return entry
   }
 
-  /**
-   * Answer the newest pending ask of a waiting task and resume it (POST /answer). `askId` may be empty (= the newest);
-   * a stale id is refused so two open cards cannot answer each other's question. The answer is stored on the ask entry and
-   * sent into the session as 「回答：<answer>」 through say(); should that fail, the ask reopens and nothing has happened.
-   * Errors carry status 400 where the request, not the server, was wrong.
-   */
-  async function answer(taskId, askId, raw) {
-    const t = store.get(taskId)
-    if (!t) throw new Error('task not found')
-    const ask = pendingAsk(t)
-    if (!ask || t.status !== 'waiting') throw bad('这个任务没有等着回答的问题。')
-    if (askId && String(askId) !== ask.id) throw bad('这个问题已经不是当前的问题了。')
-    const text = answerText(ask, raw)
-    if (!text) throw bad('回答不能为空。')
-    store.settleAsk(taskId, 'answered', text)
-    try {
-      return await say(taskId, ASK_TEXT.answerPrefix + text, { askId: ask.id })
-    } catch (e) {
-      store.reopenAsk(taskId, ask.id)
-      throw e
+  /** The run the teammate works on now (bound to its turn), or null. */
+  function activeRun(mateId) {
+    const turn = turns.get(mateId)
+    if (turn && turn.runId && live.has(turn.runId)) return store.get(turn.runId)
+    return null
+  }
+
+  /** Steer `prompt` into a run's session and record the user's line on the run; the line comes off again if it never got there. */
+  async function steerInto(mateId, run, entry, prompt, onFail) {
+    const requestId = STEER_RPC + run.id + '.' + rand()
+    store.activity(run.id, { ...entry, requestId })
+    try { await sendPrompt(mateId, prompt, 'steer', requestId) } catch (e) {
+      store.takeEntry(run.id, (a) => a && a.requestId === requestId)
+      if (typeof onFail === 'function') onFail()
+      throw new Error('没能把话送进会话：' + errorText(e))
     }
+    emit('step', store.get(run.id))
   }
 
   /**
-   * 24-hour rule: a waiting task nobody answered resumes on its own assumptions; the ask is marked expired first so the
-   * card closes. Run from the 30 s scheduler tick. `now` is injectable for tests. Returns the ids it resumed. A resume
-   * that cannot reach the session ends the task as failed rather than leaving a waiting row with no question on it.
+   * A message to a teammate. Working on a user run → steer it (no new run); if that run has just asked (mywork_ask, turn
+   * not over yet), the text is the answer. Waiting on an ask → the text answers it. Its own user run still queued → the
+   * text joins that run. Otherwise (idle, or only a routine / intro run active) → a new user run, dispatched when free.
+   * Returns { runId, mode: 'steer' | 'answer' | 'queue' }.
    */
-  async function expireAsks(now = Date.now()) {
+  async function say(mateId, text) {
+    const mate = mates.get(mateId)
+    if (!mate) throw notFound('同事不存在。')
+    const body = String(text || '').trim()
+    if (!body) throw bad('text is required')
+    const active = activeRun(mateId)
+    if (active && active.trigger === 'user' && active.status === 'running') {
+      const ask = pendingAsk(active)
+      if (ask) {
+        // It asked in this very turn: the line is the answer, so the turn does not end parked on a question.
+        const t = answerText(ask, body) || body
+        store.settleAsk(active.id, 'answered', t)
+        await steerInto(mateId, active, { kind: 'user', text: t, askId: ask.id }, ASK_TEXT.answerPrefix + t, () => store.reopenAsk(active.id, ask.id))
+        return { runId: active.id, mode: 'answer' }
+      }
+      await steerInto(mateId, active, { kind: 'user', text: body }, body)
+      return { runId: active.id, mode: 'steer' }
+    }
+    const waiting = [...store.items].reverse().find((r) => r.mateId === mateId && r.status === 'waiting' && pendingAsk(r))
+    if (waiting) { const r = answer(waiting.id, '', body); return { runId: r.id, mode: 'answer' } }
+    // Its own user run is still queued (behind the concurrency cap, behind a routine, or its cold session resuming).
+    const newest = [...store.items].reverse().find((r) => r.mateId === mateId && r.trigger === 'user' && r.status !== 'done')
+    if (newest && newest.status === 'queued') {
+      if (!newest.dispatched) {
+        store.activity(newest.id, { kind: 'user', text: body })
+        store.update(newest.id, (x) => (x.pendingText ? { pendingText: x.pendingText + '\n' + body } : { promptExtra: x.promptExtra ? x.promptExtra + '\n' + body : body }))
+        emit('step', store.get(newest.id))
+        return { runId: newest.id, mode: 'steer' }
+      }
+      // Handed to the session, turn not started: a steer is claimed together with it (absorbPending keeps it in the run).
+      await steerInto(mateId, newest, { kind: 'user', text: body }, body)
+      return { runId: newest.id, mode: 'steer' }
+    }
+    const run = store.create({ mateId, trigger: 'user', input: body })
+    emit('queued', run)
+    pump()
+    return { runId: run.id, mode: 'queue' }
+  }
+
+  /**
+   * Answer the pending ask of a waiting run (POST /answer, or a line typed while it waits). The ask is marked answered,
+   * the user's words join the run's thread, and the run is queued again with 「回答：<answer>」 as its prompt, so the same
+   * run continues in the same session. `askId` may be empty (= the newest); a stale id, nothing pending or an empty
+   * answer is a 400. Should the answer not reach the session, the ask reopens and the run is waiting again.
+   */
+  function answer(runId, askId, raw) {
+    const t = store.get(runId)
+    if (!t) throw notFound('run not found')
+    const ask = pendingAsk(t)
+    if (!ask || t.status !== 'waiting') throw bad('这一轮没有等着回答的问题。')
+    if (askId && String(askId) !== ask.id) throw bad('这个问题已经不是当前的问题了。')
+    const text = answerText(ask, raw)
+    if (!text) throw bad('回答不能为空。')
+    store.settleAsk(runId, 'answered', text)
+    store.activity(runId, { kind: 'user', text, askId: ask.id })
+    store.setStatus(runId, 'queued', { dispatched: false, pendingText: ASK_TEXT.answerPrefix + text, resumeAskId: ask.id, dispatchError: '' })
+    emit('queued', store.get(runId))
+    pump()
+    return store.get(runId)
+  }
+
+  /** Take a dispatched run's message back out of the session inbox; false when it is not (or no longer) there. */
+  function withdraw(mateId, run) {
+    const agent = liveAgent(mateId)
+    const item = inboxItem(agent, run.requestId)
+    if (!item) return false
+    const c = control()
+    try {
+      if (c && typeof c.updateQueue === 'function') {
+        Promise.resolve(c.updateQueue({ sessionId: mateSessionId(mateId), itemId: item.id, action: { kind: 'remove' } })).catch((e) => log(`withdraw ${run.id}: ${errorText(e)}`))
+        return true
+      }
+      if (agent.inbox && typeof agent.inbox.remove === 'function') { agent.inbox.remove(item.id); return true }
+    } catch (e) { log(`withdraw ${run.id}: ${errorText(e)}`) }
+    return false
+  }
+
+  /**
+   * Stop. A run bound to the current turn is cancelled (controller.cancel keeps the inbox, so messages queued behind it
+   * still run). With no run bound, the teammate's queued runs end instead: a message already in the session inbox is
+   * taken out, and should it be claimed anyway its turn is cancelled at once (run.stopped). A run waiting on a question
+   * ends with it. Returns how many runs were stopped.
+   */
+  function stop(mateId) {
+    let n = 0
+    const at = new Date().toISOString()
+    const active = activeRun(mateId)
+    if (active) {
+      const state = live.get(active.id)
+      if (state) state.stopped = true
+      if (!cancelSession(mateId)) finishRun(active.id, { kind: 'aborted' })
+      n += 1
+    } else {
+      for (const r of store.items.filter((x) => x.mateId === mateId && x.status === 'queued')) {
+        if (r.dispatched) withdraw(mateId, r)
+        store.endSteps(r.id)
+        store.setStatus(r.id, 'done', { finishedAt: at, error: STOPPED, stopped: true })
+        settleRoutine(r.id)
+        emit('done', store.get(r.id))
+        n += 1
+      }
+    }
+    for (const r of store.items.filter((x) => x.mateId === mateId && x.status === 'waiting')) {
+      store.settleAsk(r.id, 'expired')
+      store.endSteps(r.id)
+      store.setStatus(r.id, 'done', { finishedAt: new Date().toISOString(), error: STOPPED })
+      emit('done', store.get(r.id))
+      n += 1
+    }
+    if (n) pump()
+    return n
+  }
+
+  /**
+   * 24-hour rule: a waiting run nobody answered continues on its own assumptions; the ask is marked expired first so the
+   * card closes. Run from the scheduler tick. `now` is injectable for tests. Returns the ids it resumed.
+   */
+  function expireAsks(now = Date.now()) {
     const resumed = []
     for (const t of store.items.slice()) {
       if (t.status !== 'waiting') continue
       const ask = pendingAsk(t)
       if (!ask || ts(ask.at) > now - ASK_EXPIRY_MS) continue
       store.settleAsk(t.id, 'expired')
-      try {
-        await say(t.id, ASK_TEXT.expired, { auto: true, askId: ask.id })
-        resumed.push(t.id)
-        log(`task ${t.id}: question expired after 24 h, resumed on assumptions`)
-      } catch (e) {
-        const message = e instanceof Error ? e.message : String(e)
-        log(`task ${t.id}: question expired but could not resume: ${message}`)
-        if (store.get(t.id) && store.get(t.id).status === 'waiting') { store.endSteps(t.id); store.setStatus(t.id, 'done', { finishedAt: new Date().toISOString(), error: '等回答超过 24 小时，且没能继续会话：' + message }); emit('done', store.get(t.id)) }
-      }
+      store.activity(t.id, { kind: 'user', text: ASK_TEXT.expired, auto: true, askId: ask.id }) // one muted line in the thread, not a bubble
+      store.setStatus(t.id, 'queued', { dispatched: false, pendingText: ASK_TEXT.expired, resumeAskId: '' })
+      resumed.push(t.id)
+      log(`run ${t.id}: question expired after 24 h, resumed on assumptions`)
     }
+    if (resumed.length) pump()
     return resumed
   }
 
-  function finishFollowup(taskId) {
-    const state = live.get(taskId)
-    if (!state || !state.followup) return
-    clearTimeout(state.timer)
-    live.delete(taskId)
-    finish(taskId, state)
+  /**
+   * Restart, part one — synchronous, before any route or pump can run: runs that were mid-turn end with
+   * 服务重启，这一轮中断。; a verification in flight is stamped as interrupted; the runs already handed to a session
+   * inbox are remembered for recover(). Idempotent.
+   */
+  function repair() {
+    if (repaired) return repaired
+    const at = new Date().toISOString()
+    for (const t of store.items) {
+      if (t.verifying || t.status === 'verifying') {
+        store.update(t.id, { verifying: false, verification: { passed: null, checked: 0, issues: 0, notes: '核验被服务重启打断。', at } })
+        if (t.status === 'verifying') store.update(t.id, { status: 'done', finishedAt: t.finishedAt || at })
+      }
+      if (t.status === 'running' || t.status === 'delivering') {
+        store.endSteps(t.id)
+        store.settleAsk(t.id, 'expired')
+        store.setStatus(t.id, 'done', { finishedAt: at, error: INTERRUPTED })
+        settleRoutine(t.id)
+      }
+    }
+    repaired = new Set()
+    for (const t of store.items) if (t.status === 'queued' && t.dispatched) { repaired.add(t.id); if (!t.handed) store.update(t.id, { handed: true }) }
+    return repaired
+  }
+
+  /**
+   * Restart, part two (a few seconds after start): each teammate that had a message handed to its session before the
+   * restart gets that exact request re-sent (mode 'queue'; the controller ignores a request id it already holds in the
+   * inbox or the log, and restores one lost in the crash window), then a steer to wake it, because dsh does not start
+   * a resumed agent by itself. A run handed over after this start is not touched. Everything else is dispatched as usual.
+   */
+  async function recover() {
+    const ids = repair()
+    const byMate = new Map()
+    for (const id of ids) {
+      const t = store.get(id)
+      if (!t || t.status !== 'queued' || !t.dispatched) continue
+      const list = byMate.get(t.mateId); if (list) list.push(t); else byMate.set(t.mateId, [t])
+    }
+    const work = []
+    for (const [mateId, runs] of byMate) {
+      const mate = mates.get(mateId)
+      const requeue = () => { for (const t of runs) { const x = store.get(t.id); if (x && x.status === 'queued' && x.dispatched) store.update(t.id, { dispatched: false, handed: false, requestId: '' }) } pump() }
+      if (!mate || !mate.sessionId) { requeue(); continue }
+      work.push((async () => {
+        try {
+          for (const t of runs) {
+            const x = store.get(t.id)
+            if (x && x.status === 'queued' && x.dispatched && x.requestId) await sendPrompt(mateId, promptFor(x, mate), 'queue', x.requestId)
+          }
+          await sendPrompt(mateId, NUDGE_TEXT, 'steer', NUDGE_RPC + rand())
+          log(`teammate ${mateId} resumed and nudged`)
+        } catch (e) { log(`resume ${mateId} failed (${errorText(e)}); dispatching again`); requeue() }
+      })())
+    }
     pump()
+    await Promise.all(work)
   }
 
-  /** Re-run verification for a finished task (manual). */
-  function reverify(taskId) {
-    const t = store.get(taskId)
-    if (!t) throw new Error('task not found')
-    if (t.status !== 'done' || t.deliverableIds.length === 0) throw new Error('只有已完成且有交付物的任务能核验')
-    if (verifying.has(taskId)) return t
-    store.setStatus(taskId, 'verifying')
-    emit('verifying', store.get(taskId))
-    verify(taskId).catch((e) => log(`verify ${taskId} crashed: ${e && e.message}`))
-    return store.get(taskId)
+  /** Forget a removed teammate: stop what it runs, let go of its session handle. */
+  function forget(mateId) {
+    stop(mateId)
+    turns.delete(mateId)
+    const h = handles.get(mateId)
+    handles.delete(mateId)
+    try { if (h) h.dispose() } catch {}
   }
 
-  return { pump, recover, cancel, deliver, reverify, say, ask, answer, expireAsks, onSessionEvent, isLive: (id) => live.has(id) }
+  return { pump, repair, recover, say, answer, stop, ask, deliver, caller, expireAsks, onSessionEvent, forget, activeRun, ensureSession, isLive: (runId) => live.has(runId), isVerifying: (runId) => verifying.has(runId) }
 }

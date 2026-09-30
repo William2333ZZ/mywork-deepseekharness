@@ -2,28 +2,45 @@
  * MyWork mobile — connection, data and navigation for every screen.
  *
  *   useConn()  → { conn, api, pair(text), forget() }          the paired computer
- *   useStore() → { data, thread, loading, error, refresh() }  what the computer says, polled 5s while
- *                                                              something runs, 30s otherwise
+ *   useStore() → { mates, activity, tick, loading, error, refresh() }  GET /mates + GET /activity, polled 5s while
+ *                                                              a teammate works, 30s otherwise; `tick` counts polls
  *   useNav()   → { route, stack, push(r), pop(), replace(r), reset(r) }
  *
  * Navigation is a plain stack in state (no router dependency): Android back pops it. The stack starts on the
- * column (home); a thread is pushed on top of it, so back always lands on the column.
+ * teammates list (home); everything else is pushed on top of it, so back always lands on the list.
  */
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { AppState, BackHandler } from 'react-native'
-import { Api, clearConnection, loadConnection, login, parsePairText, saveConnection, type Connection, type Task, type TasksPayload } from './api'
+import { Api, clearConnection, loadConnection, login, parsePairText, saveConnection, type ActivityPayload, type Connection, type Mate } from './api'
 
-/** The four thread shapes (TEAMMATES.md §8.5): 今日, a task, a routine, and the empty one 「+」 opens. */
-export type ThreadKind = 'today' | 'task' | 'routine' | 'new'
+/**
+ * The screens (TEAMMATES.md §9.6): the teammates list · a teammate's conversation (runId: scroll to that run and
+ * light it up) · the teammate's page (routineId: open that routine's sheet) · the bell's activity · a new teammate ·
+ * files and one file · settings.
+ */
 export type Route =
   | { name: 'home' }
-  | { name: 'thread'; kind: ThreadKind; id?: string }
-  | { name: 'deliverables' }
+  | { name: 'mate'; id: string; runId?: string }
+  | { name: 'mateInfo'; id: string; routineId?: string }
+  | { name: 'activity' }
+  | { name: 'newMate' }
+  | { name: 'files'; mateId?: string }
+  | { name: 'file'; id: string }
   | { name: 'settings' }
 
-type Nav = { route: Route; stack: Route[]; push: (r: Route) => void; pop: () => void; replace: (r: Route) => void; reset: (r: Route) => void }
+type Nav = {
+  route: Route; stack: Route[]; push: (r: Route) => void; pop: () => void; replace: (r: Route) => void; reset: (r: Route) => void
+  /** Go to a teammate's conversation (at a run): back to it when it is already in the stack, pushed otherwise. */
+  openMate: (id: string, runId?: string) => void
+}
 type Conn = { conn: Connection | null; api: Api | null; ready: boolean; failed: boolean; pair: (text: string) => Promise<string | null>; forget: () => Promise<void>; retry: () => Promise<void> }
-type Store = { data: TasksPayload | null; thread: Task | null; loading: boolean; error: string; refresh: () => Promise<void>; setThread: (t: Task | null) => void }
+type Store = {
+  mates: Mate[] | null; activity: ActivityPayload | null; tick: number; loading: boolean; error: string
+  refresh: () => Promise<void>
+  /** Put a mate the server just returned (create / update / say) into the list without waiting for the poll. */
+  putMate: (m: Mate) => void
+  dropMate: (id: string) => void
+}
 
 const NavCtx = createContext<Nav | null>(null)
 const ConnCtx = createContext<Conn | null>(null)
@@ -46,6 +63,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
     pop: () => setStack((s) => (s.length > 1 ? s.slice(0, -1) : s)),
     replace: (r) => setStack((s) => [...s.slice(0, -1), r]),
     reset: (r) => setStack([r]),
+    openMate: (id, runId) => setStack((s) => {
+      const r: Route = { name: 'mate', id, runId }
+      const i = s.findIndex((x) => x.name === 'mate' && x.id === id)
+      return i >= 0 ? [...s.slice(0, i), r] : [...s, r]
+    }),
   }), [stack])
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => { if (stack.length > 1) { setStack((s) => s.slice(0, -1)); return true } return false })
@@ -73,41 +95,56 @@ export function Providers({ children }: { children: React.ReactNode }) {
     setStack([{ name: 'home' }])
     return null
   }, [])
-  const forget = useCallback(async () => { await clearConnection(); setConn(null); setFailed(false); setData(null); setThread(null); setStack([{ name: 'home' }]) }, [])
+  const forget = useCallback(async () => { await clearConnection(); fetched.current = null; setConn(null); setFailed(false); setMates(null); setActivity(null); setStack([{ name: 'home' }]) }, [])
   const retry = useCallback(async () => { await tryLogin(conn) }, [conn, tryLogin])
 
   // ---- data ----
-  const [data, setData] = useState<TasksPayload | null>(null)
-  const [thread, setThread] = useState<Task | null>(null)
+  const [mates, setMates] = useState<Mate[] | null>(null)
+  const [activity, setActivity] = useState<ActivityPayload | null>(null)
+  const [tick, setTick] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const refresh = useCallback(async () => {
-    if (!api) return
+  /** The list the latest successful poll fetched, set synchronously (state lands only after React renders). */
+  const fetched = useRef<Mate[] | null>(null)
+  /** One poll; returns the list it fetched (null on failure), so the loop picks its cadence from this poll, not the last. */
+  const fetchNow = useCallback(async (): Promise<Mate[] | null> => {
+    if (!api) return null
     setLoading(true)
     try {
-      const [t, d] = await Promise.all([api.tasks(), api.today()])
-      setData(t); setThread(d.thread); setError('')
-    } catch (e) { setError(e instanceof Error ? e.message : String(e)) } finally { setLoading(false) }
+      const [m, a] = await Promise.all([api.mates(), api.activity().catch(() => null)])
+      const list = m.items || []
+      fetched.current = list
+      setMates(list); if (a) setActivity(a); setError(''); setTick((n) => n + 1)
+      return list
+    } catch (e) { setError(e instanceof Error ? e.message : String(e)); return null } finally { setLoading(false) }
   }, [api])
+  // One poll loop at a time: every (re)start bumps the generation, and a loop from an older generation stops.
+  const gen = useRef(0)
+  const live = useRef(false)
+  const loop = useCallback(async () => {
+    const my = ++gen.current
+    if (timer.current) { clearTimeout(timer.current); timer.current = null }
+    const list = await fetchNow()
+    if (!live.current || my !== gen.current) return
+    // 5s while any teammate works; one waiting on a question is not working, so it does not keep the fast cadence.
+    const seen = list || fetched.current // a failed poll keeps the cadence the last good one set
+    const busy = !!(seen && seen.some((m) => m.state === 'working'))
+    timer.current = setTimeout(() => { loop().catch(() => {}) }, busy ? FAST : SLOW)
+  }, [fetchNow])
   useEffect(() => {
     if (!api || failed) return
-    let alive = true
-    const tick = async () => {
-      if (!alive) return
-      await refresh()
-      // 5s while something runs; a task waiting on a question (等你答) is not running, so it does not keep the fast cadence.
-      const active = !!(data && data.items.some((x) => x.status !== 'done' && x.status !== 'waiting')) || !!(thread && thread.status !== 'done')
-      timer.current = setTimeout(tick, active ? FAST : SLOW)
-    }
-    tick()
-    const sub = AppState.addEventListener('change', (s) => { if (s === 'active') { if (timer.current) clearTimeout(timer.current); tick() } })
-    return () => { alive = false; if (timer.current) clearTimeout(timer.current); sub.remove() }
-    // data/thread are read inside tick on purpose: the cadence follows the latest snapshot without restarting the loop.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [api, failed, refresh])
+    live.current = true
+    loop().catch(() => {})
+    const sub = AppState.addEventListener('change', (s) => { if (s === 'active') loop().catch(() => {}) })
+    return () => { live.current = false; gen.current++; if (timer.current) clearTimeout(timer.current); sub.remove() }
+  }, [api, failed, loop])
+  /** Poll now and restart the cadence: after a send the mate works, so the next poll comes in 5s, not 30s. */
+  const refresh = useCallback(async () => { if (live.current) await loop(); else await fetchNow() }, [loop, fetchNow])
+  const putMate = useCallback((m: Mate) => setMates((list) => { const l = list || []; return l.some((x) => x.id === m.id) ? l.map((x) => (x.id === m.id ? { ...x, ...m } : x)) : [...l, m] }), [])
+  const dropMate = useCallback((id: string) => setMates((list) => (list ? list.filter((x) => x.id !== id) : list)), [])
 
-  const store = useMemo<Store>(() => ({ data, thread, loading, error, refresh, setThread }), [data, thread, loading, error, refresh])
+  const store = useMemo<Store>(() => ({ mates, activity, tick, loading, error, refresh, putMate, dropMate }), [mates, activity, tick, loading, error, refresh, putMate, dropMate])
   const connValue = useMemo<Conn>(() => ({ conn, api, ready, failed, pair, forget, retry }), [conn, api, ready, failed, pair, forget, retry])
   return <NavCtx.Provider value={nav}><ConnCtx.Provider value={connValue}><StoreCtx.Provider value={store}>{children}</StoreCtx.Provider></ConnCtx.Provider></NavCtx.Provider>
 }

@@ -420,7 +420,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$34 = {
+		const __iconData$31 = {
 			name: "archive",
 			size: 24,
 			node: [
@@ -442,8 +442,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$34.node;
-		const Archive = createLucideIcon(__iconData$34);
+		__iconData$31.node;
+		const Archive = createLucideIcon(__iconData$31);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/arrow-left.mjs
 		/**
@@ -452,7 +452,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$33 = {
+		const __iconData$30 = {
 			name: "arrow-left",
 			size: 24,
 			node: [["path", {
@@ -463,8 +463,29 @@ window.__ModuleLoader__.load({
 				key: "x3x0zl"
 			}]]
 		};
-		__iconData$33.node;
-		const ArrowLeft = createLucideIcon(__iconData$33);
+		__iconData$30.node;
+		const ArrowLeft = createLucideIcon(__iconData$30);
+		//#endregion
+		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/bell.mjs
+		/**
+		* @license lucide-react v1.47.0 - ISC
+		*
+		* This source code is licensed under the ISC license.
+		* See the LICENSE file in the root directory of this source tree.
+		*/
+		const __iconData$29 = {
+			name: "bell",
+			size: 24,
+			node: [["path", {
+				d: "M10.268 21a2 2 0 0 0 3.464 0",
+				key: "vwvbt9"
+			}], ["path", {
+				d: "M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326",
+				key: "11g9vi"
+			}]]
+		};
+		__iconData$29.node;
+		const Bell = createLucideIcon(__iconData$29);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/box.mjs
 		/**
@@ -473,7 +494,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$32 = {
+		const __iconData$28 = {
 			name: "box",
 			size: 24,
 			node: [
@@ -491,8 +512,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$32.node;
-		const Box = createLucideIcon(__iconData$32);
+		__iconData$28.node;
+		const Box = createLucideIcon(__iconData$28);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/calendar-clock.mjs
 		/**
@@ -501,7 +522,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$31 = {
+		const __iconData$27 = {
 			name: "calendar-clock",
 			size: 24,
 			node: [
@@ -533,8 +554,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$31.node;
-		const CalendarClock = createLucideIcon(__iconData$31);
+		__iconData$27.node;
+		const CalendarClock = createLucideIcon(__iconData$27);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/chart-column.mjs
 		/**
@@ -543,7 +564,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$30 = {
+		const __iconData$26 = {
 			name: "chart-column",
 			size: 24,
 			node: [
@@ -566,32 +587,8 @@ window.__ModuleLoader__.load({
 			],
 			aliases: ["bar-chart-3"]
 		};
-		__iconData$30.node;
-		const ChartColumn = createLucideIcon(__iconData$30);
-		//#endregion
-		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/circle-check.mjs
-		/**
-		* @license lucide-react v1.47.0 - ISC
-		*
-		* This source code is licensed under the ISC license.
-		* See the LICENSE file in the root directory of this source tree.
-		*/
-		const __iconData$29 = {
-			name: "circle-check",
-			size: 24,
-			node: [["circle", {
-				cx: "12",
-				cy: "12",
-				r: "10",
-				key: "1mglay"
-			}], ["path", {
-				d: "m16 9-5.5 5.5L8 12",
-				key: "xofnsj"
-			}]],
-			aliases: ["check-circle-2"]
-		};
-		__iconData$29.node;
-		const CircleCheck = createLucideIcon(__iconData$29);
+		__iconData$26.node;
+		const ChartColumn = createLucideIcon(__iconData$26);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/circle-question-mark.mjs
 		/**
@@ -600,7 +597,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$28 = {
+		const __iconData$25 = {
 			name: "circle-question-mark",
 			size: 24,
 			node: [
@@ -621,39 +618,8 @@ window.__ModuleLoader__.load({
 			],
 			aliases: ["help-circle", "circle-help"]
 		};
-		__iconData$28.node;
-		const CircleQuestionMark = createLucideIcon(__iconData$28);
-		//#endregion
-		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/circle-x.mjs
-		/**
-		* @license lucide-react v1.47.0 - ISC
-		*
-		* This source code is licensed under the ISC license.
-		* See the LICENSE file in the root directory of this source tree.
-		*/
-		const __iconData$27 = {
-			name: "circle-x",
-			size: 24,
-			node: [
-				["circle", {
-					cx: "12",
-					cy: "12",
-					r: "10",
-					key: "1mglay"
-				}],
-				["path", {
-					d: "m15 9-6 6",
-					key: "1uzhvr"
-				}],
-				["path", {
-					d: "m9 9 6 6",
-					key: "z0biqf"
-				}]
-			],
-			aliases: ["x-circle"]
-		};
-		__iconData$27.node;
-		const CircleX = createLucideIcon(__iconData$27);
+		__iconData$25.node;
+		const CircleQuestionMark = createLucideIcon(__iconData$25);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/clock.mjs
 		/**
@@ -662,7 +628,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$26 = {
+		const __iconData$24 = {
 			name: "clock",
 			size: 24,
 			node: [["circle", {
@@ -675,8 +641,8 @@ window.__ModuleLoader__.load({
 				key: "mmk7yg"
 			}]]
 		};
-		__iconData$26.node;
-		const Clock = createLucideIcon(__iconData$26);
+		__iconData$24.node;
+		const Clock = createLucideIcon(__iconData$24);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/cpu.mjs
 		/**
@@ -685,7 +651,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$25 = {
+		const __iconData$23 = {
 			name: "cpu",
 			size: 24,
 			node: [
@@ -755,8 +721,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$25.node;
-		const Cpu = createLucideIcon(__iconData$25);
+		__iconData$23.node;
+		const Cpu = createLucideIcon(__iconData$23);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/eye-off.mjs
 		/**
@@ -765,7 +731,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$24 = {
+		const __iconData$22 = {
 			name: "eye-off",
 			size: 24,
 			node: [
@@ -787,8 +753,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$24.node;
-		const EyeOff = createLucideIcon(__iconData$24);
+		__iconData$22.node;
+		const EyeOff = createLucideIcon(__iconData$22);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/eye.mjs
 		/**
@@ -797,7 +763,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$23 = {
+		const __iconData$21 = {
 			name: "eye",
 			size: 24,
 			node: [["path", {
@@ -810,8 +776,8 @@ window.__ModuleLoader__.load({
 				key: "1v7zrd"
 			}]]
 		};
-		__iconData$23.node;
-		const Eye = createLucideIcon(__iconData$23);
+		__iconData$21.node;
+		const Eye = createLucideIcon(__iconData$21);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/file-spreadsheet.mjs
 		/**
@@ -820,7 +786,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$22 = {
+		const __iconData$20 = {
 			name: "file-spreadsheet",
 			size: 24,
 			node: [
@@ -850,8 +816,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$22.node;
-		const FileSpreadsheet = createLucideIcon(__iconData$22);
+		__iconData$20.node;
+		const FileSpreadsheet = createLucideIcon(__iconData$20);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/file-text.mjs
 		/**
@@ -860,7 +826,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$21 = {
+		const __iconData$19 = {
 			name: "file-text",
 			size: 24,
 			node: [
@@ -886,8 +852,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$21.node;
-		const FileText = createLucideIcon(__iconData$21);
+		__iconData$19.node;
+		const FileText = createLucideIcon(__iconData$19);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/files.mjs
 		/**
@@ -896,7 +862,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$20 = {
+		const __iconData$18 = {
 			name: "files",
 			size: 24,
 			node: [
@@ -914,8 +880,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$20.node;
-		const Files = createLucideIcon(__iconData$20);
+		__iconData$18.node;
+		const Files = createLucideIcon(__iconData$18);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/globe.mjs
 		/**
@@ -924,7 +890,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$19 = {
+		const __iconData$17 = {
 			name: "globe",
 			size: 24,
 			node: [
@@ -944,8 +910,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$19.node;
-		const Globe = createLucideIcon(__iconData$19);
+		__iconData$17.node;
+		const Globe = createLucideIcon(__iconData$17);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/link.mjs
 		/**
@@ -954,7 +920,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$18 = {
+		const __iconData$16 = {
 			name: "link",
 			size: 24,
 			node: [["path", {
@@ -965,56 +931,8 @@ window.__ModuleLoader__.load({
 				key: "19qd67"
 			}]]
 		};
-		__iconData$18.node;
-		const Link = createLucideIcon(__iconData$18);
-		//#endregion
-		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/loader.mjs
-		/**
-		* @license lucide-react v1.47.0 - ISC
-		*
-		* This source code is licensed under the ISC license.
-		* See the LICENSE file in the root directory of this source tree.
-		*/
-		const __iconData$17 = {
-			name: "loader",
-			size: 24,
-			node: [
-				["path", {
-					d: "M12 2v4",
-					key: "3427ic"
-				}],
-				["path", {
-					d: "m16.2 7.8 2.9-2.9",
-					key: "r700ao"
-				}],
-				["path", {
-					d: "M18 12h4",
-					key: "wj9ykh"
-				}],
-				["path", {
-					d: "m16.2 16.2 2.9 2.9",
-					key: "1bxg5t"
-				}],
-				["path", {
-					d: "M12 18v4",
-					key: "jadmvz"
-				}],
-				["path", {
-					d: "m4.9 19.1 2.9-2.9",
-					key: "bwix9q"
-				}],
-				["path", {
-					d: "M2 12h4",
-					key: "j09sii"
-				}],
-				["path", {
-					d: "m4.9 4.9 2.9 2.9",
-					key: "giyufr"
-				}]
-			]
-		};
-		__iconData$17.node;
-		const Loader = createLucideIcon(__iconData$17);
+		__iconData$16.node;
+		const Link = createLucideIcon(__iconData$16);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/message-circle.mjs
 		/**
@@ -1023,7 +941,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$16 = {
+		const __iconData$15 = {
 			name: "message-circle",
 			size: 24,
 			node: [["path", {
@@ -1031,8 +949,8 @@ window.__ModuleLoader__.load({
 				key: "1sd12s"
 			}]]
 		};
-		__iconData$16.node;
-		const MessageCircle = createLucideIcon(__iconData$16);
+		__iconData$15.node;
+		const MessageCircle = createLucideIcon(__iconData$15);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/message-square-more.mjs
 		/**
@@ -1041,7 +959,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$15 = {
+		const __iconData$14 = {
 			name: "message-square-more",
 			size: 24,
 			node: [
@@ -1063,8 +981,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$15.node;
-		const MessageSquareMore = createLucideIcon(__iconData$15);
+		__iconData$14.node;
+		const MessageSquareMore = createLucideIcon(__iconData$14);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/message-square.mjs
 		/**
@@ -1073,7 +991,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$14 = {
+		const __iconData$13 = {
 			name: "message-square",
 			size: 24,
 			node: [["path", {
@@ -1081,8 +999,8 @@ window.__ModuleLoader__.load({
 				key: "18887p"
 			}]]
 		};
-		__iconData$14.node;
-		const MessageSquare = createLucideIcon(__iconData$14);
+		__iconData$13.node;
+		const MessageSquare = createLucideIcon(__iconData$13);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/panel-left.mjs
 		/**
@@ -1091,7 +1009,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$13 = {
+		const __iconData$12 = {
 			name: "panel-left",
 			size: 24,
 			node: [["rect", {
@@ -1107,8 +1025,8 @@ window.__ModuleLoader__.load({
 			}]],
 			aliases: ["sidebar"]
 		};
-		__iconData$13.node;
-		const PanelLeft = createLucideIcon(__iconData$13);
+		__iconData$12.node;
+		const PanelLeft = createLucideIcon(__iconData$12);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/panel-right.mjs
 		/**
@@ -1117,7 +1035,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$12 = {
+		const __iconData$11 = {
 			name: "panel-right",
 			size: 24,
 			node: [["rect", {
@@ -1132,8 +1050,8 @@ window.__ModuleLoader__.load({
 				key: "14nvp0"
 			}]]
 		};
-		__iconData$12.node;
-		const PanelRight = createLucideIcon(__iconData$12);
+		__iconData$11.node;
+		const PanelRight = createLucideIcon(__iconData$11);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/pin.mjs
 		/**
@@ -1142,7 +1060,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$11 = {
+		const __iconData$10 = {
 			name: "pin",
 			size: 24,
 			node: [["path", {
@@ -1153,8 +1071,8 @@ window.__ModuleLoader__.load({
 				key: "1nkz8b"
 			}]]
 		};
-		__iconData$11.node;
-		const Pin = createLucideIcon(__iconData$11);
+		__iconData$10.node;
+		const Pin = createLucideIcon(__iconData$10);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/plug.mjs
 		/**
@@ -1163,7 +1081,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$10 = {
+		const __iconData$9 = {
 			name: "plug",
 			size: 24,
 			node: [
@@ -1185,8 +1103,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$10.node;
-		const Plug = createLucideIcon(__iconData$10);
+		__iconData$9.node;
+		const Plug = createLucideIcon(__iconData$9);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/plus.mjs
 		/**
@@ -1195,7 +1113,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$9 = {
+		const __iconData$8 = {
 			name: "plus",
 			size: 24,
 			node: [["path", {
@@ -1206,8 +1124,8 @@ window.__ModuleLoader__.load({
 				key: "s699le"
 			}]]
 		};
-		__iconData$9.node;
-		const Plus = createLucideIcon(__iconData$9);
+		__iconData$8.node;
+		const Plus = createLucideIcon(__iconData$8);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/repeat.mjs
 		/**
@@ -1216,7 +1134,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$8 = {
+		const __iconData$7 = {
 			name: "repeat",
 			size: 24,
 			node: [
@@ -1238,37 +1156,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$8.node;
-		const Repeat = createLucideIcon(__iconData$8);
-		//#endregion
-		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/rotate-ccw-clock.mjs
-		/**
-		* @license lucide-react v1.47.0 - ISC
-		*
-		* This source code is licensed under the ISC license.
-		* See the LICENSE file in the root directory of this source tree.
-		*/
-		const __iconData$7 = {
-			name: "rotate-ccw-clock",
-			size: 24,
-			node: [
-				["path", {
-					d: "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8",
-					key: "1357e3"
-				}],
-				["path", {
-					d: "M3 3v5h5",
-					key: "1xhq8a"
-				}],
-				["path", {
-					d: "M12 7v5l4 2",
-					key: "1fdv2h"
-				}]
-			],
-			aliases: ["history"]
-		};
 		__iconData$7.node;
-		const RotateCcwClock = createLucideIcon(__iconData$7);
+		const Repeat = createLucideIcon(__iconData$7);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/search.mjs
 		/**
@@ -1653,12 +1542,15 @@ window.__ModuleLoader__.load({
 			"settings.v2.mcp": "MCP 连接器",
 			"settings.v2.process": "过程记录",
 			"settings.v2.about": "关于",
-			"v2.today": "今日",
-			"v2.deliverables": "交付物",
-			"v2.newTask": "新任务",
 			"v2.search": "搜索",
-			"v2.running1": "个在跑",
-			"v2.waiting1": "份等你看",
+			"v2.bell": "动静",
+			"v2.newMate": "新同事",
+			"v2.files": "文件",
+			"v2.needs": "需要你",
+			"v2.working": "在干活",
+			"v2.recent": "刚完成",
+			"v2.waitingAsk": "等你答",
+			"v2.quiet": "没有新动静",
 			"v2.noResults": "没有结果",
 			"sidebar.channelsTab": "频道",
 			"sidebar.scheduleTab": "定时",
@@ -1966,12 +1858,15 @@ window.__ModuleLoader__.load({
 			"settings.v2.mcp": "MCP connectors",
 			"settings.v2.process": "Process records",
 			"settings.v2.about": "About",
-			"v2.today": "Today",
-			"v2.deliverables": "Deliverables",
-			"v2.newTask": "New task",
 			"v2.search": "Search",
-			"v2.running1": "running",
-			"v2.waiting1": "waiting for you",
+			"v2.bell": "Activity",
+			"v2.newMate": "New teammate",
+			"v2.files": "Files",
+			"v2.needs": "Needs you",
+			"v2.working": "Working",
+			"v2.recent": "Just finished",
+			"v2.waitingAsk": "Waiting on you",
+			"v2.quiet": "Nothing new",
 			"v2.noResults": "No results",
 			"sidebar.channelsTab": "Channels",
 			"sidebar.scheduleTab": "Schedule",
@@ -2487,14 +2382,14 @@ window.__ModuleLoader__.load({
 		//#endregion
 		//#region src/client/MyworkSidebar.tsx
 		/**
-		* MyWork v2 sidebar: one column of conversations (the Rakazo shape). A search field and
-		* a "+" on top; then 今日 pinned, then every routine and user task in one list by last
-		* activity; 交付物 and 设置 at the bottom. Rows carry no actions: opening a row is the only
-		* thing it does, and nothing appears on hover.
+		* MyWork v2 sidebar (TEAMMATES §9.4): the column is teammates. On top a search field, the bell (a count of what needs
+		* you + what is working; a dropdown of 需要你 / 在干活 / 刚完成) and 「+」 for a new teammate. In the middle only
+		* teammates — pinned first (MyWork is pinned by default), the rest by their last conversation; state never changes the
+		* order. At the bottom 文件 and 设置. Rows carry no actions: opening a row is the only thing it does.
 		*
-		* Data comes from dsh-mywork-tasks (/mywork-tasks/api/tasks, /routines, /search); navigation
-		* into that plugin's pages goes through window events so neither package imports the other:
-		* the column dispatches mywork:open-thread and listens for mywork:thread-opened.
+		* Data comes from dsh-mywork-tasks (/mywork-tasks/api/mates, /activity, /search); navigation into that plugin's pages
+		* goes through window events so neither package imports the other: the column dispatches mywork:open-thread and
+		* listens for mywork:thread-opened (the highlight) and mywork:mates-updated (the page's own poll, shared).
 		*/
 		const V2_STORAGE_KEY = "dsh-mywork:v2";
 		function v2Active() {
@@ -2505,45 +2400,71 @@ window.__ModuleLoader__.load({
 			}
 		}
 		const MYWORK_PANELS = {
-			today: "mywork-today",
-			create: "mywork-new",
-			tasks: "mywork-tasks",
-			deliverables: "mywork-deliverables",
-			routines: "mywork-routines",
-			scenarios: "mywork-scenarios"
+			mate: "mywork-mate",
+			files: "mywork-files"
 		};
 		const API = "/mywork-tasks/api";
 		const FAST_MS = 4e3;
 		const SLOW_MS = 3e4;
 		const SEARCH_DEBOUNCE_MS = 200;
-		const MAX_ROWS = 80;
+		/** The teammate the tasks page has open (its sticky nav, shared through sessionStorage). */
+		const MATE_KEY = "dsh-mywork:mate";
+		function storedMate() {
+			try {
+				return window.sessionStorage.getItem(MATE_KEY) ?? "";
+			} catch {
+				return "";
+			}
+		}
+		function storeMate(id) {
+			try {
+				if (id !== "") window.sessionStorage.setItem(MATE_KEY, id);
+				else window.sessionStorage.removeItem(MATE_KEY);
+			} catch {}
+		}
 		const useLegacyPanelInfo$1 = (selector) => selector({ activePanelId: null });
+		const EMPTY_ACTIVITY = {
+			needs: [],
+			working: [],
+			recent: []
+		};
 		const stylesheet$5 = `
 /* Tokens: design/v2/DESIGN.md §2. The column is --surface beside a --bg page; rows step to --surface-2. */
-.mws{--bg:#ffffff;--surface:#f6f5f4;--surface-2:#efedeb;--fg:rgba(0,0,0,.92);--fg-2:#31302e;--muted:#615d59;--meta:#75706a;--border:rgba(0,0,0,.1);--border-soft:rgba(0,0,0,.06);--border-strong:rgba(0,0,0,.22);--success:#127e28;--warn:#b5480a;--danger:#c0392b;--focus-ring:0 0 0 3px rgba(0,117,222,.25);--motion-fast:150ms;--ease-standard:cubic-bezier(.2,0,0,1);position:relative;width:100%;height:100%;min-width:0;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;background:var(--surface);color:var(--fg);box-shadow:inset -1px 0 var(--border-soft);font:14px/20px -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei UI",sans-serif;-webkit-font-smoothing:antialiased}
-body[data-ds-dark-theme] .mws{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a;--fg:rgba(255,255,255,.9);--fg-2:#e6e4e0;--muted:#9b9893;--meta:#8a867f;--border:rgba(255,255,255,.1);--border-soft:rgba(255,255,255,.06);--border-strong:rgba(255,255,255,.22);--success:#4dab7a;--warn:#e08a3c;--danger:#e26e63;--focus-ring:0 0 0 3px rgba(82,156,202,.35)}
+.mws{--bg:#ffffff;--surface:#f6f5f4;--surface-2:#efedeb;--fg:rgba(0,0,0,.92);--fg-2:#31302e;--muted:#615d59;--meta:#75706a;--border:rgba(0,0,0,.1);--border-soft:rgba(0,0,0,.06);--border-strong:rgba(0,0,0,.22);--warn:#b5480a;--focus-ring:0 0 0 3px rgba(0,117,222,.25);--elev-raised:rgba(0,0,0,.04) 0 4px 18px,rgba(0,0,0,.027) 0 2px 7.85px,rgba(0,0,0,.02) 0 .8px 2.93px;--motion-fast:150ms;--ease-standard:cubic-bezier(.2,0,0,1);position:relative;width:100%;height:100%;min-width:0;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;background:var(--surface);color:var(--fg);box-shadow:inset -1px 0 var(--border-soft);font:14px/20px -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei UI",sans-serif;-webkit-font-smoothing:antialiased}
+body[data-ds-dark-theme] .mws{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a;--fg:rgba(255,255,255,.9);--fg-2:#e6e4e0;--muted:#9b9893;--meta:#8a867f;--border:rgba(255,255,255,.1);--border-soft:rgba(255,255,255,.06);--border-strong:rgba(255,255,255,.22);--warn:#e08a3c;--focus-ring:0 0 0 3px rgba(82,156,202,.35);--elev-raised:rgba(0,0,0,.35) 0 4px 18px,rgba(0,0,0,.25) 0 2px 8px}
 .mws *{box-sizing:border-box}
 .mws button{font-family:inherit;transition:background-color var(--motion-fast) var(--ease-standard),color var(--motion-fast) var(--ease-standard),transform var(--motion-fast) var(--ease-standard)}
 .mws button:active{transform:scale(.98)}
 .mws :focus-visible{outline:none;box-shadow:var(--focus-ring)}
 @media (prefers-reduced-motion:reduce){.mws *{transition:none!important;animation:none!important}}
-.mws-head{display:flex;align-items:center;gap:4px;flex:none;padding:12px 8px 8px}
-.mws-search{flex:1;min-width:0;display:flex;align-items:center;gap:8px;height:32px;padding:0 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--meta);transition:border-color var(--motion-fast) var(--ease-standard)}
+.mws-head{position:relative;display:flex;align-items:center;gap:2px;flex:none;padding:12px 8px 8px}
+.mws-search{flex:1;min-width:0;display:flex;align-items:center;gap:8px;height:32px;margin-right:4px;padding:0 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--meta);transition:border-color var(--motion-fast) var(--ease-standard)}
 .mws-search:focus-within{border-color:var(--border-strong)}
 .mws-search svg{flex:none}
 .mws-search input{flex:1;min-width:0;height:100%;margin:0;padding:0;border:0;background:transparent;color:var(--fg);font:inherit;font-size:13px;outline:none}
 .mws-search input::placeholder{color:var(--meta)}
 .mws-search input:focus-visible{box-shadow:none}
-.mws-icon{appearance:none;display:inline-grid;place-items:center;flex:none;width:32px;height:32px;border:0;border-radius:6px;background:transparent;color:var(--muted);cursor:pointer}
-.mws-icon:hover{background:var(--surface-2);color:var(--fg)}
+.mws-icon{appearance:none;position:relative;display:inline-grid;place-items:center;flex:none;width:32px;height:32px;border:0;border-radius:6px;background:transparent;color:var(--muted);cursor:pointer}
+.mws-icon:hover,.mws-icon[aria-expanded=true]{background:var(--surface-2);color:var(--fg)}
+.mws-count{position:absolute;top:3px;right:2px;min-width:15px;height:15px;padding:0 4px;border-radius:8px;background:var(--fg);color:var(--bg);font-size:10px;line-height:15px;font-weight:600;font-variant-numeric:tabular-nums;text-align:center;pointer-events:none}
+/* The bell's panel: under the header, over the list. */
+.mws-drop{position:absolute;top:calc(100% - 2px);left:8px;right:8px;z-index:20;max-height:min(420px,calc(100vh - 120px));overflow:auto;padding:6px;border:1px solid var(--border);border-radius:12px;background:var(--bg);box-shadow:var(--elev-raised)}
+.mws-drop h3{margin:6px 8px 2px;font-size:12px;line-height:16px;font-weight:500;color:var(--muted)}
+.mws-drop .mws-row{min-height:44px;border-radius:8px}
+.mws-drop .mws-row:hover{background:var(--surface)}
 .mws-list{flex:1;min-height:0;overflow:auto;padding:0 8px 8px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
-.mws-row{appearance:none;display:grid;grid-template-columns:20px minmax(0,1fr);column-gap:10px;align-items:center;width:100%;min-height:48px;padding:5px 10px;border:0;border-radius:12px;background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
-.mws-row-flat{min-height:44px;padding:12px 10px}
+.mws-row{appearance:none;display:grid;grid-template-columns:28px minmax(0,1fr);column-gap:10px;align-items:center;width:100%;min-height:52px;padding:6px 10px;border:0;border-radius:12px;background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
+.mws-row-flat{grid-template-columns:20px minmax(0,1fr);min-height:44px;padding:12px 10px}
 .mws-row:hover,.mws-row[aria-current=page]{background:var(--surface-2)}
 .mws-glyph{display:inline-grid;place-items:center;width:20px;height:20px;color:var(--meta)}
+.mws-glyph.wide{width:28px;height:28px}
 .mws-glyph svg{display:block}
-.mws-glyph[data-s=running] svg,.mws-glyph[data-s=delivering] svg,.mws-glyph[data-s=verifying] svg{animation:mws-spin 1.6s linear infinite;color:var(--fg-2)}
-.mws-glyph[data-s=ok]{color:var(--success)}.mws-glyph[data-s=err]{color:var(--danger)}.mws-glyph[data-s=waiting]{color:var(--warn)}
+.mws-av{position:relative;display:inline-grid;place-items:center;flex:none;width:28px;height:28px;border-radius:50%;background:var(--surface-2);color:var(--fg-2);font-size:13px;line-height:1;font-weight:500;user-select:none}
+.mws-row:hover .mws-av,.mws-row[aria-current=page] .mws-av{background:var(--bg)}
+.mws-av.small{width:22px;height:22px;font-size:11px}
+.mws-av .mws-mark{width:100%;height:100%;border-radius:50%}
+.mws-ring{position:absolute;inset:-3px;width:calc(100% + 6px);height:calc(100% + 6px);color:var(--fg-2);pointer-events:none;animation:mws-spin 1.6s linear infinite}
+@media (prefers-reduced-motion:reduce){.mws-ring circle{stroke-dasharray:none}}
 @keyframes mws-spin{to{transform:rotate(360deg)}}
 .mws-main{min-width:0}
 .mws-line{display:flex;align-items:center;min-width:0}
@@ -2552,6 +2473,7 @@ body[data-ds-dark-theme] .mws{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 .mws-time{flex:none;margin-left:8px;color:var(--meta);font-size:11.5px;line-height:20px;font-variant-numeric:tabular-nums;text-align:right}
 .mws-unread{flex:none;width:6px;height:6px;margin-left:6px;border-radius:50%;background:var(--fg)}
 .mws-sub{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:12.5px;line-height:18px}
+.mws-sub[data-tone=warn]{color:var(--warn)}
 .mws-empty{padding:12px 10px;color:var(--muted);font-size:12.5px;line-height:18px}
 .mws-mark{display:inline-grid;place-items:center;flex:none;border-radius:5px;background:var(--fg);color:var(--bg)}
 .mws-mark svg{display:block}
@@ -2560,7 +2482,7 @@ body[data-ds-dark-theme] .mws{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 @keyframes mws-draw{0%{stroke-dashoffset:60}55%{stroke-dashoffset:0}80%{stroke-dashoffset:0;opacity:1}100%{stroke-dashoffset:0;opacity:.35}}
 @media (prefers-reduced-motion:reduce){.mws-mark[data-live=true] path{animation:none}}
 .mws-foot{flex:none;padding:8px 8px 0;border-top:1px solid var(--border-soft)}
-/* The settings entry is dsh's own trigger, kept outside the footer so it stays mounted across collapse; it wears the same row recipe as 交付物 above it. */
+/* The settings entry is dsh's own trigger, kept outside the footer so it stays mounted across collapse; it wears the same row recipe as 文件 above it. */
 .mws-settings{flex:none;padding:0 8px 12px}
 .mws-settings .dcu-settings-trigger{height:44px;min-height:44px;padding:0 10px;border-radius:12px;color:var(--fg);font-family:inherit;font-size:14px;line-height:20px;transition:background-color var(--motion-fast) var(--ease-standard),color var(--motion-fast) var(--ease-standard),transform var(--motion-fast) var(--ease-standard)}
 .mws-settings .dcu-settings-trigger:hover{background:var(--surface-2);color:var(--fg)}
@@ -2577,7 +2499,6 @@ body[data-ds-dark-theme] .mws{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 			const n = Date.parse(iso);
 			return Number.isFinite(n) ? n : 0;
 		};
-		const byLastAt = (a, b) => ms(b.lastAt) - ms(a.lastAt);
 		const sameDay = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 		/** HH:MM today, M/D otherwise. */
 		function fmtWhen(iso, now) {
@@ -2587,71 +2508,96 @@ body[data-ds-dark-theme] .mws{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 			if (sameDay(d, now)) return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 			return `${d.getMonth() + 1}/${d.getDate()}`;
 		}
-		function visual(status, failed) {
-			return status !== "done" ? status : failed ? "err" : "ok";
+		const isPinned = (m) => m.pinned === true || m.isDefault === true && m.pinned !== false;
+		/** The column's one order rule: pinned first (MyWork first among them), then the newest conversation. State never moves a row. */
+		function orderMates(mates) {
+			return mates.filter((m) => str(m.id) !== "").slice().sort((a, b) => Number(isPinned(b)) - Number(isPinned(a)) || (isPinned(a) && isPinned(b) ? Number(b.isDefault === true) - Number(a.isDefault === true) : 0) || ms(str(b.lastAt) || str(b.createdAt)) - ms(str(a.lastAt) || str(a.createdAt)) || (a.id < b.id ? -1 : 1));
 		}
-		/** Server fields (preview / lastAt / unread) with fallbacks so the column also reads the current payload. */
-		function taskRow(task) {
+		function initialOf(name) {
+			const s = name.trim();
+			return s === "" ? "·" : Array.from(s)[0].toUpperCase();
+		}
+		function asMates(v) {
+			return Array.isArray(v) ? v.filter((x) => x !== null && typeof x === "object" && str(x.id) !== "") : [];
+		}
+		function asItems(v) {
+			return Array.isArray(v) ? v.filter((x) => x !== null && typeof x === "object" && str(x.mateId) !== "") : [];
+		}
+		function asActivity(v) {
+			if (v === null || typeof v !== "object") return void 0;
+			const a = v;
 			return {
-				key: "task:" + task.id,
-				kind: "task",
-				id: task.id,
-				title: str(task.title),
-				preview: str(task.preview) || str(task.currentStep) || str(task.statusLabel),
-				lastAt: str(task.lastAt) || str(task.finishedAt) || str(task.createdAt),
-				unread: task.unread === true,
-				status: str(task.status),
-				failed: str(task.error) !== ""
+				needs: asItems(a.needs),
+				working: asItems(a.working),
+				recent: asItems(a.recent)
 			};
 		}
-		function routineRow(routine) {
-			const preview = str(routine.preview) || [str(routine.scheduleLabel), str(routine.lastRunSummary)].filter((x) => x !== "").join(" · ");
-			return {
-				key: "routine:" + routine.id,
-				kind: "routine",
-				id: routine.id,
-				title: str(routine.title),
-				preview,
-				lastAt: str(routine.lastAt) || str(routine.lastRun?.at) || str(routine.lastRunAt) || str(routine.createdAt),
-				unread: routine.unread === true
-			};
-		}
-		/** GET /search?q= results. Preferred: { items: [{ type: 'task' | 'routine' | 'deliverable', id, title, preview, lastAt, taskId? }] };
-		*  plain { tasks, routines, deliverables } arrays are read too, and an item's own fields settle its kind when `type` is absent. */
-		function parseSearch(data) {
+		/** GET /search?q= → { mates, messages, files, routines }: one row shape, told apart by the glyph. */
+		function parseSearch(data, byId) {
 			if (data === null || typeof data !== "object") return [];
 			const body = data;
+			const list = (k) => Array.isArray(body[k]) ? body[k].filter((x) => x !== null && typeof x === "object") : [];
 			const out = [];
-			const push = (fallback, raw) => {
-				if (raw === null || typeof raw !== "object") return;
-				const v = raw;
-				const id = str(v.id);
-				if (id === "") return;
-				const typed = str(v.type);
-				const kind = typed === "task" || typed === "routine" || typed === "deliverable" ? typed : v.scheduleLabel !== void 0 || v.schedule !== void 0 || Array.isArray(v.runs) ? "routine" : typeof v.status === "string" ? "task" : typeof v.taskId === "string" ? "deliverable" : fallback;
-				if (kind === "task") {
-					out.push(taskRow(v));
-					return;
+			for (const m of asMates(body.mates)) out.push({
+				key: "mate:" + m.id,
+				glyph: "mate",
+				mate: byId.get(m.id) ?? m,
+				title: str(m.name),
+				sub: str(m.title) || str(m.preview),
+				at: str(m.lastAt),
+				target: {
+					kind: "mate",
+					id: m.id
 				}
-				if (kind === "routine") {
-					out.push(routineRow(v));
-					return;
-				}
+			});
+			list("messages").forEach((x, i) => {
+				const mateId = str(x.mateId);
+				if (mateId === "") return;
 				out.push({
-					key: "deliverable:" + id,
-					kind: "deliverable",
-					id,
-					title: str(v.title),
-					preview: str(v.preview) || str(v.summary),
-					lastAt: str(v.lastAt) || str(v.createdAt),
-					unread: false,
-					taskId: str(v.taskId) || void 0
+					key: `msg:${mateId}:${str(x.runId)}:${i}`,
+					glyph: "message",
+					title: byId.get(mateId)?.name ?? str(x.mateName),
+					sub: str(x.text),
+					at: str(x.at),
+					target: {
+						kind: "mate",
+						id: mateId,
+						runId: str(x.runId) || void 0
+					}
 				});
-			};
-			if (Array.isArray(body.items)) for (const x of body.items) push("task", x);
-			if (Array.isArray(body.tasks)) for (const x of body.tasks) push("task", x);
-			if (Array.isArray(body.routines)) for (const x of body.routines) push("routine", x);
-			if (Array.isArray(body.deliverables)) for (const x of body.deliverables) push("deliverable", x);
+			});
+			for (const x of list("files")) {
+				const id = str(x.id);
+				if (id === "") continue;
+				out.push({
+					key: "file:" + id,
+					glyph: "file",
+					title: str(x.title),
+					sub: byId.get(str(x.mateId))?.name ?? "",
+					at: str(x.createdAt),
+					target: {
+						kind: "files",
+						id
+					}
+				});
+			}
+			for (const x of list("routines")) {
+				const id = str(x.id);
+				if (id === "") continue;
+				const owner = byId.get(str(x.mateId))?.name ?? "";
+				out.push({
+					key: "routine:" + id,
+					glyph: "routine",
+					title: str(x.title),
+					sub: [str(x.scheduleLabel), owner].filter((s) => s !== "").join(" · "),
+					at: str(x.lastAt) || str(x.nextRunAt),
+					target: {
+						kind: "routine",
+						id,
+						mateId: str(x.mateId) || void 0
+					}
+				});
+			}
 			return out;
 		}
 		function fire(name, detail, cancelable = false) {
@@ -2664,13 +2610,14 @@ body[data-ds-dark-theme] .mws{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 				return false;
 			}
 		}
-		/** The MyWork mark: an M whose last stroke turns into a check. While something runs it draws itself, Grok style. */
-		function BrandMark({ live, size = 22 }) {
+		/** The MyWork mark: an M whose last stroke turns into a check. While something runs it draws itself. */
+		function BrandMark({ live, size = 22, round }) {
 			const box = {
 				width: size,
-				height: size
+				height: size,
+				borderRadius: round === true ? "50%" : void 0
 			};
-			const glyph = Math.round(size * .72);
+			const glyph = Math.round(size * (round === true ? .62 : .72));
 			return /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 				className: "mws-mark",
 				style: box,
@@ -2691,54 +2638,59 @@ body[data-ds-dark-theme] .mws{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 				})
 			});
 		}
-		function Glyph({ row, live }) {
-			if (row.kind === "today") return /* @__PURE__ */ (0, react_jsx_runtime.jsx)(BrandMark, {
-				live,
-				size: 20
-			});
-			if (row.kind === "routine") return /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
-				className: "mws-glyph",
-				children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(Repeat, {
-					size: 16,
-					strokeWidth: 1.5
-				})
-			});
-			if (row.kind === "deliverable") return /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
-				className: "mws-glyph",
-				children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(FileText, {
-					size: 16,
-					strokeWidth: 1.5
-				})
-			});
-			const v = visual(row.status ?? "done", row.failed === true);
-			return /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
-				className: "mws-glyph",
-				"data-s": v,
-				children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(v === "ok" ? CircleCheck : v === "err" ? CircleX : v === "queued" ? RotateCcwClock : v === "waiting" ? MessageCircle : Loader, {
-					size: 16,
-					strokeWidth: 1.5
-				})
+		/** A teammate's round glyph: the first character of its name (MyWork wears the mark); working draws a turning ring. */
+		function MateAvatar({ mate, small }) {
+			const working = mate.state === "working";
+			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
+				className: "mws-av" + (small === true ? " small" : ""),
+				"aria-hidden": "true",
+				children: [mate.isDefault === true ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)(BrandMark, {
+					size: small === true ? 22 : 28,
+					round: true
+				}) : initialOf(str(mate.name)), working && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("svg", {
+					className: "mws-ring",
+					viewBox: "0 0 34 34",
+					fill: "none",
+					children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("circle", {
+						cx: "17",
+						cy: "17",
+						r: "16",
+						stroke: "currentColor",
+						strokeWidth: "1.5",
+						strokeDasharray: "22 9",
+						strokeLinecap: "round"
+					})
+				})]
 			});
 		}
-		/** One row shape for everything: glyph · title · time · unread dot, and one line of preview. */
-		function ListRow({ row, time, current, unread, live, onOpen }) {
+		/** The second line: 等你答 · question / 在干活 · step / the last thing said. */
+		function secondLine(mate, t) {
+			if (mate.state === "waiting") {
+				const q = str(mate.ask?.question).replace(/\*\*|__|`/g, "");
+				return {
+					text: [t("v2.waitingAsk"), q].filter((s) => s !== "").join(" · "),
+					tone: "warn"
+				};
+			}
+			if (mate.state === "working") return { text: [t("v2.working"), str(mate.step)].filter((s) => s !== "").join(" · ") };
+			return { text: str(mate.preview) || str(mate.title) };
+		}
+		function MateRow({ mate, time, current, unread, t, onOpen }) {
+			const sub = secondLine(mate, t);
 			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
 				type: "button",
 				className: "mws-row",
 				"aria-current": current ? "page" : void 0,
 				"data-unread": unread ? "true" : void 0,
 				onClick: onOpen,
-				children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(Glyph, {
-					row,
-					live
-				}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
+				children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(MateAvatar, { mate }), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
 					className: "mws-main",
 					children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
 						className: "mws-line",
 						children: [
 							/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 								className: "mws-title",
-								children: row.title
+								children: mate.name
 							}),
 							time !== "" && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 								className: "mws-time",
@@ -2751,7 +2703,44 @@ body[data-ds-dark-theme] .mws{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 						]
 					}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 						className: "mws-sub",
-						children: row.preview
+						"data-tone": sub.tone,
+						children: sub.text
+					})]
+				})]
+			});
+		}
+		function ResultItem({ row, time, onOpen }) {
+			const glyph = row.glyph === "mate" && row.mate !== void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)(MateAvatar, { mate: row.mate }) : /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+				className: "mws-glyph wide",
+				children: row.glyph === "message" ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)(MessageCircle, {
+					size: 16,
+					strokeWidth: 1.5
+				}) : row.glyph === "file" ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)(FileText, {
+					size: 16,
+					strokeWidth: 1.5
+				}) : /* @__PURE__ */ (0, react_jsx_runtime.jsx)(Repeat, {
+					size: 16,
+					strokeWidth: 1.5
+				})
+			});
+			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
+				type: "button",
+				className: "mws-row",
+				onClick: onOpen,
+				children: [glyph, /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
+					className: "mws-main",
+					children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
+						className: "mws-line",
+						children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+							className: "mws-title",
+							children: row.title
+						}), time !== "" && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+							className: "mws-time",
+							children: time
+						})]
+					}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+						className: "mws-sub",
+						children: row.sub
 					})]
 				})]
 			});
@@ -2780,39 +2769,48 @@ body[data-ds-dark-theme] .mws{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 		function MyworkSidebar({ selectPanel, usePanelInfo = useLegacyPanelInfo$1, collapsed, width, toggleSidebar, renderSlot, t }) {
 			const activePanelId = usePanelInfo((info) => info.activePanelId);
 			const compact = collapsed || width < 80;
-			const [tasks, setTasks] = (0, react.useState)([]);
-			const [routines, setRoutines] = (0, react.useState)([]);
-			const [reminders, setReminders] = (0, react.useState)([]);
+			const [mates, setMates] = (0, react.useState)([]);
+			const [activity, setActivity] = (0, react.useState)(EMPTY_ACTIVITY);
 			const [query, setQuery] = (0, react.useState)("");
-			const [remote, setRemote] = (0, react.useState)([]);
-			const [opened, setOpened] = (0, react.useState)("");
+			const [remote, setRemote] = (0, react.useState)(null);
+			const [opened, setOpened] = (0, react.useState)(() => {
+				const id = storedMate();
+				return id !== "" ? "mate:" + id : "";
+			});
+			const [bellOpen, setBellOpen] = (0, react.useState)(false);
 			const [seen, setSeen] = (0, react.useState)({});
 			const timer = (0, react.useRef)(void 0);
 			const searchSeq = (0, react.useRef)(0);
-			const rowsRef = (0, react.useRef)(/* @__PURE__ */ new Map());
+			const matesRef = (0, react.useRef)([]);
+			matesRef.current = mates;
+			const headRef = (0, react.useRef)(null);
+			const schedule = (0, react.useCallback)((list) => {
+				window.clearTimeout(timer.current);
+				timer.current = window.setTimeout(() => {
+					load();
+				}, list.some((m) => m.state === "working") ? FAST_MS : SLOW_MS);
+			}, []);
 			const load = (0, react.useCallback)(() => {
-				const tasksReq = fetch(`${API}/tasks`).then((r) => r.ok ? r.json() : null);
-				const routinesReq = fetch(`${API}/routines`).then((r) => r.ok ? r.json() : null).catch(() => null);
-				Promise.all([tasksReq, routinesReq]).then(([d, rd]) => {
-					const items = d !== null && Array.isArray(d.items) ? d.items : void 0;
-					if (items !== void 0) {
-						setTasks(items);
-						setReminders(d !== null && Array.isArray(d.reminders) ? d.reminders : []);
-					}
-					const routineItems = rd !== null && Array.isArray(rd.items) ? rd.items : d !== null && Array.isArray(d.routines) ? d.routines : void 0;
-					if (routineItems !== void 0) setRoutines(routineItems);
-					window.clearTimeout(timer.current);
-					timer.current = window.setTimeout(load, (items ?? []).some((x) => x.status !== "done" && x.status !== "waiting") ? FAST_MS : SLOW_MS);
+				const matesReq = fetch(`${API}/mates`).then((r) => r.ok ? r.json() : null);
+				const activityReq = fetch(`${API}/activity`).then((r) => r.ok ? r.json() : null).catch(() => null);
+				Promise.all([matesReq, activityReq]).then(([m, a]) => {
+					const items = m !== null && typeof m === "object" ? asMates(m.items) : void 0;
+					if (items !== void 0) setMates(items);
+					const next = asActivity(a);
+					if (next !== void 0) setActivity(next);
+					schedule(items ?? matesRef.current);
 				}).catch(() => {
 					window.clearTimeout(timer.current);
-					timer.current = window.setTimeout(load, SLOW_MS);
+					timer.current = window.setTimeout(() => {
+						load();
+					}, SLOW_MS);
 				});
-			}, []);
-			const markSeen = (0, react.useCallback)((key) => {
-				const row = rowsRef.current.get(key);
-				setSeen((prev) => prev[key] === (row?.lastAt ?? "") ? prev : {
+			}, [schedule]);
+			const markSeen = (0, react.useCallback)((id) => {
+				const mate = matesRef.current.find((m) => m.id === id);
+				setSeen((prev) => prev[id] === str(mate?.lastAt) ? prev : {
 					...prev,
-					[key]: row?.lastAt ?? ""
+					[id]: str(mate?.lastAt)
 				});
 			}, []);
 			(0, react.useEffect)(() => {
@@ -2821,37 +2819,64 @@ body[data-ds-dark-theme] .mws{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 					load();
 				};
 				const onUpdated = (event) => {
-					const items = event.detail?.items;
-					if (Array.isArray(items)) setTasks(items);
+					const detail = event.detail;
+					if (Array.isArray(detail?.items)) {
+						const list = asMates(detail.items);
+						setMates(list);
+						schedule(list);
+					}
+					const next = asActivity(detail?.activity);
+					if (next !== void 0) setActivity(next);
 				};
 				const onOpened = (event) => {
 					const detail = event.detail;
 					const kind = str(detail?.kind);
 					const id = str(detail?.id);
-					const key = kind === "today" ? "today" : (kind === "task" || kind === "routine") && id !== "" ? `${kind}:${id}` : kind === "deliverables" ? "deliverables" : "";
-					setOpened(key);
-					if (key === "today" || key.includes(":")) markSeen(key);
+					if (kind === "mate" && id !== "") {
+						setOpened("mate:" + id);
+						markSeen(id);
+					} else if (kind === "files") setOpened("files");
 				};
 				window.addEventListener("focus", onFocus);
-				window.addEventListener("mywork:tasks-updated", onUpdated);
+				window.addEventListener("mywork:mates-updated", onUpdated);
 				window.addEventListener("mywork:thread-opened", onOpened);
 				return () => {
 					window.clearTimeout(timer.current);
 					window.removeEventListener("focus", onFocus);
-					window.removeEventListener("mywork:tasks-updated", onUpdated);
+					window.removeEventListener("mywork:mates-updated", onUpdated);
 					window.removeEventListener("mywork:thread-opened", onOpened);
 				};
-			}, [load, markSeen]);
+			}, [
+				load,
+				markSeen,
+				schedule
+			]);
+			(0, react.useEffect)(() => {
+				if (!bellOpen) return void 0;
+				const onDoc = (event) => {
+					if (headRef.current !== null && event.target instanceof Node && !headRef.current.contains(event.target)) setBellOpen(false);
+				};
+				const onKey = (event) => {
+					if (event.key === "Escape") setBellOpen(false);
+				};
+				document.addEventListener("mousedown", onDoc);
+				document.addEventListener("keydown", onKey);
+				return () => {
+					document.removeEventListener("mousedown", onDoc);
+					document.removeEventListener("keydown", onKey);
+				};
+			}, [bellOpen]);
 			const needle = query.trim();
+			const byId = (0, react.useMemo)(() => new Map(mates.map((m) => [m.id, m])), [mates]);
 			(0, react.useEffect)(() => {
 				const seq = ++searchSeq.current;
 				if (needle === "") {
-					setRemote([]);
+					setRemote(null);
 					return;
 				}
 				const id = window.setTimeout(() => {
 					fetch(`${API}/search?q=${encodeURIComponent(needle)}`).then((r) => r.ok ? r.json() : null).then((d) => {
-						if (seq === searchSeq.current) setRemote(parseSearch(d));
+						if (seq === searchSeq.current) setRemote(parseSearch(d, byId));
 					}).catch(() => {
 						if (seq === searchSeq.current) setRemote([]);
 					});
@@ -2860,86 +2885,48 @@ body[data-ds-dark-theme] .mws{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 					window.clearTimeout(id);
 				};
 			}, [needle]);
-			const mine = (0, react.useMemo)(() => tasks.filter((x) => x.scenario !== "assistant" && !x.routineId), [tasks]);
-			const live = tasks.some((x) => x.status !== "done" && x.status !== "waiting");
-			const now = /* @__PURE__ */ new Date();
-			const today = (0, react.useMemo)(() => {
-				const assistant = tasks.filter((x) => x.scenario === "assistant").map(taskRow).sort(byLastAt)[0];
-				const running = mine.filter((x) => x.status !== "done" && x.status !== "waiting").length;
-				const dayStart = /* @__PURE__ */ new Date();
-				dayStart.setHours(0, 0, 0, 0);
-				const waiting = reminders.length + mine.filter((x) => x.status === "waiting").length + mine.filter((x) => x.status === "done" && ms(str(x.finishedAt) || str(x.createdAt)) >= dayStart.getTime() && (str(x.error) !== "" && !/已取消/.test(str(x.error)) || x.verification?.passed === false)).length;
-				const counts = [running > 0 ? `${running} ${t("v2.running1")}` : "", waiting > 0 ? `${waiting} ${t("v2.waiting1")}` : ""].filter((x) => x !== "").join(" · ");
-				const thinking = assistant !== void 0 && assistant.status !== "done" ? assistant.preview : "";
-				const preview = counts !== "" ? counts : assistant === void 0 ? "" : str(tasks.find((x) => x.id === assistant.id)?.preview) || thinking;
-				return {
-					key: "today",
-					kind: "today",
-					id: "",
-					title: t("v2.today"),
-					preview,
-					lastAt: assistant?.lastAt ?? "",
-					unread: assistant?.unread === true
-				};
-			}, [
-				tasks,
-				mine,
-				reminders,
-				t
-			]);
-			const merged = (0, react.useMemo)(() => [...mine.map(taskRow), ...routines.map(routineRow)].sort(byLastAt), [mine, routines]);
 			const results = (0, react.useMemo)(() => {
 				if (needle === "") return [];
 				const q = needle.toLowerCase();
-				const local = merged.filter((r) => r.title.toLowerCase().includes(q) || r.preview.toLowerCase().includes(q));
+				const local = orderMates(mates).filter((m) => str(m.name).toLowerCase().includes(q) || str(m.title).toLowerCase().includes(q)).map((m) => ({
+					key: "mate:" + m.id,
+					glyph: "mate",
+					mate: m,
+					title: m.name,
+					sub: str(m.title) || str(m.preview),
+					at: str(m.lastAt),
+					target: {
+						kind: "mate",
+						id: m.id
+					}
+				}));
 				const keys = new Set(local.map((r) => r.key));
-				return [...local, ...remote.filter((r) => !keys.has(r.key))];
+				return [...local, ...(remote ?? []).filter((r) => !keys.has(r.key))];
 			}, [
 				needle,
-				merged,
+				mates,
 				remote
 			]);
-			const rows = needle === "" ? [today, ...merged.slice(0, MAX_ROWS)] : results;
-			rowsRef.current = new Map(rows.map((r) => [r.key, r]));
-			const go = (id) => {
-				if (selectPanel !== void 0) selectPanel(id);
+			const ordered = (0, react.useMemo)(() => orderMates(mates), [mates]);
+			const live = mates.some((m) => m.state === "working");
+			const count = activity.needs.length + activity.working.length;
+			const now = /* @__PURE__ */ new Date();
+			/** mywork:open-thread is the contract; if nothing handled it (the tasks client is not loaded yet), its page is selected. */
+			const open = (target) => {
+				setBellOpen(false);
+				if (target.kind === "mate" && target.id !== void 0 && target.id !== "") {
+					setOpened("mate:" + target.id);
+					markSeen(target.id);
+				} else if (target.kind === "files") setOpened("files");
+				if (target.kind === "mate") storeMate(target.id !== void 0 ? target.id : "");
+				if (!fire("mywork:open-thread", { ...target }, true) && selectPanel !== void 0) selectPanel(target.kind === "files" ? MYWORK_PANELS.files : MYWORK_PANELS.mate);
 			};
-			/** mywork:open-thread is the contract; until the web client handles it (preventDefault), the current pages' events follow. */
-			const openThread = (kind, id) => {
-				if (kind === "today") {
-					setOpened("today");
-					markSeen("today");
-				} else if ((kind === "task" || kind === "routine") && id !== void 0) {
-					setOpened(`${kind}:${id}`);
-					markSeen(`${kind}:${id}`);
-				} else if (kind === "deliverables") setOpened("deliverables");
-				if (fire("mywork:open-thread", id === void 0 ? { kind } : {
-					kind,
-					id
-				}, true)) return;
-				if (kind === "today") go(MYWORK_PANELS.today);
-				else if (kind === "new") fire("mywork:new-task", {});
-				else if (kind === "task") {
-					go(MYWORK_PANELS.tasks);
-					fire("mywork:open-task", { id });
-				} else if (kind === "routine") {
-					go(MYWORK_PANELS.routines);
-					window.setTimeout(() => {
-						fire("mywork:open-routine", { id });
-					}, 0);
-				} else if (kind === "deliverables") {
-					if (id === void 0) go(MYWORK_PANELS.deliverables);
-					else fire("mywork:open-deliverable", { id });
-				}
-			};
-			const openRow = (row) => {
-				if (row.kind === "today") openThread("today");
-				else if (row.kind === "deliverable") {
-					if (row.taskId !== void 0) openThread("task", row.taskId);
-					else openThread("deliverables", row.id);
-				} else openThread(row.kind, row.id);
-			};
-			const highlighted = activePanelId === MYWORK_PANELS.today ? "today" : activePanelId === MYWORK_PANELS.deliverables ? "deliverables" : activePanelId === MYWORK_PANELS.create ? "" : opened;
+			const highlighted = activePanelId === MYWORK_PANELS.files ? "files" : activePanelId === null || activePanelId === MYWORK_PANELS.mate ? opened : "";
+			const groups = [
+				[t("v2.needs"), activity.needs],
+				[t("v2.working"), activity.working],
+				[t("v2.recent"), activity.recent]
+			];
 			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 				className: "mws" + (compact ? " compact" : ""),
 				"data-mywork-sidebar": "v2",
@@ -2957,6 +2944,7 @@ body[data-ds-dark-theme] .mws{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 					})] }) : /* @__PURE__ */ (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [
 						/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 							className: "mws-head",
+							ref: headRef,
 							children: [
 								/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("label", {
 									className: "mws-search",
@@ -2982,12 +2970,29 @@ body[data-ds-dark-theme] .mws{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 										}
 									})]
 								}),
+								/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
+									type: "button",
+									className: "mws-icon",
+									"aria-label": t("v2.bell"),
+									"aria-haspopup": "true",
+									"aria-expanded": bellOpen,
+									onClick: () => {
+										setBellOpen(!bellOpen);
+									},
+									children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(Bell, {
+										size: 16,
+										strokeWidth: 1.5
+									}), count > 0 && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+										className: "mws-count",
+										children: count > 99 ? "99" : count
+									})]
+								}),
 								/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
 									type: "button",
 									className: "mws-icon",
-									"aria-label": t("v2.newTask"),
+									"aria-label": t("v2.newMate"),
 									onClick: () => {
-										openThread("new");
+										open({ kind: "new-mate" });
 									},
 									children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(Plus, {
 										size: 16,
@@ -3003,21 +3008,71 @@ body[data-ds-dark-theme] .mws{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 										size: 16,
 										strokeWidth: 1.5
 									})
+								}),
+								bellOpen && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+									className: "mws-drop",
+									role: "dialog",
+									"aria-label": t("v2.bell"),
+									children: [groups.every(([, items]) => items.length === 0) && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+										className: "mws-empty",
+										children: t("v2.quiet")
+									}), groups.map(([label, items]) => items.length === 0 ? null : /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("h3", { children: label }), items.map((item, i) => {
+										const mate = byId.get(item.mateId) ?? {
+											id: item.mateId,
+											name: str(item.mateName)
+										};
+										return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
+											type: "button",
+											className: "mws-row",
+											onClick: () => {
+												open({
+													kind: "mate",
+													id: item.mateId,
+													runId: str(item.runId) || void 0
+												});
+											},
+											children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(MateAvatar, { mate }), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
+												className: "mws-main",
+												children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
+													className: "mws-line",
+													children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+														className: "mws-title",
+														children: str(mate.name) || str(item.mateName)
+													}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+														className: "mws-time",
+														children: fmtWhen(str(item.at), now)
+													})]
+												}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+													className: "mws-sub",
+													children: str(item.text)
+												})]
+											})]
+										}, `${item.mateId}:${str(item.runId)}:${i}`);
+									})] }, label))]
 								})
 							]
 						}),
 						/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 							className: "mws-list",
-							children: [rows.map((row) => /* @__PURE__ */ (0, react_jsx_runtime.jsx)(ListRow, {
-								row,
-								time: fmtWhen(row.lastAt, now),
-								current: highlighted === row.key,
-								unread: row.unread && seen[row.key] !== row.lastAt,
-								live,
+							children: [needle === "" ? ordered.map((mate) => /* @__PURE__ */ (0, react_jsx_runtime.jsx)(MateRow, {
+								mate,
+								t,
+								time: fmtWhen(str(mate.lastAt), now),
+								current: highlighted === "mate:" + mate.id,
+								unread: mate.unread === true && seen[mate.id] !== str(mate.lastAt) && highlighted !== "mate:" + mate.id,
 								onOpen: () => {
-									openRow(row);
+									open({
+										kind: "mate",
+										id: mate.id
+									});
 								}
-							}, row.key)), needle !== "" && rows.length === 0 && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+							}, mate.id)) : results.map((row) => /* @__PURE__ */ (0, react_jsx_runtime.jsx)(ResultItem, {
+								row,
+								time: fmtWhen(row.at, now),
+								onOpen: () => {
+									open(row.target);
+								}
+							}, row.key)), needle !== "" && remote !== null && results.length === 0 && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
 								className: "mws-empty",
 								children: t("v2.noResults")
 							})]
@@ -3025,14 +3080,14 @@ body[data-ds-dark-theme] .mws{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("footer", {
 							className: "mws-foot",
 							children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(FlatRow, {
-								label: t("v2.deliverables"),
+								label: t("v2.files"),
 								icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(Files, {
 									size: 16,
 									strokeWidth: 1.5
 								}),
-								current: highlighted === "deliverables",
+								current: highlighted === "files",
 								onOpen: () => {
-									openThread("deliverables");
+									open({ kind: "files" });
 								}
 							})
 						})

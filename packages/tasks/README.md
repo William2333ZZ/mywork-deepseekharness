@@ -1,75 +1,121 @@
-# dsh-mywork-tasks · 任务引擎
+# dsh-mywork-tasks · 同事
 
-MyWork Kit v2 的核心成员：**一句话即任务，后台做完，交付一份东西，自己核对过。** 设计见 [design/MYWORK-V2.md](../../design/MYWORK-V2.md)。形态对标 Manus / Meta Muse：侧栏是任务列表，首页只有一个框，任务页左边是过程、右边是交付物。
+MyWork Kit v2 的核心成员：**同事模型**。设计见 [design/v2/TEAMMATES.md §9](../../design/v2/TEAMMATES.md)。
 
-## 用户看到的
+一个同事 = 一条永远的对话（一个 dsh 会话）+ 自己的文件夹（它的电脑）+ 自己的例行 + 自己的记忆（文件夹里的 `AGENTS.md`）。默认同事「MyWork」第一次启动就在，置顶，不能删。任务不再是用户看得见的东西：每一轮干活是一次**运行**（run），只是对话里的一段。
 
-- **侧栏**（由 dsh-mywork-codex-ui 在 v2 模式下提供）：新任务、今日 / 任务 / 交付物 / 场景、进行中与最近的任务、设置。没有工作区、会话、扩展菜单。
-- **今日**：一个框（场景下拉、示例）、进行中、最近。
-- **任务页**：左边「进度」= 步骤条 + 消息与工具调用流，底部是对话框：跑的时候可以插话，跑完了可以接着说（同一个会话继续，像 Manus）；右边「交付物」= 正文、核验徽章、有用 / 没用、导出 Markdown / PDF。动作：取消、再来一次、重新核验、过程（打开背后的 dsh 会话）。
-- **交付物**：全部交付物，按场景筛，查看器同上。
-- **场景**：已装场景的说明和示例，示例一点即任务。
-- 完成时右下角弹通知（浏览器通知需授权）；配置了 IM 默认通知目标时同时推到飞书 / 微信。
+## 数据
 
-任务状态六个：排队、执行、交付、核验、等你答、完成（失败也是完成，带原因）。
+都在 `$DSH_HOME/mywork/`：
 
-## 它怎么跑
+| 文件 | 内容 |
+|---|---|
+| `mates.json` | `Mate { id, name, title, description, glyph, pinned, isDefault, notify, createdAt, sessionId, dir }`；`sessionId` 在会话建好之前是空的 |
+| `tasks.json` | 运行（沿用旧的任务记录，文件名不变）：`{ id, mateId, trigger: user\|routine\|system, routineId, routineTitle, input, status, steps, activity, deliverableIds, dispatched, quiet, verification, verifying, … }` |
+| `deliverables.json` | 文件（交付物）：`{ id, mateId, taskId(=runId), title, kind, markdown, data, summary, rating, verification }` |
+| `routines.json` | 例行：旧字段 + `mateId` |
+| `seen.json` | 已读：`{ $since, [mateId]: ISO }` |
+| `mates/<id>/` | 同事的文件夹：会话的 cwd、写权限的边界、注册成 dsh 工作区；`AGENTS.md` 是它的记忆 |
 
-一个任务 = 一个 dsh 会话，按 `@michengai/dsh-automation` 的做法在服务端无头执行：`agents.create` 建会话、挂 agent preset、钉住模型、权限预设与免审批、挂到工作区、把场景 `compose` 出来的提示词交给它，等它空闲。全局 `session/event` 里 `tool/call` 映射成步骤，消息与工具调用记进任务的活动流（`activity`，每个任务最多 120 条，只保留最近 60 个任务的），最后一条 assistant 文本是摘要。会话里的 `deliver` 工具生成交付物；没有调用 deliver 的任务，把最后的回复当作交付物。
+`$DSH_HOME/.agent-presets/mate-<id>/agent.cordis.yml`：每个同事一份生成的 preset。
 
-**核验**：任务交付后开第二个只读会话，把任务、执行时调用过的工具和交付内容交给它核对（事实是否能对应到工具调用、有没有承诺了没做的事），要求它最后输出 `{"passed", "checked", "issues", "notes"}`。结果盖在每份交付物的 `verification` 上，任务页和交付物页显示「已核验 / 核验发现问题 / 未能核验」。可用 `verify: false` 关掉，场景也可以给自己的 `verifyPrompt`。
+**迁移**（启动时，幂等）：没有 `mateId` 的记录都成为 MyWork 的运行（`source: routine` → `trigger: routine`，其余 `user`）；旧「今日」助理的记录去掉与 input 重复的第一条用户行；停在问题上的旧任务把问题标为过期、收尾（它原来的会话不在新模型里）；例行、交付物补上 `mateId`。第二次启动什么都不改。
 
-数据在 `$DSH_HOME/mywork/tasks.json` 与 `deliverables.json`。默认同时跑两个任务，其余排队；单个任务最长 20 分钟，核验最长 5 分钟。
+## 引擎（`src/engine.js`）
 
-## 找人（等你答）
+- **一个同事一条会话** `mywork-mate-<id>`。第一次用时 `agents.create`：cwd = 同事文件夹（注册为工作区，名字是同事名），preset = `mate-<id>`，钉住当前默认模型，权限预设 `workspace-write`，审批 `never`。之后每句话都走 `sessionController.prompt`（冷会话由 controller 按 id 恢复）。
+- **preset**：取 dsh 自带的 `standard`（`agentPresets.resolve('standard')` 的文件；读不到时用包里的 `presets/mate-base/` 副本），把 persona 行换成这位同事的（名字、头衔、职责 + MyWork 的工作规矩：用 deliver 交付并给 summary、只在四种情况用 mywork_ask、用 mywork_routine_create 建例行、用 mywork_remember 记长期偏好），去掉 dsh 的 `ask_user`（它会挂住一轮等客户端）。其余行（agent-instructions、bash、fs、jobs、skills、计划、压缩、子代理、todo、web、present …）照搬。改名字 / 头衔 / 职责时重写，并用 `agentPresets.recompose(agent.ctx, 'mate-<id>')` 把活着的会话换到新一代（dsh 的 preset 挂载按文件戳换代，已加入的会话不会自己换；同事的会话整个进程都活着）：空闲时立刻换，正在一轮里就等这一轮结束。所以新同事在自我介绍里给自己起的名字、右栏改的职责，下一轮就生效。改名字时同事的 dsh 工作区标题一起改（`Workspace.setTitle`）。
+- **一次运行 = 会话里的一轮**：全局监听 `session/event`，只看 `mywork-mate-` 前缀，任何时候都听（不再只在「在跑」时听）。`turn/start … turn/end` 是一次运行；我们发出的每句话 requestId 带运行 id（`mywork-run-<runId>.<n>`），`user/message` 靠它把这一轮绑到运行上；`tool/call` → 步骤与活动，`assistant/message` → 回复，`deliver` / `mywork_ask` 找这位同事当前的运行。别处（dsh 会话页）直接打进同事会话的话也成为一次运行；AGENTS.md 之类的上下文消息不算。
+- **说一句话**（`POST /mates/say`）：
+  - 它正在做**用户**的运行 → `mode: 'steer'` 插进这一轮，不另起运行（用户行记在这次运行的 activity 里）；
+  - 它只在做**例行**或**自我介绍** → 这句话排队（`status: queued`），等它空下来成为下一次运行（`mode: 'queue'`）；
+  - 有运行**等你答** → 这句话就是回答，同一次运行接着做；
+  - 它刚在这一轮里调用了 `mywork_ask`、这一轮还没结束 → 这句话就是回答（问题标为 answered，以「回答：…」steer 进去），这一轮不会停在问题上；
+  - 它自己的**用户**运行还在排队 → 这句话并进那次运行：还没交出去就接在它的提示后面，已经交进会话收件箱、没开跑就 steer（和那条排队消息同一轮被认领）；
+  - 否则 → 新运行。
+  - 插话若在那一轮结束后才到，会被下一轮认领：引擎把它挪成一次续接的运行，不会丢。
+- **并发**：每个同事同时只交出一次运行（dsh 本来就一轮一轮串行）；所有同事加起来最多 `concurrency` 个在干活，其余排队。
+- **结束**：`turn/end` 立刻 `done`（有未答的问题则 `waiting`）；失败是 `done` + `error`（停止是「已停止。」）。有新交付物就在后台开只读核验会话，结果盖在交付物和 `run.verification` 上，期间 `run.verifying = true`，不挡同事接着说话。
+- **停**（`POST /mates/stop`）：有绑定到当前一轮的运行 → `controller.cancel`（保留收件箱：排在它后面的话照样会跑）。没有绑定的运行（排在并发上限后面、排在例行后面、会话正在冷恢复）→ 这位同事排着的运行都以「已停止。」收尾：已经交进收件箱的用 `controller.updateQueue({ action: { kind: 'remove' } })` 取回，取不回（还在路上）就记 `run.stopped`，它那一轮一开始就被取消、什么都不记。等你答的运行一并收尾。
+- **重启**：分两步。`repair()` 在 `createMyWork()` 里同步跑（任何路由和派发之前）：还在一轮里的运行收尾为「服务重启，这一轮中断。」，核验中的盖「核验被服务重启打断」，记下重启前已经交进会话收件箱的运行。3 秒后 `recover()` 只处理这些：用运行上存的同一个 requestId 以 `mode: 'queue'` 重发（controller 认得收件箱或日志里已有的 requestId，不会重复；崩溃窗口里丢了的会补回），再用一句 steer 唤醒（dsh 不会自己启动恢复的 agent）。其余排队的照常派发。
+- **丢了的消息**：每次 `turn/end` 检查这位同事已交出、还没开跑的运行，它的 requestId 不在 agent 的收件箱里就重新派发（新 requestId），不会永远「排队」。没带我们 requestId 的一轮（别处打进来的话、dsh 自己的提醒）永远是它自己的一次运行，不会被猜成排着的那次；已经结束的运行不会再被绑上一轮。
+- **找人**：`mywork_ask` 写一条 pending 的 ask、结束本轮 → 运行 `waiting`。每次运行最多问 2 次；例行运行、自我介绍不能问。回答（卡片按钮 `POST /answer` 或直接在对话里说）把问题标为 answered、用户的话记进这次运行、以「回答：…」重新交给同一会话，同一次运行接着做。24 小时没人答：问题过期，运行里多一条 `{ kind: 'user', auto: true, askId, text }`（一行灰字，不是气泡），按合理假设继续。
 
-设计见 [design/v2/TEAMMATES.md §2.7](../../design/v2/TEAMMATES.md)。任务默认按合理假设做完、假设写进结果；只在四种情况停下来问：缺关键信息且无法假设 / 需要用户拍板 / 有后果的动作（发消息、付费、删除、对外提交）/ 需要密码、验证码、扫码。
+## 新同事
 
-- 机制是**结束本轮**，不是挂着等：任务会话里调用 `mywork_ask({ question, askKind?, options?, detail? })` 写下一条 `{ kind: 'ask', status: 'pending' }` 的活动并结束本轮；引擎在 `finish()` 见到未答的问题且没有错误，就把任务标成 **等你答**（`waiting`）：保留会话、跳过核验、不算失败、不占并发位、不计超时。`askKind`：`text`（自由回答，默认）| `choice`（2–4 个选项，每个 ≤12 字）| `approval`（允许一次 / 拒绝）| `takeover`（要用户去电脑上亲自操作，答「我做完了」）；问题 ≤120 字硬截，`detail` ≤500 字（要确认的原文，等宽展示）。
-- 限制：每个任务最多问 2 次（第三次工具报错「这个任务已经问过两次，按合理假设做完并写明假设」）；例行运行报错「例行不能提问，把缺的写进结果」，今日助理报错「今日助理不能提问」；场景可声明 `ask: false`。新问题会把旧的未答问题标成 `superseded`。
-- 回答：`POST /answer { id, askId?, answer }` 把问题标成 `answered`，然后走 `say()` 在原会话续跑，送进去的话是「回答：<answer>」（approval 是 允许 / 拒绝，takeover 是 我做完了）；`POST /say` 对等你答的任务也走这条路。等你答时交付过的东西，在任务最终完成时一起核验。
-- 24 小时没人答：调度器把问题标成 `expired`，用「用户 24 小时没有回答，按合理假设继续，并在结果里写明假设」续跑。取消把问题标成 `expired`；服务重启不动等你答的任务（它没有在跑的东西，答了就能续）。
-- 视图：`taskView.ask` 是当前未答的问题 `{ id, at, question, askKind, options, detail }`（没有就是 null）；列行的第二行显示问题；事件 `waiting`；IM 推「【任务】<标题> · 等你答 · <问题>」。
+`POST /mates/create { description, name?, title? }` 建好同事后排一次**隐藏的自我介绍运行**（`trigger: 'system'`，线程里不显示它的用户行，只显示回复）：没有名字时先 `mywork_mate_update` 给自己起 2–4 个汉字的名字；职责里带时间就 `mywork_routine_create` 建好例行；然后两三句话说它怎么理解职责、需要什么。
 
-## 例行与提醒
+## 例行
 
-一句带时间的话就是例行：「每天 9 点给我一份 Node 生态简报」「每周一 8:30 汇总上周的交付物」「工作日 18 点提醒我写日报」「30 分钟后提醒我喝水」。输入框、模型工具 `mywork_routine_create`、`POST /routines/create` 三个入口走同一个解析器（`src/routines.js`），支持 once / interval / daily / workdays / weekly。
+例行属于一位同事（`mateId`），结果回到它的对话。到点（调度器每 30 秒）：
 
-- **例行任务**：到点创建一个普通任务。提示词里附上上一次的交付物，要求第一段先写「变化」，最后一行给 `变化：有 / 无`。「无」的运行标记 `quiet`：存进交付物和「例行」页，但不弹通知、不推 IM。这是 OpenMuse 的 Goals & Tracking 和 Muse Code 目标跟踪观察者的逻辑：系统主动盯着，只有变化才打扰。
-- **提醒**：不跑 agent。到点进「等你看」直到你点「知道了」，同时弹通知、推 IM。只有你自己能做的事才是提醒（喝水、开会、交周报）。「提醒我写周报 / 整理 / 汇总…」是 MyWork 自己能做的事，所以它是例行任务：到点 MyWork 写好交给你，周报、日报、总结类的运行会拿 MyWork 这段时间的工作记录当素材：用户在「今日」问过什么、答了什么、交办了什么，后台做过的任务、交付物和核对结果（日报取当天，周报取近 7 天，月报取近 30 天）。「每天晚上 7 点根据我一天的问题写日报」就是这样一条。
-- 每次运行都在例行上留回执（taskId、交付物、变化、错误）。服务停机期间错过的一次会在启动后补跑一次。
-- 数据在 `$DSH_HOME/mywork/routines.json`；调度器每 30 秒看一次到期。
+- **做事**：建一次 `trigger: 'routine'` 的运行（带 `routineId`、`routineTitle`），把 `routinePrompt()` 交进**同事自己的会话**（排队），之后的追问看得到例行的结果。回复末尾的「变化：有 / 无」由引擎读走并从对话里去掉；「变化：无」的运行 `quiet: true`：留在例行的运行记录里，不进对话、不亮未读、不推 IM；它交的文件不进文件页和搜索，也不起核验会话。日报 / 周报 / 月报永远出，素材是**所有同事**那段时间的运行（`workRecord`）。
+- **提醒**：不叫醒同事。沿用 `fired[]` / `ack` 机制，同时往同事对话里放一个**合成的已完成运行**（存进 tasks.json，和别的运行一样分页）：`{ trigger: 'routine', status: 'done', routineId, routineTitle, remind: { routineId, title, at, acked }, activity: [{ kind: 'remind', routineId, title, at, acked }] }`，`at` 与 `fired[]` 里那一条相同。`POST /routines/ack { id, at }` 把两边都标成已知道。客户端见到 `run.remind` 是对象，就只画一张提醒卡（不画例行小字）。
 
-## 场景
+例行运行时不能建例行（工具报错）。
 
-内置四个：**通用**、**对话**（就是聊天，不强制交付，`deliverable: false`、`verify: false`）、**调研**（真实浏览器读网页，交付带来源的摘要）、**办公**（有 Univer 时生成表格 / 文档 / 幻灯片，否则 Markdown）。其他成员通过 cordis 服务 `myworkTasks` 注册自己的场景（交易工作台是第一个定制场景）：
+## 工具（宿主级，只在同事会话里生效，别处礼貌拒绝）
 
-```js
-export const inject = ['myworkTasks']
-export function apply(ctx) {
-  ctx.myworkTasks.register({
-    id: 'trade', label: '交易', intro: '问一只标的或一个宏观问题，得到一份概率报告',
-    examples: ['黄金未来一个月的方向', '美债曲线现在说明什么'],
-    compose: (input, { date }) => `……${input}……`,
-    toolStepMap: { oracle_fetch: '取数', oracle_report_save: '交付' },
-    deliverableKinds: ['report'],
-    permission: 'read-only',            // 可选：覆盖权限预设
-    model: { provider, model },         // 可选：覆盖模型
-    verifyPrompt: (task, docs, activity) => '…',  // 可选：自己的核验提示词；verify: false 关掉核验
-    ask: false,                         // 可选：这个场景的任务从不停下来问（mywork_ask 报错）
-  })
-}
+| 工具 | 作用 |
+|---|---|
+| `deliver({ title, markdown, kind?, data?, summary? })` | 交一份文件，挂在当前运行上 |
+| `mywork_ask({ question, askKind?, options?, detail? })` | 停下来问，结束本轮 |
+| `mywork_routine_create({ input, title? })` | 给自己建例行 / 提醒；在当前运行里写 `{ kind: 'routine', action: 'created', routineId, title, scheduleLabel, at }` |
+| `mywork_routines()` / `mywork_routine_cancel({ id \| title })` | 看 / 删自己的例行 |
+| `mywork_remember({ fact })` | 往自己文件夹的 `AGENTS.md` 追加一行 `- YYYY-MM-DD <fact>`（≤300 字） |
+| `mywork_mate_update({ name?, title? })` | 改自己的名字 / 头衔（会重写 preset） |
+
+已移除：`mywork_task_create`、`mywork_task_say`、`mywork_tasks`、交办行、「交给后台」的系统提示段、今日助理与 `mywork-assistant` preset、`/today`、`/today/say`、`/feed`、`/create`、`/tasks`、`/task`、`/say`、`/cancel`、`/rerun`、`/verify`、`/rename`、`/remove`、`/scenarios`、`/deliverables`。
+
+## HTTP（`/mywork-tasks/api`，同源）
+
+```
+GET  /mates                         → { items: Mate[] }
+POST /mates/create  { description, name?, title? }                       → { mate }
+POST /mates/update  { id, name?, title?, description?, pinned?, notify? } → { mate }
+POST /mates/remove  { id }          → { removed: true }      默认同事 400；删掉它的运行、文件、例行，文件夹留着
+GET  /mates/thread?id=&before=&limit=  → { runs: Run[], nextBefore: ISO|null }
+POST /mates/say     { id, text }    → { mate, runId, mode: 'queue'|'steer'|'answer' }
+POST /mates/stop    { id }          → { mate }
+GET  /mates/folder?id=              → { dir, items: [{ name, path, size, modifiedAt }] }   同事文件夹里最近的文件（右栏「电脑」）
+POST /answer        { id: runId, askId?, answer } → { run }
+GET  /routines?mate=                → { items: Routine[], pending }
+POST /routines/create { mateId, input } · /routines/update { id, input } · /routines/run { id } → { routine, runId }
+POST /routines/enable { id, enabled } · /routines/remove { id } · /routines/ack { id, at }
+GET  /activity                      → { needs, working, recent }   Item = { mateId, mateName, runId, at, text, kind }
+GET  /files?mate=&q=&since=         → { items: Deliverable[] }
+GET  /deliverable?id=               → { deliverable, run } · POST /rate { id, rating }
+POST /seen          { id | ids }    → { id, ids, seenAt }
+GET  /search?q=                     → { mates, messages: [{ mateId, runId, at, text }], files, routines }
 ```
 
-## 工具与 API
+**Mate** = `{ id, name, named, title, description, glyph, pinned, isDefault, notify, createdAt, lastAt, preview, unread, attentionAt, state: idle|working|waiting, step, since, ask: (askView + runId)|null, routineCount, dir }`
 
-- 工具：`deliver({ title, markdown, kind?, data? })`、`mywork_ask({ question, askKind?, options?, detail? })`（任务会话内）、`mywork_task_create({ input, scenario? })`、`mywork_tasks()`。
-- HTTP（同源）：`GET /mywork-tasks/api/tasks`、`GET /task?id=`（含活动流）、`POST /create`、`POST /cancel`、`POST /rerun`、`POST /verify`、`GET /routines`、`POST /routines/{create,run,enable,remove,ack}`、`POST /say`（追问：运行中进活体 agent 的收件箱，已完成的走 dsh sessionController 在原会话续一轮，产出新交付物时再核验一次；等你答的任务把这句话当回答）、`POST /answer { id, askId?, answer }`（回答等你答的问题并续跑；没有未答问题、askId 不是当前问题或回答为空时 400）、`GET /scenarios`、`GET /deliverables`、`GET /deliverable?id=`、`POST /rate`；会话列与线程用的：`GET /today[?day=YYYY-MM-DD]`、`POST /today/say`、`GET /feed?before=&limit=`（今日线：各天助理会话的话与交办行、到点的提醒、有变化或报告类的例行运行，按时间分页）、`POST /seen {id|ids}`（已读，存 seen.json）、`GET /search?q=`（任务 · 例行 · 交付物）。任务与例行的视图都带 `lastAt` / `preview` / `unread`，给左栏那一列用。今日助理另有工具 `mywork_task_say({ id, text })`，把追问送进已有任务，今日线里留一行原地更新的交办行。
-- 事件：`mywork/task`，`{ kind: queued | started | step | deliverable | verifying | waiting | done | routine | remind, task?, deliverable?, routine? }`；`done` 的 task 带 `quiet`（例行运行没有变化）；`waiting` 的 task 带 `ask`。
-- 页面间的窗口事件：`mywork:new-task {text?, scenario?}`、`mywork:open-task {id}`、`mywork:open-deliverable {id}`、`mywork:open-session {sessionId}`。
+- `name` 没起名时是「新同事」（`named: false`）。`glyph` 是名字的第一个字（MyWork 是 M）。
+- 顺序：置顶的在前（默认同事第一，其余按创建时间），其余按 `lastAt` 倒序；状态不改变顺序。
+- `lastAt`：它所有运行里最新的有意义的时刻（用户行、回复、提醒、文件、核验、结束）；从不因为工具调用而动。
+- `preview`：干活中「在干活 · <步骤>」（排队时「在干活 · 排队」）；等你答「等你答 · <问题>」；否则最后一句话（用户说的加「你：」，没回复的失败是「失败 · 原因」，提醒是「提醒 · 标题」），≤80 字一行。
+- `unread`：`seen.json` 按同事记。点亮它的：结束的非安静运行（回复、失败、提醒）、核验发现问题、停下来问。用户自己的话、安静的例行运行不会。
+- `since`：在干活时这次运行开始的时间；等你答时问的时间。
+
+**Run** = `{ id, mateId, trigger, routineId, routineTitle, status: running|waiting|done, queued, input, title, summary, activity[], deliverables: Deliverable[], verification|null, verifying, ask|null, error, quiet, remind: { routineId, title, at, acked }|null, step, createdAt, startedAt, finishedAt }`
+
+- `status`：排队中的运行报 `running` 并带 `queued: true`。
+- **对话怎么画**：`input` 是这次运行的第一句用户话（右侧气泡）；`trigger: 'system'`（自我介绍）的 `input` 是空的，不画；`trigger: 'routine'` 画居中小字「<routineTitle> · HH:MM」（取 `createdAt`）而不是气泡。然后按顺序画 `activity` 里的线程条目：`user`（后来的插话是右侧气泡；带 `askId` 的是对问题的回答，由问题卡显示；带 `auto: true` 的是 24 小时后按假设继续，一行灰字）、`text`（回复，正文，一轮里可能有好几条，最后一条是结论）、`ask`（找你卡；`status` pending / answered / superseded / expired）、`routine`（居中小字「已安排 · <title> · <scheduleLabel>」）、`remind`（提醒卡）；`tool` 是过程，`handoff` 是旧数据，都不属于对话。`deliverables` 是这次运行交的文件（没有正文，正文用 `/deliverable?id=` 取），各自带 `summary` 行和 `verification`；`run.verifying` 为真时显示「核验中」。
+- `/mates/thread`：按 `createdAt` 升序，取 `before` 之前最新的 `limit` 条（默认 20，最多 100）；安静的例行运行、什么都没留下的系统运行不在里面；`nextBefore` 是这一页最早的 `createdAt`，没有更早的就是 null。回答过的问题会让同一次运行接着跑，所以它的新内容仍在原来的位置（按创建时间）。
+
+**Deliverable**（列表形态）= `{ id, mateId, runId, title, kind, createdAt, rating, verification, summary }`
+
+**/activity**：`needs` = 等你答（`ask`）+ 没点知道了的提醒（`remind`）+ 你看过之后才失败的运行（`failed`，停止不算）；`working` = 在干活 / 排队的运行（`text` 是步骤或那句话）；`recent` = 近 7 天完成的运行（`done` / `failed`，`text` 是回复第一行或文件标题），最多 20 条。
+
+## 事件
+
+`ctx.emit('mywork/task', { kind, run: Run|null, mate: { id, name, glyph, notify }|null, deliverable?, routine?, removed? })`（删除同事的 `mate` 事件带 `removed: true`，`mate` 只剩 `{ id }`），`kind` ∈ `queued | started | step | text | deliverable | verifying | verified | waiting | done | remind | routine | mate`。IM（dsh-mywork-im）推：提醒、等你答、有变化的例行、失败、超过 2 分钟的用户运行；同事的「通知」关掉则都不推。
 
 ## 配置
 
-`concurrency`（2）、`timeoutMinutes`（20）、`permission`（workspace-write）、`agentPreset`（standard）、`cwd`（空 = `$DSH_HOME/mywork/workbench`，任务从不在你打开的代码仓库里跑）、`tools`（true）、`verify`（true）。
+`concurrency`（2，同时在干活的同事数）、`timeoutMinutes`（20，单次运行）、`permission`（workspace-write）、`agentPreset`（standard，核验会话用）、`tools`（true）、`verify`（true）。
 
-浏览器里 `localStorage['dsh-mywork:v2'] = 'off'` 可退回 Codex 侧栏与对话首页。
+## 测试
+
+`pnpm --filter dsh-mywork-tasks test`。`test/mates.test.mjs` 用一个假的 dsh 宿主跑完整流程（它照 dsh 的收件箱语义：queue 进下一轮、steer 并进当前轮、cancel 保留收件箱）。

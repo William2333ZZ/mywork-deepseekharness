@@ -58,11 +58,16 @@ export async function login(c: Connection): Promise<{ ok: boolean; reason: strin
   try {
     if (c.token) {
       step = '换令牌'
-      const t = await fetch(`${c.base}/?token=${encodeURIComponent(c.token)}`, { credentials: 'include' })
+      const t = await fetch(`${c.base}/?token=${encodeURIComponent(c.token)}`, { credentials: 'include', redirect: 'follow' })
+      await t.text().catch(() => '') // let the platform finish the response (and store its cookie) before the next call
       if (!t.ok && t.status !== 303 && t.status !== 302) return { ok: false, reason: `换令牌 HTTP ${t.status}` }
     }
     step = '取任务'
-    const r = await fetch(`${c.base}${PREFIX}/tasks`, { credentials: 'include' })
+    let r = await fetch(`${c.base}${PREFIX}/tasks`, { credentials: 'include' })
+    for (let i = 0; i < 3 && r.status === 401; i++) { // Android's cookie store can lag one request behind
+      await new Promise((res) => setTimeout(res, 400))
+      r = await fetch(`${c.base}${PREFIX}/tasks`, { credentials: 'include' })
+    }
     return r.ok ? { ok: true, reason: '' } : { ok: false, reason: `取任务 HTTP ${r.status}${r.status === 401 ? '（cookie 没带上）' : ''}` }
   } catch (e) { return { ok: false, reason: `${step}：${e instanceof Error ? e.message : String(e)}` } }
 }

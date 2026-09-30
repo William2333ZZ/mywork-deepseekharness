@@ -3,11 +3,13 @@
 //   node scripts/fetch-fonts.mjs
 // The shell host then serves them from /mywork-shell/fonts/… so the styles work offline / behind the GFW.
 // All faces are SIL Open Font License; see packages/shell/fonts/LICENSES.md.
-import { mkdirSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 const out = join(dirname(fileURLToPath(import.meta.url)), '..', 'packages', 'shell', 'fonts')
 mkdirSync(out, { recursive: true })
+for (const f of readdirSync(out)) if (f.endsWith('.woff2')) rmSync(join(out, f)) // every face is refetched below under its content hash
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36'
 const FAMILIES = [
   { css: 'Plus+Jakarta+Sans:wght@400;500;600;700', name: 'Plus Jakarta Sans' },
@@ -40,8 +42,9 @@ for (const fam of FAMILIES) {
   const ws = [...weights].map(Number).filter(Number.isFinite)
   const weightRange = ws.length > 1 ? `${Math.min(...ws)} ${Math.max(...ws)}` : (ws[0] || 400)
   for (const [subset, { url, range }] of seen) {
-    const file = `${fam.name.toLowerCase().replace(/\s+/g, '-')}-${subset}.woff2`
     const buf = Buffer.from(await fetch(url, { headers: { 'user-agent': UA } }).then((r) => r.arrayBuffer()))
+    // Content-hashed name: the shell serves these as immutable, so a refetched face must get a new URL or browsers keep the old bytes.
+    const file = `${fam.name.toLowerCase().replace(/\s+/g, '-')}-${subset}-${createHash('sha256').update(buf).digest('hex').slice(0, 8)}.woff2`
     writeFileSync(join(out, file), buf)
     css += `@font-face{font-family:'${fam.name}';font-style:${style};font-weight:${weightRange};font-display:swap;src:url(fonts/${file}) format('woff2');unicode-range:${range}}\n`
     console.log(file, Math.round(buf.length / 1024) + 'KB', 'weight', weightRange)

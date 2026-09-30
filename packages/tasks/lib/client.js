@@ -108,6 +108,7 @@ const PATHS = {
   'arrow-right': ['M5 12h14', 'm12 5 7 7-7 7'],
   'refresh-cw': ['M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8', 'M21 3v5h-5', 'M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16', 'M8 16H3v5'],
   'chevron-up': ['m18 15-6-6-6 6'],
+  'arrow-up': ['m5 12 7-7 7 7', 'M12 19V5'],
   'chevron-down': ['m6 9 6 6 6-6'],
   pencil: ['M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z', 'm15 5 4 4'],
   pause: ['M6 4h4v16H6z', 'M14 4h4v16h-4z'],
@@ -313,9 +314,9 @@ body[data-ds-dark-theme] .mwt{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 .mwt-btn{appearance:none;display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border:0;border-radius:var(--radius-sm);background:var(--surface);color:var(--fg);font:inherit;font-size:13px;font-weight:500;letter-spacing:.01em;cursor:pointer;white-space:nowrap}
 .mwt-btn:hover{background:var(--surface-2)}
 .mwt-btn[disabled]{opacity:.4;cursor:default;transform:none}
-.mwt-btn.send{background:var(--surface);color:var(--fg-2)}
-.mwt-btn.send:hover{background:var(--surface-2)}
-.mwt-btn.send[disabled]{opacity:.45}
+.mwt-btn.send{background:var(--fg);color:var(--bg)}
+.mwt-btn.send:hover{background:var(--fg-2)}
+.mwt-btn.send[disabled]{background:var(--surface-2);color:var(--meta);opacity:1;cursor:default}
 .mwt-btn.primary{background:var(--accent);color:var(--accent-on)}
 .mwt-btn.primary:hover{background:var(--accent-hover)}
 .mwt-btn.round{width:32px;height:32px;padding:0;border-radius:50%;justify-content:center}
@@ -342,7 +343,7 @@ body[data-ds-dark-theme] .mwt{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 .mwt-page-today{display:flex;flex-direction:column;min-height:100%;padding-bottom:0}
 .mwt-page-today>.mwt-greet,.mwt-page-today>.mwt-list,.mwt-page-today>.mwt-empty,.mwt-page-today>.mwt-cards,.mwt-page-today>.mwt-retry{flex:none}
 .mwt-dock{position:sticky;bottom:0;margin:32px 0 0;margin-top:auto;padding:12px 0 20px;background:linear-gradient(to top,var(--bg) 70%,transparent)}
-.mwt-ask-wrap.compact .mwt-ask{display:flex;flex-wrap:nowrap;align-items:flex-end;gap:8px;padding:7px 7px 7px 16px}
+.mwt-ask-wrap.compact .mwt-ask{display:flex;flex-wrap:nowrap;align-items:flex-end;gap:8px;padding:8px 8px 8px 20px;border-radius:24px;box-shadow:0 1px 2px color-mix(in srgb,var(--fg) 4%,transparent),0 6px 20px color-mix(in srgb,var(--fg) 5%,transparent)}
 .mwt-ask-wrap.compact textarea{flex:1 1 0;min-width:0;min-height:34px;font-size:15px;line-height:24px;padding:5px 0}
 .mwt-ask-wrap.compact .mwt-btn.round{flex:none}
 .mwt-ask-wrap.compact .mwt-ask-row{display:contents}
@@ -365,10 +366,18 @@ body[data-ds-dark-theme] .mwt{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 .mwt-row-state[data-tone=warn]{color:var(--warn)}
 .mwt-row-more .mwt-row-title{font-weight:400;color:var(--muted)}
 .mwt-spent{margin:16px 0 0}
-.mwt-thread{margin-top:32px}
-.mwt-thread .mwt-answer{margin:0 0 14px;max-width:65ch}
-.mwt-thread .mwt-ev.user{padding:4px 0 10px;grid-template-columns:0 minmax(0,1fr);column-gap:0}
-.mwt-thread .mwt-ev.user .body{background:var(--surface);color:var(--fg)}
+/* Conversation, the Grok shape: the user's words in a bubble on the right, the reply as plain text on the left. */
+.mwt-thread{margin-top:36px;display:flex;flex-direction:column;gap:22px}
+.mwt-turn{min-width:0}
+.mwt-turn.user{display:flex;justify-content:flex-end}
+.mwt-bubble{max-width:78%;padding:10px 16px;border-radius:22px;background:var(--surface);color:var(--fg);font-size:15px;line-height:1.6;white-space:pre-wrap;word-break:break-word}
+.mwt-turn.ai{font-size:15px;line-height:1.75}
+.mwt-turn.ai .mwt-md>:first-child{margin-top:0}
+.mwt-turn.ai .mwt-md>:last-child{margin-bottom:0}
+.mwt-turn.ai .mwt-handoff{margin:0}
+.mwt-thinking span{display:inline-block;color:var(--muted);background:linear-gradient(90deg,var(--muted) 0%,var(--fg) 50%,var(--muted) 100%);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:mwt-shimmer 1.8s linear infinite}
+@keyframes mwt-shimmer{to{background-position:-200% 0}}
+@media (prefers-reduced-motion:reduce){.mwt-thinking span{animation:none;background:none;-webkit-text-fill-color:currentColor}}
 .mwt-handoff{appearance:none;display:inline-flex;align-items:center;gap:6px;margin:0 0 14px;padding:5px 10px 5px 8px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--bg);color:var(--fg-2);font:inherit;font-size:13px;cursor:pointer}
 .mwt-handoff:hover{background:var(--surface)}
 .mwt-handoff[disabled]{cursor:default}
@@ -387,7 +396,6 @@ body[data-ds-dark-theme] .mwt{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 .mwt-search input::-webkit-search-cancel-button{-webkit-appearance:none}
 .mwt-task-meta{margin:0 0 20px;color:var(--meta);font-size:12.5px;font-variant-numeric:tabular-nums}
 .mwt-answer{font-size:15px;line-height:1.7;margin:0 0 16px}
-.mwt-talk{margin:0 0 8px}
 .mwt-proc{margin:24px 0 0;border-top:1px solid var(--border-soft)}
 .mwt-proc-head{appearance:none;display:flex;align-items:center;gap:10px;width:100%;padding:12px 0;border:0;background:transparent;color:var(--muted);font:inherit;font-size:13px;text-align:left;cursor:pointer}
 .mwt-proc-head:hover{color:var(--fg)}
@@ -444,7 +452,7 @@ button.mwt-phase-head:hover .verb,button.mwt-phase-head:hover .obj{color:var(--f
 .mwt-ev.user .body{display:inline-block;max-width:100%;padding:6px 12px;border-radius:var(--radius-lg);background:var(--surface);color:var(--fg);white-space:pre-wrap;word-break:break-word;font-size:14px;line-height:1.6}
 .mwt-ev.user .ic{color:var(--meta)}
 .mwt-say{margin:12px 0 0}
-.mwt-say-inner{display:flex;align-items:flex-end;gap:8px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--bg);padding:7px 7px 7px 16px;transition:border-color var(--motion-fast) var(--ease-standard)}
+.mwt-say-inner{display:flex;align-items:flex-end;gap:8px;border:1px solid var(--border);border-radius:24px;background:var(--bg);padding:8px 8px 8px 20px;box-shadow:0 1px 2px color-mix(in srgb,var(--fg) 4%,transparent),0 6px 20px color-mix(in srgb,var(--fg) 5%,transparent);transition:border-color var(--motion-fast) var(--ease-standard)}
 .mwt-say-inner:focus-within{border-color:var(--border-strong)}
 .mwt-say textarea{flex:1 1 0;min-width:0;display:block;min-height:34px;max-height:160px;resize:none;border:0;outline:0;background:transparent;color:inherit;font:inherit;font-size:15px;line-height:24px;padding:5px 0}
 .mwt-say textarea::placeholder{color:var(--meta)}
@@ -686,7 +694,7 @@ function makeComponents(ctx, t) {
         h('div', { className: 'mwt-ask-row' },
           scenario ? h('button', { type: 'button', className: 'mwt-chip', 'data-on': true, title: t('scenarioClear'), onClick: () => setScenario('') }, (scenarios.find((s) => s.id === scenario) || { label: scenario }).label, ' ×') : null,
           err ? h('small', { className: 'grow' }, err) : h('span', { className: 'grow' }),
-          h('button', { type: 'button', className: 'mwt-btn send round', 'aria-label': t('create'), title: t('create'), disabled: busy || !text.trim(), onClick: submit }, icon(busy ? 'loader' : 'send', { size: 15 })))),
+          h('button', { type: 'button', className: 'mwt-btn send round', 'aria-label': t('create'), title: t('create'), disabled: busy || !text.trim(), onClick: submit }, icon(busy ? 'loader' : 'arrow-up', { size: 15 })))),
       examples.length && !compact && !text ? h('div', { className: 'mwt-chips' + (hero ? ' center' : '') }, examples.map((ex) => h('button', { key: ex, type: 'button', className: 'mwt-chip', title: ex, onMouseDown: (e) => e.preventDefault(), onClick: () => { setText(ex); if (ref.current) ref.current.focus() } }, ex))) : null)
   }
 
@@ -749,20 +757,33 @@ function makeComponents(ctx, t) {
     const live = items.find((x) => x.scenario === 'assistant' && x.status !== 'done')
     const key = items.filter((x) => x.scenario === 'assistant').map((x) => x.id + x.status + (x.activity ? x.activity.length : 0)).join(',') + (live ? Math.floor(Date.now() / FAST_MS) : '')
     React.useEffect(() => { let on = true; api('/today').then((d) => { if (on) setThread(d.thread) }).catch(() => {}); return () => { on = false } }, [key])
+    // What you just sent shows at once, the Grok way, until the server's copy of it arrives.
+    const [pending, setPending] = React.useState('')
+    React.useEffect(() => { const onSaid = (e) => setPending(String(e.detail && e.detail.text || '')); window.addEventListener('mywork:today-said', onSaid); return () => window.removeEventListener('mywork:today-said', onSaid) }, [])
     const entries = thread && Array.isArray(thread.activity) ? thread.activity : []
-    if (!entries.length && !live) return null
-    const shown = entries.slice(-12)
-    return h('section', { className: 'mwt-section mwt-thread' }, h('h2', null, t('conversation')),
-      shown.map((e, i) => {
-        if (e.kind === 'user') return h('div', { key: i, className: 'mwt-ev user' }, h('span', { className: 'ic' }), h('div', null, h('span', { className: 'body' }, e.text)))
-        if (e.kind === 'text') return h('div', { key: i, className: 'mwt-answer' }, h(Markdown, { text: e.text }))
+    React.useEffect(() => { if (pending && entries.some((e) => e.kind === 'user' && e.text === pending)) setPending('') }, [pending, entries.length])
+    if (!entries.length && !live && !pending) return null
+    const shown = entries.slice(-12).concat(pending ? [{ kind: 'user', text: pending }] : [])
+    return h(Turns, { entries: shown, live: live || (pending ? { currentStep: '' } : null) })
+  }
+
+  /** A conversation the Grok way: your words in a bubble on the right, the reply as plain text on the left, nothing else. */
+  function Turns({ entries, live }) {
+    const endRef = React.useRef(null)
+    const n = entries.length
+    React.useEffect(() => { if (endRef.current && typeof endRef.current.scrollIntoView === 'function') endRef.current.scrollIntoView({ block: 'nearest' }) }, [n, !!live])
+    return h('section', { className: 'mwt-thread' },
+      entries.map((e, i) => {
+        if (e.kind === 'user') return h('div', { key: i, className: 'mwt-turn user' }, h('div', { className: 'mwt-bubble' }, e.text))
+        if (e.kind === 'text') return h('div', { key: i, className: 'mwt-turn ai' }, h(Markdown, { text: e.text }))
         if (e.kind === 'handoff') {
           const isTask = e.target === 'task'
-          return h('button', { key: i, type: 'button', className: 'mwt-handoff', onClick: () => { if (isTask) openTask(e.id); else openRoutine(e.id) } }, icon(isTask ? 'list-checks' : 'history', { size: 13 }), (isTask ? t('handedOff') : t('scheduled')) + '：' + e.title + (e.schedule ? ' · ' + e.schedule : ''), icon('arrow-left', { size: 12, style: { transform: 'rotate(180deg)' } }))
+          return h('div', { key: i, className: 'mwt-turn ai' }, h('button', { type: 'button', className: 'mwt-handoff', onClick: () => { if (isTask) openTask(e.id); else openRoutine(e.id) } }, icon(isTask ? 'list-checks' : 'history', { size: 13 }), (isTask ? t('handedOff') : t('scheduled')) + '：' + e.title + (e.schedule ? ' · ' + e.schedule : ''), icon('arrow-left', { size: 12, style: { transform: 'rotate(180deg)' } })))
         }
         return null
       }),
-      live ? h('div', { className: 'mwt-ev' }, h('span', { className: 'ic' }, h('span', { className: 'mwt-dot', 'data-s': 'running' }, icon('loader', { size: 14 }))), h('div', { className: 'line' }, h('span', { className: 'obj' }, live.currentStep || t('thinking')))) : null)
+      live ? h('div', { className: 'mwt-turn ai mwt-thinking' }, h('span', null, (live.currentStep || t('thinking')) + '…')) : null,
+      h('div', { ref: endRef }))
   }
 
   /** The 今日 composer: talks to the assistant; it decides between answering, a task and a routine. */
@@ -775,13 +796,13 @@ function makeComponents(ctx, t) {
       const body = text.trim()
       if (!body || busy) return
       setBusy(true); setErr('')
-      try { await api('/today/say', { text: body }); setText(''); await refresh(); schedulePoll() } catch (e) { setErr(e.message || String(e)) } finally { setBusy(false) }
+      try { setText(''); fire('mywork:today-said', { text: body }); await api('/today/say', { text: body }); await refresh(); schedulePoll() } catch (e) { setText(body); fire('mywork:today-said', { text: '' }); setErr(e.message || String(e)) } finally { setBusy(false) }
     }
     React.useEffect(() => { const el = ref.current; if (!el) return; el.style.height = 'auto'; el.style.height = Math.min(240, el.scrollHeight) + 'px' }, [text])
     return h('div', { className: 'mwt-ask-wrap compact' },
       h('div', { className: 'mwt-ask' },
         h('textarea', { ref, value: text, placeholder: t('ask'), rows: 1, onChange: (e) => setText(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); submit() } } }),
-        h('button', { type: 'button', className: 'mwt-btn send round', 'aria-label': t('create'), disabled: busy || !text.trim(), onClick: submit }, icon(busy ? 'loader' : 'send', { size: 15 }))),
+        h('button', { type: 'button', className: 'mwt-btn send round', 'aria-label': t('create'), disabled: busy || !text.trim(), onClick: submit }, icon(busy ? 'loader' : 'arrow-up', { size: 15 }))),
       err ? h('small', { className: 'mwt-say-err' }, err) : null)
   }
 
@@ -828,7 +849,7 @@ function makeComponents(ctx, t) {
     return h('div', { className: 'mwt-say' },
       h('div', { className: 'mwt-say-inner' },
         h('textarea', { ref, value: text, rows: 1, placeholder: t('say'), disabled: blocked, onChange: (e) => setText(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); submit() } } }),
-        h('button', { type: 'button', className: 'mwt-btn send round', 'aria-label': t('create'), disabled: busy || blocked || !text.trim(), onClick: submit }, icon(busy ? 'loader' : 'send', { size: 13 }))),
+        h('button', { type: 'button', className: 'mwt-btn send round', 'aria-label': t('create'), disabled: busy || blocked || !text.trim(), onClick: submit }, icon(busy ? 'loader' : 'arrow-up', { size: 13 }))),
       err ? h('small', { className: 'mwt-say-err' }, err) : null)
   }
 
@@ -978,9 +999,7 @@ function makeComponents(ctx, t) {
       confirm ? h('div', { className: 'mwt-confirm', role: 'alertdialog' }, h('span', null, t('removeAsk')), h('button', { type: 'button', className: 'mwt-btn danger', disabled: busy, onClick: remove }, t('remove')), h('button', { type: 'button', className: 'mwt-btn ghost', onClick: () => setConfirm(false) }, t('cancel'))) : null,
       task.error ? h('div', { className: 'mwt-error' }, task.error) : null,
       docs.length ? docs.map((d) => h(Doc, { key: d.id, d: { ...d, scenarioLabel }, status: task.status, onRate: rateIn(setDetail) }))
-        : talk.length ? h('div', { className: 'mwt-talk' }, talk.map((e, i) => e.kind === 'user'
-          ? h('div', { key: i, className: 'mwt-ev user' }, h('span', { className: 'ic' }), h('div', null, h('span', { className: 'body' }, e.text)))
-          : h('div', { key: i, className: 'mwt-answer' }, h(Markdown, { text: e.text }))))
+        : talk.length ? h(Turns, { entries: talk, live: live ? task : null })
         : live ? h('div', { className: 'mwt-empty' }, t('waitingDeliverable')) : null,
       h(Process, { task: full, live }),
       h(Say, { task }))

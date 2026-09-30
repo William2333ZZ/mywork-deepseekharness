@@ -10,7 +10,13 @@
  * Step       { name, tool, count, startedAt, endedAt }
  * Deliverable{ id, taskId, title, kind, scenario, markdown, data, createdAt, rating, verification }
  *
- * Status is one of STATUSES; a failed task is `done` with `error` set.
+ * Status is one of STATUSES; a failed task is `done` with `error` set. `waiting` (等你答, §2.7 找人) is a
+ * task stopped on a question: it keeps its session, holds no concurrency slot, and resumes through say().
+ *
+ * Ask entry (activity kind 'ask', written by the mywork_ask tool):
+ *   { kind:'ask', id, at, status:'pending'|'answered'|'superseded'|'expired', question, askKind:'choice'|'text'|'approval'|'takeover',
+ *     options?, detail?, answer?, answeredAt? }
+ * Ask entries are never trimmed: the ≤2-per-task rule and the thread both count on them staying.
  *
  * The activity stream is two things at once: the thread a person reads back (user / text / handoff /
  * verify / ask entries) and the noise of the run (tool calls). Trimming may drop the noise, never the
@@ -21,8 +27,17 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { randomBytes } from 'node:crypto'
 
-export const STATUSES = ['queued', 'running', 'delivering', 'verifying', 'done']
-export const STATUS_LABELS = { queued: '排队', running: '执行', delivering: '交付', verifying: '核验', done: '完成' }
+export const STATUSES = ['queued', 'running', 'delivering', 'verifying', 'waiting', 'done']
+export const STATUS_LABELS = { queued: '排队', running: '执行', delivering: '交付', verifying: '核验', waiting: '等你答', done: '完成' }
+/** 找人 (§2.7) hard limits, enforced by the mywork_ask tool: the question, each option, the detail block, asks per task, and how long an answer is waited for. */
+export const ASK_KINDS = ['text', 'choice', 'approval', 'takeover']
+export const ASK_QUESTION_MAX = 120
+export const ASK_OPTION_MAX = 12
+export const ASK_OPTIONS_MIN = 2
+export const ASK_OPTIONS_MAX = 4
+export const ASK_DETAIL_MAX = 500
+export const ASK_MAX_PER_TASK = 2
+export const ASK_EXPIRY_MS = 24 * 3600000
 const MAX_TASKS = 500
 const MAX_DELIVERABLES = 1000
 const MAX_SEEN = 2000
@@ -48,11 +63,15 @@ export function ts(iso) { const n = Date.parse(String(iso || '')); return Number
 /** The later of two ISO stamps (either may be empty). */
 export function later(a, b) { return ts(b) > ts(a) ? b : (a || b || '') }
 
-/** Keep the stream inside its two budgets: the thread first (its oldest entries go only when the thread itself is too long), then tool calls (the oldest go first). */
+/**
+ * Keep the stream inside its two budgets: the thread first (its oldest entries go only when the thread itself is too long),
+ * then tool calls (the oldest go first). Ask entries are never dropped (§2.7): the ≤2-asks rule counts them, and a question
+ * the task stopped on must stay readable.
+ */
 export function capActivity(list) {
   let thread = 0
   for (const a of list) if (isThreadEntry(a)) thread += 1
-  for (let i = 0; i < list.length && thread > ACTIVITY_THREAD_MAX;) { if (isThreadEntry(list[i])) { list.splice(i, 1); thread -= 1 } else i += 1 }
+  for (let i = 0; i < list.length && thread > ACTIVITY_THREAD_MAX;) { if (isThreadEntry(list[i]) && list[i].kind !== 'ask') { list.splice(i, 1); thread -= 1 } else i += 1 }
   for (let i = 0; i < list.length && list.length > ACTIVITY_MAX;) { if (isThreadEntry(list[i])) i += 1; else list.splice(i, 1) }
   return list
 }
@@ -117,11 +136,42 @@ export class TaskStore extends JsonList {
       if (!Array.isArray(t.activity)) t.activity = []
       const e = { at: new Date().toISOString(), ...entry }
       if (typeof e.text === 'string' && e.text.length > ACTIVITY_TEXT_MAX) e.text = e.text.slice(0, ACTIVITY_TEXT_MAX - 1) + '…'
-      for (const k of ['detail', 'result']) if (typeof e[k] === 'string' && e[k].length > ACTIVITY_DETAIL_MAX) e[k] = e[k].slice(0, ACTIVITY_DETAIL_MAX - 1) + '…'
+      // An ask's detail is data the person must read whole (an email body to confirm), so it keeps the tool's 500-char limit, not the tool-call preview cap.
+      const detailMax = e.kind === 'ask' ? ASK_DETAIL_MAX : ACTIVITY_DETAIL_MAX
+      for (const k of ['detail', 'result']) if (typeof e[k] === 'string' && e[k].length > detailMax) e[k] = e[k].slice(0, detailMax - 1) + '…'
       t.activity.push(e)
       capActivity(t.activity)
     })
   }
+  /**
+   * 找人 (§2.7): append a pending ask. Any older pending ask is superseded first — a task stops on one question at a
+   * time. The caller (engine.ask) has already validated and trimmed the fields. Returns the stored entry (with id, at).
+   */
+  ask(id, { question, askKind, options, detail }) {
+    this.update(id, (t) => { for (const a of Array.isArray(t.activity) ? t.activity : []) if (a && a.kind === 'ask' && isPendingAsk(a)) a.status = 'superseded' })
+    const entry = { kind: 'ask', id: newId('ask'), status: 'pending', question: String(question), askKind: askKind || 'text', ...(Array.isArray(options) && options.length ? { options } : {}), ...(detail ? { detail } : {}) }
+    this.activity(id, entry)
+    const list = this.get(id).activity
+    return list[list.length - 1] // asks are never trimmed, so the entry just pushed is the last one
+  }
+  /** Settle the newest pending ask as 'answered' (with the answer), 'expired' or 'superseded'. Returns the entry, or null when nothing was pending. */
+  settleAsk(id, status, answer) {
+    let hit = null
+    this.update(id, (t) => {
+      const a = pendingAsk(t)
+      if (!a) return
+      a.status = status
+      if (status === 'answered') { a.answer = String(answer === undefined || answer === null ? '' : answer); a.answeredAt = new Date().toISOString() }
+      hit = a
+    })
+    return hit
+  }
+  /** Put an answered ask back to pending (the resume that followed it failed, so nothing happened). */
+  reopenAsk(id, askId) {
+    return this.update(id, (t) => { for (const a of Array.isArray(t.activity) ? t.activity : []) if (a && a.kind === 'ask' && a.id === askId) { a.status = 'pending'; delete a.answer; delete a.answeredAt } })
+  }
+  /** How many times this task has asked, whatever became of the questions (the ≤2 rule counts attempts, not open questions). */
+  askCount(id) { const t = this.get(id); return t && Array.isArray(t.activity) ? t.activity.filter((a) => a && a.kind === 'ask').length : 0 }
   /** Mark the latest open tool entry with its result. */
   activityResult(id, ok, text) {
     return this.update(id, (t) => {
@@ -210,10 +260,15 @@ const findLast = (list, fn) => { for (let i = list.length - 1; i >= 0; i -= 1) i
 const newestOf = (list) => list.reduce((best, d) => (!best || ts(d.createdAt) > ts(best.createdAt) ? d : best), null)
 const currentStepOf = (t) => { const s = Array.isArray(t.steps) && t.steps.length ? t.steps[t.steps.length - 1] : null; return s && !s.endedAt ? s.name : '' }
 
-/** The ask the task is stopped on (§2.7 waiting): the newest kind 'ask' entry that has no answer yet. */
+/** Is this ask entry still open? Legacy entries without a status count as open until they carry an answer. */
+export function isPendingAsk(a) { return !!a && a.kind === 'ask' && (a.status ? a.status === 'pending' : !a.answer) }
+/** The ask the task is stopped on (§2.7 waiting): the newest pending kind 'ask' entry, or null. */
 export function pendingAsk(t) {
-  const a = findLast(Array.isArray(t.activity) ? t.activity : [], (x) => x && x.kind === 'ask')
-  return a && (a.status ? a.status === 'pending' : !a.answer) ? a : null
+  return findLast(Array.isArray(t && t.activity) ? t.activity : [], isPendingAsk)
+}
+/** What a card needs to ask the question: { id, at, question, askKind, options, detail }. `options` is always an array, `detail` always a string. */
+export function askView(a) {
+  return { id: a.id || '', at: a.at || '', question: String(a.question || ''), askKind: a.askKind || 'text', options: Array.isArray(a.options) ? a.options.slice() : [], detail: typeof a.detail === 'string' ? a.detail : '' }
 }
 
 /**
@@ -352,12 +407,15 @@ export function searchAll(q, { tasks = [], deliverables = [], routines = [] } = 
 /**
  * Public projection of a task: the stored fields (minus the verifier's material) plus what the
  * conversation column needs — currentStep, statusLabel, deliverables, lastAt, preview, attentionAt,
- * unread. `seen` is the SeenStore; without one, anything with an attentionAt counts as unread.
+ * unread — and `ask`, the pending question a waiting task stopped on (null otherwise), so the column
+ * and the card can show it without the activity stream. `seen` is the SeenStore; without one,
+ * anything with an attentionAt counts as unread.
  */
 export function taskView(t, deliverables, seen) {
   const list = deliverables ? deliverables.forTask(t.id) : []
   const { material: _material, ...rest } = t // the report material stays server-side (verifier input), not in every list payload
   const attentionAt = attentionOf(t)
+  const ask = pendingAsk(t)
   return {
     ...rest,
     currentStep: currentStepOf(t),
@@ -367,5 +425,6 @@ export function taskView(t, deliverables, seen) {
     preview: previewOf(t, list),
     attentionAt,
     unread: seen ? seen.unread(t.id, attentionAt) : !!attentionAt,
+    ask: ask ? askView(ask) : null,
   }
 }

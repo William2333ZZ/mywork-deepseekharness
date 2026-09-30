@@ -5,18 +5,18 @@
  *
  *   • service `myworkTasks`: scenario plugins register { id, label, intro, examples, compose, toolStepMap, … }
  *     and can create / list tasks (ctx.provide, so `inject: ['myworkTasks']` works in cordis).
- *   • tools: deliver({ title, markdown, kind?, data? }) inside a task session;
+ *   • tools: deliver({ title, markdown, kind?, data? }) and mywork_ask({ question, askKind?, options?, detail? }) inside a task session;
  *            mywork_task_create({ input, scenario? }) and mywork_tasks() from any session;
  *            mywork_task_say({ id, text }) from the day's assistant session only (a follow-up into an existing task).
- *   • HTTP: /mywork-tasks/api/{tasks, task, create, cancel, rerun, verify, say, scenarios, deliverables, deliverable, rate,
+ *   • HTTP: /mywork-tasks/api/{tasks, task, create, cancel, rerun, verify, say, answer, scenarios, deliverables, deliverable, rate,
  *           today[?day=YYYY-MM-DD], feed?before=&limit=, seen, search?q=}
- *   • events: ctx.emit('mywork/task', { kind: started|step|deliverable|done, task, deliverable? })
+ *   • events: ctx.emit('mywork/task', { kind: queued|started|step|deliverable|verifying|waiting|done, task, deliverable? })
  *
  * Every task and routine view carries what the conversation column shows: lastAt, preview, attentionAt
  * and unread (read state lives in $DSH_HOME/mywork/seen.json, written by POST /seen).
  */
 import { join } from 'node:path'
-import { createEngine } from './engine.js'
+import { ASK_TEXT, createEngine } from './engine.js'
 import { assistantMemory, buildFeed } from './feed.js'
 import { configSchema, defineRawTool, rejectUntrusted } from './harness.js'
 import { BUILTIN_SCENARIOS, createScenarioRegistry } from './scenarios.js'
@@ -109,7 +109,15 @@ export function apply(ctx, config = {}) {
     return rview(routines.get(id))
   }
   // Scheduler: every 30 s run what is due. A run that fires while the server was down runs once on start.
-  ctx.effect(() => { const tick = () => { try { for (const r of routines.due()) runRoutine(r.id) } catch (e) { log('scheduler: ' + (e && e.message)) } }; const id = setInterval(tick, 30000); const first = setTimeout(tick, 5000); return () => { clearInterval(id); clearTimeout(first) } }, 'dsh-mywork-tasks: scheduler')
+  // The same tick resumes waiting tasks nobody answered in 24 h (§2.7), on their own assumptions.
+  ctx.effect(() => {
+    const tick = () => {
+      try { for (const r of routines.due()) runRoutine(r.id) } catch (e) { log('scheduler: ' + (e && e.message)) }
+      engine.expireAsks().catch((e) => log('ask expiry: ' + (e && e.message)))
+    }
+    const id = setInterval(tick, 30000); const first = setTimeout(tick, 5000)
+    return () => { clearInterval(id); clearTimeout(first) }
+  }, 'dsh-mywork-tasks: scheduler')
 
   /** 今日's conversation: one assistant task per day, created on the first message, continued with say(). */
   const dayKey = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') }
@@ -118,10 +126,11 @@ export function apply(ctx, config = {}) {
   const threadFor = (day) => { if (day === dayKey()) return todayThread(); for (let i = store.items.length - 1; i >= 0; i -= 1) { const t = store.items[i]; if (t.scenario === 'assistant' && t.dayKey === day) return t } return null }
   const todaySummary = () => {
     const today = new Date().toISOString().slice(0, 10)
-    const running = store.items.filter((t) => t.status !== 'done' && t.scenario !== 'assistant').map((t) => t.title)
+    const running = store.items.filter((t) => t.status !== 'done' && t.status !== 'waiting' && t.scenario !== 'assistant').map((t) => t.title)
+    const waiting = store.items.filter((t) => t.status === 'waiting' && t.scenario !== 'assistant').map((t) => t.title)
     const done = store.items.filter((t) => t.status === 'done' && t.scenario !== 'assistant' && String(t.finishedAt).slice(0, 10) === today).map((t) => t.title + (t.error ? '（失败）' : ''))
     const upcoming = routines.items.filter((r) => r.enabled).map((r) => r.title + ' ' + describeSchedule(r.schedule))
-    return [running.length ? '在跑：' + running.join('；') : '', done.length ? '今天完成：' + done.join('；') : '', upcoming.length ? '例行：' + upcoming.join('；') : ''].filter(Boolean).join('\n')
+    return [running.length ? '在跑：' + running.join('；') : '', waiting.length ? '等你答：' + waiting.join('；') : '', done.length ? '今天完成：' + done.join('；') : '', upcoming.length ? '例行：' + upcoming.join('；') : ''].filter(Boolean).join('\n')
   }
   /** What happened in the last N calendar days (today counts as one): tasks, deliverables, and the questions asked on
    *  今日. The material for 日报 / 周报 style routines: a 日报 is written from the day's questions and work, not invented. */
@@ -147,7 +156,7 @@ export function apply(ctx, config = {}) {
       if (t.quiet) continue
       const at = new Date(t.finishedAt || t.startedAt || t.createdAt).getTime()
       if (!(at >= since)) continue
-      const state = t.status === 'done' ? (t.error ? '失败：' + clip(t.error, 80) : '完成') : (STATUS_LABELS[t.status] || t.status) + '中'
+      const state = t.status === 'done' ? (t.error ? '失败：' + clip(t.error, 80) : '完成') : t.status === 'waiting' ? '等你答' : (STATUS_LABELS[t.status] || t.status) + '中'
       work.push(`- ${stamp(at)} ${t.title}（${state}${t.routineId ? '，例行' : ''}）`)
       for (const dl of deliverables.forTask(t.id)) {
         const v = dl.verification
@@ -217,6 +226,23 @@ export function apply(ctx, config = {}) {
         return { delivered: true, id: d.id, title: d.title, kind: d.kind }
       },
       render: (_a, v) => [{ type: 'text', text: `已交付：${v.title}（${v.id}）` }],
+    }))
+    // 找人 (design/v2/TEAMMATES.md §2.7): the task stops on a question at the end of its turn; engine.finish() parks it as waiting.
+    ctx.tools.register(defineRawTool({
+      name: 'mywork_ask',
+      description: '停下来问用户一个问题（只在 MyWork 后台任务会话里可用）。默认不要问：按合理假设把事做完，假设写进结果。只在四种情况用它：缺关键信息且没法合理假设 / 必须由用户拍板 / 动作有后果（发消息、付费、删除、对外提交）/ 需要密码、验证码或扫码。每个任务最多问 2 次，一次只问一件事。调用后立刻结束本轮，不要再做别的；用户回答后会在同一会话里继续，回答以「回答：」开头（approval 是 允许 / 拒绝，takeover 是 我做完了）。',
+      parameters: {
+        question: { type: 'string', required: true, description: '问题本身，≤120 字，直接可答' },
+        askKind: { type: 'string', enum: ['text', 'choice', 'approval', 'takeover'], description: 'text（自由回答，默认）| choice（给 2–4 个选项）| approval（要用户允许一次或拒绝一个有后果的动作，question 写清要做什么）| takeover（要用户去电脑上亲自操作，如登录、扫码，question 写清去哪做什么）' },
+        options: { type: 'array', items: { type: 'string' }, description: 'choice 时必填：2 到 4 个选项，每个 ≤12 字' },
+        detail: { type: 'string', description: '可选，≤500 字：要用户确认的原文（如邮件正文、要提交的内容），按等宽原样展示' },
+      },
+      async execute(args, exec) {
+        const sessionId = exec && exec.agent && exec.agent.session ? exec.agent.session.id : ''
+        const a = engine.ask(sessionId, args)
+        return { asked: true, id: a.id, question: a.question, askKind: a.askKind, note: ASK_TEXT.asked }
+      },
+      render: () => [{ type: 'text', text: ASK_TEXT.asked }],
     }))
     ctx.tools.register(defineRawTool({
       name: 'mywork_task_create',
@@ -308,6 +334,14 @@ export function apply(ctx, config = {}) {
       json(res, buildFeed({ store, deliverables, routines, before: before || undefined, limit, today: dayKey() }))
     })
     post('/say', async (b, res) => { if (!String(b.text || '').trim()) return json(res, { error: 'text is required' }, 400); json(res, { task: await api.say(String(b.id || ''), b.text) }) })
+    // 找人 (§2.7): answer the question a waiting task stopped on. { id, askId?, answer } → the ask is marked answered and the
+    // task resumes in its own session with 「回答：<answer>」 (approval: 允许 / 拒绝; takeover: 我做完了). 400 when nothing is
+    // pending, the askId is not the newest pending one, or the answer is empty. (POST /say on a waiting task takes the same path.)
+    post('/answer', async (b, res) => {
+      const t = store.get(String(b.id || ''))
+      if (!t) return json(res, { error: 'task not found' }, 404)
+      try { json(res, { task: view(await engine.answer(t.id, b.askId === undefined || b.askId === null ? '' : String(b.askId), b.answer)) }) } catch (e) { if (e && e.status === 400) return json(res, { error: e.message }, 400); throw e }
+    })
     // History is the user's: rename a task, or delete it with its deliverables (a running one is cancelled first).
     post('/rename', async (b, res) => { const t = store.get(String(b.id || '')); if (!t) return json(res, { error: 'task not found' }, 404); const title = String(b.title || '').trim().slice(0, 200); if (!title) return json(res, { error: 'title is required' }, 400); store.update(t.id, { title }); json(res, { task: view(store.get(t.id)) }) })
     post('/remove', async (b, res) => {

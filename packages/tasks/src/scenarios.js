@@ -16,12 +16,15 @@
  *   model: { provider, model } | undefined      optional model override
  *   permission: string | undefined              optional permission preset override
  *   homeWidget: string | undefined              client slot id for the 今日 page (phase 4)
+ *   ask: false | undefined                      false = this scenario's tasks may never stop to ask (mywork_ask errors);
+ *                                               routine runs and the 今日 assistant refuse regardless (§2.7)
  * }
  */
 
 /** Generic tool → step mapping; scenario maps take precedence. */
 export const GENERIC_STEPS = [
   [/^deliver$/, '交付'],
+  [/^mywork_ask$/, '提问'],
   [/^(mywork_task_)/, '派生任务'],
   [/^(browser|open_url|quick_links|web_|deepseek_search|fetch|search|http)/i, '查阅'],
   [/^(read|grep|glob|list|ls|cat|view|find)/i, '读取'],
@@ -57,7 +60,9 @@ export const GENERAL = {
   compose(input, context) {
     const caps = (context && context.capabilities) || {}
     const lines = [
-      '你是 MyWork 的后台执行者。用户不在线：不要提问，不要等确认，按合理假设把事情做完，假设写进结果里。',
+      // 找人 (§2.7): assumptions by default; four cases stop to ask, end-of-turn, at most twice.
+      '你是 MyWork 的后台执行者。用户通常不在线：默认按合理假设把事情做完，假设写进结果里，不要为小事等确认。',
+      '只有四种情况停下来问（调用 mywork_ask）：缺关键信息且没法合理假设 / 必须由用户拍板 / 动作有后果（发消息、付费、删除、对外提交）/ 需要密码、验证码或扫码。每个任务最多问 2 次；问题 ≤120 字，选项 ≤12 字，一次只问一件事。调用 mywork_ask 之后立刻结束本轮，不要接着做；用户回答后会在同一会话里继续，回答以「回答：」开头。',
       '', '用户说：', input, '',
       '怎么做：',
       '1. 先判断这是一个问题还是一件要交付的事。问题（尤其是"一句话""简单说说"这类）就凭已有知识直接、具体地回答，像和同事说话，不要铺垫，不要为它上网、不要交付。',

@@ -11,6 +11,14 @@
  * create deliverables. A second, read-only session then verifies the
  * deliverables against the task (phase 3) and stamps each with a verdict.
  *
+ * 找人 (design/v2/TEAMMATES.md §2.7) is end-of-turn, not a held promise: the
+ * `mywork_ask` tool writes a pending ask entry and tells the model to end its
+ * turn; finish() sees the pending ask and parks the task as `waiting` (session
+ * kept, no verification, no failure, no slot, no timer). POST /answer marks it
+ * answered and resumes through say() — the same session-controller path a
+ * finished task's follow-up uses. 24 h without an answer resumes it on its own
+ * assumptions; a restart leaves it waiting.
+ *
  * No imports from @deepseek-ai/* here: this package is `link:`ed into the
  * profile, so those specifiers do not resolve from its real path. The two
  * helpers dsh-automation imports (createUserMessage, installModelSelection)
@@ -19,7 +27,7 @@
 import { existsSync, mkdirSync } from 'node:fs'
 import { randomUUID } from 'node:crypto'
 import { join } from 'node:path'
-import { ACTIVITY_DETAIL_MAX, myworkDir, titleOf } from './store.js'
+import { ACTIVITY_DETAIL_MAX, ASK_DETAIL_MAX, ASK_EXPIRY_MS, ASK_KINDS, ASK_MAX_PER_TASK, ASK_OPTION_MAX, ASK_OPTIONS_MAX, ASK_OPTIONS_MIN, ASK_QUESTION_MAX, myworkDir, pendingAsk, titleOf, ts } from './store.js'
 import { defaultVerifyPrompt, parseVerdict, stepNameFor } from './scenarios.js'
 import { changedVerdict, recordDays, routinePrompt, wantsRecord } from './routines.js'
 
@@ -94,6 +102,65 @@ export function reasonError(reason) {
   if (reason.kind === 'error') return (reason.error && reason.error.message) ? String(reason.error.message) : '模型调用失败。'
   return `会话以 ${String(reason.kind)} 结束。`
 }
+
+/** The exact words of 找人 (§2.7): what the tool answers, what it refuses with, and the line a resume is sent with. */
+export const ASK_TEXT = {
+  asked: '问题已提出。结束本轮，用户回答后会继续。',
+  routine: '例行不能提问，把缺的写进结果',
+  assistant: '今日助理不能提问',
+  scenario: '这个场景不能提问，按合理假设做完并写明假设',
+  limit: '这个任务已经问过两次，按合理假设做完并写明假设',
+  notLive: 'mywork_ask 只能在正在运行的后台任务会话里调用。',
+  expired: '用户 24 小时没有回答，按合理假设继续，并在结果里写明假设',
+  answerPrefix: '回答：',
+}
+/** Fixed option sets: an approval is 允许一次 / 拒绝, a takeover ends with 我做完了. */
+export const APPROVAL_OPTIONS = ['允许一次', '拒绝']
+export const TAKEOVER_OPTIONS = ['我做完了']
+const clipTo = (s, n) => { const t = String(s === undefined || s === null ? '' : s).replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n) : t }
+
+/**
+ * Validate and hard-trim the arguments of mywork_ask into an ask entry's fields. Throws (a tool error) when the kind is
+ * unknown or a choice has the wrong number of options. Question ≤120 chars, options 2–4 × ≤12 chars, detail ≤500 chars.
+ */
+export function normalizeAsk(args) {
+  const a = args && typeof args === 'object' ? args : {}
+  const question = clipTo(a.question, ASK_QUESTION_MAX)
+  if (!question) throw new Error('question 不能为空。')
+  const askKind = a.askKind === undefined || a.askKind === null || a.askKind === '' ? 'text' : String(a.askKind)
+  if (!ASK_KINDS.includes(askKind)) throw new Error(`askKind 只能是 ${ASK_KINDS.join(' / ')}。`)
+  let options = []
+  if (askKind === 'choice') {
+    const seen = new Set()
+    for (const o of Array.isArray(a.options) ? a.options : []) { const s = clipTo(o, ASK_OPTION_MAX); if (s && !seen.has(s)) { seen.add(s); options.push(s) } }
+    if (options.length < ASK_OPTIONS_MIN || options.length > ASK_OPTIONS_MAX) throw new Error(`choice 需要 ${ASK_OPTIONS_MIN} 到 ${ASK_OPTIONS_MAX} 个不同的选项（每个 ≤${ASK_OPTION_MAX} 字）。`)
+  } else if (askKind === 'approval') options = APPROVAL_OPTIONS.slice()
+  else if (askKind === 'takeover') options = TAKEOVER_OPTIONS.slice()
+  const detailRaw = typeof a.detail === 'string' ? a.detail.trim() : ''
+  const detail = detailRaw.length > ASK_DETAIL_MAX ? detailRaw.slice(0, ASK_DETAIL_MAX - 1) + '…' : detailRaw
+  return { question, askKind, options, detail }
+}
+
+/**
+ * The answer as stored and as told to the model. approval: true / 允许一次 / allow → 允许, false / deny → 拒绝, anything
+ * else the person typed is kept (「先改一下措辞」 is an answer too). takeover: empty or true → 我做完了. Others: the text.
+ */
+export function answerText(ask, raw) {
+  const kind = ask && ask.askKind
+  if (kind === 'approval') {
+    if (raw === true) return '允许'
+    if (raw === false) return '拒绝'
+    const s = String(raw === undefined || raw === null ? '' : raw).trim()
+    if (/^(允许一次|允许|同意|可以|allow|yes|ok|y)$/i.test(s)) return '允许'
+    if (/^(拒绝|不允许|不行|不要|不同意|deny|no|n)$/i.test(s)) return '拒绝'
+    return s
+  }
+  if (kind === 'takeover') { const s = raw === true || raw === undefined || raw === null ? '' : String(raw).trim(); return s || TAKEOVER_OPTIONS[0] }
+  return String(raw === undefined || raw === null || raw === true ? '' : raw).trim()
+}
+
+/** An error the HTTP layer answers with 400 instead of 500. */
+const bad = (message) => Object.assign(new Error(message), { status: 400 })
 
 /**
  * @param {object} o
@@ -222,6 +289,19 @@ export function createEngine({ ctx, store, deliverables, scenarios, config, log,
     const mode = scenario && scenario.deliverable !== undefined ? scenario.deliverable : 'auto'
     const summary = state.text ? titleOf(state.text) : ''
     let error = thrown || (state.cancelled ? '已取消。' : state.timedOut ? '超过最长运行时间。' : reasonError(state.reason))
+    const ask = pendingAsk(t)
+    if (!error && ask) {
+      // 找人 (§2.7): the turn ended on a question. Park the task: session kept (say() resumes it), no verification yet, not a
+      // failure, no deliverable demanded. The concurrency slot and the deadline timer are released by the caller (run()'s
+      // finally / finishFollowup) exactly as for a done task; pump() never counts a waiting task. `verifyFrom` remembers
+      // which deliverables are still unverified so the eventual finish checks them (a resume's follow-up state starts there).
+      store.setStatus(taskId, 'waiting', { error: '', finishedAt: '', verifyFrom: state.followup ? state.deliverablesBefore : 0 })
+      log(`task ${taskId} waiting: ${ask.question}`)
+      emit('waiting', store.get(taskId))
+      return
+    }
+    // A run that failed while a question was open: the question is moot, do not leave it dangling on a failed task.
+    if (error && ask) store.settleAsk(taskId, 'expired')
     if (!error && mode === true && t.deliverableIds.length === 0 && state.text) {
       const d = deliverables.create({ taskId, title: t.title, kind: 'markdown', scenario: t.scenario, markdown: state.text })
       store.update(taskId, (x) => { x.deliverableIds.push(d.id) })
@@ -292,7 +372,7 @@ export function createEngine({ ctx, store, deliverables, scenarios, config, log,
     emit('done', store.get(taskId))
   }
 
-  /** Start queued tasks while there is room. */
+  /** Start queued tasks while there is room. A waiting task (§2.7) holds no slot: nothing runs for it until it is answered. */
   function pump() {
     if (pumping) return
     pumping = true
@@ -352,10 +432,13 @@ export function createEngine({ ctx, store, deliverables, scenarios, config, log,
     return d
   }
 
-  /** Recover from a restart: tasks left running are finished as failed; queued ones start. */
+  /**
+   * Recover from a restart: tasks left running are finished as failed; queued ones start. A waiting task (§8.9 step 7)
+   * stays waiting: nothing of it was in flight, and its persisted session resumes through say() whenever the answer comes.
+   */
   function recover() {
     for (const t of store.items) {
-      if (t.status === 'done' || t.status === 'queued') continue
+      if (t.status === 'done' || t.status === 'queued' || t.status === 'waiting') continue
       if (t.status === 'verifying') { store.setStatus(t.id, 'done', { finishedAt: new Date().toISOString(), error: '', verification: { passed: null, checked: 0, issues: 0, notes: '核验被服务重启打断。', at: new Date().toISOString() } }); continue }
       store.setStatus(t.id, 'done', { finishedAt: new Date().toISOString(), error: '服务重启，任务中断。' })
     }
@@ -369,23 +452,33 @@ export function createEngine({ ctx, store, deliverables, scenarios, config, log,
     const state = live.get(taskId)
     if (state) { state.cancel(); return store.get(taskId) }
     if (t.status === 'verifying') { const v = verifying.get(taskId); if (v && v.handle) v.handle.agent.cancel({ kind: 'hook', reason: 'cancelled by user' }); return t }
+    // A waiting task is cancelled like a queued one; its open question expires with it, and the column hears about it.
+    const wasWaiting = t.status === 'waiting'
+    if (wasWaiting) store.settleAsk(taskId, 'expired')
     store.endSteps(taskId)
-    return store.setStatus(taskId, 'done', { finishedAt: new Date().toISOString(), error: '已取消。' })
+    const done = store.setStatus(taskId, 'done', { finishedAt: new Date().toISOString(), error: '已取消。' })
+    if (wasWaiting) { log(`task ${taskId} cancelled while waiting`); emit('done', done) }
+    return done
   }
 
   /**
    * Continue the conversation with a task: while it runs the text is queued into the live
-   * agent; a finished task gets a new turn in its persisted session through dsh's session
-   * controller (the same path the IM member uses), and the run engine treats that turn like
-   * a run: steps, activity, deliveries, then done again.
+   * agent; a finished or waiting task gets a new turn in its persisted session through dsh's
+   * session controller (the same path the IM member uses), and the run engine treats that turn
+   * like a run: steps, activity, deliveries, then done (or waiting) again.
+   *
+   * A waiting task with an open question takes whatever is said as the answer (§2.7: the same
+   * path as POST /answer), so a reply typed into the composer is never refused. `extra` is merged
+   * into the thread's user entry (askId of the question answered, auto for the 24 h resume).
    */
-  async function say(taskId, text) {
+  async function say(taskId, text, extra) {
     const body = String(text || '').trim()
     if (!body) throw new Error('text is required')
     const t = store.get(taskId)
     if (!t) throw new Error('task not found')
     if (t.status === 'verifying') throw new Error('核验中，稍等一下再说。')
-    store.activity(taskId, { kind: 'user', text: body })
+    if (t.status === 'waiting' && pendingAsk(t)) return answer(taskId, '', body)
+    store.activity(taskId, { kind: 'user', text: body, ...(extra || {}) })
     const liveState = live.get(taskId)
     if (liveState && liveState.handle) {
       liveState.handle.agent.followup(userMessage(body, { kind: 'mywork-user', taskId }))
@@ -396,7 +489,10 @@ export function createEngine({ ctx, store, deliverables, scenarios, config, log,
     if (!t.sessionId) throw new Error('这个任务没有会话可以继续（它没跑起来）。')
     const control = typeof controller === 'function' ? controller() : null
     if (!control) throw new Error('session controller not available')
-    const state = { handle: null, followup: true, started: true, deliverablesBefore: t.deliverableIds.length, text: '', reason: undefined, cancelled: false, timedOut: false, timer: null, cancel: () => { state.cancelled = true; finishFollowup(taskId) } }
+    // Resuming from waiting: the deliverables since `verifyFrom` were never verified (finish() skipped it), so they count as new.
+    const wasWaiting = t.status === 'waiting'
+    const deliverablesBefore = wasWaiting && Number.isInteger(t.verifyFrom) ? Math.min(t.verifyFrom, t.deliverableIds.length) : t.deliverableIds.length
+    const state = { handle: null, followup: true, started: true, deliverablesBefore, text: '', reason: undefined, cancelled: false, timedOut: false, timer: null, cancel: () => { state.cancelled = true; finishFollowup(taskId) } }
     live.set(taskId, state)
     store.setStatus(taskId, 'running', { error: '', finishedAt: '' })
     emit('started', store.get(taskId))
@@ -404,11 +500,82 @@ export function createEngine({ ctx, store, deliverables, scenarios, config, log,
       await control.prompt({ requestId: 'mywork-task-' + randomUUID(), sessionId: t.sessionId, mode: 'queue', content: [{ type: 'text', text: body }] }, AbortSignal.timeout(30000))
     } catch (e) {
       live.delete(taskId)
-      store.setStatus(taskId, 'done', { finishedAt: new Date().toISOString(), error: '' })
+      // Nothing reached the session: a waiting task goes back to waiting (the person can try again), a finished one back to done.
+      if (wasWaiting) store.setStatus(taskId, 'waiting', { error: '', finishedAt: '' })
+      else store.setStatus(taskId, 'done', { finishedAt: new Date().toISOString(), error: '' })
       throw new Error('没能把话送进会话：' + (e instanceof Error ? e.message : String(e)))
     }
     state.timer = setTimeout(() => { state.timedOut = true; finishFollowup(taskId) }, config.timeoutMs)
     return store.get(taskId)
+  }
+
+  /**
+   * 找人 (§2.7), the tool side. Called by mywork_ask from inside a running task session: resolves the task, refuses where
+   * asking is not allowed (routine runs, the 今日 assistant, scenarios with ask: false, a third question), then writes the
+   * pending ask entry (an older pending one is superseded). The model is told to end its turn; finish() does the rest.
+   */
+  function ask(sessionId, args) {
+    const t = store.bySession(String(sessionId || ''))
+    if (!t) throw new Error('mywork_ask 只能在后台任务会话里调用（这个会话不属于任何任务）。')
+    if (t.scenario === 'assistant') throw new Error(ASK_TEXT.assistant)
+    if (t.source === 'routine' || t.routineId) throw new Error(ASK_TEXT.routine)
+    const scenario = scenarios.resolve(t.scenario)
+    if (scenario && scenario.ask === false) throw new Error(ASK_TEXT.scenario)
+    if (!live.has(t.id)) throw new Error(ASK_TEXT.notLive)
+    if (store.askCount(t.id) >= ASK_MAX_PER_TASK) throw new Error(ASK_TEXT.limit)
+    const fields = normalizeAsk(args)
+    const entry = store.ask(t.id, fields)
+    log(`task ${t.id} asks (${fields.askKind}): ${fields.question}`)
+    emit('step', store.get(t.id))
+    return entry
+  }
+
+  /**
+   * Answer the newest pending ask of a waiting task and resume it (POST /answer). `askId` may be empty (= the newest);
+   * a stale id is refused so two open cards cannot answer each other's question. The answer is stored on the ask entry and
+   * sent into the session as 「回答：<answer>」 through say(); should that fail, the ask reopens and nothing has happened.
+   * Errors carry status 400 where the request, not the server, was wrong.
+   */
+  async function answer(taskId, askId, raw) {
+    const t = store.get(taskId)
+    if (!t) throw new Error('task not found')
+    const ask = pendingAsk(t)
+    if (!ask || t.status !== 'waiting') throw bad('这个任务没有等着回答的问题。')
+    if (askId && String(askId) !== ask.id) throw bad('这个问题已经不是当前的问题了。')
+    const text = answerText(ask, raw)
+    if (!text) throw bad('回答不能为空。')
+    store.settleAsk(taskId, 'answered', text)
+    try {
+      return await say(taskId, ASK_TEXT.answerPrefix + text, { askId: ask.id })
+    } catch (e) {
+      store.reopenAsk(taskId, ask.id)
+      throw e
+    }
+  }
+
+  /**
+   * 24-hour rule: a waiting task nobody answered resumes on its own assumptions; the ask is marked expired first so the
+   * card closes. Run from the 30 s scheduler tick. `now` is injectable for tests. Returns the ids it resumed. A resume
+   * that cannot reach the session ends the task as failed rather than leaving a waiting row with no question on it.
+   */
+  async function expireAsks(now = Date.now()) {
+    const resumed = []
+    for (const t of store.items.slice()) {
+      if (t.status !== 'waiting') continue
+      const ask = pendingAsk(t)
+      if (!ask || ts(ask.at) > now - ASK_EXPIRY_MS) continue
+      store.settleAsk(t.id, 'expired')
+      try {
+        await say(t.id, ASK_TEXT.expired, { auto: true, askId: ask.id })
+        resumed.push(t.id)
+        log(`task ${t.id}: question expired after 24 h, resumed on assumptions`)
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e)
+        log(`task ${t.id}: question expired but could not resume: ${message}`)
+        if (store.get(t.id) && store.get(t.id).status === 'waiting') { store.endSteps(t.id); store.setStatus(t.id, 'done', { finishedAt: new Date().toISOString(), error: '等回答超过 24 小时，且没能继续会话：' + message }); emit('done', store.get(t.id)) }
+      }
+    }
+    return resumed
   }
 
   function finishFollowup(taskId) {
@@ -432,5 +599,5 @@ export function createEngine({ ctx, store, deliverables, scenarios, config, log,
     return store.get(taskId)
   }
 
-  return { pump, recover, cancel, deliver, reverify, say, onSessionEvent, isLive: (id) => live.has(id) }
+  return { pump, recover, cancel, deliver, reverify, say, ask, answer, expireAsks, onSessionEvent, isLive: (id) => live.has(id) }
 }

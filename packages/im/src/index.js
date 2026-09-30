@@ -66,6 +66,13 @@ export function apply(ctx, config = {}) {
         Promise.resolve(send(rule.target, `【提醒】${r.title}` + (r.input && r.input !== r.title ? '\n\n' + r.input : ''))).then(() => log(`reminder ${r.id} → IM`)).catch((e) => log(`reminder ${r.id} → IM failed: ${e && e.message}`))
         return
       }
+      // 找人 (dsh-mywork-tasks §2.7): a task stopped on a question needs the person, so it goes out even under the 仅失败 rule.
+      if (payload.kind === 'waiting' && payload.task) {
+        const task = payload.task
+        const question = task.ask && task.ask.question ? String(task.ask.question) : ''
+        Promise.resolve(send(rule.target, `【任务】${task.title} · 等你答` + (question ? ' · ' + question : ''))).then(() => log(`task ${task.id} waiting → IM notified`)).catch((e) => log(`task ${task.id} waiting → IM notify failed: ${e && e.message}`))
+        return
+      }
       if (payload.kind !== 'done' || !payload.task) return
       const task = payload.task
       const failed = !!task.error

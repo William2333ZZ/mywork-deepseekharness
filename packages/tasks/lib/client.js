@@ -369,6 +369,7 @@ body[data-ds-dark-theme] .mwt{--bg:#191919;--surface:#202020;--surface-2:#2a2a2a
 /* Conversation, the Grok shape: the user's words in a bubble on the right, the reply as plain text on the left. */
 .mwt-thread{margin-top:36px;display:flex;flex-direction:column;gap:22px}
 .mwt-turn{min-width:0}
+.mwt-thread-end{scroll-margin-bottom:96px} /* the docked composer covers the last lines otherwise */
 .mwt-turn.user{display:flex;justify-content:flex-end}
 .mwt-bubble{max-width:78%;padding:10px 16px;border-radius:22px;background:var(--surface);color:var(--fg);font-size:15px;line-height:1.6;white-space:pre-wrap;word-break:break-word}
 .mwt-turn.ai{font-size:15px;line-height:1.75}
@@ -783,7 +784,7 @@ function makeComponents(ctx, t) {
         return null
       }),
       live ? h('div', { className: 'mwt-turn ai mwt-thinking' }, h('span', null, (live.currentStep || t('thinking')) + '…')) : null,
-      h('div', { ref: endRef }))
+      h('div', { ref: endRef, className: 'mwt-thread-end' }))
   }
 
   /** The 今日 composer: talks to the assistant; it decides between answering, a task and a routine. */

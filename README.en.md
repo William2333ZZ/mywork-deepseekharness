@@ -1,30 +1,21 @@
-<h1 align="center">MyWork Kit</h1>
+<h1 align="center">MyWork</h1>
 
-<p align="center"><b>A personal-workbench bundle for DeepSeek Harness: dsh itself untouched, everything is a plugin.</b></p>
-<p align="center">Web research, spreadsheets and slides, scheduled tasks and reminders, a WeChat / Feishu assistant, all in one dsh profile, with no iframes anywhere.</p>
+<p align="center"><b>AI teammates that live on your computer.</b></p>
+<p align="center">Give each ongoing job a teammate: it has a name, one conversation, its own folder and routines, does the work in the background and brings the result back to the same conversation. Your data stays on your computer; your phone connects over the local network.</p>
 
-<p align="center"><a href="README.md">中文</a> · English · <a href="https://zhuanlan.zhihu.com/p/2086048468519466606">Article on Zhihu (Chinese)</a></p>
+<p align="center"><a href="README.md">中文</a> · English</p>
 
 <p align="center">
-  <a href="https://github.com/William2333ZZ/mywork-deepseekharness/releases"><img src="https://img.shields.io/github/v/release/William2333ZZ/mywork-deepseekharness?include_prereleases&label=release" alt="release"></a>
   <a href="https://github.com/deepseek-ai/deepseek-harness"><img src="https://img.shields.io/badge/dsh-0.1.6--alpha.2-blue" alt="dsh"></a>
-  <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgrey" alt="platform">
+  <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Android-lightgrey" alt="platform">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT%20%2B%20Apache--2.0-green" alt="license"></a>
-  <a href="https://github.com/William2333ZZ/mywork-deepseekharness/stargazers"><img src="https://img.shields.io/github/stars/William2333ZZ/mywork-deepseekharness?style=flat" alt="stars"></a>
 </p>
 
-![MyWork Kit one-minute tour](docs/tour.gif)
-
-> The UI follows dsh's language setting (Chinese / English). The screenshots below were taken in Chinese.
-
-
-> **This branch (`research-muse-paseo`) is MyWork v2: the teammate model.** Following [Rakazo](https://github.com/elie222/rakazo), you no longer create tasks; you talk to **teammates**. Each teammate has one continuous conversation, its own folder, routines and memory. Say something, it works in the background, and the result (reply + key numbers + file card) comes back to the same conversation. The phone app connects to this computer over the LAN, no cloud.
-
-![MyWork v2 web demo](docs/v2/demo-web.gif)
+![MyWork demo](docs/v2/demo-web.gif)
 
 <p align="center">
   <img src="docs/v2/web-mate.png" width="49%" alt="A teammate conversation with the right panel">
-  <img src="docs/v2/web-file.png" width="49%" alt="A file opened in the right panel">
+  <img src="docs/v2/web-file.png" width="49%" alt="Reading a delivered file in the right panel">
 </p>
 <p align="center">
   <img src="docs/v2/phone-home.png" width="24%" alt="Phone: teammates">
@@ -33,288 +24,138 @@
 
 Full videos: [web](docs/v2/demo-web.mp4) · [phone](docs/v2/demo-phone.mp4)
 
-- **New teammate**: "+" at the top left; one sentence about its job. It names itself, introduces itself, and creates the routine if the sentence carries a time.
-- **Talking**: the avatar moves while it works; the result is one bubble with the reply, ✓ key numbers and a file card that opens in the right panel; a second session verifies it. A message sent mid-run steers the run; it stops to ask only when key information is missing.
-- **Routines** belong to a teammate and post into its conversation; unchanged watch runs stay silent, reports always arrive.
-- **Sidebar**: search · bell (needs you / working / just finished) · new teammate; teammates only (pinned first, then by recent conversation); files · settings. Collapsed, it is a column of avatars.
-- **Phone**: `apps/mobile` (Expo / React Native), pairs by QR from Settings › MyWork › Phone.
-- Design: [design/v2/TEAMMATES.md](design/v2/TEAMMATES.md) §9.
+> This branch, `research-muse-paseo`, is MyWork v2. The first version, MyWork Kit (a dsh plugin bundle: live browser, sheets and slides, IM assistant), is on `main`.
 
----
+## Why
 
-## Download
+Most AI products are one-off chats: ask, answer, close. Real work isn't like that. The morning industry news, the Friday weekly report, the competitor prices you keep watching are **ongoing jobs**. Someone has to remember the context, do it on time, hand you the result, and come back only when there's a real question.
 
-| Option | For whom | How | Status |
-| --- | --- | --- | --- |
-| **Desktop, Windows x64** (portable zip) | People who don't want to install Node / dsh | Get `Mywork-DSH_desktop-win-x64.zip` from [Releases](https://github.com/William2333ZZ/mywork-deepseekharness/releases) → unzip → double-click `Mywork-DSH_desktop.exe` | Preview: unsigned (SmartScreen once), cross-built on a Mac, feedback welcome |
-| **Desktop, macOS arm64** (.dmg) | Apple-silicon Macs | Get `Mywork-DSH_desktop-mac-arm64.dmg` from [Releases](https://github.com/William2333ZZ/mywork-deepseekharness/releases) → drag to Applications → right-click → Open the first time | Preview: unsigned (Gatekeeper once) |
-| **One-command trial** | Machines with Node ≥ 24 | `git clone … && bash scripts/dev-env.sh`, never touches `~/.dsh` | Stable |
-| **Install into your own dsh** | Existing dsh users | `bash scripts/install.sh web && dsh web` | Stable |
+MyWork turns AI into **teammates**, not a chat box:
 
-The desktop build bundles Node 24, dsh, Chrome for Testing and a profile with every plugin installed. Personal data (API key, IM logins, bookmarks, history, browser logins) lives in the data directory and survives upgrades and reinstalls.
+- **One teammate owns one ongoing job.** A news reporter that briefs you three times a day, a scout that checks new GitHub projects every morning, and MyWork for anything else.
+- **One teammate, one conversation.** It remembers your preferences; "make it shorter" changes the thing it just made.
+- **It works in the background and the result comes back to the conversation**, as a file with checkable key numbers, verified independently by a second session.
+- **It interrupts you only when it must**: missing key information, a decision only you can make, a consequential action (paying, sending, deleting), or a password, code or scan.
+- **Your data stays on your computer.** No account, no cloud; the phone pairs with this computer by QR.
 
-## Ready on first launch
+The product logic follows [Rakazo](https://github.com/elie222/rakazo) (persistent AI teammates rather than disposable chats). It runs on [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (dsh), built entirely as plugins without modifying dsh.
 
-- **Stock dsh chat**: models, workspaces, sessions, files, terminal and Git are all dsh's own. The kit only adds things around them.
-- **Codex-style sidebar and settings**: New conversation, Extensions (scheduled tasks / plugin market), IM assistant, MCP connectors. Only installed features are shown.
-- **Live browser**: a real Chrome running in the background. Pages the model opens appear in the right pane in real time; you can click, scroll and type. The address bar behaves like Chrome's, the page fills the pane at any size, and every session can use it.
-- **Spreadsheets and slides**: Univer builds them in a live window while you watch; review, then export `.xlsx` / `.pptx`.
-- **Scheduled tasks and reminders**: tasks run on a schedule in their own sessions, and each task picks the chat its result is sent to. Reminders pop up on time with a notification and a sound, and can also go to IM.
-- **WeChat / Feishu assistant**: WeChat, Feishu, DingTalk, WeCom, QQ and Telegram connect to your local dsh. Hand out tasks from a chat, or push messages from the desktop into a chat.
-- **MCP connectors**: add / edit / disable MCP servers inside the app, import by pasting `mcpServers` JSON, mounted as soon as you save.
-- **Four styles × light / dark × zoom**: Claude Code / Soft premium / Editorial minimal / Industrial brutalist, light / dark / follow system, UI zoom 80–150%.
-- **Plugin market and Mermaid**: 2300+ community plugins one click away; mermaid code blocks in replies render as diagrams.
+## Features
 
-## Screens
+### 1. Teammates
 
-### New conversation: four starting points
-
-Web research / spreadsheets and slides / scheduled tasks and reminders / WeChat · Feishu assistant. Each opens as a prompt you can send right away; you only fill in the specifics.
-
-![New conversation](docs/screenshots/12-new-conversation.png)
-
-### Sidebar and settings
-
-Navigation is trimmed to what's installed: Extensions holds only Scheduled tasks and Plugin market; Settings has a single MyWork entry with Members / Appearance / Schedule / Browser tabs, and missing members install with one click.
-
-| | |
+| Feature | What it does |
 | --- | --- |
-| ![Home](docs/screenshots/01-home.png) | ![Members](docs/screenshots/07-settings-members.png) |
+| Create in one sentence | "+" at the top left; describe its job, the name is optional. It names and introduces itself and says what it needs from you; a sentence with a time also creates the routine. |
+| Identity | Name, title, job description (its standing instructions), a coloured avatar that moves while it works. |
+| Default teammate | MyWork is always there, can't be deleted, takes anything. |
+| Its own computer | A private folder per teammate as working directory and write boundary; the local real Chrome when it needs the web. |
+| Memory | Stable preferences go into `AGENTS.md` in its folder and are read every turn; you can also say "remember …". |
+| Settings | Right panel: name, title, job, pin, notifications, delete. |
 
-### Live browser
+### 2. Conversation
 
-The right pane opens as soon as the model navigates. Type a URL to open it, or plain text to search (Bing / Google / Baidu / DuckDuckGo), with history and bookmark suggestions, inline completion, ↑↓ / Enter / Esc, and Ctrl/Cmd+L from inside the page to jump back to the address bar. The page viewport follows the pane size, so there are no black bars.
-
-| | |
+| Feature | What it does |
 | --- | --- |
-| ![Live browser](docs/screenshots/02-conversation-live-browser.png) | ![Address bar](docs/screenshots/13-omnibox.png) |
+| One continuous conversation | Backed by one persistent dsh session per teammate with automatic context compaction; the visible history stays complete. |
+| Working | The avatar moves and one line reads "working · step · time"; tool calls stay in each turn's folded "process". |
+| Results | One bubble per turn: the reply, ✓ checkable key numbers, a file card. |
+| Steering | A message sent while it works steers the current job instead of starting another. |
+| Stop | A stop button beside the input. |
+| Asking you | Only in the four cases above. The question card offers choices, allow/deny, or a free reply; the same session continues. At most twice per turn; routine runs never ask. |
+| History | Scroll up for earlier turns; old and migrated turns fold into one line each. |
 
-### Scheduled tasks
+### 3. Files and verification
 
-A standalone page (from Automation). The create / edit dialog gains a "Send to IM when done" row: pick a chat and choose every run / failures only. It is saved with the task and shown on its card.
-
-![Scheduled tasks](docs/screenshots/04-scheduled-tasks.png)
-
-### Spreadsheets and slides
-
-Univer works in a draggable live window and checks its own output as it goes. When done, a review card stays in the conversation: full screen, version comparison, export.
-
-![Univer](docs/screenshots/14-univer-review.png)
-
-### IM assistant and MCP connectors
-
-| | |
+| Feature | What it does |
 | --- | --- |
-| ![IM assistant](docs/screenshots/05-im-assistant.png) | ![MCP](docs/screenshots/06-mcp-connectors.png) |
+| Delivery | Reports, tables and briefs delivered as files with 2–6 key numbers. |
+| Reading | A file card opens the full document in the right panel; tables scroll; download as `.md`. |
+| Verification | A second read-only session checks each delivery against the material and tool records and flags promises not kept: "verified · 14 checked" or "3 issues found". What you said later ("draft only, don't send") counts as part of the requirement. |
+| Rating | Useful / not useful on every file. |
+| Files page | Everything every teammate delivered, filterable by teammate and searchable; jumps back to the message that produced it. |
 
-### Appearance and zoom
+### 4. Routines
 
-Besides Claude Code, the three styles come from the [taste-skill](https://github.com/Leonxlnx/taste-skill) pack: Soft premium (soft-skill: Plus Jakarta Sans, ultra-diffuse ambient shadows, pill buttons), Editorial minimal (minimalist-skill: warm bone canvas, 1px dividers, Newsreader serif headline) and Industrial brutalist (brutalist-skill: 90° corners, Archivo black, uppercase monospace metadata, one hazard red; dark mode is a CRT terminal with scanlines). Every text role in all four styles meets WCAG AA 4.5:1.
-
-| Soft premium (light) | Industrial brutalist (dark) |
+| Feature | What it does |
 | --- | --- |
-| ![Soft premium](docs/screenshots/10-soft-light.png) | ![Industrial brutalist](docs/screenshots/11-brutal-dark.png) |
+| What | A sentence sent to a teammate on a schedule. It belongs to that teammate and its results land in that conversation. |
+| Create | Say it with a time ("write the daily report at 7 every evening") and a centred line "scheduled · daily 19:00" appears; or add one in the right panel. |
+| On time | A centred line "Daily report · 19:00", then the teammate works as usual. |
+| Quiet | Watch routines with no change post nothing and only log the run; reports always arrive. |
+| Reminders | Things only you can do just remind you; no teammate work. |
+| Daily / weekly reports | Written from all teammates' conversations, deliveries and verifications of the period. |
+| Manage | Right panel: edit the sentence and schedule, run now, pause, delete, the last 10 runs (each jumps to its result). |
 
-## Demo cases
+### 5. Sidebar and navigation
 
-Every case below has been run end to end with this kit. Paste the prompts as they are, or click the matching starting point on the New conversation page and it fills the prompt in for you. The prompts are shown in English here; Chinese works just as well.
+| Area | Content |
+| --- | --- |
+| Top | Collapse · search (teammates, messages, files, routines) · bell (needs you / working / just finished) · new teammate |
+| Middle | Teammates only. Pinned first (MyWork by default), then by most recent conversation; state never reorders. Each row: avatar, name, time, unread dot, latest line (the step while working, the question while waiting). |
+| Bottom | Files · Settings |
+| Collapsed | A column of avatars (unread dot, pulse while working), new teammate, files |
+| Right panel | Click the name or the monitor button: computer (live picture with take-over while it browses, otherwise its folder), routines, settings; or the file you're reading. |
+| One jump rule | Anything that shows a result jumps to that message in that teammate's conversation and highlights it. |
 
-### 1. Research on the web, summarizing as you watch
+### 6. Phone
 
-1. Click the globe icon next to the composer to open the Live browser pane, type `github.com` in the address bar (or a question, which goes to Bing) and press Enter.
-2. Tell the model: **Open this URL for me and condense the page into 5 key points: https://github.com/deepseek-ai/deepseek-harness**
-3. The model opens the page with Playwright, the pane follows along live, and you can click, scroll or type at any moment. The summary lands in the conversation.
+| Feature | What it does |
+| --- | --- |
+| Native app | `apps/mobile`, Expo / React Native; Android builds today, iOS from the same code. |
+| Connection | On the computer, Settings › MyWork › Phone, allow phone connections and scan. The phone talks only to this computer's LAN gateway; pairing survives restarts; turning the switch off disconnects. |
+| Features | Teammates, activity, conversations (bubbles, file cards, question cards, stop), full-screen file reading and sharing, teammate page (routines, settings), new teammate, files. |
 
-### 2. Build a slide deck (or a spreadsheet)
+### 7. Notifications
 
-Tell the model: **Make a slide deck from the material below, 5 slides at most, one point per slide, and screenshot it for me when done:** (paste the material after it). Same for spreadsheets: **Create a spreadsheet with Univer: headers, sample rows and summary formulas, then export .xlsx. The content is: …**
-
-### 3. A scheduled task that reports to WeChat
-
-1. Sidebar → Extensions → Scheduled tasks → New task. At the bottom, "Send to IM when done", pick a chat and save.
-2. Or just say: **Create a scheduled task: every day at 09:00 check whether the GitHub repos I follow have new releases, and send the result to WeChat.** The model calls `automation_create` and `automation_notify_set`.
-3. When the time comes the task runs in its own session, and its final reply is sent to the chat you chose, with the task name and Done / Failed.
-
-> A personal WeChat bot can only reply within a window after you last messaged it (a platform limit, see Known issues). For on-time pushes, choose a Feishu / DingTalk / WeCom account as the target.
-
-### 4. Use the assistant straight from WeChat
-
-1. Sidebar → IM assistant → add a WeChat account (scan the QR code); Feishu / DingTalk / WeCom / QQ / Telegram take bot credentials.
-2. Talking to the bot in WeChat is talking to a session of your local dsh: **Every day at 9, list the files in ~/Downloads older than 30 days and send them to me** becomes a scheduled task on the spot.
-3. Push from the desktop: the "Send to a channel" card at the top of the IM assistant page, or tell the model **Boil the conclusion above down to 3 sentences and send it to WeChat**, or `/imsend text`. Tick "also send to IM" when creating a reminder.
-
-### 5. Switch styles, zoom the UI
-
-Settings → MyWork → Appearance: four styles × light / dark / follow system. Sidebar, settings, bubbles, composer and buttons all follow. UI zoom 80–150%; every popover, drag, Univer window and the live browser stay aligned with the mouse at any zoom.
-
-## Everyday operations
-
-- **Theme / zoom**: Settings → MyWork → Appearance. Message font size is dsh's own setting under Settings → General → Font size (12–17 px).
-- **Reminders**: the calendar icon right of the composer → Reminders → Add; or tell the model "remind me to check CI in 10 minutes"; or `/remind 10m water`, `/remind 18:30 leave`, `/remind daily 09:00 standup`, `/remind weekly 1,3,5 10:00 weekly`, `/remind every 30m stand up`, `/remind list`. On time you get a page popup + browser notification (grant it once under Settings → MyWork → Schedule) + a sound. **The dsh page must stay open.**
-- **In-session reminders** (dsh's own, enabled by the kit): tell the model "remind me in 30 minutes" and it comes back as a follow-up in the same session.
-- **IM assistant**: add accounts under the "IM assistant" sidebar entry; their sessions show up under the "Channels" tab. With several accounts / chats, a send must name its target; nothing is guessed.
-- **Push to IM**: the send card on the IM assistant page, "send the result to WeChat" in a conversation (`im_send`), or `/imsend text`. Only chats that have already talked to the bot can be reached, and delivery goes through one model turn.
-- **Scheduled tasks**: Sidebar → Extensions → Scheduled tasks; the schedule panel and the sidebar "Scheduled" list jump there too; or describe it in a conversation ("run the tests every day at 9 and report").
-- **MCP connectors**: the "MCP connectors" sidebar entry: a stdio command or a streamable-http URL, env vars / headers, or paste `mcpServers` JSON. The bottom of the page lists the connectors and tools actually available to the current session.
-- **Open a web page**: the bookmark button in the address bar (Alt/⌥-click = system browser); `/open https://…` or `/open <bookmark name>`; the model uses `open_url`. Bookmarks and search engines live under Settings → MyWork → Browser.
-- **Mermaid**: ```mermaid code blocks in replies turn into diagrams.
+| Feature | What it does |
+| --- | --- |
+| In app | Results and questions pop up, except for the teammate you're looking at. |
+| IM | Feishu, DingTalk, WeCom, WeChat and others; only reminders, questions, changed routines, failures and long jobs; per-teammate switch. |
 
 ## Getting started
 
-Prerequisites: Node ≥ 24 (see Known issues), pnpm, `dsh` on PATH. **Install the latest dsh**: `npm i -g @deepseek-ai/dsh@alpha` (currently 0.1.6-alpha.2; the `latest` tag is still 0.1.5-rc.2).
-
-### One-command trial (never touches `~/.dsh`)
+Node ≥ 24, pnpm and a DeepSeek API key.
 
 ```bash
-git clone https://github.com/William2333ZZ/mywork-deepseekharness.git && cd mywork-deepseekharness
-bash scripts/dev-env.sh           # installs dsh@alpha + every plugin into .dsh-dev-home/ inside the repo and starts the web server (:3090)
-bash scripts/dev-env.sh restart   # rebuild and restart after changing plugin code
-bash scripts/dev-env.sh stop
+git clone -b research-muse-paseo https://github.com/William2333ZZ/mywork-deepseekharness.git
+cd mywork-deepseekharness
+bash scripts/dev-env.sh
 ```
 
-Open the tokenized URL the command prints. Enter the API key under Settings → Models, or `export DEEPSEEK_API_KEY=…` before running. On Node older than 24 the script switches to Homebrew's `node@24` by itself.
+The script installs dsh into `.dsh-dev-home/` inside the repo and starts it, leaving `~/.dsh` alone. Open the printed address, add your API key in Settings › Model, then click "+" to create your first teammate.
 
-### Install into your own dsh
+Phone: in `apps/mobile`, build an APK with `npx eas-cli build --platform android --profile preview`, or run `npx expo run:android`.
 
-```bash
-npm i -g @deepseek-ai/dsh@alpha pnpm
-bash scripts/install.sh web       # builds the local plugins, links them into the web profile and installs the community members
-dsh web
-```
-
-Then open Settings → MyWork; if members are missing, click "Install the N missing" and restart dsh. The built `lib/` of every package is committed, so anyone who clones the repo runs the same commands. Uninstall with `bash scripts/uninstall.sh web`, or one by one with `dsh plugin --profile web remove <name>`.
-
-## Bundled plugins
-
-Packages in this repo (each can be removed on its own with `dsh plugin --profile web remove`):
+## How it's built
 
 | Package | Role |
 | --- | --- |
-| `dsh-mywork-kit` | The bundle itself: member list `kit.json`, the MyWork settings entry (the Members / Appearance / Schedule / Browser tabs are contributed by members through the `mywork.settings.tab` slot), the `mywork_kit_status` tool, automatic removal of retired members |
-| `dsh-mywork-codex-ui` | Codex-style sidebar and settings pages, forked from [@michengai/dsh-codex-ui](https://github.com/MichengAI/dsh-codex-ui) (Apache-2.0): navigation trimmed to installed features, Scheduled tasks / IM assistant / MCP connectors as standalone main-area pages, upstream iframe pages removed |
-| `dsh-mywork-shell` | Theme overlay (Claude Code / Soft premium / Editorial minimal / Industrial brutalist) and UI zoom |
-| `dsh-mywork-schedule` | Reminders (`/remind`, `reminder_*` tools, schedule panel) and the IM notification setting for scheduled tasks (injected into Automation's task dialog) |
-| `dsh-mywork-browser` | Real browser: launches local Chrome in the background, driven by the official browser-use + Playwright MCP, live view in the right pane, Chrome-style address bar, bookmarks, `open_url` / `/open` |
-| `dsh-mywork-im` | Pushing messages to IM: `im_send` / `im_chats` / `automation_notify_set` tools, `/imsend`, scheduled-task completion notices |
-| `dsh-mywork-mcp` | MCP connectors page: records, import, mounted dynamically as official mcp-client entries through the dsh loader |
+| `packages/tasks` | The teammate engine: one persistent dsh session per teammate, runs, delivery and second-session verification, asking, routine scheduling, memory, files, the API, and the web conversation, right panel and files page |
+| `packages/codex-ui` | Sidebar (teammates, bell, search) and settings shell |
+| `packages/browser` | The local real Chrome, live picture and take-over |
+| `packages/kit` | Bundle and settings entry, phone LAN gateway and pairing |
+| `packages/im` | IM notifications |
+| `packages/shell` · `schedule` · `mcp` | Themes and fonts, reminders, MCP connectors |
+| `apps/mobile` | Phone app |
+| `apps/desktop` | Desktop shell (Electron) |
 
-Community members (mature npm packages, installed with one click from the kit panel, removable individually):
+Design: [design/v2/TEAMMATES.md](design/v2/TEAMMATES.md) §9 (teammate model and API contract), [design/v2/MOBILE.md](design/v2/MOBILE.md) (phone).
 
-| Member | Role |
-| --- | --- |
-| [`@michengai/dsh-automation`](https://github.com/MichengAI/dsh-automation) | Scheduled tasks: runs tasks in their own sessions on a schedule (once / hourly / daily / weekly / monthly) |
-| [`@michengai/dsh-im-connect`](https://github.com/MichengAI/dsh-im-connect) | IM assistant: DingTalk / Feishu / Lark / WeChat / WeCom / QQ / Telegram connected to local dsh |
-| [`dsh-univer-office`](https://github.com/dream-num/dsh-univer-office) | Univer office: spreadsheets, documents, slides, live preview and review; needs a local Chrome |
-| [`dshmarket`](https://github.com/dsh-market/dsh-market) | Plugin market: 2300+ community plugins, one-click install |
-| [`dsh-mermaid-render`](https://github.com/baosfeng/my-dsh-plugins/tree/main/plugins/dsh-mermaid-render) | Renders mermaid code blocks as diagrams, works offline |
-| `@deepseek-ai/dsh-browser-use` + `dsh-experimental-browser-use-playwright-mcp` | The official browser-use runtime, the foundation of the live browser |
+## Data and privacy
 
-## Why this approach
+- Everything lives in `$DSH_HOME` (`.dsh-dev-home/home` in development): teammates in `mywork/mates.json`, each teammate's folder in `mywork/mates/<id>/`, runs, deliveries, routines and read state in `mywork/*.json`, session logs in `sessions/`.
+- The API key and logins are there too; copy the directory to move machines (it holds the key in plain text).
+- The web app listens on this machine only. Phone access must be switched on at the computer; the gateway accepts only the pairing token, and dsh's login token never leaves the computer.
 
-- **A bundle = `dsh.bundle` + `cordis.patch.yml`.** dsh only activates bundle layers that the profile depends on directly, so members are not listed in `dependencies`; they are installed into the profile as first-class citizens (the panel's "Install" runs `pnpm add` in the profile directory and writes `dsh.profile.bundles` back, the same reconciliation `dsh plugin add` does). Any member can be removed on its own or managed by the plugin market.
-- **Host plugins have zero dependencies.** A third-party plugin importing `@deepseek-ai/dsh-tools` cannot resolve it under a `link:` install, so the host code registers plain JSON Schema tools and validates its config by hand (`src/harness.js`). npm / tarball / git / link installs all load.
-- **The browser half is a C6 bundle**: `scripts/build-client.mjs` wraps the plain CommonJS `src/client/index.js` into `window.__ModuleLoader__.load({ id, factory })`, `react` comes from dsh, no build dependencies.
-- **Themes are an overlay on the official `ctx.theme.overrideTokens`**, and light / dark is still stored by dsh. A style overrides dsh's specific / business tokens as well as the fork's sidebar variables, otherwise switching is invisible.
-- **Zoom applies to the app root, not `<html>`**: dsh's popovers are positioned in viewport coordinates, so zooming the whole document shifts them. Root zoom plus inverse zoom on JS-positioned fixed elements keeps everything aligned, and the Univer window stays at 1:1.
-- **No iframes.** Live browser, MCP configuration and settings pages are all native pages; `dsh-mywork-browser` disables dsh's built-in iframe browser row.
-- **Every HTTP route goes through the host's `connection.requestRejection` auth** (same origin / token), and the install endpoints are additionally limited to loopback.
+## Status and known limits
 
-## Desktop build
-
-`apps/desktop/` packs dsh plus every plugin into a self-contained desktop app: an Electron window shell + bundled Node 24 + bundled dsh + bundled Chrome for Testing + a pre-installed profile. dsh runs as a child process and the window only loads its URL.
-
-```bash
-node apps/desktop/build.mjs win-x64     # → apps/desktop/dist/Mywork-DSH_desktop-win-x64.zip
-node apps/desktop/build.mjs mac-arm64 && bash apps/desktop/package-mac.sh   # → .dmg
-```
-
-The Windows package is cross-built on a Mac (npm `--os/--cpu` + pnpm `supportedArchitectures`). Unsigned; installing plugins / members from inside the app needs pnpm on the machine. See [apps/desktop/README.md](apps/desktop/README.md).
-
-## Data and permissions
-
-- All personal data lives under `$DSH_HOME` (desktop: Windows `%APPDATA%\Mywork-DSH_desktop\home`, macOS `~/Library/Application Support/Mywork-DSH_desktop/home`). The kit's own files are in `$DSH_HOME/mywork/`: reminders `reminders.json`, bookmarks `links.json`, address-bar history `browser-history.json`, MCP records `mcp.json`, IM notification rules `im-notify.json`, Chrome login state `chrome-profile/`.
-- The API key, dsh login (`.credentials.yaml`) and IM account logins (`dsh-im-connect/`) are in the same directory and survive restarts and upgrades. To move machines, copy the directory (it holds the key in plain text, keep it safe).
-- The packages contain no account information; every machine enters its own key and scans its own QR code on first launch.
-- Installing a plugin from the browser = running pnpm on your machine. For remote / shared deployments set the kit to `allowInstall: false` in the profile patch.
-- All of the kit's HTTP endpoints are only open to authenticated dsh pages, and the install endpoints accept loopback only.
-
-## Known issues
-
-- **`npx @deepseek-ai/dsh` prints nothing on Node 23**: the entry point uses `import.meta.main` (Node ≥ 24 only). macOS: `brew install node@24`.
-- **npm's `latest` tag lags behind the source**: use `@deepseek-ai/dsh@alpha`.
-- **WeChat pushes expire**: the personal WeChat bot API only allows replies within a window after you message it (it relies on the `context_token` carried by that message). Once expired, every outbound send fails with `sendmessage ret=-2 prepare failed`. Workaround: send the bot a line to renew; for on-time pushes use a Feishu / DingTalk / WeCom account as the target.
-- **Community plugins installed from git** can be blocked by pnpm ≥ 10's `allowBuilds`; the panel shows pnpm's message as is, edit the profile's `pnpm-workspace.yaml` as it says and retry.
-- `dsh-mywork-codex-ui` replaces the official sidebar / settings overview (the patch disables `ui-sidebar`, `ui-settings-general`, `session-title-llm`) and also hides the "Open In…" button in the session header; to get it back add `- id: ui-open-in-app` + `disabled: false` to the profile patch.
-- **Workspace `pnpm install` pitfall**: the dsh alpha packages declare peers as `^0.1.6-alpha.2`, and pnpm's auto-installed peers resolve to a range that doesn't exist. The root `package.json`'s `pnpm.overrides` fixes it; update it when upgrading dsh.
-- **Only one copy of the dsh core**: plugins must not list `@deepseek-ai/dsh-*` in `dependencies`. The official `dsh-experimental-browser-use-runtime` lists `dsh-scope` / `dsh-mcp-client` as dependencies, which yields a second copy → new sessions fail with `tools.restrict() requires a scoped context`. The kit removes them with a pnpm `"-"` override (`profileOverrides` in `kit.json`).
-- **Every session gets the browser**: the official Playwright provider in attach mode serves only the first session; `dsh-mywork-browser` mounts a non-exclusive Playwright MCP per session. Sessions working at the same time share the same tabs.
-- The frontend of `dsh-univer-office@0.3.2` does not activate on 0.1.6-alpha.2 (fixed upstream in PR #82, not yet released); the kit's installer applies the same patch to an installed 0.3.x, drop it once 0.3.3 is on npm.
-- `@michengai/dsh-im-connect` gives new accounts dsh's start directory as the default workspace, and every message fails when it is not a registered workspace; the kit moves it to the first registered workspace at startup ([#1](https://github.com/William2333ZZ/mywork-deepseekharness/issues/1)).
-- `dsh-chat-tidy@0.4` was retired from the members: on alpha.2 it doubled line spacing and broke the font-size setting ([#4](https://github.com/William2333ZZ/mywork-deepseekharness/issues/4)); profiles that have it get it removed automatically.
-
-## Relationship to DeepSeek Harness
-
-- This repo is not a fork of dsh and changes none of its files: everything is a dsh plugin (bundle + patch). After a dsh upgrade, rerun `scripts/install.sh`.
-- Target dsh version 0.1.6-alpha.2 (also verified on 0.1.5-rc.2). dsh is the work of [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness); this repo is not affiliated with DeepSeek.
-- If something breaks, read Known issues first, then file an [issue](https://github.com/William2333ZZ/mywork-deepseekharness/issues); every fixed issue records the cause and the verification.
-
-## Related projects
-
-| Project | Notes |
-| --- | --- |
-| [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness) | DeepSeek Harness itself |
-| [MichengAI/dsh-codex-ui](https://github.com/MichengAI/dsh-codex-ui) | Upstream of this repo's sidebar / settings pages |
-| [MichengAI/dsh-automation](https://github.com/MichengAI/dsh-automation) · [MichengAI/dsh-im-connect](https://github.com/MichengAI/dsh-im-connect) | Scheduled tasks / IM integration |
-| [dream-num/dsh-univer-office](https://github.com/dream-num/dsh-univer-office) | Univer office |
-| [dsh-market/dsh-market](https://github.com/dsh-market/dsh-market) | Plugin market |
-| [0xsline/awesome-deepseek-harness](https://github.com/0xsline/awesome-deepseek-harness) | Index of dsh plugins and tools |
-| [Leonxlnx/taste-skill](https://github.com/Leonxlnx/taste-skill) | The design skills behind the Soft / Minimal / Brutalist styles |
-| [nextlevelbuilder/ui-ux-pro-max-skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) | The UX rule base used by `scripts/ux-audit.mjs` |
-
-## Layout
-
-```
-packages/
-  kit/         kit.json (member list) · src/installer.js (pnpm install + bundles write-back + retired-member removal) · src/client (settings panel)
-  codex-ui/    fork of @michengai/dsh-codex-ui (TypeScript, built with tsdown)
-  shell/       src/client (theme overlay + zoom, MyWork → Appearance)
-  schedule/    src/logic.cjs (scheduling) · src/index.js (tools / commands / API) · src/client (schedule panel + IM field injected into task dialog)
-  im/          src/chats.js · src/notify.js (scheduled task → IM) · src/index.js · src/client
-  mcp/         src/store.js · src/index.js (dynamic loader entries + API) · src/client
-  browser/     src/chrome.js · src/cdp.js · src/links.js · src/history.js (address-bar history / search) · src/index.js · src/client
-apps/desktop/  Electron shell and packaging scripts
-scripts/       build-client.mjs (zero-dependency C6 bundler) · install.sh / uninstall.sh · dev-env.sh · profile-fixups.mjs
-```
-
-Each package builds with `node ../../scripts/build-client.mjs .` (codex-ui with `pnpm run build`); `pnpm -r test` runs the tests.
-
-## Changelog
-
-### Unreleased
-
-- Desktop app: a real embedded browser, the way the Claude desktop app does it. The shell opens its own DevTools port and the live-browser plugin attaches to Electron itself instead of launching a background Chrome; every tab is a native Chromium view placed exactly where the right-hand "实时浏览器" pane sits, so pages render, scroll and select natively, QR / SMS / captcha logins happen right in the pane, and Playwright drives the very same tabs. The web version is unchanged (background Chrome + live stream). No desktop package is built in this round.
-- Web live browser: a "text layer". A toolbar button overlays the frame with transparent real text, so you can drag-select, copy and click links like on a normal page; turn it off to get the plain picture back.
-- The Latin web fonts of the three styles now ship with the plugin (Plus Jakarta Sans / Geist / Geist Mono / Newsreader / Archivo / JetBrains Mono as latin + latin-ext variable subsets, 488 KB in total, refreshed by `scripts/fetch-fonts.mjs`), so offline and intranet setups get the same typography; CJK still prefers system fonts, with Noto Sans SC as an optional extra when Google Fonts is reachable.
-- The Automation switch in Scheduled Tasks follows the accent colour of the current style instead of a fixed green.
-- Feishu notifications no longer need a first message to the bot: a configured Feishu account shows up in the Channels tab immediately, and scheduled-task notifications / `im_send` get a "push to me directly" target that goes through the Feishu bot API to the account owner. WeChat keeps its platform limit.
-- The live-browser pane now follows the Claude desktop browser's layout: a pill tab strip (close / new tab per pill), a wider rounded address bar, the follow / take-over button next to it, a themed empty state; secondary buttons collapse in narrow panes.
-- Live browser can run as a real window: Settings → MyWork → Browser → "Show the real browser window". The background Chrome becomes a visible window, so QR codes, SMS codes and slider checks are done there by you and the login sticks; the pane keeps streaming it. Off returns to headless. Switching restarts the browser. Headed frames follow the screen's own pixel ratio.
-- Live browser: import login state. Settings → MyWork → Browser → "Login state (cookie import)" takes the cookies of a session you already have in your own browser (`name=value` list + domain / Cookie-Editor JSON / cookies.txt) and writes them into the background Chrome, so QR-only sites such as Xiaohongshu work; the model gets a `browser_set_cookies` tool that only writes values you pasted. Loopback-only endpoint; values are never shown or uploaded.
-- Live browser: sharp all the time on Retina. The background Chrome is now launched at the screen's pixel ratio (`pixelRatio`, default 2), so the live stream itself is 2x. Several panes watching the same page share the largest viewport instead of fighting over it. A status pill over the view says "the model is browsing · click the page to take over" right after the model navigates; any click or scroll hands control to you and stops following, "Follow the model" resumes.
-- Styles redone: Claude Code stays, Codex / Swiss are gone; three new families follow [taste-skill](https://github.com/Leonxlnx/taste-skill)'s soft-skill / minimalist-skill / brutalist-skill (Soft premium, Editorial minimal, Industrial brutalist), each with its own fonts, radii, shadows and motion rules, all text at WCAG AA in both schemes. Third-party page titles inside the Scheduled tasks / IM assistant pages are deduplicated; the live-browser toolbar is now a Chrome-style tab strip + pill omnibox.
-- A UI review pass against the [ui-ux-pro-max](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) checklist (`scripts/ux-audit.mjs` checks contrast, pointer targets, accessible names and minimum font size automatically): secondary / tertiary text, state colors and primary-button fills in all three styles now meet WCAG AA 4.5:1 (the Claude style's primary button went from #D97757 to #BA5A3A, dark Swiss buttons use dark text); every 11px label is now 12px; inputs get a visible focus ring; icon-only buttons, selects and textareas have accessible names; the sidebar "more" button and the zoom slider grew to 24px targets.
-
-### 0.0.1 (2026-09-23) — first release
-
-- Codex-style sidebar and settings pages (forked from dsh-codex-ui, iframe pages removed); four starting points on the New conversation page: web research / spreadsheets and slides / scheduled tasks and reminders / WeChat · Feishu assistant.
-- Three styles (Claude Code / Codex / Swiss developer) × light / dark × UI zoom 80–150%; zoom applies to the app root, and popover menus, hover cards, dragging, the Univer window and the live browser stay aligned at any zoom ([#2](https://github.com/William2333ZZ/mywork-deepseekharness/issues/2) [#5](https://github.com/William2333ZZ/mywork-deepseekharness/issues/5) [#6](https://github.com/William2333ZZ/mywork-deepseekharness/issues/6) [#7](https://github.com/William2333ZZ/mywork-deepseekharness/issues/7)).
-- Live browser: real background Chrome + Playwright MCP (available to every session), Chrome-style address bar (URL / search / history / bookmarks / inline completion / Ctrl+L), page viewport follows the pane size, bookmarks and `open_url` / `/open`.
-- Reminders (`/remind`, schedule panel, popup + notification + sound on time, optional IM delivery) and scheduled tasks (Automation); each task's own settings choose "send to which chat when done".
-- IM assistant (WeChat / Feishu / DingTalk / WeCom / QQ / Telegram) and outbound messages (`im_send`, `/imsend`, send card); IM account workspaces fixed automatically when unregistered ([#1](https://github.com/William2333ZZ/mywork-deepseekharness/issues/1)).
-- MCP connectors page (in-app configuration, mcpServers JSON import, mounted on save), Univer spreadsheets / slides, plugin market, Mermaid.
-- Removed dsh-chat-tidy, incompatible with alpha.2 ([#4](https://github.com/William2333ZZ/mywork-deepseekharness/issues/4)); fixed the blank band in collapsed tool-call groups ([#3](https://github.com/William2333ZZ/mywork-deepseekharness/issues/3)).
-- Desktop packaging (Mywork-DSH_desktop: Electron + bundled Node / dsh / Chrome / profile).
+- Preview on dsh 0.1.6-alpha.2; newer dsh breaks the sidebar, so the version is pinned.
+- A teammate does one thing at a time; hand parallel work to another teammate.
+- Teammates share one local Chrome; simultaneous browsing shares tabs.
+- The phone works on the same Wi‑Fi only; no push relay, so IM covers you when you're away.
+- The desktop installers in Releases are still the first version, MyWork Kit.
 
 ## License
 
-The packages in this repo (kit / shell / schedule / browser / im / mcp) are MIT; `packages/codex-ui` is forked from [@michengai/dsh-codex-ui](https://github.com/MichengAI/dsh-codex-ui) and stays Apache-2.0 (see its LICENSE / NOTICE). Community members keep their own licenses.
+This repo's packages are MIT; `packages/codex-ui` is forked from [@michengai/dsh-codex-ui](https://github.com/MichengAI/dsh-codex-ui) and stays Apache-2.0. dsh is the work of [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness); this repo is not affiliated with DeepSeek.

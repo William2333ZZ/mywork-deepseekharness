@@ -22,7 +22,7 @@
   <img src="docs/v2/phone-thread.png" width="24%" alt="手机：对话">
 </p>
 
-完整视频：[把任务交给同事，看它跑完](docs/v2/demo-task.mp4) · [网页端导览](docs/v2/demo-web.mp4) · [手机端](docs/v2/demo-phone.mp4)
+完整视频：[网页：让探新去 GitHub 找热点](docs/v2/demo-task.mp4) · [网页端导览](docs/v2/demo-web.mp4) · [手机：同一件事在手机上交代](docs/v2/demo-phone.mp4)
 
 > 本分支 `research-muse-paseo` 是 MyWork 的第二版。第一版「MyWork Kit」（dsh 插件组合包：实时浏览器、表格演示、IM 助理）在 `main` 分支。
 

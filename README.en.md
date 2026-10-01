@@ -22,7 +22,7 @@
   <img src="docs/v2/phone-thread.png" width="24%" alt="Phone: a conversation">
 </p>
 
-Full videos: [handing a job to a teammate](docs/v2/demo-task.mp4) · [web tour](docs/v2/demo-web.mp4) · [phone](docs/v2/demo-phone.mp4)
+Full videos: [web: asking 探新 for GitHub hot projects](docs/v2/demo-task.mp4) · [web tour](docs/v2/demo-web.mp4) · [phone: the same job from the phone](docs/v2/demo-phone.mp4)
 
 > This branch, `research-muse-paseo`, is MyWork v2. The first version, MyWork Kit (a dsh plugin bundle: live browser, sheets and slides, IM assistant), is on `main`.
 

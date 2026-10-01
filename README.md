@@ -11,18 +11,25 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT%20%2B%20Apache--2.0-green" alt="license"></a>
 </p>
 
-![MyWork 演示](docs/v2/demo-task.gif)
+<table>
+<tr>
+<td width="72%"><img src="docs/v2/demo-task.gif" alt="网页：让探新去 GitHub 找热点"></td>
+<td width="28%"><img src="docs/v2/demo-phone.gif" alt="手机：同一件事在手机上交代"></td>
+</tr>
+<tr>
+<td align="center">网页：让「探新」去 GitHub 找今天的热点（<a href="docs/v2/demo-task.mp4">视频</a>）</td>
+<td align="center">手机：同一件事在手机上交代（<a href="docs/v2/demo-phone.mp4">视频</a>）</td>
+</tr>
+</table>
 
 <p align="center">
-  <img src="docs/v2/web-mate.png" width="49%" alt="同事对话与右栏">
-  <img src="docs/v2/web-file.png" width="49%" alt="在右栏读交付的文件">
+  <img src="docs/v2/web-working.jpg" width="49%" alt="同事在干活：右栏是它正在看的网页">
+  <img src="docs/v2/web-file.jpg" width="49%" alt="结果回到对话，文件在右栏打开">
 </p>
 <p align="center">
   <img src="docs/v2/phone-home.png" width="24%" alt="手机：同事列表">
   <img src="docs/v2/phone-thread.png" width="24%" alt="手机：对话">
 </p>
-
-完整视频：[网页：让探新去 GitHub 找热点](docs/v2/demo-task.mp4) · [网页端导览](docs/v2/demo-web.mp4) · [手机：同一件事在手机上交代](docs/v2/demo-phone.mp4)
 
 > 本分支 `research-muse-paseo` 是 MyWork 的第二版。第一版「MyWork Kit」（dsh 插件组合包：实时浏览器、表格演示、IM 助理）在 `main` 分支。
 

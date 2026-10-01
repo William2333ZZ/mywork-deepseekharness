@@ -11,6 +11,34 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT%20%2B%20Apache--2.0-green" alt="license"></a>
 </p>
 
+<table>
+<tr>
+<td width="72%"><img src="docs/v2/demo-task.gif" alt="Web: asking 探新 for GitHub hot projects"></td>
+<td width="28%"><img src="docs/v2/demo-phone.gif" alt="Phone: the same job from the phone"></td>
+</tr>
+<tr>
+<td align="center">Web: asking 探新 for today's GitHub hot projects (<a href="docs/v2/demo-task.mp4">video</a>)</td>
+<td align="center">Phone: the same job from the phone（<a href="docs/v2/demo-phone.mp4">视频</a>）</td>
+</tr>
+</table>
+
+<p align="center">
+  <img src="docs/v2/web-working.jpg" width="49%" alt="A teammate at work">
+  <img src="docs/v2/web-file.jpg" width="49%" alt="The result back in the conversation, the file in the right panel">
+</p>
+<p align="center">
+  <img src="docs/v2/phone-home.png" width="24%" alt="Phone: teammates">
+  <img src="docs/v2/phone-thread.png" width="24%" alt="Phone: a conversation">
+</p>
+
+> · English</p>
+
+<p align="center">
+  <a href="https://github.com/deepseek-ai/deepseek-harness"><img src="https://img.shields.io/badge/dsh-0.1.6--alpha.2-blue" alt="dsh"></a>
+  <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Android-lightgrey" alt="platform">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT%20%2B%20Apache--2.0-green" alt="license"></a>
+</p>
+
 ![MyWork demo](docs/v2/demo-task.gif)
 
 <p align="center">

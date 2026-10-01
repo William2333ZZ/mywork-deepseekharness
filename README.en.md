@@ -18,7 +18,7 @@
 </tr>
 <tr>
 <td align="center">Web: asking 探新 for today's GitHub hot projects (<a href="docs/v2/demo-task.mp4">video</a>)</td>
-<td align="center">Phone: the same job from the phone（<a href="docs/v2/demo-phone.mp4">视频</a>）</td>
+<td align="center">Phone: the same job from the phone (<a href="docs/v2/demo-phone.mp4">video</a>)</td>
 </tr>
 </table>
 
@@ -39,18 +39,6 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT%20%2B%20Apache--2.0-green" alt="license"></a>
 </p>
 
-![MyWork demo](docs/v2/demo-task.gif)
-
-<p align="center">
-  <img src="docs/v2/web-mate.png" width="49%" alt="A teammate conversation with the right panel">
-  <img src="docs/v2/web-file.png" width="49%" alt="Reading a delivered file in the right panel">
-</p>
-<p align="center">
-  <img src="docs/v2/phone-home.png" width="24%" alt="Phone: teammates">
-  <img src="docs/v2/phone-thread.png" width="24%" alt="Phone: a conversation">
-</p>
-
-Full videos: [web: asking 探新 for GitHub hot projects](docs/v2/demo-task.mp4) · [web tour](docs/v2/demo-web.mp4) · [phone: the same job from the phone](docs/v2/demo-phone.mp4)
 
 > This branch, `research-muse-paseo`, is MyWork v2. The first version, MyWork Kit (a dsh plugin bundle: live browser, sheets and slides, IM assistant), is on `main`.
 

@@ -11,7 +11,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT%20%2B%20Apache--2.0-green" alt="license"></a>
 </p>
 
-![MyWork demo](docs/v2/demo-web.gif)
+![MyWork demo](docs/v2/demo-task.gif)
 
 <p align="center">
   <img src="docs/v2/web-mate.png" width="49%" alt="A teammate conversation with the right panel">
@@ -22,7 +22,7 @@
   <img src="docs/v2/phone-thread.png" width="24%" alt="Phone: a conversation">
 </p>
 
-Full videos: [web](docs/v2/demo-web.mp4) · [phone](docs/v2/demo-phone.mp4)
+Full videos: [handing a job to a teammate](docs/v2/demo-task.mp4) · [web tour](docs/v2/demo-web.mp4) · [phone](docs/v2/demo-phone.mp4)
 
 > This branch, `research-muse-paseo`, is MyWork v2. The first version, MyWork Kit (a dsh plugin bundle: live browser, sheets and slides, IM assistant), is on `main`.
 

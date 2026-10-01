@@ -17,6 +17,31 @@
 
 > The UI follows dsh's language setting (Chinese / English). The screenshots below were taken in Chinese.
 
+
+> **This branch (`research-muse-paseo`) is MyWork v2: the teammate model.** Following [Rakazo](https://github.com/elie222/rakazo), you no longer create tasks; you talk to **teammates**. Each teammate has one continuous conversation, its own folder, routines and memory. Say something, it works in the background, and the result (reply + key numbers + file card) comes back to the same conversation. The phone app connects to this computer over the LAN, no cloud.
+
+![MyWork v2 web demo](docs/v2/demo-web.gif)
+
+<p align="center">
+  <img src="docs/v2/web-mate.png" width="49%" alt="A teammate conversation with the right panel">
+  <img src="docs/v2/web-file.png" width="49%" alt="A file opened in the right panel">
+</p>
+<p align="center">
+  <img src="docs/v2/phone-home.png" width="24%" alt="Phone: teammates">
+  <img src="docs/v2/phone-thread.png" width="24%" alt="Phone: a conversation">
+</p>
+
+Full videos: [web](docs/v2/demo-web.mp4) · [phone](docs/v2/demo-phone.mp4)
+
+- **New teammate**: "+" at the top left; one sentence about its job. It names itself, introduces itself, and creates the routine if the sentence carries a time.
+- **Talking**: the avatar moves while it works; the result is one bubble with the reply, ✓ key numbers and a file card that opens in the right panel; a second session verifies it. A message sent mid-run steers the run; it stops to ask only when key information is missing.
+- **Routines** belong to a teammate and post into its conversation; unchanged watch runs stay silent, reports always arrive.
+- **Sidebar**: search · bell (needs you / working / just finished) · new teammate; teammates only (pinned first, then by recent conversation); files · settings. Collapsed, it is a column of avatars.
+- **Phone**: `apps/mobile` (Expo / React Native), pairs by QR from Settings › MyWork › Phone.
+- Design: [design/v2/TEAMMATES.md](design/v2/TEAMMATES.md) §9.
+
+---
+
 ## Download
 
 | Option | For whom | How | Status |

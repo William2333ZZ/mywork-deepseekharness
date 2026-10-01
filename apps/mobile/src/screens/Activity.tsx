@@ -28,7 +28,7 @@ export default function Activity() {
   return (
     <Screen>
       <TopBar left={<IconBtn name="chevron-back-outline" label="返回" onPress={nav.pop} />} title="动态" />
-      <ScrollView contentContainerStyle={styles.wrap}>
+      <ScrollView style={{ flex: 1, backgroundColor: color.bg }} contentContainerStyle={styles.wrap}>
         {groups.map((g) => g.items.length ? (
           <View key={g.label}>
             <Section label={g.label} />

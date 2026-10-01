@@ -222,7 +222,7 @@ function MateThread({ id, runId }: { id: string; runId?: string }) {
           {pending ? <View style={styles.run}><Bubble text={pending} /></View> : null}
           {!page.loaded ? <ActivityIndicator color={color.meta} style={styles.loading} /> : null}
         </ScrollView>
-        <View style={[styles.dock, { paddingBottom: Math.max(insets.bottom, space.sm) }]}>
+        <View style={[styles.dock, { paddingBottom: insets.bottom + space.sm }]}>
           {err ? <Text style={styles.err}>{err}</Text> : null}
           <Composer inputRef={inputRef} value={text} onChange={setText} onSend={send} onStop={mate && mate.state === 'working' ? () => { stop() } : undefined} placeholder={answering ? '回答' : name ? `给 ${name} 发消息` : '发消息'} busy={sending} disabled={!api || !mate} />
         </View>
@@ -410,7 +410,7 @@ function Process({ run }: { run: Run }) {
   return (
     <View>
       <Pressable onPress={() => setOpen(!open)} accessibilityRole="button" accessibilityState={{ expanded: open }} style={styles.procHead}>
-        <Ionicons name={open ? 'chevron-down-outline' : 'chevron-forward-outline'} size={13} color={color.meta} />
+        <Ionicons name="chevron-forward-outline" size={13} color={color.muted} style={{ transform: [{ rotate: open ? '90deg' : '0deg' }] }} />
         <Text style={styles.procText}>{label}</Text>
       </Pressable>
       {open && !src ? <ActivityIndicator size="small" color={color.meta} style={{ alignSelf: 'flex-start', marginLeft: 20 }} /> : null}
@@ -466,7 +466,7 @@ const styles = StyleSheet.create({
   who: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 10, height: 48, paddingHorizontal: 4 },
   name: { flexShrink: 1, fontSize: 17, lineHeight: 22, fontWeight: '600', color: color.fg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  body: { flexGrow: 1, paddingHorizontal: space.md, paddingBottom: space.lg, gap: space.lg },
+  body: { flexGrow: 1, paddingHorizontal: space.md, paddingBottom: space.lg, gap: space.md },
   older: { alignItems: 'center', minHeight: 8 },
   run: { gap: space.md, borderRadius: radius.lg },
   lit: { backgroundColor: color.card, marginHorizontal: -8, paddingHorizontal: 8, paddingVertical: 6 },
@@ -509,7 +509,7 @@ const styles = StyleSheet.create({
   outlineText: { fontSize: size.ui, fontWeight: '500', color: color.fg, textAlign: 'center' },
   // 过程
   procHead: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 28, alignSelf: 'flex-start', paddingLeft: 12 },
-  procText: { fontSize: size.small, color: color.meta, fontVariant: ['tabular-nums'] },
+  procText: { fontSize: 13, lineHeight: 18, color: color.muted, fontVariant: ['tabular-nums'] },
   ic: { width: 20, alignItems: 'center' },
   phases: { paddingBottom: space.xs },
   phase: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 34, paddingVertical: 3 },

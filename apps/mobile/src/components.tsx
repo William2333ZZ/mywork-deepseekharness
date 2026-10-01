@@ -7,6 +7,7 @@ import { ActivityIndicator, Animated, Dimensions, Easing, Modal, Pressable, Scro
 import { SafeAreaView } from 'react-native-safe-area-context'
 import Markdown from 'react-native-markdown-display'
 import { Ionicons } from '@expo/vector-icons'
+import Svg, { Circle, Defs, Ellipse, LinearGradient, Path, Stop } from 'react-native-svg'
 import { color, font, radius, size, space } from './theme'
 
 export type IconName = React.ComponentProps<typeof Ionicons>['name']
@@ -41,8 +42,9 @@ export function IconBtn({ name, onPress, label, size: s = 22, tone }: { name: Ic
   )
 }
 
-/** The brand mark: an M whose last stroke turns into a check. Drawn with two rotated strokes so it needs no SVG dependency. */
-export function Mark({ dim = 22, live, round }: { dim?: number; live?: boolean; round?: boolean }) {
+/** The brand mark (design/v2/brand/mark.svg): an M whose last stroke turns into a check. Cream on transparent. */
+export const MARK_PATH = 'M4.5 18.5V7l5.5 6.5L15.5 7M10.5 17l3 3 6-6'
+export function Mark({ dim = 22, live, tint = color.primary }: { dim?: number; live?: boolean; tint?: string }) {
   const pulse = useRef(new Animated.Value(1)).current
   useEffect(() => {
     if (!live) { pulse.setValue(1); return }
@@ -50,9 +52,9 @@ export function Mark({ dim = 22, live, round }: { dim?: number; live?: boolean; 
     loop.start(); return () => loop.stop()
   }, [live, pulse])
   return (
-    <View style={{ width: dim, height: dim, borderRadius: round ? dim / 2 : dim * 0.23, backgroundColor: color.card, borderWidth: 1, borderColor: color.border, alignItems: 'center', justifyContent: 'center' }}>
-      <Animated.Text style={{ color: color.primary, fontSize: dim * 0.62, fontWeight: '700', lineHeight: dim * 0.75, opacity: pulse, fontFamily: font.display }}>M</Animated.Text>
-    </View>
+    <Animated.View style={{ width: dim, height: dim, opacity: pulse }}>
+      <Svg width={dim} height={dim} viewBox="0 0 24 24" fill="none"><Path d={MARK_PATH} stroke={tint} strokeWidth={3.4} strokeLinecap="round" strokeLinejoin="round" /></Svg>
+    </Animated.View>
   )
 }
 
@@ -110,14 +112,15 @@ export function ThreadRow({ glyph, tone = 'meta', spin, title, time, unread, pre
 const AVATAR_COLORS: [string, string, string][] = [['#A97EFE', '#7C3AED', '#FFFFFF'], ['#00C972', '#059669', '#FFFFFF'], ['#FF781C', '#EA580C', '#FFFFFF'], ['#1CC3B0', '#0284C7', '#FFFFFF'], ['#2A92FE', '#1D4ED8', '#FFFFFF'], ['#FFAF38', '#D97706', '#141414'], ['#A27952', '#78350F', '#FFFFFF'], ['#FF3E51', '#BE123C', '#FFFFFF'], ['#FF5EB1', '#BE185D', '#FFFFFF'], ['#94A3B8', '#475569', '#FFFFFF']]
 /** Rakazo's shippedHash (FNV-1a), the web's avatarHash. */
 export function avatarHash(v: string): number { let x = 2166136261; for (let i = 0; i < v.length; i++) x = Math.imul(x ^ v.charCodeAt(i), 16777619); return x >>> 0 }
-/** The web's three shapes (blob, squircle, pebble) as corner radii in a 100 box. */
-const AVATAR_SHAPES: { r: number; sx: number; sy: number }[] = [{ r: 0.5, sx: 0.92, sy: 0.92 }, { r: 0.3, sx: 0.92, sy: 0.92 }, { r: 0.46, sx: 0.92, sy: 0.84 }]
+/** The web's three shapes in a 100 box: blob, squircle, pebble. */
+const AVATAR_SHAPES = ['M50 4a46 46 0 1 1 0 92a46 46 0 1 1 0-92Z', 'M34 4h32c20 0 30 10 30 30v32c0 20-10 30-30 30H34C14 96 4 86 4 66V34C4 14 14 4 34 4Z', 'M50 8c28 0 46 14 46 40s-18 44-46 44S4 74 4 48 22 8 50 8Z']
 export function avatarLook(id: string) {
   const hash = avatarHash(String(id || 'mate'))
   const [light, dark, eye] = AVATAR_COLORS[hash % AVATAR_COLORS.length]
   const shape = AVATAR_SHAPES[(Math.imul(hash ^ (hash >>> 16), 73244475) >>> 0) % AVATAR_SHAPES.length]
   return { light, dark, eye, shape }
 }
+let avatarSeq = 0
 
 /**
  * A teammate's avatar, the web's MateAvatar: a coloured shape picked from its id (light fill shading to dark at the
@@ -133,18 +136,22 @@ export function Avatar({ id, isDefault, dim = 36, working }: { id: string; char?
     ]))
     loop.start(); return () => loop.stop()
   }, [working, pulse])
+  const [gid] = useState(() => 'mav' + String(++avatarSeq))
   let body: React.ReactNode
-  if (isDefault) body = <Mark dim={dim * 0.92} round />
+  if (isDefault) body = (
+    <Svg width={dim} height={dim} viewBox="0 0 100 100">
+      <Circle cx="50" cy="50" r="46" fill={color.card} />
+      <Svg x="20" y="20" width="60" height="60" viewBox="0 0 24 24" fill="none"><Path d={MARK_PATH} stroke={color.primary} strokeWidth={3.2} strokeLinecap="round" strokeLinejoin="round" /></Svg>
+    </Svg>
+  )
   else {
     const { light, dark, eye, shape } = avatarLook(id)
-    const w = dim * shape.sx; const h = dim * shape.sy
-    const ex = dim * 0.044; const ey = dim * 0.031
     body = (
-      <View style={{ width: w, height: h, borderRadius: Math.min(w, h) * shape.r, backgroundColor: light, overflow: 'hidden' }}>
-        <View style={{ position: 'absolute', width: w * 1.3, height: h * 1.3, borderRadius: w, backgroundColor: dark, opacity: 0.55, left: w * 0.35, top: h * 0.35 }} />
-        <View style={{ position: 'absolute', width: ex * 2, height: ey * 2, borderRadius: ex, backgroundColor: eye, left: w / 2 - dim * 0.127 - ex, top: h * 0.465 - ey }} />
-        <View style={{ position: 'absolute', width: ex * 2, height: ey * 2, borderRadius: ex, backgroundColor: eye, left: w / 2 + dim * 0.127 - ex, top: h * 0.465 - ey }} />
-      </View>
+      <Svg width={dim} height={dim} viewBox="0 0 100 100">
+        <Defs><LinearGradient id={gid} x1="0" y1="0" x2="1" y2="1"><Stop offset="0%" stopColor={light} /><Stop offset="100%" stopColor={dark} /></LinearGradient></Defs>
+        <Path d={shape} fill={`url(#${gid})`} />
+        <Ellipse cx="37.3" cy="46.5" rx="4.4" ry="3.1" fill={eye} /><Ellipse cx="62.7" cy="46.5" rx="4.4" ry="3.1" fill={eye} />
+      </Svg>
     )
   }
   return <Animated.View style={{ width: dim, height: dim, alignItems: 'center', justifyContent: 'center', transform: [{ scale: pulse }] }}>{body}</Animated.View>
@@ -174,7 +181,7 @@ export function MateRow({ id, char, isDefault, working, waiting, name, time, unr
 export function CenterLine({ text, icon, onPress, lit }: { text: string; icon?: IconName; onPress?: () => void; lit?: boolean }) {
   return (
     <Pressable onPress={onPress} disabled={!onPress} style={({ pressed }) => [styles.center, lit && { backgroundColor: color.card }, pressed && { opacity: 0.7 }]}>
-      {icon ? <Ionicons name={icon} size={12} color={color.meta} /> : null}
+      {icon ? <Ionicons name={icon} size={12} color={color.muted} /> : null}
       <Text style={styles.centerText} numberOfLines={2}>{text}</Text>
     </Pressable>
   )
@@ -219,8 +226,8 @@ export function VerifyLine({ words, tone = 'meta', notes, rating, onRate }: { wo
           </Pressable>
         ) : null}
         {words ? <Text style={styles.verdictSep}>·</Text> : null}
-        <Ghost icon="checkmark-outline" label="有用" on={rating === 1} onPress={() => onRate(1)} />
-        <Ghost icon="close-outline" label="没用" on={rating === -1} onPress={() => onRate(-1)} />
+        <Ghost label="有用" on={rating === 1} onPress={() => onRate(1)} />
+        <Ghost label="没用" on={rating === -1} onPress={() => onRate(-1)} />
       </View>
       {open && hasNotes ? <Text style={styles.notes}>{notes}</Text> : null}
     </View>
@@ -231,7 +238,7 @@ export function VerifyLine({ words, tone = 'meta', notes, rating, onRate }: { wo
 export function Ghost({ icon, label, on, onPress, disabled }: { icon?: IconName; label: string; on?: boolean; onPress: () => void; disabled?: boolean }) {
   const tone = on ? color.fg : color.muted
   return (
-    <Pressable onPress={onPress} disabled={disabled} accessibilityRole="button" accessibilityState={{ selected: !!on }} style={({ pressed }) => [styles.ghost, on && { backgroundColor: color.input }, disabled && { opacity: 0.45 }, pressed && { opacity: 0.7 }]}>
+    <Pressable onPress={onPress} disabled={disabled} accessibilityRole="button" accessibilityState={{ selected: !!on }} style={({ pressed }) => [styles.ghost, on && { backgroundColor: 'rgba(255,255,255,0.06)' }, disabled && { opacity: 0.45 }, pressed && { opacity: 0.7 }]}>
       {icon ? <Ionicons name={icon} size={15} color={tone} /> : null}
       <Text style={[styles.ghostText, { color: tone }]}>{label}</Text>
     </Pressable>
@@ -391,7 +398,7 @@ const styles = StyleSheet.create({
   body: { fontSize: size.body, lineHeight: 28, color: color.fg },
   section: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: space.xxl, marginBottom: 10, paddingHorizontal: 2 },
   sectionLabel: { fontSize: size.small, lineHeight: 18, fontWeight: '500', letterSpacing: 0.3, color: color.muted },
-  empty: { fontSize: size.ui, color: color.muted, paddingVertical: 8, paddingHorizontal: 2 },
+  empty: { fontSize: size.ui, lineHeight: 22, color: color.muted, paddingVertical: space.xl, textAlign: 'center' },
   listBox: { borderWidth: 1, borderColor: color.border, borderRadius: radius.lg, backgroundColor: color.card, overflow: 'hidden' },
   rowDivider: { borderTopWidth: 1, borderTopColor: color.borderSoft },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 52, paddingVertical: 12, paddingHorizontal: 16 },
@@ -413,7 +420,7 @@ const styles = StyleSheet.create({
   mrowSub: { fontSize: 14, lineHeight: 20, color: color.muted, marginTop: 1 },
   mrowName: { flex: 1, minWidth: 0, fontSize: size.body, lineHeight: 22, fontWeight: '400', color: color.fg2 },
   center: { flexDirection: 'row', alignSelf: 'center', alignItems: 'center', gap: 5, paddingVertical: 3, paddingHorizontal: 10, borderRadius: 10, maxWidth: '90%' },
-  centerText: { fontSize: size.small, lineHeight: 18, color: color.meta, textAlign: 'center', fontVariant: ['tabular-nums'] },
+  centerText: { fontSize: 12, lineHeight: 16, color: color.muted, textAlign: 'center', fontVariant: ['tabular-nums'] },
   // thread pieces
   dateLine: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
   dateRule: { flex: 1, height: 1, backgroundColor: color.borderSoft },
@@ -431,9 +438,9 @@ const styles = StyleSheet.create({
   ghostText: { fontSize: 14, fontWeight: '500' },
   bubbleWrap: { flexDirection: 'row', justifyContent: 'flex-end' },
   bubble: { maxWidth: '78%', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 20, backgroundColor: color.bubble },
-  bubbleText: { fontSize: size.body, lineHeight: 25, color: color.fg },
+  bubbleText: { fontSize: 16, lineHeight: 24, color: color.fg },
   replyWrap: { flexDirection: 'row', justifyContent: 'flex-start' },
-  reply: { maxWidth: '88%', paddingTop: 10, paddingBottom: 10, paddingHorizontal: 16, borderRadius: 20, backgroundColor: color.card, gap: 8 },
+  reply: { maxWidth: '88%', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 20, backgroundColor: color.card, gap: 8 },
   composer: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, borderWidth: 1, borderColor: color.border, borderRadius: 26, backgroundColor: color.input, paddingVertical: 6, paddingLeft: 18, paddingRight: 6 },
   composerBig: { alignItems: 'flex-end', borderRadius: 22, paddingTop: 10 },
   composerInput: { flex: 1, minHeight: 36, maxHeight: 160, fontSize: size.body, lineHeight: 24, paddingVertical: 6, color: color.fg },
@@ -441,7 +448,7 @@ const styles = StyleSheet.create({
   sendOn: { backgroundColor: color.primary },
   stop: { backgroundColor: color.bubble, borderWidth: 1, borderColor: color.borderStrong },
   stopSquare: { width: 11, height: 11, borderRadius: 2, backgroundColor: color.fg },
-  sendOff: { backgroundColor: color.bubble },
+  sendOff: { backgroundColor: color.bubble, opacity: 0.6 },
   btn: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 38, paddingHorizontal: 16, borderRadius: radius.pill, backgroundColor: color.input },
   btnPrimary: { backgroundColor: color.primary },
   btnGhost: { backgroundColor: 'transparent', paddingHorizontal: 8 },

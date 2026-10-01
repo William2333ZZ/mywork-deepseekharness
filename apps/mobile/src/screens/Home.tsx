@@ -68,7 +68,7 @@ export default function Home() {
     <Screen>
       <View style={styles.head}>
         <Pressable onPress={() => nav.push({ name: 'settings' })} accessibilityRole="button" accessibilityLabel="设置" hitSlop={4} style={({ pressed }) => pressed && { opacity: 0.7 }}>
-          <Mark dim={40} round />
+          <View style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}><Mark dim={26} /></View>
         </Pressable>
         <View style={styles.actions}>
           <Circle icon={searching ? 'close' : 'search'} label={searching ? '关闭搜索' : '搜索'} on={searching} onPress={() => (searching ? closeSearch() : setSearching(true))} />

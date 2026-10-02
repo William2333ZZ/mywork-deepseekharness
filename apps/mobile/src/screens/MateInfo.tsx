@@ -9,7 +9,7 @@
  * With `routineId` the routine's sheet opens on arrival (「已安排」 lines and search results land here).
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native'
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native'
 import { ApiError, fmtDate, fmtWhen, type Deliverable, type Mate, type Routine, type RoutineRun } from '../api'
 import { useConn, useNav, useStore } from '../store'
 import { Avatar, Btn, Empty, Field, Ghost, IconBtn, ListBox, Meta, Row, Screen, Section, Sheet, SheetItem, ThreadRow, Title, TopBar } from '../components'
@@ -67,7 +67,7 @@ export default function MateInfo({ id, routineId }: { id: string; routineId?: st
     return (
       <Screen>
         <TopBar left={<IconBtn name="chevron-back-outline" label="返回" onPress={nav.pop} />} />
-        <View style={styles.center}>{store.mates ? <Empty text="没有这位同事。" /> : <ActivityIndicator color={color.fg2} />}</View>
+        <View style={styles.center}>{store.mates ? <Empty text="没有这位同事。" /> : <Text style={styles.wait}>…</Text>}</View>
       </Screen>
     )
   }
@@ -87,10 +87,10 @@ export default function MateInfo({ id, routineId }: { id: string; routineId?: st
         {err ? <Text style={styles.err}>{err}</Text> : null}
 
         <Section label="例行" right={<Ghost icon="add-outline" label="新例行" onPress={() => setCreating(true)} />} />
-        {routines === null ? <ActivityIndicator color={color.meta} style={{ alignSelf: 'flex-start' }} />
+        {routines === null ? <Text style={styles.wait}>…</Text>
           : routines.length ? (
             <ListBox>
-              {routines.map((r) => <Row key={r.id} glyph={r.kind === 'remind' ? 'notifications-outline' : 'repeat-outline'} title={r.title} sub={r.scheduleLabel} state={routineState(r)} onPress={() => setOpenRoutine(r.id)} chevron />)}
+              {routines.map((r) => <Row key={r.id} title={r.title} sub={r.scheduleLabel} state={routineState(r)} onPress={() => setOpenRoutine(r.id)} chevron />)}
             </ListBox>
           ) : <Empty text="还没有例行" />}
 
@@ -103,10 +103,10 @@ export default function MateInfo({ id, routineId }: { id: string; routineId?: st
           <SwitchRow label="置顶" value={!!mate.pinned} onChange={(v) => { update({ pinned: v }) }} />
           <SwitchRow label="通知" value={!!mate.notify} onChange={(v) => { update({ notify: v }) }} />
         </ListBox>
-        {!mate.isDefault ? <Btn label="删除这位同事" kind="danger" icon="trash-outline" onPress={() => setConfirmRemove(true)} style={styles.remove} /> : null}
+        {!mate.isDefault ? <Btn label="删除这位同事" kind="danger" onPress={() => setConfirmRemove(true)} style={styles.remove} /> : null}
 
         <Section label="文件" right={files && files.length > FILES ? <Ghost label="全部" onPress={() => nav.push({ name: 'files', mateId: id })} /> : undefined} />
-        {files === null ? <ActivityIndicator color={color.meta} style={{ alignSelf: 'flex-start' }} />
+        {files === null ? <Text style={styles.wait}>…</Text>
           : files.length ? (
             <View style={styles.files}>{files.slice(0, FILES).map((d) => <ThreadRow key={d.id} glyph={d.kind === 'report' ? 'newspaper-outline' : 'document-text-outline'} title={d.title} time={fmtWhen(d.createdAt)} onPress={() => nav.push({ name: 'file', id: d.id })} />)}</View>
           ) : <Empty text="还没有文件" />}
@@ -117,7 +117,7 @@ export default function MateInfo({ id, routineId }: { id: string; routineId?: st
       {grouping ? <GroupSheet value={mate.group || ''} groups={groups} onClose={() => setGrouping(false)} onSave={(v) => { setGrouping(false); if (v !== (mate.group || '')) update({ group: v }) }} /> : null}
       {edit ? <EditSheet key={edit} label={EDIT_LABEL[edit]} value={String(mate[edit] || '')} multiline={edit === 'description'} required={edit !== 'title'} onClose={() => setEdit(null)} onSave={(v) => { setEdit(null); update({ [edit]: v }) }} /> : null}
       <Sheet open={confirmRemove} onClose={() => setConfirmRemove(false)} title={`删除「${mate.name}」？对话、例行和文件夹一起删。`}>
-        <SheetItem icon="trash-outline" label="删除" danger onPress={() => { remove() }} />
+        <SheetItem label="删除" danger onPress={() => { remove() }} />
         <SheetItem label="取消" onPress={() => setConfirmRemove(false)} />
       </Sheet>
     </Screen>
@@ -131,7 +131,7 @@ function SwitchRow({ label, value, onChange }: { label: string; value: boolean; 
   return (
     <View style={styles.switchRow}>
       <Text style={styles.switchLabel}>{label}</Text>
-      <Switch value={value} onValueChange={onChange} trackColor={{ false: color.bubble, true: color.primary }} thumbColor={value ? color.onPrimary : color.muted} ios_backgroundColor={color.bubble} />
+      <Switch value={value} onValueChange={onChange} trackColor={{ false: color.bubble, true: color.fg2 }} thumbColor={value ? color.bg : color.meta} ios_backgroundColor={color.bubble} />
     </View>
   )
 }
@@ -234,11 +234,11 @@ function RoutineSheet({ routine: r, onClose, onChanged, onOpenRun }: { routine: 
           {changed ? <Btn label="保存" kind="primary" onPress={() => { act(() => (api ? api.routineUpdate(r.id, input.trim()) : Promise.resolve())) }} disabled={busy} style={{ alignSelf: 'flex-end' }} /> : null}
           {err ? <Text style={styles.err}>{err}</Text> : null}
           <View style={styles.actions}>
-            <Btn label="现在跑一次" icon="play-outline" onPress={() => { runNow() }} disabled={busy} />
-            {!once || r.enabled ? <Btn label={r.enabled ? '暂停' : '恢复'} icon={r.enabled ? 'pause-outline' : 'play-circle-outline'} onPress={() => { act(() => (api ? api.routineEnable(r.id, !r.enabled) : Promise.resolve())) }} disabled={busy} /> : null}
+            <Btn label="现在跑一次" onPress={() => { runNow() }} disabled={busy} />
+            {!once || r.enabled ? <Btn label={r.enabled ? '暂停' : '恢复'} onPress={() => { act(() => (api ? api.routineEnable(r.id, !r.enabled) : Promise.resolve())) }} disabled={busy} /> : null}
             {confirm
-              ? <Btn label="确认删除" kind="danger" icon="trash-outline" onPress={() => { act(() => (api ? api.routineRemove(r.id) : Promise.resolve()), onClose) }} disabled={busy} />
-              : <Btn label="删除" kind="danger" icon="trash-outline" onPress={() => setConfirm(true)} disabled={busy} />}
+              ? <Btn label="确认删除" kind="danger" onPress={() => { act(() => (api ? api.routineRemove(r.id) : Promise.resolve()), onClose) }} disabled={busy} />
+              : <Btn label="删除" kind="danger" onPress={() => setConfirm(true)} disabled={busy} />}
           </View>
           <Text style={styles.sub}>最近运行</Text>
           {runs.length ? (
@@ -246,7 +246,7 @@ function RoutineSheet({ routine: r, onClose, onChanged, onOpenRun }: { routine: 
               {runs.map((x, i) => {
                 const rid = x.runId || x.taskId // a task routine's receipt names its run taskId, a reminder's runId
                 const opens = !!rid && !x.quiet && x.changed !== false
-                return <Row key={x.at + i} glyph={x.error ? 'close-circle-outline' : x.fired ? 'notifications-outline' : 'checkmark-outline'} tone={x.error ? 'danger' : 'meta'} title={fmtDate(x.at)} state={runWord(x)} stateTone={x.error ? 'danger' : undefined} onPress={opens ? () => onOpenRun(rid) : undefined} chevron={opens} />
+                return <Row key={x.at + i} title={fmtDate(x.at)} state={runWord(x)} stateTone={x.error ? 'danger' : undefined} onPress={opens ? () => onOpenRun(rid) : undefined} chevron={opens} />
               })}
             </ListBox>
           ) : <Empty text="还没跑过" />}
@@ -262,17 +262,18 @@ const styles = StyleSheet.create({
   wrap: { paddingHorizontal: space.lg, paddingBottom: space.xxl },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   who: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingTop: space.xs },
-  err: { fontSize: size.meta, lineHeight: 18, color: color.danger, marginTop: space.sm },
+  err: { fontSize: size.meta, lineHeight: 20, color: color.danger, marginTop: space.sm },
   remove: { alignSelf: 'flex-start', marginTop: space.md, marginLeft: -8 },
-  files: { marginHorizontal: -10 },
+  files: { marginHorizontal: -8 },
   switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 52, paddingVertical: 8, paddingHorizontal: 16 },
   switchLabel: { fontSize: size.ui, lineHeight: 22, fontWeight: '500', color: color.fg },
-  sheetBox: { paddingHorizontal: 12, paddingTop: 4, gap: space.md },
+  sheetBox: { paddingHorizontal: 8, paddingTop: 4, gap: space.md },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  sub: { fontSize: size.small, lineHeight: 18, fontWeight: '500', color: color.muted, marginTop: space.sm },
+  sub: { fontSize: size.small, lineHeight: 16, fontWeight: '500', color: color.meta, marginTop: space.sm },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  chip: { height: 32, justifyContent: 'center', paddingHorizontal: 14, borderRadius: 16, borderWidth: 1, borderColor: color.border, backgroundColor: color.input },
+  chip: { height: 32, justifyContent: 'center', paddingHorizontal: 16, borderRadius: 16, borderWidth: 1, borderColor: color.border, backgroundColor: color.input },
   chipOn: { borderColor: color.borderStrong, backgroundColor: color.bubble },
-  chipText: { fontSize: 14, lineHeight: 18, color: color.fg2 },
+  chipText: { fontSize: 13, lineHeight: 20, color: color.fg2 },
   sheetActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: space.sm },
+  wait: { fontSize: 13, color: color.meta },
 })

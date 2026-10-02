@@ -78,21 +78,21 @@ export default function Pair() {
           <View style={styles.status}>
             <Body>连不上 {conn.base}</Body>
             <View style={styles.actions}>
-              <Btn label="重试" icon="refresh-outline" onPress={doRetry} disabled={busy} />
+              <Btn label="重试" onPress={doRetry} disabled={busy} />
               <Btn label="换一台电脑" onPress={() => { forget() }} disabled={busy} />
             </View>
           </View>
         ) : null}
         <Title style={styles.lead}>在电脑上打开 设置 › MyWork › 手机，扫这个码</Title>
         <View style={styles.actions}>
-          <Btn label="扫码" kind="primary" icon="scan-outline" onPress={openScan} disabled={busy} style={styles.big} />
+          <Btn label="扫码" kind="primary" onPress={openScan} disabled={busy} style={styles.big} />
         </View>
         {busy ? <Meta style={styles.line}>连接中…</Meta> : err ? <Meta style={styles.lineErr}>{err}</Meta> : null}
         {mode === 'manual' ? (
           <View style={styles.manual}>
             <Field value={addr} onChange={setAddr} placeholder="电脑上显示的地址" mono autoFocus onSubmit={() => connect(addr)} />
             <View style={styles.actions}>
-              <Btn label="粘贴" icon="clipboard-outline" onPress={paste} disabled={busy} />
+              <Btn label="粘贴" onPress={paste} disabled={busy} />
               <Btn label="连接" kind="primary" onPress={() => connect(addr)} disabled={busy || !addr.trim()} />
             </View>
           </View>
@@ -109,9 +109,9 @@ export default function Pair() {
 const styles = StyleSheet.create({
   wrap: { flexGrow: 1, paddingHorizontal: space.xl, paddingTop: space.lg, paddingBottom: space.xxl },
   status: { marginTop: space.xxl, gap: space.md },
-  lead: { marginTop: space.xxl * 2, marginBottom: space.xl },
+  lead: { marginTop: space.xxxl, marginBottom: space.xl },
   actions: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
-  big: { height: 44, paddingHorizontal: 20 },
+  big: { height: 44, paddingHorizontal: 24 },
   line: { marginTop: space.md },
   lineErr: { marginTop: space.md, color: color.danger },
   manual: { marginTop: space.xl, gap: space.md },

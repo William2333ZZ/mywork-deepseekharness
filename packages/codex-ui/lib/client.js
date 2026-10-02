@@ -2406,9 +2406,9 @@ window.__ModuleLoader__.load({
 		/**
 		* MyWork v2 sidebar (TEAMMATES §9.4): the column is teammates. On top a search field, the bell (a count of what needs
 		* you + what is working; a dropdown of 需要你 / 在干活 / 刚完成) and 「+」 for a new teammate. In the middle only
-		* teammates, in sections: 置顶 (pinned; MyWork is pinned by default), then one per group name (the group with the newest
-		* conversation first), then 其他. Within a section: pinned / default first, then the last conversation; state never
-		* changes the order. A section header (only when there is more than one section) folds its rows; what is folded is kept
+		* teammates, in sections: 置顶 (pinned; MyWork is pinned by default), then one per group name in a stable order
+		* (alphabetical, zh-CN collation), then 其他. Within a section: pinned / default first, then the last conversation; state
+		* never changes the order of rows or sections. A section header (only when there is more than one section) folds its rows; what is folded is kept
 		* in localStorage. At the bottom 文件 and 设置. Rows carry no actions: opening a row is the only thing it does.
 		*
 		* Data comes from dsh-mywork-tasks (/mywork-tasks/api/mates, /activity, /search); navigation into that plugin's pages
@@ -2463,62 +2463,68 @@ window.__ModuleLoader__.load({
 			recent: []
 		};
 		const stylesheet$5 = `
-/* Tokens: Rakazo's (packages/ui-tokens): dark by default; a light twin only when dsh itself is light and the OS asks for light. */
-.mws{--bg:#0b0c0e;--surface:#111215;--surface-2:#18191e;--card:#141518;--fg:#ececee;--fg-2:#d4d4d8;--muted:#85858a;--meta:#85858a;--border:#1e2026;--border-soft:#1e2026;--border-strong:#2c2e36;--primary:#f1f1ef;--primary-on:#0b0c0e;--warn:#f0a35e;--focus-ring:0 0 0 2px rgba(241,241,239,.35);--elev-raised:0 10px 30px rgba(0,0,0,.5),0 2px 8px rgba(0,0,0,.4);--motion-fast:150ms;--ease-standard:cubic-bezier(.2,0,0,1);--av-bg:var(--card);--av-fg:#efe8da;position:relative;width:100%;height:100%;min-width:0;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;background:var(--surface);color:var(--fg);box-shadow:inset -1px 0 var(--border);font:14px/20px Geist,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei UI",sans-serif;-webkit-font-smoothing:antialiased}
-@media all{html[data-mywork-theme="light"] .mws{--bg:#ffffff;--surface:#f7f7f8;--surface-2:#ececee;--card:#f2f2f3;--fg:#111113;--fg-2:#2a2a2e;--muted:#6b6b70;--meta:#6b6b70;--border:#e6e6e9;--border-soft:#ececee;--border-strong:#d4d4d8;--primary:#111113;--primary-on:#ffffff;--warn:#b5480a;--focus-ring:0 0 0 2px rgba(17,17,19,.25);--elev-raised:0 10px 30px rgba(0,0,0,.08),0 2px 8px rgba(0,0,0,.05);--av-bg:#1f1d1a;--av-fg:#faf7f0}}
+/*
+ * Tokens: Rakazo's surfaces, an achromatic text scale (#ececee at 100 / 65 / 40 %), borders white at 10 / 5 %. Colour only
+ * for a decision (--warn: needs you); the cream primary is the unread dot. Spacing 4 / 8 / 16 / 24 / 32; shadows only on
+ * the bell's dropdown. Dark by default; a light twin only when dsh itself is light and the OS asks for light.
+ */
+.mws{--bg:#0b0c0e;--surface:#111215;--surface-2:#18191e;--card:#141518;--fg:#ececee;--fg-2:rgba(236,236,238,.65);--muted:rgba(236,236,238,.65);--meta:rgba(236,236,238,.5);--border:rgba(255,255,255,.1);--border-soft:rgba(255,255,255,.05);--border-strong:rgba(255,255,255,.1);--border-focus:rgba(236,236,238,.4);--primary:#f1f1ef;--primary-on:#0b0c0e;--warn:#f0a35e;--focus-ring:0 0 0 2px rgba(236,236,238,.4);--elev-raised:0 10px 30px rgba(0,0,0,.5),0 2px 8px rgba(0,0,0,.4);--motion-fast:150ms;--ease-standard:cubic-bezier(.2,0,0,1);--av-bg:var(--card);--av-fg:#efe8da;position:relative;width:100%;height:100%;min-width:0;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;background:var(--surface);color:var(--fg);border-right:1px solid var(--border);font:14px/20px Geist,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei UI",sans-serif;-webkit-font-smoothing:antialiased}
+@media all{html[data-mywork-theme="light"] .mws{--bg:#ffffff;--surface:#f7f7f8;--surface-2:#ececee;--card:#f2f2f3;--fg:#111113;--fg-2:rgba(17,17,19,.65);--muted:rgba(17,17,19,.65);--meta:rgba(17,17,19,.55);--border:rgba(0,0,0,.1);--border-soft:rgba(0,0,0,.05);--border-strong:rgba(0,0,0,.1);--border-focus:rgba(17,17,19,.4);--primary:#111113;--primary-on:#ffffff;--warn:#b5480a;--focus-ring:0 0 0 2px rgba(17,17,19,.25);--elev-raised:0 10px 30px rgba(0,0,0,.08),0 2px 8px rgba(0,0,0,.05);--av-bg:#1f1d1a;--av-fg:#faf7f0}}
 .mws *{box-sizing:border-box}
 .mws button{font-family:inherit;transition:background-color var(--motion-fast) var(--ease-standard),color var(--motion-fast) var(--ease-standard),transform var(--motion-fast) var(--ease-standard)}
 .mws button:active{transform:scale(.98)}
 .mws :focus-visible{outline:none;box-shadow:var(--focus-ring)}
 @media (prefers-reduced-motion:reduce){.mws *{transition:none!important;animation:none!important}}
-.mws-head{position:relative;display:flex;align-items:center;gap:2px;flex:none;padding:12px 10px 10px}
-.mws-search{flex:1;min-width:0;display:flex;align-items:center;gap:8px;height:34px;margin:0 4px;padding:0 12px;border:1px solid var(--border);border-radius:999px;background:var(--card);color:var(--muted);transition:border-color var(--motion-fast) var(--ease-standard)}
-.mws-search:focus-within{border-color:var(--border-strong)}
+.mws-head{position:relative;display:flex;align-items:center;gap:4px;flex:none;padding:16px 8px 8px}
+.mws-search{flex:1;min-width:0;display:flex;align-items:center;gap:8px;height:32px;margin:0 4px;padding:0 8px;border:1px solid var(--border);border-radius:999px;background:var(--card);color:var(--meta);transition:border-color var(--motion-fast) var(--ease-standard)}
+.mws-search:focus-within{border-color:var(--border-focus)}
 .mws-search svg{flex:none}
-.mws-search input{flex:1;min-width:0;height:100%;margin:0;padding:0;border:0;background:transparent;color:var(--fg);font:inherit;font-size:13.5px;outline:none}
-.mws-search input::placeholder{color:var(--muted)}
+.mws-search input{flex:1;min-width:0;height:100%;margin:0;padding:0;border:0;background:transparent;color:var(--fg);font:inherit;font-size:13px;outline:none}
+.mws-search input::placeholder{color:var(--meta)}
 .mws-search input:focus-visible{box-shadow:none}
 .mws-icon{appearance:none;position:relative;display:inline-grid;place-items:center;flex:none;width:32px;height:32px;border:0;border-radius:12px;background:transparent;color:var(--muted);cursor:pointer}
 .mws-icon:hover,.mws-icon[aria-expanded=true]{background:var(--surface-2);color:var(--fg)}
-.mws-count{position:absolute;top:2px;right:1px;min-width:15px;height:15px;padding:0 4px;border-radius:8px;background:var(--primary);color:var(--primary-on);font-size:10px;line-height:15px;font-weight:600;font-variant-numeric:tabular-nums;text-align:center;pointer-events:none}
-/* The bell's panel: under the header, over the list. */
-.mws-drop{position:absolute;top:calc(100% - 2px);left:8px;right:8px;z-index:20;max-height:min(420px,calc(100vh - 120px));overflow:auto;padding:6px;border:1px solid var(--border);border-radius:18px;background:var(--card);box-shadow:var(--elev-raised)}
-.mws-drop h3{margin:6px 10px 2px;font-size:12px;line-height:16px;font-weight:500;color:var(--muted)}
-.mws-drop .mws-row{min-height:48px;border-radius:14px}
+.mws-count{position:absolute;top:2px;right:1px;min-width:15px;height:15px;padding:0 4px;border-radius:8px;background:var(--fg-2);color:var(--bg);font-size:10px;line-height:15px;font-weight:600;font-variant-numeric:tabular-nums;text-align:center;pointer-events:none}
+.mws-count[data-needs=true]{background:var(--warn)}
+/* The bell's panel: under the header, over the list (a floating layer, so it casts the column's one shadow). */
+.mws-drop{position:absolute;top:calc(100% - 4px);left:8px;right:8px;z-index:20;max-height:min(420px,calc(100vh - 120px));overflow:auto;padding:8px;border:1px solid var(--border);border-radius:18px;background:var(--card);box-shadow:var(--elev-raised)}
+.mws-drop h3{margin:8px 8px 4px;font-size:12px;line-height:16px;font-weight:500;color:var(--meta)}
+.mws-drop .mws-row{min-height:48px;border-radius:16px}
 .mws-drop .mws-row:hover{background:var(--surface-2)}
 .mws-list{flex:1;min-height:0;overflow:auto;padding:0 8px 8px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
-/* Section headers: 11px muted, sentence case; the chevron turns when open. Folded, the count and an unread dot stay. */
-.mws-sec+.mws-sec{margin-top:6px}
-.mws-sec-head{appearance:none;display:flex;align-items:center;gap:4px;width:100%;height:28px;padding:0 10px;border:0;border-radius:10px;background:transparent;color:var(--muted);font:inherit;font-size:11px;line-height:16px;font-weight:500;text-align:left;cursor:pointer}
+/* Section headers: 11px at 40 %, sentence case; the chevron (the fold control) turns when open. Folded, the count and an unread dot stay. */
+.mws-sec+.mws-sec{margin-top:8px}
+.mws-sec-head{appearance:none;display:flex;align-items:center;gap:4px;width:100%;height:28px;padding:0 8px;border:0;border-radius:8px;background:transparent;color:var(--meta);font:inherit;font-size:11px;line-height:16px;font-weight:500;text-align:left;cursor:pointer}
 .mws-sec-head:hover{color:var(--fg)}
 .mws-sec-head svg{flex:none;transition:transform var(--motion-fast) var(--ease-standard)}
 .mws-sec-head[aria-expanded=true] svg{transform:rotate(90deg)}
 .mws-sec-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mws-sec-count{flex:none;margin-left:2px;color:var(--meta);font-variant-numeric:tabular-nums}
+.mws-sec-count{flex:none;margin-left:4px;color:var(--meta);font-variant-numeric:tabular-nums}
 .mws-sec-head .mws-unread{width:6px;height:6px;margin-left:4px}
-/* Rows (Rakazo's chat list): 38 avatar · name + time + dot · two-line preview. */
-.mws-row{appearance:none;display:grid;grid-template-columns:32px minmax(0,1fr);column-gap:10px;align-items:center;width:100%;min-height:52px;padding:8px 10px;border:0;border-radius:16px;background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
-.mws-row-flat{grid-template-columns:20px minmax(0,1fr);align-items:center;min-height:40px;padding:8px 10px}
+/* Rows (Rakazo's chat list): 32 avatar · name + time + dot · one line of preview. */
+.mws-row{appearance:none;display:grid;grid-template-columns:32px minmax(0,1fr);column-gap:8px;align-items:center;width:100%;min-height:52px;padding:8px;border:0;border-radius:16px;background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
+.mws-row-flat{grid-template-columns:20px minmax(0,1fr);align-items:center;min-height:40px;padding:8px}
 .mws-row:hover,.mws-row[aria-current=page]{background:var(--surface-2)}
 .mws-glyph{display:inline-grid;place-items:center;width:20px;height:20px;color:var(--muted)}
-.mws-glyph.wide{width:38px;height:38px;border-radius:50%;background:var(--card)}
+.mws-glyph.wide{width:32px;height:32px;border-radius:50%;background:var(--card)}
 .mws-glyph svg{display:block}
-/* Avatar (Rakazo's bot avatar): a coloured shape with two eyes; working, it pulses at scale 1.04 with a glow. */
+/* Avatar: a flat shape in the teammate's colour (the calmer version unless it is the open one) with two eyes. Working, it
+ * breathes: opacity 1 to .55 and back over 2.4 s; reduced motion holds it at .7. */
 .mws-av{position:relative;display:inline-block;flex:none;line-height:0;user-select:none}
-.mws-av svg{display:block;overflow:visible;transition:transform .3s;filter:drop-shadow(0 2px 4px rgba(0,0,0,.45))}
-.mws-av[data-working=true] svg{transform:scale(1.04);filter:drop-shadow(0 0 8px var(--glow)) drop-shadow(0 0 2px #fff);animation:mws-pulse 2s cubic-bezier(.4,0,.6,1) infinite}
-@keyframes mws-pulse{50%{opacity:.55}}
-@media (prefers-reduced-motion:reduce){.mws-av[data-working=true] svg{animation:none}}
-.mws-main{min-width:0;display:grid;gap:3px}
+.mws-av svg{display:block;overflow:visible}
+.mws-av[data-working=true] svg{animation:mws-breathe 2.4s ease-in-out infinite}
+@keyframes mws-breathe{0%,100%{opacity:1}50%{opacity:.55}}
+@media (prefers-reduced-motion:reduce){.mws .mws-av[data-working=true] svg{animation:none!important;opacity:.7}}
+.mws-main{min-width:0;display:grid;gap:4px}
 .mws-line{display:flex;align-items:center;min-width:0}
 .mws-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13.5px;line-height:18px;font-weight:500;letter-spacing:-.005em}
 .mws-row[data-unread=true] .mws-title{font-weight:600}
 .mws-time{flex:none;margin-left:8px;color:var(--meta);font-size:11px;line-height:18px;font-variant-numeric:tabular-nums;text-align:right}
-.mws-unread{flex:none;width:8px;height:8px;margin-left:6px;border-radius:50%;background:var(--primary)}
-.mws-chip{justify-self:start;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 7px;border:1px solid var(--border-strong);border-radius:999px;color:var(--muted);font-size:11px;line-height:17px}
-.mws-sub{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px;color:var(--muted);font-size:12px;line-height:16px}
+.mws-unread{flex:none;width:8px;height:8px;margin-left:8px;border-radius:50%;background:var(--primary)}
+.mws-chip{justify-self:start;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 8px;border:1px solid var(--border);border-radius:999px;color:var(--muted);font-size:11px;line-height:17px}
+.mws-sub{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:12px;line-height:16px}
 .mws-sub[data-tone=warn]{color:var(--warn)}
-.mws-empty{padding:12px 10px;color:var(--muted);font-size:12.5px;line-height:18px}
+.mws-empty{padding:16px 8px;color:var(--muted);font-size:12.5px;line-height:18px}
 .mws-mark{display:inline-grid;place-items:center;flex:none;border-radius:50%;background:var(--primary);color:var(--primary-on)}
 .mws-mark svg{display:block}
 .mws-mark path{stroke-dasharray:60;stroke-dashoffset:0}
@@ -2527,21 +2533,21 @@ window.__ModuleLoader__.load({
 @media (prefers-reduced-motion:reduce){.mws-mark[data-live=true] path{animation:none}}
 .mws-foot{flex:none;padding:8px 8px 0;border-top:1px solid var(--border)}
 /* The settings entry is dsh's own trigger, kept outside the footer so it stays mounted across collapse; it wears the same row recipe as 文件 above it. */
-.mws-settings{flex:none;padding:0 8px 12px}
-.mws-settings .dcu-settings-trigger{height:40px;min-height:40px;padding:0 10px;border-radius:16px;color:var(--fg);font-family:inherit;font-size:13.5px;line-height:18px;transition:background-color var(--motion-fast) var(--ease-standard),color var(--motion-fast) var(--ease-standard),transform var(--motion-fast) var(--ease-standard)}
+.mws-settings{flex:none;padding:0 8px 16px}
+.mws-settings .dcu-settings-trigger{height:40px;min-height:40px;padding:0 8px;border-radius:16px;color:var(--fg);font-family:inherit;font-size:13.5px;line-height:18px;transition:background-color var(--motion-fast) var(--ease-standard),color var(--motion-fast) var(--ease-standard),transform var(--motion-fast) var(--ease-standard)}
 .mws-settings .dcu-settings-trigger:hover{background:var(--surface-2);color:var(--fg)}
 .mws-settings .dcu-settings-trigger:hover svg{transform:none}
 .mws-settings .dcu-settings-trigger:focus-visible{outline:none;box-shadow:var(--focus-ring)}
-.mws-settings .dcu-settings-trigger-content{column-gap:10px}
+.mws-settings .dcu-settings-trigger-content{column-gap:8px}
 .mws-settings .dcu-settings-trigger-content svg{justify-self:center;color:var(--muted)}
 /* Collapsed: dsh keeps a 56px rail on the web. Only the mark and the expand control live there. */
-.mws.compact{align-items:center;gap:8px;padding:12px 0 8px}
+.mws.compact{align-items:center;gap:8px;padding:16px 0 8px}
 .mws.compact .mws-settings{position:absolute;width:0;height:0;overflow:hidden}
 .mws-rail{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;align-items:center;gap:8px;padding:4px 0;scrollbar-width:none}
-.mws-rail-mate{position:relative;padding:3px;border:0;border-radius:14px;background:transparent;cursor:pointer;transition:background .15s}
+.mws-rail-mate{position:relative;padding:4px;border:0;border-radius:14px;background:transparent;cursor:pointer;transition:background var(--motion-fast) var(--ease-standard)}
 .mws-rail-mate:hover,.mws-rail-mate[aria-current=page]{background:var(--surface-2)}
 .mws-rail-dot{position:absolute;top:2px;right:2px;width:8px;height:8px;border-radius:50%;background:var(--primary);box-shadow:0 0 0 2px var(--surface)}
-.mws-rail-sep{flex:none;width:20px;height:1px;background:var(--border-strong)}
+.mws-rail-sep{flex:none;width:24px;height:1px;background:var(--border)}
 `;
 		const str = (v) => typeof v === "string" ? v : "";
 		const ms = (iso) => {
@@ -2563,8 +2569,9 @@ window.__ModuleLoader__.load({
 			return mates.filter((m) => str(m.id) !== "").slice().sort((a, b) => Number(isPinned(b)) - Number(isPinned(a)) || (isPinned(a) && isPinned(b) ? Number(b.isDefault === true) - Number(a.isDefault === true) : 0) || ms(str(b.lastAt) || str(b.createdAt)) - ms(str(a.lastAt) || str(a.createdAt)) || (a.id < b.id ? -1 : 1));
 		}
 		/**
-		* The column's sections: 置顶 (every pinned teammate, whatever its group), then one per group name — the group holding
-		* the newest conversation first — then 其他 (no group). Empty sections are left out; each keeps orderMates' order.
+		* The column's sections: 置顶 (every pinned teammate, whatever its group), then one per group name in a stable order —
+		* alphabetical by name, zh-CN collation, so activity never moves a section — then 其他 (no group). Empty sections are
+		* left out; each keeps orderMates' order.
 		*/
 		function sectionMates(mates) {
 			const pinned = [];
@@ -2584,8 +2591,8 @@ window.__ModuleLoader__.load({
 				if (list !== void 0) list.push(m);
 				else groups.set(name, [m]);
 			}
-			const newest = (list) => list.reduce((n, m) => Math.max(n, ms(str(m.lastAt) || str(m.createdAt))), 0);
-			const named = [...groups].sort(([a, x], [b, y]) => newest(y) - newest(x) || (a < b ? -1 : 1));
+			const born = (list) => Math.min(...list.map((m) => Date.parse(str(m.createdAt)) || 0));
+			const named = [...groups].sort(([a, la], [b, lb]) => born(la) - born(lb) || a.localeCompare(b, "zh-CN"));
 			const out = [];
 			if (pinned.length > 0) out.push({
 				key: "pinned",
@@ -2700,7 +2707,7 @@ window.__ModuleLoader__.load({
 				return false;
 			}
 		}
-		/** Rakazo's bot palette (packages/core bot-avatar-colors): light → dark gradient, eye colour. */
+		/** Rakazo's bot palette (packages/core bot-avatar-colors): light → dark, eye colour. The light one is the identity colour. */
 		const AVATAR_COLORS = [
 			[
 				"#A97EFE",
@@ -2765,15 +2772,56 @@ window.__ModuleLoader__.load({
 			"M34 4h32c20 0 30 10 30 30v32c0 20-10 30-30 30H34C14 96 4 86 4 66V34C4 14 14 4 34 4Z",
 			"M50 8c28 0 46 14 46 40s-18 44-46 44S4 74 4 48 22 8 50 8Z"
 		];
-		let avatarSeq = 0;
-		/** A teammate's avatar (Rakazo's): a coloured shape from its id with two eyes; MyWork keeps its mark in the same frame. Working pulses. */
-		function MateAvatar({ mate, size = 38 }) {
+		/** A colour with its saturation and lightness lowered by 15 % (HSL): the same identity, receding behind the content. */
+		function calmHex(hex) {
+			const n = parseInt(hex.slice(1), 16);
+			const r = (n >> 16 & 255) / 255, g = (n >> 8 & 255) / 255, b = (n & 255) / 255;
+			const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+			let hue = 0;
+			if (d !== 0) hue = max === r ? (g - b) / d % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+			hue = (hue * 60 + 360) % 360;
+			const l0 = (max + min) / 2;
+			const s = (d !== 0 ? d / (1 - Math.abs(2 * l0 - 1)) : 0) * .85, l = l0 * .85;
+			const c = (1 - Math.abs(2 * l - 1)) * s, x = c * (1 - Math.abs(hue / 60 % 2 - 1)), m = l - c / 2;
+			const [r1, g1, b1] = hue < 60 ? [
+				c,
+				x,
+				0
+			] : hue < 120 ? [
+				x,
+				c,
+				0
+			] : hue < 180 ? [
+				0,
+				c,
+				x
+			] : hue < 240 ? [
+				0,
+				x,
+				c
+			] : hue < 300 ? [
+				x,
+				0,
+				c
+			] : [
+				c,
+				0,
+				x
+			];
+			const to = (v) => Math.round((v + m) * 255).toString(16).padStart(2, "0");
+			return "#" + to(r1) + to(g1) + to(b1);
+		}
+		const AVATAR_CALM = AVATAR_COLORS.map(([light]) => calmHex(light));
+		/**
+		* A teammate's avatar: a flat shape in its identity colour (picked from its id) with two eyes; MyWork keeps its mark in
+		* the same frame. `full` (the open teammate's row) shows the colour as is, every other place the calmer version.
+		* Working, it breathes (opacity 1 ↔ .55 over 2.4 s; static .7 under reduced motion).
+		*/
+		function MateAvatar({ mate, size = 38, full }) {
 			const working = mate.state === "working";
-			const [gid] = (0, react.useState)(() => "mwsav" + String(++avatarSeq));
 			if (mate.isDefault === true) return /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 				className: "mws-av",
 				"data-working": working ? "true" : void 0,
-				style: { "--glow": "#f1f1ef" },
 				"aria-hidden": "true",
 				children: /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("svg", {
 					viewBox: "0 0 100 100",
@@ -2802,51 +2850,34 @@ window.__ModuleLoader__.load({
 				})
 			});
 			const hash = avatarHash(str(mate.id) || str(mate.name) || "mate");
-			const [light, dark, eye] = AVATAR_COLORS[hash % AVATAR_COLORS.length];
+			const i = hash % AVATAR_COLORS.length;
+			const [light, , eye] = AVATAR_COLORS[i];
 			const shape = AVATAR_SHAPES[(Math.imul(hash ^ hash >>> 16, 73244475) >>> 0) % AVATAR_SHAPES.length];
 			return /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 				className: "mws-av",
 				"data-working": working ? "true" : void 0,
-				style: { "--glow": light },
 				"aria-hidden": "true",
 				children: /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("svg", {
 					viewBox: "0 0 100 100",
 					width: size,
 					height: size,
-					children: [
-						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("defs", { children: /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("linearGradient", {
-							id: gid,
-							x1: "0",
-							y1: "0",
-							x2: "1",
-							y2: "1",
-							children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("stop", {
-								offset: "0%",
-								stopColor: light
-							}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("stop", {
-								offset: "100%",
-								stopColor: dark
-							})]
-						}) }),
-						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("path", {
-							d: shape,
-							fill: `url(#${gid})`
-						}),
-						/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("g", {
-							fill: eye,
-							children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("ellipse", {
-								cx: "37.3",
-								cy: "46.5",
-								rx: "4.4",
-								ry: "3.1"
-							}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("ellipse", {
-								cx: "62.7",
-								cy: "46.5",
-								rx: "4.4",
-								ry: "3.1"
-							})]
-						})
-					]
+					children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("path", {
+						d: shape,
+						fill: full === true ? light : AVATAR_CALM[i]
+					}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("g", {
+						fill: eye,
+						children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("ellipse", {
+							cx: "37.3",
+							cy: "46.5",
+							rx: "4.4",
+							ry: "3.1"
+						}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("ellipse", {
+							cx: "62.7",
+							cy: "46.5",
+							rx: "4.4",
+							ry: "3.1"
+						})]
+					})]
 				})
 			});
 		}
@@ -2872,7 +2903,8 @@ window.__ModuleLoader__.load({
 				onClick: onOpen,
 				children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(MateAvatar, {
 					mate,
-					size: 32
+					size: 32,
+					full: current
 				}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
 					className: "mws-main",
 					children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
@@ -2900,7 +2932,10 @@ window.__ModuleLoader__.load({
 			});
 		}
 		function ResultItem({ row, time, onOpen }) {
-			const glyph = row.glyph === "mate" && row.mate !== void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)(MateAvatar, { mate: row.mate }) : /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+			const glyph = row.glyph === "mate" && row.mate !== void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)(MateAvatar, {
+				mate: row.mate,
+				size: 32
+			}) : /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 				className: "mws-glyph wide",
 				children: row.glyph === "message" ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)(MessageCircle, {
 					size: 16,
@@ -3165,7 +3200,8 @@ window.__ModuleLoader__.load({
 								},
 								children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(MateAvatar, {
 									mate,
-									size: 32
+									size: 32,
+									full: highlighted === "mate:" + mate.id
 								}), unreadOf(mate) && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { className: "mws-rail-dot" })]
 							}, mate.id))] }, sec.key)), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
 								type: "button",
@@ -3245,6 +3281,7 @@ window.__ModuleLoader__.load({
 										strokeWidth: 1.5
 									}), count > 0 && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 										className: "mws-count",
+										"data-needs": activity.needs.length > 0 ? "true" : void 0,
 										children: count > 99 ? "99" : count
 									})]
 								}),
@@ -3282,7 +3319,10 @@ window.__ModuleLoader__.load({
 													runId: str(item.runId) || void 0
 												});
 											},
-											children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(MateAvatar, { mate }), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
+											children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(MateAvatar, {
+												mate,
+												size: 32
+											}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
 												className: "mws-main",
 												children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
 													className: "mws-line",

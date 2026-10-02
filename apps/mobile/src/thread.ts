@@ -3,7 +3,7 @@
  * client reads the same runs the same way; keep the two in step.
  *
  *   orderMates(mates)          the one ordering rule: pinned first, then the latest conversation; state never reorders
- *   sectionMates(mates)        the list's sections: 置顶 · one per group (newest conversation first) · 其他
+ *   sectionMates(mates)        the list's sections: 置顶 · one per group (alphabetical, zh-CN; never by activity) · 其他
  *   secondLine(mate)           the row's second line: 在干活 · 步骤 / 等你答 · 问题 / the latest sentence
  *   runEntries(run, ctx)       one run as thread entries: routine marker · bubble · steers · 文件 · 找你卡 · 已安排 ·
  *                              提醒卡 · reply · 在干活 line · failed line
@@ -33,8 +33,9 @@ export function orderMates(mates: Mate[]): Mate[] {
 export type MateSection = { key: string; kind: 'pinned' | 'group' | 'other'; name: string; mates: Mate[] }
 
 /**
- * The list's sections (web sectionMates): 置顶 (every pinned teammate, whatever its group), then one per group name — the
- * group holding the newest conversation first — then 其他. Empty sections are left out; each keeps orderMates' order.
+ * The list's sections (web sectionMates): 置顶 (every pinned teammate, whatever its group), then one per group name in a
+ * stable order — alphabetical, zh-CN collation, so activity never moves a section — then 其他. Empty sections are left
+ * out; each keeps orderMates' order.
  */
 export function sectionMates(mates: Mate[]): MateSection[] {
   const isPinned = (m: Mate) => m.pinned === true || (!!m.isDefault && m.pinned !== false)
@@ -48,8 +49,9 @@ export function sectionMates(mates: Mate[]): MateSection[] {
     const list = groups.get(name)
     if (list) list.push(m); else groups.set(name, [m])
   }
-  const newest = (list: Mate[]) => list.reduce((n, m) => Math.max(n, time(m.lastAt || m.createdAt)), 0)
-  const named = [...groups].sort(([a, x], [b, y]) => newest(y) - newest(x) || (a < b ? -1 : 1))
+  // Stable: a group keeps its place from the day it was formed (its earliest member), never by activity or alphabet.
+  const born = (list: Mate[]) => Math.min(...list.map((m) => Date.parse(String(m.createdAt || '')) || 0))
+  const named = [...groups].sort(([a, la], [b, lb]) => (born(la) - born(lb)) || a.localeCompare(b, 'zh-CN'))
   const out: MateSection[] = []
   if (pinned.length) out.push({ key: 'pinned', kind: 'pinned', name: '', mates: pinned })
   for (const [name, list] of named) out.push({ key: 'g:' + name, kind: 'group', name, mates: list })

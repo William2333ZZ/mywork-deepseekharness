@@ -3,14 +3,16 @@
  * src/md.cjs, src/client/thread.cjs and client-icons.cjs inlined as preludes).
  *
  * 同事模型 (design/v2/TEAMMATES.md §9): the unit is a teammate. Each teammate is one endless conversation made of runs
- * (threadOf in thread.cjs): your line in a bubble on the right, the reply as plain text, a delivery as text with one
- * verification line under it, the question it stopped on, a routine run's centred line, 「已安排」 and reminder cards,
- * a working line while it runs, 过程 folded per run, the composer docked.
+ * (threadOf in thread.cjs), in two registers: conversation in bubbles (your line on the right, a short reply on the
+ * left) and deliveries as file strips (title, deck, key figures, verification, 有用 / 没用 on hover) that open the
+ * reading view; plus the question it stopped on, a routine run's centred line, 「已安排」 and reminder cards, a working
+ * line while it runs, 过程 folded per run, 「以下是新的」 where the unread part starts, the composer docked.
  *
  * Pages (main slot):
  *   mywork-mate       one teammate: header (avatar · name · title · ···), the thread (GET /mates/thread, 「加载更早」),
- *                     the dock (POST /mates/say); the right panel (电脑 · 例行 · 设置, or the 「新同事」 form)
- *   mywork-files      文件: every teammate's files, chips per teammate, search, preview in place
+ *                     the dock (POST /mates/say); the right panel (电脑 · 例行 · 设置, or the 「新同事」 form). A file
+ *                     opened from the thread replaces the column with the reading view (「← 回到对话」 / Escape)
+ *   mywork-files      文件: every teammate's files, chips per teammate, search; a file opens in the same reading view
  * Overlay (shell.overlay): toasts when a run finishes or needs you (from GET /activity), keyed by teammate; keeps the
  * poll alive for the sidebar.
  *
@@ -38,9 +40,7 @@ const icons = require('./client-icons.cjs')
 const EXTRA_ICONS = {
   'message-circle': ['M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719'],
   monitor: ['M4 3h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z', 'M8 21h8', 'M12 17v4'],
-  repeat: ['m17 2 4 4-4 4', 'M3 11v-1a4 4 0 0 1 4-4h14', 'm7 22-4-4 4-4', 'M21 13v1a4 4 0 0 1-4 4H3'],
   square: ['M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z'],
-  download: ['M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4', 'm7 10 5 5 5-5', 'M12 15V3'],
   file: ['M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z', 'M14 2v4a2 2 0 0 0 2 2h4'],
 }
 if (icons.PATHS) for (const k of Object.keys(EXTRA_ICONS)) if (!icons.PATHS[k]) icons.PATHS[k] = EXTRA_ICONS[k]
@@ -81,14 +81,12 @@ const ASIDE_SLOT = 'mywork.thread.aside'
 const ASIDE_KEY = 'dsh-mywork:mate-aside'
 /**
  * The panel is a grid column whenever the page has room for a reading column of at least 560 (it shrinks from 752 down
- * to that), a 24 gap, the 384 panel and the 2 × 28 page padding; only below that is it a slide-over.
+ * to that), a 24 gap, the 384 panel and the 2 × 32 page padding; only below that is it a slide-over.
  */
 const ASIDE_W = 384
 const COL_MIN = 560
 const SPLIT_GAP = 24
-const SPLIT_MIN = COL_MIN + 56 + SPLIT_GAP + ASIDE_W
-/** The panel in 文件 mode: wide enough for a document's tables. */
-const ASIDE_FILE_W = 480
+const SPLIT_MIN = COL_MIN + 64 + SPLIT_GAP + ASIDE_W
 /** How long a run jumped to stays highlighted. */
 const HIGHLIGHT_MS = 1200
 
@@ -111,7 +109,9 @@ const zh = {
   search: '搜索', all: '全部', noMatch: '没有匹配的', inThread: '在对话里看', exportMd: '导出 Markdown', exportPdf: '导出 PDF',
   doneToast: '做完了', failedToast: '失败了', needsYouToast: '需要你', open: '打开',
   loadFailed: '没连上服务，稍后再试。', retry: '重试', today: '今天',
-  downloadMd: '下载 .md', openInFiles: '在文件页打开',
+  downloadMd: '下载 .md', openInFiles: '在文件页打开', backToThread: '回到对话', backToFiles: '回到文件',
+  newBelow: '以下是新的', tables: '表格',
+  dutyEx1: '每天早上 8 点按信源整理 AI 技术动态，只报和我有关的', dutyEx2: '帮我管日程，记在一张表里，每天 8:30 给我今日安排', dutyEx3: '盯竞品的定价页和更新日志，有变化就告诉我',
 }
 const en = {
   mate: 'Teammate', files: 'Files',
@@ -132,310 +132,338 @@ const en = {
   search: 'Search', all: 'All', noMatch: 'Nothing matches', inThread: 'See in conversation', exportMd: 'Export Markdown', exportPdf: 'Export PDF',
   doneToast: 'Done', failedToast: 'Failed', needsYouToast: 'Needs you', open: 'Open',
   loadFailed: 'Could not reach the service, try again shortly.', retry: 'Retry', today: 'today',
-  downloadMd: 'Download .md', openInFiles: 'Open in Files',
+  downloadMd: 'Download .md', openInFiles: 'Open in Files', backToThread: 'Back to conversation', backToFiles: 'Back to files',
+  newBelow: 'New since you last looked', tables: 'Tables',
+  dutyEx1: 'Every morning at 8, gather AI tech news from my sources and report only what concerns me', dutyEx2: 'Run my calendar in one sheet and send me today’s plan every day at 8:30', dutyEx3: 'Watch competitors’ pricing pages and changelogs and tell me when something changes',
 }
 
 const STYLE = `
-/* Tokens: Rakazo's (packages/ui-tokens). Dark by default; a light twin only when dsh itself is light and the OS asks for light. */
-.mwt{--bg:#0b0c0e;--surface:#141518;--surface-2:#1b1c21;--input:#18191e;--bubble:#22242b;--fg:#ececee;--fg-2:#d4d4d8;--muted:#85858a;--meta:#85858a;--border:#1e2026;--border-soft:#1e2026;--border-strong:#2c2e36;--primary:#f1f1ef;--primary-on:#0b0c0e;--accent:#f1f1ef;--accent-on:#0b0c0e;--accent-hover:#ffffff;--accent-soft:rgba(241,241,239,.06);--success:#4ade80;--warn:#f0a35e;--danger:#f87171;--font-body:Geist,-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei UI",sans-serif;--font-mono:"Geist Mono",ui-monospace,"SF Mono",Menlo,monospace;--font-display:var(--font-body);--radius-sm:12px;--radius-md:12px;--radius-lg:18px;--elev-raised:0 10px 30px rgba(0,0,0,.5),0 2px 8px rgba(0,0,0,.4);--focus-ring:0 0 0 2px rgba(241,241,239,.35);--motion-fast:150ms;--ease-standard:cubic-bezier(.2,0,0,1);--av-bg:var(--card,var(--surface-2));--av-fg:#efe8da;height:100%;overflow:auto;background:var(--bg);color:var(--fg);font:15.5px/1.6 var(--font-body);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
-@media all{html[data-mywork-theme="light"] .mwt{--bg:#ffffff;--surface:#f2f2f3;--surface-2:#e9e9eb;--input:#f4f4f5;--bubble:#ebebed;--fg:#111113;--fg-2:#2a2a2e;--muted:#6b6b70;--meta:#6b6b70;--border:#e6e6e9;--border-soft:#ececee;--border-strong:#d4d4d8;--primary:#111113;--primary-on:#ffffff;--accent:#111113;--accent-on:#ffffff;--accent-hover:#2a2a2e;--accent-soft:rgba(17,17,19,.05);--success:#127e28;--warn:#b5480a;--danger:#c0392b;--elev-raised:0 10px 30px rgba(0,0,0,.08),0 2px 8px rgba(0,0,0,.05);--focus-ring:0 0 0 2px rgba(17,17,19,.25);--av-bg:#1f1d1a;--av-fg:#faf7f0}}
+/*
+ * Tokens (Rakazo's surfaces, an achromatic text scale): text is #ececee at 100 / 65 / 40 %, borders white at 10 / 5 %.
+ * Colour only where it carries a decision: --danger for failures, --warn for "needs you"; the cream primary is the send
+ * button alone. Spacing is 4 / 8 / 16 / 24 / 32 / 48. Shadows only on floating layers. Motion: 150 ms hover / press,
+ * 200 ms for a reply that arrives; nothing else moves. Dark by default; a light twin only when dsh itself is light.
+ */
+.mwt{--bg:#0b0c0e;--surface:#141518;--surface-2:#1b1c21;--input:#18191e;--bubble:#22242b;--fg:#ececee;--fg-2:rgba(236,236,238,.65);--muted:rgba(236,236,238,.65);--meta:rgba(236,236,238,.5);--border:rgba(255,255,255,.1);--border-soft:rgba(255,255,255,.05);--border-strong:rgba(255,255,255,.1);--border-focus:rgba(236,236,238,.4);--hl:rgba(255,255,255,.05);--primary:#f1f1ef;--primary-on:#0b0c0e;--warn:#f0a35e;--danger:#f87171;--font-body:Geist,-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei UI",sans-serif;--font-mono:"Geist Mono",ui-monospace,"SF Mono",Menlo,monospace;--font-display:var(--font-body);--radius-sm:12px;--radius-md:12px;--radius-lg:18px;--elev-raised:0 10px 30px rgba(0,0,0,.5),0 2px 8px rgba(0,0,0,.4);--focus-ring:0 0 0 2px rgba(236,236,238,.4);--motion-fast:150ms;--motion-enter:200ms;--ease-standard:cubic-bezier(.2,0,0,1);--av-bg:var(--card,var(--surface-2));--av-fg:#efe8da;height:100%;overflow:auto;background:var(--bg);color:var(--fg);font:15px/1.6 var(--font-body);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+@media all{html[data-mywork-theme="light"] .mwt{--bg:#ffffff;--surface:#f2f2f3;--surface-2:#e9e9eb;--input:#f4f4f5;--bubble:#ebebed;--fg:#111113;--fg-2:rgba(17,17,19,.65);--muted:rgba(17,17,19,.65);--meta:rgba(17,17,19,.55);--border:rgba(0,0,0,.1);--border-soft:rgba(0,0,0,.05);--border-strong:rgba(0,0,0,.1);--border-focus:rgba(17,17,19,.4);--hl:rgba(0,0,0,.05);--primary:#111113;--primary-on:#ffffff;--warn:#b5480a;--danger:#c0392b;--elev-raised:0 10px 30px rgba(0,0,0,.08),0 2px 8px rgba(0,0,0,.05);--focus-ring:0 0 0 2px rgba(17,17,19,.25);--av-bg:#1f1d1a;--av-fg:#faf7f0}}
 .mwt *{box-sizing:border-box}
 .mwt :focus-visible{outline:none;box-shadow:var(--focus-ring);border-radius:var(--radius-sm)}
 .mwt textarea:focus,.mwt textarea:focus-visible,.mwt input:focus,.mwt input:focus-visible{outline:none!important;box-shadow:none!important}
 .mwt button{font-family:inherit;transition:background-color var(--motion-fast) var(--ease-standard),color var(--motion-fast) var(--ease-standard),border-color var(--motion-fast) var(--ease-standard),transform var(--motion-fast) var(--ease-standard),opacity var(--motion-fast) var(--ease-standard)}
 .mwt button:active{transform:scale(.98)}
 @media (prefers-reduced-motion:reduce){.mwt *{transition:none!important;animation:none!important}}
-@keyframes mwt-spin{to{transform:rotate(360deg)}}
 /* skeleton */
-.mwt-sk-rows{display:grid;gap:14px;padding:8px 0}
+.mwt-sk-rows{display:grid;gap:16px;padding:8px 0}
 .mwt-sk{display:block;border-radius:4px;background:var(--surface-2);height:12px}
 .mwt-sk.short{width:35%}.mwt-sk.mid{width:60%}
-.mwt-retry{display:flex;align-items:center;gap:10px;color:var(--danger);font-size:14px;padding:8px 2px}
-.mwt-empty{color:var(--muted);font-size:14px;padding:6px 2px}
+.mwt-retry{display:flex;align-items:center;gap:8px;color:var(--danger);font-size:13px;padding:8px 0}
+.mwt-empty{color:var(--muted);font-size:13px;padding:8px 0}
 /* Page */
-.mwt-page{max-width:808px;margin:0 auto;padding:40px 28px 80px}
-.mwt-title{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}
-.mwt-title h1{margin:0;font-size:24px;line-height:1.35;font-weight:600;letter-spacing:-.01em}
-.mwt-title span{color:var(--meta);font-size:12.5px;font-family:var(--font-mono)}
+.mwt-page{max-width:808px;margin:0 auto;padding:48px 32px}
+.mwt-title{display:flex;align-items:baseline;gap:8px;margin:0 0 24px}
+.mwt-title h1{margin:0;font-size:24px;line-height:1.4;font-weight:600}
+.mwt-title span{color:var(--meta);font-size:12px;font-family:var(--font-mono)}
 /* Buttons */
-.mwt-btn{appearance:none;display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border:0;border-radius:var(--radius-sm);background:var(--surface);color:var(--fg);font:inherit;font-size:14px;font-weight:500;letter-spacing:.01em;cursor:pointer;white-space:nowrap}
+.mwt-btn{appearance:none;display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 16px;border:0;border-radius:var(--radius-sm);background:var(--surface);color:var(--fg);font:inherit;font-size:13px;font-weight:500;letter-spacing:.02em;cursor:pointer;white-space:nowrap}
 .mwt-btn:hover{background:var(--surface-2)}
 .mwt-btn[disabled]{opacity:.4;cursor:default;transform:none}
 .mwt-btn.send{background:var(--primary);color:var(--primary-on)}
-.mwt-btn.send:hover{background:var(--accent-hover)}
-.mwt-btn.send[disabled]{background:var(--primary);color:var(--primary-on);opacity:.35}
-.mwt-btn.stop{background:transparent;color:var(--fg);box-shadow:inset 0 0 0 1.5px var(--border-strong)}
+.mwt-btn.send:hover{opacity:.88}
+.mwt-btn.send[disabled]{opacity:.35}
+.mwt-btn.stop{background:transparent;color:var(--fg);border:1px solid var(--border)}
 .mwt-btn.stop:hover{background:var(--surface-2)}
-.mwt-btn.primary{background:var(--accent);color:var(--accent-on)}
-.mwt-btn.primary:hover{background:var(--accent-hover)}
-.mwt-btn.primary[disabled]{opacity:.45}
-.mwt-btn.round{width:34px;height:34px;padding:0;border-radius:50%;justify-content:center}
+.mwt-btn.primary{background:var(--surface-2);color:var(--fg);border:1px solid var(--border)}
+.mwt-btn.primary:hover{background:var(--bubble)}
+.mwt-btn.round{width:32px;height:32px;padding:0;border-radius:50%;justify-content:center}
 .mwt-btn.ghost{background:transparent;color:var(--muted)}
 .mwt-btn.ghost:hover,.mwt-btn.ghost[aria-pressed=true]{background:var(--surface);color:var(--fg)}
-.mwt-btn.outline{background:transparent;box-shadow:inset 0 0 0 1px var(--border-strong)}
+.mwt-btn.outline{background:transparent;border:1px solid var(--border)}
 .mwt-btn.outline:hover{background:var(--surface-2)}
 .mwt-btn.danger{color:var(--danger)}
-.mwt-btn.small{height:28px;padding:0 10px;font-size:13px;font-weight:400}
-.mwt-chips{display:flex;flex-wrap:wrap;gap:6px}
-.mwt-chip{appearance:none;border:1px solid transparent;border-radius:999px;background:var(--surface);color:var(--muted);padding:5px 12px;font:inherit;font-size:13.5px;line-height:20px;cursor:pointer;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mwt-btn.small{height:28px;padding:0 8px;font-weight:400}
+/* A text button: the words alone, underlined faintly (the reading view's meta line). */
+.mwt-tbtn{appearance:none;padding:0;border:0;background:transparent;color:inherit;font:inherit;cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--border)}
+.mwt-tbtn:hover{color:var(--fg)}
+.mwt-chips{display:flex;flex-wrap:wrap;gap:8px}
+.mwt-chip{appearance:none;border:1px solid transparent;border-radius:999px;background:var(--surface);color:var(--muted);padding:4px 16px;font:inherit;font-size:13px;line-height:20px;cursor:pointer;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mwt-chip:hover{color:var(--fg);background:var(--surface-2)}
-.mwt-chip[data-on=true]{color:var(--fg-2);background:var(--bg);border-color:var(--border)}
-/* Avatar (Rakazo's bot avatar): a coloured shape with two eyes; working, it pulses at scale 1.04 with a glow. */
+.mwt-chip[data-on=true]{color:var(--fg);background:var(--bg);border-color:var(--border)}
+/* Avatar: a flat coloured shape with two eyes. Working, it breathes (opacity 1 to .55 over 2.4 s); reduced motion holds .7. */
 .mwt-av{position:relative;display:inline-block;flex:none;line-height:0;user-select:none}
-.mwt-av svg{display:block;overflow:visible;transition:transform .3s;filter:drop-shadow(0 2px 4px rgba(0,0,0,.45))}
-.mwt-av[data-working=true] svg{transform:scale(1.04);filter:drop-shadow(0 0 8px var(--glow)) drop-shadow(0 0 2px #fff);animation:mwt-pulse 2s cubic-bezier(.4,0,.6,1) infinite}
-@keyframes mwt-pulse{50%{opacity:.55}}
-@media (prefers-reduced-motion:reduce){.mwt-av[data-working=true] svg{animation:none}}
+.mwt-av svg{display:block;overflow:visible}
+.mwt-av[data-working=true] svg{animation:mwt-breathe 2.4s ease-in-out infinite}
+@keyframes mwt-breathe{0%,100%{opacity:1}50%{opacity:.55}}
+@media (prefers-reduced-motion:reduce){.mwt .mwt-av[data-working=true] svg{animation:none!important;opacity:.7}}
 /* The mate page: header, thread, dock in one column that fills the height. */
-.mwt-page.mate{display:flex;min-height:100%;max-width:816px;padding:0 28px}
+.mwt-page.mate{display:flex;min-height:100%;max-width:816px;padding:0 32px}
 .mwt-page.mate>.mwt-col{flex:1}
 .mwt-col{min-width:0;display:flex;flex-direction:column;min-height:100%}
-/* Split: the reading column stays centred (760) in what is left; the panel is flush right, full height, a left border. */
+/* Split: the reading column stays centred (752) in what is left; the panel is flush right, full height, a left border. */
 .mwt-page.mate.split{display:grid;max-width:none;margin:0;padding:0;grid-template-columns:minmax(0,1fr) var(--aside-w,${ASIDE_W}px);column-gap:0;align-items:start}
-.mwt-page.mate.split>.mwt-col{width:100%;max-width:816px;margin:0 auto;padding:0 28px}
+.mwt-page.mate.split>.mwt-col{width:100%;max-width:816px;margin:0 auto;padding:0 32px}
 .mwt-head{position:sticky;top:0;z-index:4;display:flex;align-items:center;gap:4px;height:52px;padding:0;background:var(--bg)}
 .mwt-head .grow{flex:1}
-.mwt-who{appearance:none;display:flex;align-items:center;gap:10px;min-width:0;padding:4px 10px 4px 4px;border:0;border-radius:12px;background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
-.mwt-who:hover{background:var(--surface)}
-.mwt-who[aria-expanded=true]{background:var(--surface)}
-.mwt-who .name{font-size:16px;line-height:24px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mwt-who .ttl{color:var(--muted);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-/* Conversation: your words in a bubble on the right, the reply as plain text. One block per run. */
-.mwt-thread{display:flex;flex-direction:column;gap:18px;padding:20px 0 8px;overflow-anchor:none}
-.mwt-run{display:flex;flex-direction:column;gap:14px;min-width:0;border-radius:20px;transition:background-color var(--motion-fast) var(--ease-standard),box-shadow var(--motion-fast) var(--ease-standard)}
-.mwt-run.folded{gap:10px}
-.mwt-fold{border:1px solid var(--border);min-height:56px;border-radius:18px!important;background:var(--surface)}
-.mwt-run.hl{background:var(--accent-soft);box-shadow:0 0 0 12px var(--accent-soft)}
+.mwt-who{appearance:none;display:flex;align-items:center;gap:8px;min-width:0;padding:4px 8px 4px 4px;border:0;border-radius:12px;background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
+.mwt-who:hover,.mwt-who[aria-expanded=true]{background:var(--surface)}
+.mwt-who .who{display:flex;align-items:baseline;gap:8px;min-width:0}
+.mwt-who .name{flex:none;max-width:240px;font-size:16px;line-height:24px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mwt-who .ttl{flex:0 1 auto;min-width:0;color:var(--muted);font-size:13px;line-height:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/*
+ * Conversation: your words in a bubble on the right; the teammate's short replies in a bubble on the left; a delivery is
+ * a file strip. 32 between runs, 8 inside one.
+ */
+.mwt-thread{display:flex;flex-direction:column;gap:32px;padding:24px 0 8px;overflow-anchor:none}
+.mwt-run{display:flex;flex-direction:column;gap:8px;min-width:0;border-radius:20px}
+.mwt-run.hl{background:var(--hl);box-shadow:0 0 0 8px var(--hl)}
+.mwt-fold{border:1px solid var(--border);min-height:56px;padding:8px 16px;border-radius:18px!important;background:var(--surface)}
+.mwt-fold .t{font-size:15px;line-height:24px}
 .mwt-turn{min-width:0}
 .mwt-turn.user{display:flex;justify-content:flex-end}
-.mwt-bubble{max-width:75%;padding:10px 16px;border-radius:20px;background:var(--bubble);color:var(--fg);font-size:15.5px;line-height:1.6;white-space:pre-wrap;word-break:break-word}
-.mwt-turn.ai{font-size:15.5px;line-height:1.65}
-/* A teammate's reply: a grey bubble on the left (Rakazo). */
-.mwt-turn.ai.bubble{align-self:flex-start;max-width:88%;padding:12px 18px;border-radius:20px;background:var(--surface)}
-.mwt-turn.ai.bubble>.mwt-deliver-meta,.mwt-turn.ai.bubble+.mwt-deliver-meta{margin-top:8px}
-.mwt-after{margin:-8px 0 0 6px}
-/* Tables inside any bubble scroll sideways in a subtle frame instead of stretching it. */
-.mwt-turn .mwt-md table{display:block;max-width:100%;overflow-x:auto;border:1px solid var(--border);border-radius:10px;margin:0 0 12px}
-.mwt-turn .mwt-md th,.mwt-turn .mwt-md td{white-space:nowrap}
+.mwt-bubble{max-width:70%;padding:8px 16px;border-radius:20px;background:var(--bubble);color:var(--fg);font-size:15px;line-height:1.6;white-space:pre-wrap;word-break:break-word}
+/* CJK reading: 15 / 1.75, the bubble at most 620 wide (about 39 characters a line). */
+.mwt-turn.ai{font-size:15px;line-height:1.75}
+.mwt-turn.ai.bubble{align-self:flex-start;max-width:min(620px,88%);padding:8px 16px;border-radius:20px;background:var(--surface)}
+.mwt-turn .mwt-md{font-size:15px;line-height:1.75}
+.mwt-turn .mwt-md p{max-width:none;margin:0 0 8px}
+.mwt-turn .mwt-md h1,.mwt-turn .mwt-md h2,.mwt-turn .mwt-md h3,.mwt-turn .mwt-md h4,.mwt-turn .mwt-md h5,.mwt-turn .mwt-md h6{margin:16px 0 4px;font-size:15px;line-height:1.75;font-weight:600}
+.mwt-turn .mwt-md code{font-size:13px}
+.mwt-turn .mwt-md table{display:block;max-width:100%;overflow-x:auto;border:1px solid var(--border);border-radius:8px;margin:0 0 8px;font-size:13px}
+.mwt-turn .mwt-md th{font-size:12px}
+.mwt-turn .mwt-md th,.mwt-turn .mwt-md td{padding:4px 8px;white-space:nowrap}
 .mwt-turn .mwt-md pre{max-width:100%}
-.mwt-excerpt{margin:0 0 10px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
-.mwt-turn.ai.bubble>.mwt-sum{margin:0 0 12px}
-.mwt-turn.ai.bubble>.mwt-file-title{margin:0}
-/* Empty thread: the teammate, its job, three things to ask. */
-.mwt-hello{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:48px 0 24px;text-align:center}
-.mwt-hello .nm{margin-top:8px;font-size:18px;font-weight:600;line-height:26px}
-.mwt-hello .duty{max-width:460px;color:var(--muted);font-size:14px;line-height:22px}
-.mwt-hello .mwt-chips{justify-content:center;margin-top:14px;max-width:560px}
-/* Working: the teammate's avatar pulsing at the end of the transcript, the step beside it. */
-.mwt-working{display:flex;align-items:center;gap:10px;min-height:32px;padding:2px 2px}
-.mwt-working .step{min-width:0;color:var(--muted);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:tabular-nums}
 .mwt-turn.ai .mwt-md>:first-child{margin-top:0}
 .mwt-turn.ai .mwt-md>:last-child{margin-bottom:0}
-.mwt-older{appearance:none;align-self:center;padding:4px 10px;border:0;border-radius:var(--radius-sm);background:transparent;color:var(--muted);font:inherit;font-size:13px;cursor:pointer}
+/* A reply that arrives while you watch: in over 200 ms; reduced motion keeps the fade only. */
+.mwt-arrive{animation:mwt-arrive var(--motion-enter) var(--ease-standard) both}
+@keyframes mwt-arrive{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes mwt-arrive-fade{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.mwt .mwt-arrive{animation:mwt-arrive-fade var(--motion-enter) linear both!important}}
+/* 以下是新的: where the unread part of the thread starts. */
+.mwt-newline{display:flex;align-items:center;gap:16px;margin-bottom:-16px;color:var(--meta);font-size:12px;line-height:16px;white-space:nowrap}
+.mwt-newline::before,.mwt-newline::after{content:"";flex:1;height:1px;background:var(--border)}
+/* Empty thread: the teammate, its job, three things to ask. */
+.mwt-hello{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:48px 0 24px;text-align:center}
+.mwt-hello .nm{margin-top:8px;font-size:16px;font-weight:600;line-height:24px}
+.mwt-hello .duty{max-width:460px;color:var(--muted);font-size:13px;line-height:20px}
+.mwt-hello .mwt-chips{justify-content:center;margin-top:16px;max-width:560px}
+/* Working: the teammate's avatar breathing at the end of the transcript, the step beside it. */
+.mwt-working{display:flex;align-items:center;gap:8px;min-height:32px}
+.mwt-working .step{min-width:0;color:var(--muted);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:tabular-nums}
+.mwt-older{appearance:none;align-self:center;padding:4px 8px;border:0;border-radius:var(--radius-sm);background:transparent;color:var(--muted);font:inherit;font-size:13px;cursor:pointer}
 .mwt-older:hover{color:var(--fg);background:var(--surface)}
 .mwt-older[disabled]{opacity:.5;cursor:default}
 .mwt-center{align-self:center;max-width:100%;color:var(--meta);font-size:12px;line-height:16px;font-variant-numeric:tabular-nums;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-button.mwt-center{appearance:none;padding:2px 8px;border:0;border-radius:var(--radius-sm);background:transparent;font:inherit;font-size:12px;cursor:pointer}
+button.mwt-center{appearance:none;padding:4px 8px;border:0;border-radius:var(--radius-sm);background:transparent;font:inherit;font-size:12px;cursor:pointer}
 button.mwt-center:hover{color:var(--fg);background:var(--surface)}
-.mwt-thinking span{display:inline-block;color:var(--muted);background:linear-gradient(90deg,var(--muted) 0%,var(--fg) 50%,var(--muted) 100%);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:mwt-shimmer 1.8s linear infinite;font-variant-numeric:tabular-nums}
-@keyframes mwt-shimmer{to{background-position:-200% 0}}
-@media (prefers-reduced-motion:reduce){.mwt-thinking span{animation:none;background:none;-webkit-text-fill-color:currentColor}}
-.mwt-failed{color:var(--danger);font-size:14px;line-height:1.6}
-.mwt-queued{color:var(--meta);font-size:14px;line-height:1.6}
-/* A delivery (文件卡): its title (opens the file), ✓ summary rows, the document as text, one meta line under it. No box. */
-.mwt-deliver{min-width:0}
-/* File card (Rakazo): 40 icon tile · name · meta, radius 18. */
-.mwt-file-title{appearance:none;display:grid;grid-template-columns:40px minmax(0,1fr);column-gap:12px;align-items:center;width:100%;max-width:420px;margin:0 0 12px;padding:10px 14px 10px 10px;border:1px solid var(--border);border-radius:18px;background:var(--bg);color:var(--fg);font:inherit;text-align:left;cursor:pointer}
-.mwt-file-title:hover{border-color:var(--border-strong)}
-.mwt-file-title .tile{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:var(--surface-2);color:var(--fg-2)}
-.mwt-file-title .nm{display:grid;min-width:0}
-.mwt-file-title .nm b{font-size:14px;line-height:20px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mwt-file-title .nm small{color:var(--muted);font-size:12px;line-height:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mwt-sum{display:grid;gap:2px;margin:0 0 16px}
-.mwt-sum-row{display:grid;grid-template-columns:16px auto minmax(0,1fr);column-gap:10px;align-items:baseline;min-height:26px;font-size:14.5px;line-height:24px}
-.mwt-sum-row svg{color:var(--success);align-self:center}
-.mwt-sum-row .label{font-weight:500;color:var(--fg)}
-.mwt-sum-row .value{color:var(--muted);min-width:0;overflow-wrap:anywhere}
-.mwt-deliver-meta{display:flex;align-items:center;flex-wrap:wrap;gap:2px 6px;margin:6px 0 0 6px;color:var(--muted);font-size:13px;line-height:20px;font-variant-numeric:tabular-nums}
-.mwt-deliver-meta .verdict{appearance:none;display:inline-flex;align-items:center;gap:6px;padding:0;border:0;background:transparent;color:inherit;font:inherit;cursor:default;text-align:left}
-.mwt-deliver-meta .verdict[data-notes=true]{cursor:pointer}
-.mwt-deliver-meta .verdict[data-notes=true]:hover{color:var(--fg)}
-.mwt-deliver-meta .verdict svg{color:var(--meta);flex:none}
-.mwt-deliver-meta .verdict[data-tone=success] svg{color:var(--success)}
-.mwt-deliver-meta .verdict[data-tone=warn],.mwt-deliver-meta .verdict[data-tone=warn] svg{color:var(--warn)}
-.mwt-deliver-meta .verdict[data-tone=live] svg{animation:mwt-spin 1.6s linear infinite}
-.mwt-deliver-meta .sep{color:var(--meta)}
-.mwt-deliver-meta .mwt-btn{height:28px;padding:0 10px;font-size:13px;font-weight:400}
-.mwt-deliver-meta .mwt-btn[aria-pressed=true]{color:var(--fg);background:var(--surface)}
-.mwt-notes{margin:10px 0 0;font-size:13px;line-height:1.7;color:var(--muted);border-left:2px solid var(--border);padding:2px 12px;white-space:pre-wrap;word-break:break-word}
+.mwt-failed{color:var(--danger);font-size:13px;line-height:1.6}
+.mwt-queued{color:var(--meta);font-size:13px;line-height:1.6}
+/*
+ * A delivery is a file strip, no box: a 1px rule at its left and 16 of air. Title 16 / 600, a one-sentence deck at 65 %,
+ * the key figures as one tabular line (value 100 %, label 40 %), the verification word at 40 % (--warn only for the
+ * newest run's issues) and, on hover, 有用 / 没用. The title's hit area stretches over the whole strip.
+ */
+.mwt-deliver{display:flex;flex-direction:column;gap:8px;min-width:0}
+.mwt-strips{display:grid;gap:16px;min-width:0}
+.mwt-strip{position:relative;display:grid;gap:4px;min-width:0;max-width:620px;padding:0 0 0 16px;border-left:1px solid var(--border)}
+.mwt-strip-open{appearance:none;display:block;width:100%;min-width:0;padding:0;border:0;background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
+.mwt-strip-open::after{content:"";position:absolute;inset:0;border-radius:4px}
+/* No press scale here: a transform would make the button the overlay's containing block and shrink the hit area mid-click. */
+.mwt .mwt-strip-open:active{transform:none}
+.mwt-strip-open:focus-visible{box-shadow:none}
+.mwt-strip-open:focus-visible::after{box-shadow:var(--focus-ring)}
+.mwt-strip-open .t{display:block;font-size:16px;line-height:24px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-underline-offset:4px;text-decoration-color:var(--meta)}
+.mwt-strip:hover .mwt-strip-open .t{text-decoration-line:underline}
+.mwt-strip .deck{margin:0;color:var(--fg-2);font-size:15px;line-height:1.75;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
+.mwt-strip .figs{margin:0;color:var(--meta);font-size:13px;line-height:20px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mwt-strip .figs b{font-weight:400;color:var(--fg)}
+.mwt-strip-meta{display:flex;align-items:center;flex-wrap:wrap;gap:0 8px;min-height:24px;color:var(--meta);font-size:12px;line-height:16px;font-variant-numeric:tabular-nums}
+.mwt-strip-meta button,.mwt-strip .mwt-notes{position:relative;z-index:1}
+.mwt-verdict{appearance:none;padding:4px 0;border:0;background:transparent;color:var(--meta);font:inherit;text-align:left;cursor:default}
+.mwt-verdict[data-tone=warn]{color:var(--warn)}
+button.mwt-verdict{cursor:pointer}
+button.mwt-verdict:hover{color:var(--fg)}
+button.mwt-verdict[data-tone=warn]:hover{color:var(--warn);text-decoration:underline;text-underline-offset:3px}
+/* 有用 / 没用: hidden until the run is hovered or focused; once one is chosen they stay. Touch screens always show them. */
+.mwt-rate{display:inline-flex;gap:4px;opacity:0;transition:opacity var(--motion-fast) var(--ease-standard)}
+.mwt-run:hover .mwt-rate,.mwt-run:focus-within .mwt-rate,.mwt-rate[data-chosen=true],.mwt-rate.always{opacity:1}
+@media (hover:none){.mwt-rate{opacity:1}}
+.mwt-rate button{appearance:none;height:24px;padding:0 4px;border:0;border-radius:6px;background:transparent;color:var(--meta);font:inherit;font-size:12px;cursor:pointer}
+.mwt-rate button:hover,.mwt-rate button[aria-pressed=true]{color:var(--fg)}
+.mwt-notes{margin:8px 0 0;font-size:13px;line-height:1.7;color:var(--muted);border-left:2px solid var(--border);padding:0 16px;white-space:pre-wrap;word-break:break-word}
+/* Summary rows (the reading view): a compact definition list, label 40 % and value 100 %, the label column at most 40 %. */
+.mwt-sum{display:grid;grid-template-columns:fit-content(40%) minmax(0,1fr);gap:4px 16px;margin:0 0 24px;font-size:13px;line-height:20px;font-variant-numeric:tabular-nums}
+.mwt-sum dt{margin:0;color:var(--meta);overflow-wrap:anywhere}
+.mwt-sum dd{margin:0;color:var(--fg);min-width:0;overflow-wrap:anywhere}
 /* 找你卡: the question a run stopped on; settled, it is one line. */
-.mwt-askcard{max-width:560px;padding:16px 18px 14px;border:1px solid var(--border-strong);border-radius:20px;background:var(--surface)}
-.mwt-askcard .q{font-size:15.5px;line-height:1.6;color:var(--fg);word-break:break-word}
-.mwt-askcard .q code{font-family:var(--font-mono);font-size:12.5px;background:var(--surface-2);padding:1px 5px;border-radius:4px}
-.mwt-askcard .q a{color:var(--fg);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--border)}
-.mwt-askcard .detail{margin:10px 0 0;max-height:240px;overflow:auto;padding:10px 12px;border-radius:var(--radius-md);background:var(--surface-2);color:var(--fg-2);font:12.5px/1.6 var(--font-mono);white-space:pre-wrap;word-break:break-word}
-.mwt-askcard .opts{display:grid;gap:6px;margin:14px 0 0}
-.mwt-askopt{appearance:none;display:flex;align-items:center;width:100%;min-height:44px;padding:0 14px;border:1px solid var(--border-strong);border-radius:var(--radius-md);background:transparent;color:var(--fg);font:inherit;font-size:14px;line-height:20px;text-align:left;cursor:pointer}
+.mwt-askcard{max-width:560px;padding:16px;border:1px solid var(--border);border-radius:20px;background:var(--surface)}
+.mwt-askcard .q{font-size:15px;line-height:1.75;color:var(--fg);word-break:break-word}
+.mwt-askcard .q code{font-family:var(--font-mono);font-size:13px;background:var(--surface-2);padding:0 4px;border-radius:4px}
+.mwt-askcard .q a{color:var(--fg);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--meta)}
+.mwt-askcard .detail{margin:8px 0 0;max-height:240px;overflow:auto;padding:8px 16px;border-radius:var(--radius-md);background:var(--surface-2);color:var(--fg-2);font:12px/1.6 var(--font-mono);white-space:pre-wrap;word-break:break-word}
+.mwt-askcard .opts{display:grid;gap:8px;margin:16px 0 0}
+.mwt-askopt{appearance:none;display:flex;align-items:center;width:100%;min-height:44px;padding:0 16px;border:1px solid var(--border);border-radius:var(--radius-md);background:transparent;color:var(--fg);font:inherit;font-size:15px;line-height:24px;text-align:left;cursor:pointer}
 .mwt-askopt:hover{background:var(--surface-2)}
 .mwt-askopt[disabled]{opacity:.4;cursor:default;transform:none}
 .mwt-askopt[disabled]:hover{background:transparent}
-.mwt-askcard .row{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:14px 0 0}
+.mwt-askcard .row{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:16px 0 0}
 .mwt-askcard .row .grow{flex:1;min-width:0}
-.mwt-askcard .row .mwt-btn{height:36px}
-.mwt-askcard .go{appearance:none;display:inline-flex;align-items:center;gap:6px;padding:0;border:0;background:transparent;color:var(--fg-2);font:inherit;font-size:14px;line-height:20px;cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--border-strong)}
+.mwt-askcard .go{appearance:none;display:inline-flex;align-items:center;gap:4px;padding:0;border:0;background:transparent;color:var(--fg-2);font:inherit;font-size:13px;line-height:20px;cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--border)}
 .mwt-askcard .go:hover{color:var(--fg)}
 .mwt-askcard .go.plain{cursor:default;text-decoration:none;color:var(--muted)}
-.mwt-ask-err{max-width:560px;margin:6px 0 0;color:var(--danger);font-size:13px;line-height:20px}
-.mwt-askline{display:flex;align-items:center;gap:6px;max-width:560px;min-height:20px;color:var(--meta);font-size:13px;line-height:20px}
-.mwt-askline[data-tone=success]{color:var(--success)}
+.mwt-ask-err{max-width:560px;margin:4px 0 0;color:var(--danger);font-size:13px;line-height:20px}
+.mwt-askline{display:flex;align-items:center;gap:4px;max-width:560px;min-height:20px;color:var(--meta);font-size:13px;line-height:20px}
 .mwt-askline span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* 提醒卡: only you can do it; one 知道了. */
-.mwt-remind{display:flex;align-items:center;gap:10px;max-width:560px;min-height:52px;padding:10px 10px 10px 16px;border:1px solid var(--border);border-radius:20px;background:var(--surface)}
-.mwt-remind .ic{display:flex;color:var(--fg-2)}
-.mwt-remind .txt{flex:1;min-width:0;font-size:15px;line-height:22px;word-break:break-word}
-/* 过程: folded per run. */
-.mwt-proc{margin:-8px 0 0}
-.mwt-proc-head{appearance:none;display:inline-flex;align-items:center;gap:8px;max-width:100%;padding:4px 0;border:0;background:transparent;color:var(--meta);font:inherit;font-size:12.5px;text-align:left;cursor:pointer}
+.mwt-remind{display:flex;align-items:center;gap:8px;max-width:560px;min-height:52px;padding:8px 8px 8px 16px;border:1px solid var(--border);border-radius:20px;background:var(--surface)}
+.mwt-remind .txt{flex:1;min-width:0;font-size:15px;line-height:24px;word-break:break-word}
+/* 过程: folded per run, one 12px line at 40 %. */
+.mwt-proc-head{appearance:none;display:inline-flex;align-items:center;gap:4px;max-width:100%;padding:4px 0;border:0;background:transparent;color:var(--meta);font:inherit;font-size:12px;line-height:16px;text-align:left;cursor:pointer}
 .mwt-proc-head:hover{color:var(--fg)}
 .mwt-proc-head .grow{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:tabular-nums}
-.mwt-proc-head svg.live{animation:mwt-spin 1.6s linear infinite}
-.mwt-phases{padding:6px 0 4px}
-.mwt-phase-head{appearance:none;display:grid;grid-template-columns:18px auto auto minmax(0,1fr);column-gap:10px;align-items:center;width:100%;min-height:30px;padding:3px 0;border:0;background:transparent;color:var(--fg);font:inherit;font-size:13px;line-height:20px;text-align:left;cursor:default}
+.mwt-phases{padding:8px 0 4px}
+.mwt-phase-head{appearance:none;display:flex;align-items:baseline;gap:8px;width:100%;min-height:28px;padding:4px 0;border:0;background:transparent;color:var(--fg);font:inherit;font-size:13px;line-height:20px;text-align:left;cursor:default}
 button.mwt-phase-head{cursor:pointer}
 button.mwt-phase-head:hover .verb,button.mwt-phase-head:hover .obj{color:var(--fg)}
-.mwt-phase-head .ic{display:flex;align-items:center;justify-content:center;height:20px;color:var(--meta)}
-.mwt-phase-head[data-tone=live] .ic{color:var(--fg-2)}
-.mwt-phase-head[data-tone=live] .ic svg{animation:mwt-spin 1.6s linear infinite}
-.mwt-phase-head[data-tone=danger] .ic{color:var(--danger)}
-.mwt-phase-head .verb{font-weight:500;color:var(--fg-2);white-space:nowrap}
-.mwt-phase-head .meta{color:var(--meta);font-variant-numeric:tabular-nums;white-space:nowrap}
-.mwt-phase-head .obj{min-width:0;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mwt-phase-body{margin:2px 0 10px 8px;padding-left:19px;border-left:1px solid var(--border-soft)}
-.mwt-phase-note{display:grid;grid-template-columns:18px minmax(0,1fr);column-gap:10px;padding:5px 0;font-size:13px;line-height:1.6;color:var(--fg);cursor:pointer}
-.mwt-phase-note .ic{display:flex;justify-content:center;padding-top:2px;color:var(--meta)}
+.mwt-phase-head .verb{flex:none;font-weight:500;color:var(--fg-2);white-space:nowrap}
+.mwt-phase-head[data-tone=live] .verb{color:var(--fg)}
+.mwt-phase-head[data-tone=danger] .verb{color:var(--danger)}
+.mwt-phase-head .meta{flex:none;color:var(--meta);font-variant-numeric:tabular-nums;white-space:nowrap}
+.mwt-phase-head .obj{flex:1;min-width:0;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mwt-phase-body{margin:0 0 8px 4px;padding-left:16px;border-left:1px solid var(--border-soft)}
+.mwt-phase-note{padding:4px 0;font-size:13px;line-height:1.6;color:var(--fg);cursor:pointer}
 .mwt-phase-note .body{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-wrap;word-break:break-word;color:var(--muted)}
 .mwt-phase-note.open .body{display:block;color:var(--fg)}
 .mwt-phase-note .lbl{color:var(--fg-2);font-weight:500}
-.mwt-ev{display:grid;grid-template-columns:18px minmax(0,1fr);column-gap:12px;padding:2px 0;font-size:13px;line-height:20px}
-.mwt-ev .ic{display:flex;align-items:center;justify-content:center;height:20px;color:var(--meta)}
-.mwt-ev[data-ok=true] .ic{color:var(--success)}
-.mwt-ev[data-ok=false] .ic{color:var(--danger)}
-.mwt-ev .line{min-width:0;display:flex;flex-wrap:wrap;gap:0 8px;align-items:baseline}
+.mwt-ev{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 8px;min-height:24px;font-size:13px;line-height:20px}
 .mwt-ev .verb{font-weight:500;color:var(--fg-2)}
+.mwt-ev[data-ok=false] .verb{color:var(--danger)}
 .mwt-ev .obj{color:var(--muted);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
-.mwt-ev .result{color:var(--danger);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mwt-ev .result{flex-basis:100%;color:var(--danger);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* Composer (Rakazo): a rounded-full pill; a cream circular send; Stop beside it while working. */
-.mwt-dock{position:sticky;bottom:0;z-index:3;margin-top:auto;padding:12px 0 20px;background:linear-gradient(to top,var(--bg) 70%,transparent)}
-.mwt-say{display:flex;align-items:flex-end;gap:6px;border:1px solid var(--border);border-radius:999px;background:var(--input);padding:6px 6px 6px 20px}
-.mwt-say:focus-within{border-color:var(--border-strong)}
-.mwt-say textarea{flex:1 1 0;min-width:0;display:block;min-height:34px;max-height:200px;resize:none;border:0;outline:0;background:transparent;color:inherit;font:inherit;font-size:15.5px;line-height:24px;padding:5px 0}
-.mwt-say textarea::placeholder{color:var(--muted)}
+.mwt-dock{position:sticky;bottom:0;z-index:3;margin-top:auto;padding:16px 0 24px;background:linear-gradient(to top,var(--bg) 70%,transparent)}
+.mwt-say{display:flex;align-items:flex-end;gap:4px;border:1px solid var(--border);border-radius:999px;background:var(--input);padding:4px 4px 4px 16px}
+.mwt-say:focus-within{border-color:var(--border-focus)}
+.mwt-say textarea{flex:1 1 0;min-width:0;display:block;min-height:32px;max-height:200px;resize:none;border:0;outline:0;background:transparent;color:inherit;font:inherit;font-size:15px;line-height:24px;padding:4px 0}
+.mwt-say textarea::placeholder{color:var(--meta)}
 .mwt-say .mwt-btn.round{flex:none}
-.mwt-say-err{display:block;color:var(--danger);font-size:12.5px;padding:6px 2px 0}
+.mwt-say-err{display:block;color:var(--danger);font-size:12px;padding:4px 0 0}
 /* Menu (the header's ···). */
 .mwt-menu{position:relative}
-.mwt-menu-pop{position:absolute;right:0;top:38px;min-width:160px;padding:4px;border:1px solid var(--border);border-radius:16px;background:var(--surface);box-shadow:var(--elev-raised);z-index:6;display:grid}
-.mwt-menu-pop button{appearance:none;display:flex;align-items:center;gap:8px;height:32px;padding:0 10px;border:0;border-radius:var(--radius-sm);background:transparent;color:var(--fg);font:inherit;font-size:13px;text-align:left;cursor:pointer}
+.mwt-menu-pop{position:absolute;right:0;top:40px;min-width:160px;padding:4px;border:1px solid var(--border);border-radius:16px;background:var(--surface);box-shadow:var(--elev-raised);z-index:6;display:grid}
+.mwt-menu-pop button{appearance:none;display:flex;align-items:center;height:32px;padding:0 8px;border:0;border-radius:var(--radius-sm);background:transparent;color:var(--fg);font:inherit;font-size:13px;text-align:left;cursor:pointer}
 .mwt-menu-pop button:hover{background:var(--surface-2)}
 /* Right panel: beside the thread as a grid column when the page has room, else a slide-over at its right edge (no mask). */
 .mwt-aside{display:flex;flex-direction:column;min-height:0;background:var(--surface)}
 .mwt-aside.col{position:sticky;top:0;align-self:start;background:var(--bg);border-left:1px solid var(--border);overflow:hidden}
 .mwt-aside-head{display:flex;align-items:center;gap:8px;flex:none;height:52px;padding:0 8px 0 16px;border-bottom:1px solid var(--border)}
-.mwt-aside-head .title{flex:1;min-width:0;color:var(--fg);font-size:14px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mwt-aside-head .title{flex:1;min-width:0;color:var(--fg);font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mwt-aside-head .mwt-btn.round{width:28px;height:28px}
-.mwt-aside-body{flex:1;min-height:0;overflow:auto;padding:12px 14px 16px}
-.mwt-aside-head .mwt-btn.small{flex:none}
-.mwt-aside-body.doc{padding:18px 22px 28px}
-.mwt-aside-body.doc .mwt-md{font-size:15px}
-.mwt-aside-body.doc .mwt-md p{max-width:none}
-.mwt-aside-body.doc .mwt-md table{display:block;max-width:100%;overflow-x:auto;border:1px solid var(--border);border-radius:10px}
-.mwt-aside-body.doc .mwt-doc-meta{margin:0 0 16px}
+.mwt-aside-body{flex:1;min-height:0;overflow:auto;padding:16px}
 .mwt-aside-dock{position:sticky;top:0;height:0;z-index:6}
 .mwt-aside-clip{position:absolute;top:0;right:0;display:flex;justify-content:flex-end;width:min(${ASIDE_W + 24}px,100%);overflow:hidden;pointer-events:none}
 .mwt-aside.over{width:min(${ASIDE_W}px,100%);height:100%;border-left:1px solid var(--border);box-shadow:var(--elev-raised);pointer-events:auto;transform:translateX(100%);visibility:hidden;transition:transform var(--motion-fast) var(--ease-standard),visibility 0s linear var(--motion-fast)}
 .mwt-aside.over[data-open=true]{transform:none;visibility:visible;transition:transform var(--motion-fast) var(--ease-standard),visibility 0s}
-.mwt-sec{padding:6px 0 14px}
-.mwt-sec+.mwt-sec{border-top:1px solid var(--border-soft);padding-top:14px}
+.mwt-sec{padding:8px 0 16px}
+.mwt-sec+.mwt-sec{border-top:1px solid var(--border-soft);padding-top:16px}
+.mwt-sec h2{display:flex;align-items:center;gap:4px;margin:0 0 8px;font-size:12px;line-height:16px;font-weight:500;letter-spacing:.02em;color:var(--meta)}
 .mwt-sec h2 .grow{flex:1}
-.mwt-sec h2 .mwt-btn.round{width:26px;height:26px}
-.mwt-sec h2{display:flex;align-items:center;gap:6px;margin:0 0 6px 2px;font-size:12.5px;line-height:18px;font-weight:500;letter-spacing:.02em;color:var(--muted)}
+.mwt-sec h2 .mwt-btn.round{width:24px;height:24px}
+/* 电脑 folder: 表格 first, then 文件, each under a small label. */
+.mwt-flabel{margin:8px 0 4px 8px;font-size:12px;line-height:16px;color:var(--meta)}
+.mwt-flabel:first-child{margin-top:0}
 .mwt-alist{display:grid}
-.mwt-arow{appearance:none;display:grid;grid-template-columns:18px minmax(0,1fr) auto;column-gap:10px;align-items:center;width:100%;min-height:40px;padding:7px 10px;border:0;border-radius:16px;background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
+.mwt-arow{appearance:none;display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:8px;align-items:center;width:100%;min-height:40px;padding:8px;border:0;border-radius:16px;background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
+.mwt-arow.ic{grid-template-columns:16px minmax(0,1fr) auto}
 .mwt-arow:hover,.mwt-arow[aria-expanded=true]{background:var(--surface-2)}
 .mwt-arow.static{cursor:default}
 .mwt-arow.static:hover{background:transparent}
 .mwt-arow .ic{display:flex;align-items:center;justify-content:center;color:var(--meta)}
-.mwt-arow .ic[data-tone=danger]{color:var(--danger)}
 .mwt-arow .main{min-width:0;display:grid}
-.mwt-arow .t{font-size:14px;line-height:20px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mwt-arow .s{font-size:12.5px;line-height:18px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mwt-arow .t{font-size:13px;line-height:20px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mwt-arow .s{font-size:12px;line-height:16px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mwt-arow .m{font-size:12px;color:var(--meta);white-space:nowrap;font-variant-numeric:tabular-nums}
+.mwt-arow .m[data-tone=danger]{color:var(--danger)}
 .mwt-arow[data-off=true] .t{color:var(--meta)}
-.mwt-rdetail{margin:2px 0 8px;padding:10px 10px 8px;border:1px solid var(--border);border-radius:18px;background:var(--bg)}
+.mwt-rdetail{margin:4px 0 8px;padding:8px;border:1px solid var(--border);border-radius:18px;background:var(--bg)}
 .mwt-rdetail .acts{display:flex;flex-wrap:wrap;gap:4px;margin:8px 0 4px}
-.mwt-rdetail .runs{margin:6px 0 0;border-top:1px solid var(--border-soft);padding-top:6px}
-.mwt-confirm{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:6px 0;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface);font-size:13px}
+.mwt-rdetail .runs{margin:8px 0 0;border-top:1px solid var(--border-soft);padding-top:8px}
+.mwt-confirm{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:8px 0;padding:8px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface);font-size:13px}
 .mwt-confirm>span{flex:1;min-width:120px}
 /* Fields */
-.mwt-field{display:grid;gap:4px;margin:0 0 12px}
-.mwt-field>span{font-size:12.5px;line-height:18px;color:var(--muted)}
-.mwt-input{display:block;width:100%;padding:8px 14px;border:1px solid var(--border);border-radius:999px;background:var(--input);color:var(--fg);font:inherit;font-size:14px;line-height:20px;transition:border-color var(--motion-fast) var(--ease-standard)}
-.mwt-input:focus{border-color:var(--border-strong)}
+.mwt-field{display:grid;gap:4px;margin:0 0 16px}
+.mwt-field>span{font-size:12px;line-height:16px;color:var(--muted)}
+.mwt-input{display:block;width:100%;padding:8px 16px;border:1px solid var(--border);border-radius:999px;background:var(--input);color:var(--fg);font:inherit;font-size:13px;line-height:20px;transition:border-color var(--motion-fast) var(--ease-standard)}
+.mwt-input:focus{border-color:var(--border-focus)}
 .mwt-input::placeholder{color:var(--meta)}
 textarea.mwt-input{resize:vertical;min-height:72px;line-height:1.6;border-radius:16px}
-.mwt-switch-row{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:36px;font-size:14px}
-.mwt-switch{appearance:none;position:relative;flex:none;width:32px;height:18px;padding:0;border:0;border-radius:9px;background:var(--border-strong);cursor:pointer}
-.mwt-switch::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--primary-on);transition:transform var(--motion-fast) var(--ease-standard)}
-.mwt-switch[aria-checked=true]{background:var(--primary)}
-.mwt-switch[aria-checked=true]::after{transform:translateX(14px)}
-.mwt-field-err{color:var(--danger);font-size:12.5px;margin:-6px 0 10px}
+/* 新同事: three examples under 「它负责什么」 that fill the field. */
+.mwt-examples{display:grid;justify-items:start;gap:8px;margin:-8px 0 16px}
+.mwt-examples .mwt-chip{white-space:normal;text-align:left;border-radius:12px;border-color:var(--border);background:transparent}
+.mwt-examples .mwt-chip:hover{background:var(--surface-2)}
+.mwt-switch-row{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:36px;font-size:13px}
+.mwt-switch{appearance:none;position:relative;flex:none;width:32px;height:18px;padding:0;border:0;border-radius:9px;background:var(--border);cursor:pointer}
+.mwt-switch::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--meta);transition:transform var(--motion-fast) var(--ease-standard)}
+.mwt-switch[aria-checked=true]{background:var(--fg-2)}
+.mwt-switch[aria-checked=true]::after{background:var(--bg);transform:translateX(14px)}
+.mwt-field-err{color:var(--danger);font-size:12px;margin:-8px 0 8px}
 /* Lists on the files page: one row recipe. */
-.mwt-filters{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 14px}
-.mwt-search{display:flex;align-items:center;gap:6px;flex:1 1 180px;min-width:0;max-width:320px;height:34px;padding:0 12px;border:1px solid var(--border);border-radius:999px;background:var(--input);color:var(--meta)}
-.mwt-search:focus-within{border-color:var(--border-strong)}
-.mwt-search input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:var(--fg);font:inherit;font-size:13.5px}
+.mwt-filters{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin:0 0 16px}
+.mwt-search{display:flex;align-items:center;gap:8px;flex:1 1 180px;min-width:0;max-width:320px;height:32px;padding:0 16px;border:1px solid var(--border);border-radius:999px;background:var(--input);color:var(--meta)}
+.mwt-search:focus-within{border-color:var(--border-focus)}
+.mwt-search input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:var(--fg);font:inherit;font-size:13px}
 .mwt-search input::-webkit-search-cancel-button{-webkit-appearance:none}
 .mwt-list{display:grid;border:1px solid var(--border);border-radius:18px;overflow:hidden;background:var(--surface)}
-.mwt-row{appearance:none;display:grid;grid-template-columns:20px minmax(0,1fr) auto;align-items:center;column-gap:12px;min-height:48px;padding:12px 16px;border:0;border-top:1px solid var(--border-soft);background:transparent;color:inherit;font:inherit;text-align:left;width:100%;cursor:pointer}
+.mwt-row{appearance:none;display:grid;grid-template-columns:16px minmax(0,1fr) auto;align-items:center;column-gap:16px;min-height:48px;padding:8px 16px;border:0;border-top:1px solid var(--border-soft);background:transparent;color:inherit;font:inherit;text-align:left;width:100%;cursor:pointer}
 .mwt-row:first-child{border-top:0}
 .mwt-row:hover{background:var(--surface-2)}
 .mwt-row:focus-visible{box-shadow:inset var(--focus-ring);border-radius:0}
 .mwt-row .ic{display:flex;align-items:center;justify-content:center;color:var(--meta)}
-.mwt-row .ic[data-tone=success]{color:var(--success)}
 .mwt-row .t{min-width:0;font-size:15px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mwt-row .m{color:var(--meta);font-size:13px;white-space:nowrap;font-variant-numeric:tabular-nums}
-.mwt-toolbar{display:flex;align-items:center;gap:4px;margin:0 0 12px}
-.mwt-toolbar .grow{flex:1}
-.mwt-doc-title{margin:4px 0 6px;font-size:24px;line-height:1.35;font-weight:600;letter-spacing:-.01em}
-.mwt-doc-meta{margin:0 0 22px;color:var(--meta);font-size:13px;font-variant-numeric:tabular-nums}
+.mwt-row .m{color:var(--meta);font-size:12px;white-space:nowrap;font-variant-numeric:tabular-nums}
+/*
+ * Reading view: a deliverable opened in the centre column. A small way back, the title 20 / 600, a meta line at 40 % with
+ * text buttons, then the body at 16 / 1.8 on a 680 measure; headings 16 / 600 with 32 above and 8 below; tables 13 with
+ * tabular figures, scrolling sideways; links underlined at 40 %.
+ */
+.mwt-read{width:100%;max-width:680px;margin:0 auto;padding:16px 0 48px}
+.mwt-read-back{appearance:none;display:inline-flex;align-items:center;gap:4px;height:32px;margin:0 0 24px -8px;padding:0 8px;border:0;border-radius:var(--radius-sm);background:transparent;color:var(--muted);font:inherit;font-size:13px;cursor:pointer}
+.mwt-read-back:hover{color:var(--fg);background:var(--surface)}
+.mwt-read h1{margin:0 0 8px;font-size:20px;line-height:1.4;font-weight:600;word-break:break-word}
+.mwt-read-meta{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;margin:0 0 32px;color:var(--meta);font-size:13px;line-height:20px;font-variant-numeric:tabular-nums}
+.mwt-read-meta .mwt-verdict{padding:0}
+.mwt-read>.mwt-notes{margin:-16px 0 32px}
+.mwt-read .mwt-md{font-size:16px;line-height:1.8}
+.mwt-read .mwt-md p{max-width:none;margin:0 0 16px}
+.mwt-read .mwt-md h1,.mwt-read .mwt-md h2,.mwt-read .mwt-md h3,.mwt-read .mwt-md h4,.mwt-read .mwt-md h5,.mwt-read .mwt-md h6{margin:32px 0 8px;font-size:16px;line-height:1.6;font-weight:600}
+.mwt-read .mwt-md table{display:block;max-width:100%;overflow-x:auto;border:1px solid var(--border);border-radius:8px;font-size:13px;font-variant-numeric:tabular-nums}
+.mwt-read .mwt-md th{font-size:12px}
+.mwt-read .mwt-md a{text-decoration-color:var(--meta)}
+.mwt-read-end{display:flex;align-items:center;gap:8px;margin:32px 0 0;padding-top:16px;border-top:1px solid var(--border-soft);color:var(--meta);font-size:12px}
 /* Markdown */
-.mwt-md{font-size:15.5px;line-height:1.65;color:var(--fg)}
+.mwt-md{font-size:15px;line-height:1.75;color:var(--fg)}
 .mwt-md>:first-child{margin-top:0}
-.mwt-md h2,.mwt-md h3,.mwt-md h4{margin:22px 0 8px;font-weight:600;line-height:1.4}
+.mwt-md h2,.mwt-md h3,.mwt-md h4{margin:24px 0 8px;font-weight:600;line-height:1.4}
 .mwt-md h2{font-size:18px}.mwt-md h3{font-size:16px}.mwt-md h4{font-size:15px}
-.mwt-md p{margin:0 0 12px;max-width:65ch}.mwt-md ul,.mwt-md ol{margin:0 0 12px;padding-left:22px}.mwt-md li{margin:2px 0}
-.mwt-md code{font-family:var(--font-mono);font-size:12.5px;background:var(--surface-2);padding:1px 5px;border-radius:4px}
-.mwt-md pre{background:var(--bg);border-radius:var(--radius-md);padding:12px 14px;overflow:auto;margin:0 0 12px}.mwt-md pre code{background:transparent;padding:0}
-.mwt-md table{border-collapse:collapse;margin:0 0 16px;font-size:14px;font-variant-numeric:tabular-nums}
-.mwt-md th,.mwt-md td{padding:6px 12px;text-align:left;border-bottom:1px solid var(--border-soft)}
-.mwt-md th{font-weight:500;color:var(--muted);font-size:12.5px;letter-spacing:.02em;background:var(--surface-2)}
-.mwt-md blockquote{margin:0 0 12px;padding:2px 14px;border-left:2px solid var(--border);color:var(--muted)}
-.mwt-md hr{border:0;border-top:1px solid var(--border-soft);margin:18px 0}
-.mwt-md a{color:var(--fg);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--border)}
+.mwt-md p{margin:0 0 16px;max-width:65ch}.mwt-md ul,.mwt-md ol{margin:0 0 16px;padding-left:24px}.mwt-md li{margin:4px 0}
+.mwt-md code{font-family:var(--font-mono);font-size:13px;background:var(--surface-2);padding:0 4px;border-radius:4px}
+.mwt-md pre{background:var(--bg);border-radius:var(--radius-md);padding:8px 16px;overflow:auto;margin:0 0 16px}.mwt-md pre code{background:transparent;padding:0}
+.mwt-md table{border-collapse:collapse;margin:0 0 16px;font-size:13px;font-variant-numeric:tabular-nums}
+.mwt-md th,.mwt-md td{padding:8px 16px;text-align:left;border-bottom:1px solid var(--border-soft)}
+.mwt-md th{font-weight:500;color:var(--muted);font-size:12px;letter-spacing:.02em;background:var(--surface-2)}
+.mwt-md blockquote{margin:0 0 16px;padding:0 16px;border-left:2px solid var(--border);color:var(--muted)}
+.mwt-md hr{border:0;border-top:1px solid var(--border-soft);margin:24px 0}
+.mwt-md a{color:var(--fg);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--meta)}
 .mwt-md strong{font-weight:600}
-/* Toasts */
+/* Toasts (a floating layer: the one place besides menus and the slide-over that casts a shadow). */
 .mwt-toasts{position:fixed;right:16px;bottom:16px;z-index:10050;display:grid;gap:8px;max-width:380px;padding:0!important;height:auto!important;overflow:visible!important;background:transparent!important}
-.mwt-toast{display:grid;grid-template-columns:28px minmax(0,1fr) auto;column-gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--border);border-radius:18px;background:var(--surface);color:var(--fg);box-shadow:var(--elev-raised);font-size:13px;line-height:18px;animation:mwt-in var(--motion-fast) var(--ease-standard)}
-@keyframes mwt-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.mwt-toast{display:grid;grid-template-columns:28px minmax(0,1fr) auto;column-gap:8px;align-items:center;padding:8px 8px 8px 16px;border:1px solid var(--border);border-radius:18px;background:var(--surface);color:var(--fg);box-shadow:var(--elev-raised);font-size:13px;line-height:20px}
 .mwt-toast b{display:block;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mwt-toast span.sub{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
 @media (max-width:720px){
-  .mwt-page{padding:20px 12px 56px}
-  .mwt-page.mate{padding:0 12px}
-  .mwt-title h1,.mwt-doc-title{font-size:23px}
-  .mwt-md{font-size:15px}
-  .mwt-md table{display:block;overflow:auto;max-width:100%}
-  .mwt-toasts{left:12px;right:12px;bottom:12px;max-width:none}
+  .mwt-page{padding:24px 16px 48px}
+  .mwt-page.mate{padding:0 16px}
+  .mwt-title h1{font-size:24px}
+  .mwt-toasts{left:16px;right:16px;bottom:16px;max-width:none}
   .mwt-dock{padding:8px 0 calc(8px + env(safe-area-inset-bottom))}
 }
 `
@@ -655,36 +683,136 @@ function safeName(s) { return String(s || 'deliverable').replace(/[\\/:*?"<>|]+/
 const defaultMateOf = (mates) => (mates || []).find((m) => m.isDefault) || mateOrder(mates)[0] || null
 const fileGlyph = (d) => (d && (d.kind === 'sheet' || d.kind === 'table') ? 'sheet' : d && d.kind === 'report' ? 'file-text' : 'file')
 
-/** Rakazo's bot palette (packages/core bot-avatar-colors): light → dark gradient, eye colour. */
+/** Rakazo's bot palette (packages/core bot-avatar-colors): light → dark, eye colour. The light one is the identity colour. */
 const AVATAR_COLORS = [['#A97EFE', '#7C3AED', '#FFFFFF'], ['#00C972', '#059669', '#FFFFFF'], ['#FF781C', '#EA580C', '#FFFFFF'], ['#1CC3B0', '#0284C7', '#FFFFFF'], ['#2A92FE', '#1D4ED8', '#FFFFFF'], ['#FFAF38', '#D97706', '#141414'], ['#A27952', '#78350F', '#FFFFFF'], ['#FF3E51', '#BE123C', '#FFFFFF'], ['#FF5EB1', '#BE185D', '#FFFFFF'], ['#94A3B8', '#475569', '#FFFFFF']]
+/** A colour with its saturation and lightness lowered by 15 % (HSL): the same identity, receding behind the content. */
+function calmHex(hex) {
+  const n = parseInt(String(hex).slice(1), 16)
+  const r = ((n >> 16) & 255) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min
+  let hue = 0
+  if (d) hue = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4
+  hue = (hue * 60 + 360) % 360
+  const l0 = (max + min) / 2
+  const s0 = d ? d / (1 - Math.abs(2 * l0 - 1)) : 0
+  const s = s0 * 0.85, l = l0 * 0.85
+  const c = (1 - Math.abs(2 * l - 1)) * s, x = c * (1 - Math.abs(((hue / 60) % 2) - 1)), m = l - c / 2
+  const [r1, g1, b1] = hue < 60 ? [c, x, 0] : hue < 120 ? [x, c, 0] : hue < 180 ? [0, c, x] : hue < 240 ? [0, x, c] : hue < 300 ? [x, 0, c] : [c, 0, x]
+  const to = (v) => Math.round((v + m) * 255).toString(16).padStart(2, '0')
+  return '#' + to(r1) + to(g1) + to(b1)
+}
+const AVATAR_CALM = AVATAR_COLORS.map(([light]) => calmHex(light))
 /** Rakazo's shippedHash (FNV-1a). */
 function avatarHash(v) { let x = 2166136261; for (let i = 0; i < v.length; i++) x = Math.imul(x ^ v.charCodeAt(i), 16777619); return x >>> 0 }
 /** Simple stand-ins for Rakazo's shapes, in a 100 box: blob, squircle, pebble. */
 const AVATAR_SHAPES = ['M50 4a46 46 0 1 1 0 92a46 46 0 1 1 0-92Z', 'M34 4h32c20 0 30 10 30 30v32c0 20-10 30-30 30H34C14 96 4 86 4 66V34C4 14 14 4 34 4Z', 'M50 8c28 0 46 14 46 40s-18 44-46 44S4 74 4 48 22 8 50 8Z']
-let avatarSeq = 0
 /**
- * A teammate's avatar (Rakazo's bot avatar): a coloured shape picked from its id with two eyes; MyWork keeps its mark in
- * the same frame. `working` pulses it at scale 1.04 with a glow (static under reduced motion).
+ * A teammate's avatar: a flat shape in its identity colour (picked from its id; the calmer version unless `full`) with
+ * two eyes; MyWork keeps its mark in the same frame. `working` breathes it (opacity 1 ↔ .55 over 2.4 s; static .7 under
+ * reduced motion).
  */
-function Avatar({ mate, size, working }) {
+function Avatar({ mate, size, working, full }) {
   const s = size || 28
   const m = mate || {}
-  const [gid] = React.useState(() => 'mwtav' + String(++avatarSeq))
   if (m.isDefault) {
-    return h('span', { className: 'mwt-av', 'data-working': working ? 'true' : undefined, style: { '--glow': '#efe8da' }, 'aria-hidden': 'true' },
+    return h('span', { className: 'mwt-av', 'data-working': working ? 'true' : undefined, 'aria-hidden': 'true' },
       h('svg', { viewBox: '0 0 100 100', width: s, height: s },
         h('circle', { cx: 50, cy: 50, r: 46, fill: 'var(--av-bg, #1f1d1a)' }),
         h('svg', { x: 20, y: 20, width: 60, height: 60, viewBox: '0 0 24 24', fill: 'none' },
           h('path', { d: 'M4.5 18.5V7l5.5 6.5L15.5 7M10.5 17l3 3 6-6', stroke: 'var(--av-fg, #faf7f0)', strokeWidth: 3.2, strokeLinecap: 'round', strokeLinejoin: 'round' }))))
   }
   const hash = avatarHash(String(m.id || m.name || 'mate'))
-  const [light, dark, eye] = AVATAR_COLORS[hash % AVATAR_COLORS.length]
+  const i = hash % AVATAR_COLORS.length
+  const fill = full ? AVATAR_COLORS[i][0] : AVATAR_CALM[i]
   const shape = AVATAR_SHAPES[(Math.imul(hash ^ (hash >>> 16), 73244475) >>> 0) % AVATAR_SHAPES.length]
-  return h('span', { className: 'mwt-av', 'data-working': working ? 'true' : undefined, style: { '--glow': light }, 'aria-hidden': 'true' },
+  return h('span', { className: 'mwt-av', 'data-working': working ? 'true' : undefined, 'aria-hidden': 'true' },
     h('svg', { viewBox: '0 0 100 100', width: s, height: s },
-      h('defs', null, h('linearGradient', { id: gid, x1: 0, y1: 0, x2: 1, y2: 1 }, h('stop', { offset: '0%', stopColor: light }), h('stop', { offset: '100%', stopColor: dark }))),
-      h('path', { d: shape, fill: 'url(#' + gid + ')' }),
-      h('g', { fill: eye }, h('ellipse', { cx: 37.3, cy: 46.5, rx: 4.4, ry: 3.1 }), h('ellipse', { cx: 62.7, cy: 46.5, rx: 4.4, ry: 3.1 }))))
+      h('path', { d: shape, fill }),
+      h('g', { fill: AVATAR_COLORS[i][2] }, h('ellipse', { cx: 37.3, cy: 46.5, rx: 4.4, ry: 3.1 }), h('ellipse', { cx: 62.7, cy: 46.5, rx: 4.4, ry: 3.1 }))))
+}
+
+/** An ISO time as epoch ms (0 when missing). */
+const ms = (iso) => { const n = iso ? new Date(iso).getTime() : NaN; return Number.isFinite(n) ? n : 0 }
+/**
+ * When this browser last had each teammate's thread open (localStorage, newest 200): the server only says unread or not,
+ * so 「以下是新的」 reads the previous visit from here (taken before the visit overwrites it).
+ */
+const SEEN_KEY = 'dsh-mywork:seen-at'
+function clientSeenAt(id) { try { const m = JSON.parse(localStorage.getItem(SEEN_KEY) || '{}'); return m && typeof m[id] === 'string' ? m[id] : '' } catch { return '' } }
+function rememberSeen(id) {
+  try {
+    const raw = JSON.parse(localStorage.getItem(SEEN_KEY) || '{}')
+    const m = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {}
+    delete m[id]; m[id] = new Date().toISOString()
+    const keys = Object.keys(m)
+    for (const k of keys.slice(0, Math.max(0, keys.length - 200))) delete m[k]
+    localStorage.setItem(SEEN_KEY, JSON.stringify(m))
+  } catch {}
+}
+/** When a run last asked for attention (the server's attentionOf): finished, a failed verification, a question pending. */
+function attentionMs(r) {
+  let best = 0
+  if (r.status === 'done') best = Math.max(best, ms(r.finishedAt))
+  if (r.verification && r.verification.passed === false) best = Math.max(best, ms(r.verification.at))
+  if (r.status === 'waiting') for (const e of Array.isArray(r.activity) ? r.activity : []) if (e && e.kind === 'ask') best = Math.max(best, ms(e.at))
+  return best
+}
+/** Markdown as one line of plain words: fences, list and heading marks, table pipes and inline marks gone. */
+function plainOf(text) { return plainWords(String(text || '').replace(/```[\s\S]*?```/g, ' ')).replace(/^\s*(#{1,6}|[-*+]|\d+[.、]|>)\s*/gm, '').replace(/\|/g, ' ').replace(/\s+/g, ' ').trim() }
+/** The first sentence of some text, as plain words ('' when none). */
+function firstSentence(text) {
+  const plain = plainOf(text)
+  const m = plain.match(/^.+?[。！？!?](?=\s|$|[^。！？!?])|^.+?\.(?=\s|$)/)
+  return (m ? m[0] : plain).trim()
+}
+/** A document's body without its own leading 「# title」 line when the page already shows that title above it. */
+function withoutTitle(markdown, title) {
+  const text = String(markdown || '')
+  const m = text.match(/^\s*#\s+([^\n]+)\n+/)
+  const a = m ? m[1].trim() : '', b = String(title || '').trim()
+  return m && b && (a.startsWith(b) || b.startsWith(a)) ? text.slice(m[0].length) : text
+}
+/**
+ * The key figures of a deliverable: the summary rows whose value starts with a number, as { value, label }, value cut to
+ * the number and a short unit (「3 份」, 「15 条」); five at most.
+ */
+function figuresOf(d) {
+  const out = []
+  for (const r of Array.isArray(d && d.summary) ? d.summary : []) {
+    const m = String(r && r.value !== undefined && r.value !== null ? r.value : '').match(/^\s*(\d+(?:[.,]\d+)?)(?![.\d])(\s*)([^\s\d,，、;；.。:：（(]{0,2})/)
+    if (!m || !String(r.label || '').trim()) continue
+    out.push({ value: m[1] + (m[3] ? m[2] + m[3] : ''), label: String(r.label).trim() })
+    if (out.length >= 5) break
+  }
+  return out
+}
+
+/**
+ * Reply bubbles that first show up while a thread is open, in a run it watched working (or one started meanwhile): they
+ * enter over 200 ms (opacity, 6 px rise). The first pass only takes note of what is there. Returns a test by
+ * `runId:entryKey`; the mark lapses after a second, so a later remount does not replay it.
+ */
+function useArrivals(runs, lists, ready) {
+  const ref = React.useRef(null)
+  if (!ref.current) ref.current = { since: Date.now(), live: new Set(), shown: new Set(), until: new Map(), runs: null, primed: false }
+  const w = ref.current
+  if (ready && w.runs !== runs) {
+    w.runs = runs
+    const now = Date.now()
+    for (const run of runs) {
+      const watched = w.live.has(run.id) || (w.primed && ms(run.createdAt) >= w.since - 2000)
+      for (const e of lists.get(run.id) || []) {
+        if (e.kind !== 'deliver' && e.kind !== 'text') continue
+        const k = run.id + ':' + e.key
+        if (w.shown.has(k)) continue
+        w.shown.add(k)
+        if (w.primed && watched) w.until.set(k, now + 1000)
+      }
+      if (isLive(run)) w.live.add(run.id)
+    }
+    w.primed = true
+  }
+  return (k) => (w.until.get(k) || 0) > Date.now()
 }
 
 // ---- components -------------------------------------------------------------
@@ -714,82 +842,126 @@ function makeComponents(ctx, t) {
     return list
   }
 
-  /**
-   * The document itself: ✓ summary rows as a plain list, then the markdown as text. No box, no actions. In the thread
-   * (`titled`) it is a 文件卡: the file's title first, which opens it on the files page.
-   */
-  function Doc({ d, titled }) {
-    return h('div', { className: 'mwt-deliver' },
-      titled ? h('button', { type: 'button', className: 'mwt-file-title', onClick: () => openFiles(d.id) }, h('span', { className: 'tile' }, icon(fileGlyph(d), { size: 18 })), h('span', { className: 'nm' }, h('b', null, d.title || d.id), h('small', null, [t('file'), fmtWhen(d.createdAt)].filter(Boolean).join(' · ')))) : null,
-      Array.isArray(d.summary) && d.summary.length ? h('div', { className: 'mwt-sum' }, d.summary.map((r, i) => h('div', { key: i, className: 'mwt-sum-row' }, icon('check', { size: 14 }), h('span', { className: 'label' }, r.label), h('span', { className: 'value' }, r.value)))) : null,
-      h(Markdown, { text: d.markdown || '' }))
+  /** Summary rows as a compact definition list: label at 40 %, value at 100 %, tabular numerals, no colour. */
+  function SumList({ rows }) {
+    if (!Array.isArray(rows) || !rows.length) return null
+    return h('dl', { className: 'mwt-sum' }, rows.map((r, i) => h(React.Fragment, { key: i }, h('dt', null, r.label), h('dd', null, r.value === undefined || r.value === null ? '' : String(r.value)))))
   }
+  /** The verification in words: 核验中 / 已核验 · 核对 n · 问题 m / 核验发现 n 处 / 未能核验 ('' when there is nothing to say). */
+  const verifyText = (v) => (!v ? '' : v.kind === 'verifying' ? t('verifying')
+    : v.kind === 'passed' ? [t('verified'), t('checked') + ' ' + v.checked, t('issues') + ' ' + v.issues].join(' · ')
+    : v.kind === 'issues' ? t('verifyFound').replace('{n}', String(v.issues || 0))
+    : v.kind === 'none' ? t('verifyNone') : '')
   const verifyWord = (v) => (v && v.kind === 'passed' ? t('verified') : v && v.kind === 'issues' ? t('verifyIssues') : v && v.kind === 'none' ? t('verifyNone') : v && v.kind === 'verifying' ? t('verifying') : '')
-  /** 文件卡 (Rakazo ArtifactFileCard): 40 icon tile · title · 「文件 · 核验状态 · time」. Opens the document in the right panel. */
-  function FileCard({ d, verify, onOpen }) {
-    return h('button', { type: 'button', className: 'mwt-file-title', onClick: () => onOpen(d) },
-      h('span', { className: 'tile' }, icon(fileGlyph(d), { size: 18 })),
-      h('span', { className: 'nm' }, h('b', null, d.title || d.id), h('small', null, [t('file'), verifyWord(verify), fmtWhen(d.createdAt)].filter(Boolean).join(' · '))))
+  /**
+   * The verification word at 40 %; --warn only when `warn` (issues found on the thread's newest run). With the verifier's
+   * notes it is a button that opens them; without, plain words (a click on them reaches the strip under them).
+   */
+  function Verdict({ v, warn, open, onToggle }) {
+    const text = verifyText(v)
+    if (!text) return null
+    const tone = warn && v.kind === 'issues' ? 'warn' : undefined
+    if (!(v.notes && v.kind !== 'verifying')) return h('span', { className: 'mwt-verdict', 'data-tone': tone }, text)
+    return h('button', { type: 'button', className: 'mwt-verdict', 'data-tone': tone, 'aria-expanded': !!open, onClick: onToggle }, text)
+  }
+  /** 有用 / 没用: in the thread hidden until the run is hovered or focused (CSS); shown once one is chosen, or `always`. */
+  function Rating({ d, onRate, always }) {
+    return h('span', { className: 'mwt-rate' + (always ? ' always' : ''), 'data-chosen': d.rating === 1 || d.rating === -1 },
+      h('button', { type: 'button', 'aria-pressed': d.rating === 1, onClick: () => onRate(d, 1) }, t('ratingGood')),
+      h('button', { type: 'button', 'aria-pressed': d.rating === -1, onClick: () => onRate(d, -1) }, t('ratingBad')))
   }
   /**
-   * One segment's output in ONE bubble; it never carries the document: the reply (or, when the run said nothing after
-   * the files, the first document's first paragraph, three lines at most), every file's ✓ summary rows, the file cards.
+   * A file strip, the delivery's register in the thread: the title (16 / 600), a one-sentence deck at 65 %, the key
+   * figures (value, then label), the verification word, 有用 / 没用 on hover. No box, a 1px rule at its left. The title's
+   * hit area covers the whole strip, so a click anywhere on it opens the reading view.
    */
-  function DeliverBubble({ ds, text, verify, onOpen }) {
-    const first = ds[0] || {}
-    return h('div', { className: 'mwt-turn ai bubble' },
-      text ? h(Markdown, { text }) : first.excerpt ? h('div', { className: 'mwt-excerpt' }, plainWords(first.excerpt)) : null,
-      ds.map((d, i) => Array.isArray(d.summary) && d.summary.length ? h('div', { key: 's' + i, className: 'mwt-sum' }, d.summary.map((r, j) => h('div', { key: j, className: 'mwt-sum-row' }, icon('check', { size: 14 }), h('span', { className: 'label' }, r.label), h('span', { className: 'value' }, r.value)))) : null),
-      ds.map((d, i) => h(FileCard, { key: 'f' + (d.id || i), d, verify, onOpen })))
-  }
-  /** The right panel's 文件 mode: the whole document, full width, its own header (title · 下载 .md · 在文件页打开 · close). */
-  function FilePanel({ id, onClose }) {
-    const [data, setData] = React.useState(null)
-    React.useEffect(() => { let on = true; setData(null); api('/deliverable?id=' + encodeURIComponent(id)).then((x) => { if (on) setData(x || {}) }).catch(() => { if (on) setData({}) }); return () => { on = false } }, [id])
-    const d = data && data.deliverable
-    return h(React.Fragment, null,
-      h('div', { className: 'mwt-aside-head' },
-        h('span', { className: 'title', title: d ? d.title : undefined }, d ? d.title : t('file')),
-        d ? h('button', { type: 'button', className: 'mwt-btn ghost small', onClick: () => download(safeName(d.title) + '.md', '# ' + d.title + '\n\n' + (d.markdown || '')) }, icon('download', { size: 13 }), t('downloadMd')) : null,
-        d ? h('button', { type: 'button', className: 'mwt-btn ghost small', onClick: () => openFiles(d.id) }, t('openInFiles')) : null,
-        h('button', { type: 'button', className: 'mwt-btn ghost round', 'aria-label': t('close'), onClick: onClose }, icon('x', { size: 14 }))),
-      h('div', { className: 'mwt-aside-body doc' },
-        !data ? h(Skeleton, { rows: 5 })
-          : d ? h(React.Fragment, null, h('p', { className: 'mwt-doc-meta' }, fmtWhen(d.createdAt)), h(Doc, { d }))
-          : h('div', { className: 'mwt-empty' }, t('noMatch'))))
-  }
-
-  /**
-   * One meta line under a delivery: the verification word (read live from the run, so nothing reads 已核验 before the
-   * verifier stamped it), then the rating. 已核验 / 核验发现 / 未能核验 open the verifier's notes when there are any.
-   */
-  function DeliverMeta({ d, verify, onRate }) {
+  function Strip({ d, deck, verify, warn, onOpen, onRate }) {
     const [notes, setNotes] = React.useState(false)
+    const figs = figuresOf(d)
     const v = verify || { kind: '' }
-    const text = v.kind === 'verifying' ? t('verifying')
-      : v.kind === 'passed' ? [t('verified'), t('checked') + ' ' + v.checked, t('issues') + ' ' + v.issues].join(' · ')
-      : v.kind === 'issues' ? t('verifyFound').replace('{n}', String(v.issues || 0))
-      : v.kind === 'none' ? t('verifyNone') : ''
-    const hasNotes = !!(v.notes && v.kind !== 'verifying')
-    const tone = v.kind === 'passed' ? 'success' : v.kind === 'issues' ? 'warn' : v.kind === 'verifying' ? 'live' : undefined
-    const glyph = v.kind === 'passed' ? 'check' : v.kind === 'issues' ? 'circle-x' : v.kind === 'verifying' ? 'loader' : v.kind === 'none' ? 'x' : ''
-    return h('div', null,
-      h('div', { className: 'mwt-deliver-meta' },
-        text ? h('button', { type: 'button', className: 'verdict', 'data-tone': tone, 'data-notes': hasNotes, 'aria-expanded': hasNotes ? notes : undefined, onClick: () => { if (hasNotes) setNotes(!notes) } }, glyph ? icon(glyph, { size: 13 }) : null, text) : null,
-        text ? h('span', { className: 'sep' }, '·') : null,
-        h('button', { type: 'button', className: 'mwt-btn ghost', 'aria-pressed': d.rating === 1, onClick: () => onRate(d, 1) }, t('ratingGood')),
-        h('button', { type: 'button', className: 'mwt-btn ghost', 'aria-pressed': d.rating === -1, onClick: () => onRate(d, -1) }, t('ratingBad'))),
-      notes && hasNotes ? h('div', { className: 'mwt-notes' }, v.notes) : null)
+    return h('div', { className: 'mwt-strip' },
+      h('button', { type: 'button', className: 'mwt-strip-open', onClick: () => onOpen(d) }, h('span', { className: 't' }, d.title || d.id)),
+      deck ? h('p', { className: 'deck' }, deck) : null,
+      figs.length ? h('p', { className: 'figs' }, figs.map((f, i) => h(React.Fragment, { key: i }, i ? ' · ' : '', h('b', null, f.value), ' ' + f.label))) : null,
+      h('div', { className: 'mwt-strip-meta' },
+        h(Verdict, { v, warn, open: notes, onToggle: () => setNotes(!notes) }),
+        h(Rating, { d, onRate })),
+      notes && v.notes ? h('div', { className: 'mwt-notes' }, v.notes) : null)
+  }
+  /**
+   * One segment's delivery: its reply in a bubble above when it says more than one sentence, then a strip per file. A
+   * one-sentence reply is the first strip's deck; otherwise each deck is its file's first sentence.
+   */
+  function DeliverEntry({ ds, text, verify, warn, arrive, onOpen, onRate }) {
+    const lead = firstSentence(text)
+    const long = plainOf(text).length > lead.length + 1
+    return h('div', { className: 'mwt-deliver' + (arrive ? ' mwt-arrive' : '') },
+      long ? h('div', { className: 'mwt-turn ai bubble' }, h(Markdown, { text })) : null,
+      h('div', { className: 'mwt-strips' }, ds.map((d, i) => h(Strip, { key: d.id || i, d, deck: !long && i === 0 && lead ? lead : firstSentence(d.excerpt), verify, warn, onOpen, onRate }))))
+  }
+  /**
+   * The reading view: a deliverable opened in the centre column (the mate page swaps its column for it, the files page
+   * its list). A small way back, the title, a meta line at 40 % (teammate · time · verification, then text buttons), the
+   * summary rows, the body; 有用 / 没用 at the end. Escape goes back too.
+   */
+  function ReadingView({ id, mates, backLabel, onBack, fromFiles, newestRunId, onRated }) {
+    const [data, setData] = React.useState(null)
+    const [notes, setNotes] = React.useState(false)
+    React.useEffect(() => { let on = true; setData(null); api('/deliverable?id=' + encodeURIComponent(id)).then((x) => { if (on) setData(x || {}) }).catch(() => { if (on) setData({}) }); return () => { on = false } }, [id])
+    const back = React.useRef(onBack); back.current = onBack
+    React.useEffect(() => {
+      const onKey = (ev) => {
+        if (ev.key !== 'Escape' || ev.defaultPrevented) return
+        const el = ev.target
+        if (el && typeof el.closest === 'function' && el.closest('input, textarea, .mwt-aside, .mwt-menu')) return
+        ev.preventDefault()
+        back.current()
+      }
+      window.addEventListener('keydown', onKey)
+      return () => window.removeEventListener('keydown', onKey)
+    }, [])
+    const d = data && data.deliverable ? data.deliverable : null
+    const run = data && (data.run || data.task) ? (data.run || data.task) : null
+    const mateId = d ? d.mateId || (run && run.mateId) || '' : ''
+    const runId = d ? d.runId || (run && run.id) || '' : ''
+    const mate = (mates || []).find((m) => m.id === mateId)
+    const v = d ? verifyState(run ? { verifying: run.verifying, verification: run.verification } : { verification: d.verification }) : { kind: '' }
+    const rate = (x, r) => api('/rate', { id: x.id, rating: x.rating === r ? null : r }).then((y) => {
+      if (!y || !y.deliverable) return
+      setData((p) => ({ ...p, deliverable: { ...p.deliverable, rating: y.deliverable.rating } }))
+      if (onRated) onRated(y.deliverable)
+    }).catch(() => {})
+    const meta = []
+    if (d) {
+      if (mate) meta.push(h('span', { key: 'n' }, mate.name))
+      meta.push(h('span', { key: 'w' }, fmtWhen(d.createdAt)))
+      if (verifyText(v)) meta.push(h(Verdict, { key: 'v', v, warn: !!runId && runId === newestRunId, open: notes, onToggle: () => setNotes(!notes) }))
+      meta.push(h('button', { key: 'md', type: 'button', className: 'mwt-tbtn', onClick: () => download(safeName(d.title) + '.md', '# ' + d.title + '\n\n' + (d.markdown || '')) }, t('downloadMd')))
+      if (!fromFiles) meta.push(h('button', { key: 'fp', type: 'button', className: 'mwt-tbtn', onClick: () => openFiles(d.id) }, t('openInFiles')))
+      else {
+        if (mateId) meta.push(h('button', { key: 'th', type: 'button', className: 'mwt-tbtn', onClick: () => openMate(mateId, runId) }, t('inThread')))
+        meta.push(h('button', { key: 'pdf', type: 'button', className: 'mwt-tbtn', onClick: () => printDoc(d) }, t('exportPdf')))
+      }
+    }
+    return h('article', { className: 'mwt-read' },
+      h('button', { type: 'button', className: 'mwt-read-back', onClick: onBack }, icon('arrow-left', { size: 14 }), backLabel),
+      !data ? h(Skeleton, { rows: 6 })
+        : !d ? h('div', { className: 'mwt-empty' }, t('noMatch'))
+          : h(React.Fragment, null,
+            h('h1', null, d.title || d.id),
+            h('div', { className: 'mwt-read-meta' }, meta.map((x, i) => (i ? [h('span', { key: 's' + i, 'aria-hidden': 'true' }, '·'), x] : x))),
+            notes && v.notes ? h('div', { className: 'mwt-notes' }, v.notes) : null,
+            h(SumList, { rows: d.summary }),
+            h(Markdown, { text: withoutTitle(d.markdown, d.title) }),
+            h('div', { className: 'mwt-read-end' }, h(Rating, { d, onRate: rate, always: true }))))
   }
 
-  /** A folded deliverable: one compact row (glyph · title · verification word · time) that opens the full segment. */
-  function FoldRow({ d, verify, open, onToggle }) {
-    const v = verify || { kind: '' }
-    const word = v.kind === 'passed' ? t('verified') : v.kind === 'issues' ? t('verifyIssues') : v.kind === 'none' ? t('verifyNone') : v.kind === 'verifying' ? t('verifying') : ''
-    return h('button', { type: 'button', className: 'mwt-arow mwt-fold', 'aria-expanded': open, onClick: onToggle },
-      h('span', { className: 'ic' }, icon(fileGlyph(d), { size: 15 })),
+  /** A folded deliverable (an older run): one compact row (file glyph · title · verification word · time) that opens it. */
+  function FoldRow({ d, verify, onOpen }) {
+    return h('button', { type: 'button', className: 'mwt-arow ic mwt-fold', onClick: () => onOpen(d) },
+      h('span', { className: 'ic' }, icon(fileGlyph(d), { size: 16 })),
       h('span', { className: 'main' }, h('span', { className: 't' }, d.title || d.id)),
-      h('span', { className: 'm' }, [word, fmtWhen(d.createdAt)].filter(Boolean).join(' · ')))
+      h('span', { className: 'm' }, [verifyWord(verify), fmtWhen(d.createdAt)].filter(Boolean).join(' · ')))
   }
 
   /** 过程: one line that says what the run did, and a fold that shows how. Folded by default. */
@@ -805,8 +977,8 @@ function makeComponents(ctx, t) {
     const summary = [t('process'), n ? n + ' ' + t('phases') : '', elapsedOf(run)].filter(Boolean).join(' · ')
     return h('div', { className: 'mwt-proc' },
       h('button', { type: 'button', className: 'mwt-proc-head', 'aria-expanded': open, onClick: () => setOpen(!open) },
-        icon(live ? 'loader' : 'history', { size: 13, className: live ? 'live' : undefined }), h('span', { className: 'grow' }, summary),
-        icon('chevron-down', { size: 13, style: { transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 150ms' } })),
+        h('span', { className: 'grow' }, summary),
+        icon('chevron-down', { size: 12, style: { transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 150ms' } })),
       open ? (src ? h(Phases, { run: src, rows, live }) : h(Skeleton, { rows: 2 })) : null)
   }
 
@@ -846,16 +1018,14 @@ function makeComponents(ctx, t) {
           const meta = [n > 1 ? n + ' ' + t('times') : '', r.ms > 1500 ? fmtDuration(r.ms) : ''].filter(Boolean).join(' · ')
           return h('div', { key: i },
             h('button', { type: 'button', className: 'mwt-phase-head', 'aria-expanded': open === i, 'data-tone': running ? 'live' : r.failed ? 'danger' : undefined, onClick: () => setOpen(open === i ? -1 : i) },
-              h('span', { className: 'ic' }, icon(running ? 'loader' : r.failed ? 'circle-x' : 'check', { size: 13 })),
               h('span', { className: 'verb' }, r.verb),
               meta ? h('span', { className: 'meta' }, meta) : null,
               open !== i && r.obj ? h('span', { className: 'obj' }, r.obj) : null),
-            open === i ? h('div', { className: 'mwt-phase-body' }, r.items.map((e, j) => { const d = describeTool(e.name, e.detail); return h('div', { key: j, className: 'mwt-ev', 'data-ok': e.ok === undefined ? undefined : e.ok, title: e.name + (e.detail ? ' ' + e.detail : '') }, h('span', { className: 'ic' }, icon(e.ok === false ? 'circle-x' : e.ok === true ? 'check' : 'loader', { size: 13 })), h('div', { className: 'line' }, h('span', { className: 'verb' }, d.verb), d.obj ? h('span', { className: 'obj' }, d.obj) : null, e.ok === false && e.result ? h('div', { className: 'result' }, t('toolFailed') + ' · ' + e.result) : null)) })) : null)
+            open === i ? h('div', { className: 'mwt-phase-body' }, r.items.map((e, j) => { const d = describeTool(e.name, e.detail); return h('div', { key: j, className: 'mwt-ev', 'data-ok': e.ok === undefined ? undefined : e.ok, title: e.name + (e.detail ? ' ' + e.detail : '') }, h('span', { className: 'verb' }, d.verb), d.obj ? h('span', { className: 'obj' }, d.obj) : null, e.ok === false && e.result ? h('span', { className: 'result' }, t('toolFailed') + ' · ' + e.result) : null) })) : null)
         }
         return h(PhaseNote, { key: i, text: r.text, label: r.kind === 'verify' ? t('verifyLabel') : '' })
       }),
-      v ? h('div', { className: 'mwt-phase-head', 'data-tone': vs.kind === 'verifying' ? 'live' : vs.kind === 'issues' ? 'danger' : undefined },
-        h('span', { className: 'ic' }, icon(vs.kind === 'verifying' ? 'loader' : vs.kind === 'issues' ? 'circle-x' : vs.kind === 'passed' ? 'check' : 'x', { size: 13 })),
+      v ? h('div', { className: 'mwt-phase-head', 'data-tone': vs.kind === 'verifying' ? 'live' : undefined },
         h('span', { className: 'verb' }, t('verifyLabel')),
         h('span', { className: 'meta' }, [vs.kind === 'verifying' ? t('verifying') : vs.kind === 'passed' ? t('passed') : vs.kind === 'issues' ? t('verifyIssues') : t('verifyNone'), vs.checked ? t('checked') + ' ' + vs.checked : '', vs.issues ? t('issues') + ' ' + vs.issues : ''].filter(Boolean).join(' · '))) : null)
   }
@@ -864,7 +1034,6 @@ function makeComponents(ctx, t) {
   function PhaseNote({ text, label }) {
     const [open, setOpen] = React.useState(false)
     return h('div', { className: 'mwt-phase-note' + (open ? ' open' : ''), role: 'button', tabIndex: 0, onClick: () => setOpen(!open), onKeyDown: (e) => { if (e.key === 'Enter') setOpen(!open) } },
-      h('span', { className: 'ic' }, icon('message', { size: 13 })),
       h('div', { className: 'body' }, label ? h('span', { className: 'lbl' }, label + ' · ') : null, text))
   }
 
@@ -875,7 +1044,7 @@ function makeComponents(ctx, t) {
     const list = items.filter(Boolean)
     return h('div', { className: 'mwt-menu', ref },
       h('button', { type: 'button', className: 'mwt-btn ghost round', 'aria-label': t('more'), 'aria-haspopup': 'menu', 'aria-expanded': open, onClick: () => setOpen(!open) }, '···'),
-      open ? h('div', { className: 'mwt-menu-pop', role: 'menu' }, list.map((it) => h('button', { key: it.label, type: 'button', role: 'menuitem', onClick: () => { setOpen(false); it.run() } }, icon(it.icon, { size: 14 }), it.label))) : null)
+      open ? h('div', { className: 'mwt-menu-pop', role: 'menu' }, list.map((it) => h('button', { key: it.label, type: 'button', role: 'menuitem', onClick: () => { setOpen(false); it.run() } }, it.label))) : null)
   }
 
   /**
@@ -886,7 +1055,7 @@ function makeComponents(ctx, t) {
   function AskCard({ e, onAnswer, onTakeover }) {
     const [busy, setBusy] = React.useState(false)
     const [err, setErr] = React.useState('')
-    if (e.status === 'answered') return h('div', { className: 'mwt-askline', 'data-tone': 'success', title: plainWords(e.question) }, icon('check', { size: 14 }), h('span', null, t('answeredLine').replace('{a}', e.answer)))
+    if (e.status === 'answered') return h('div', { className: 'mwt-askline', title: plainWords(e.question) }, h('span', null, t('answeredLine').replace('{a}', e.answer)))
     if (e.status !== 'pending') return h('div', { className: 'mwt-askline', title: plainWords(e.question) }, h('span', null, t('askClosed')))
     const can = e.answerable && !busy
     const send = (value) => {
@@ -917,9 +1086,8 @@ function makeComponents(ctx, t) {
   /** 提醒卡: a reminder firing; one 知道了 (POST /routines/ack). Acknowledged, it is one muted line. */
   function RemindCard({ e, onAck }) {
     const [busy, setBusy] = React.useState(false)
-    if (e.acked) return h('div', { className: 'mwt-askline' }, icon('bell', { size: 13 }), h('span', null, [t('remindCard'), e.title, t('acked')].filter(Boolean).join(' · ')))
+    if (e.acked) return h('div', { className: 'mwt-askline' }, h('span', null, [t('remindCard'), e.title, t('acked')].filter(Boolean).join(' · ')))
     return h('div', { className: 'mwt-remind' },
-      h('span', { className: 'ic' }, icon('bell', { size: 16 })),
       h('span', { className: 'txt' }, e.title || t('remindCard')),
       h('button', { type: 'button', className: 'mwt-btn', disabled: busy || !e.routineId, onClick: () => { setBusy(true); Promise.resolve(onAck(e)).finally(() => setBusy(false)) } }, t('gotIt')))
   }
@@ -985,14 +1153,17 @@ function makeComponents(ctx, t) {
   }
 
   /**
-   * One teammate: header (avatar + name → the right panel, title, ···), the thread, the dock; the right panel beside it
-   * when the page has room (a grid column), else a slide-over at its right edge. The reading column never shrinks.
+   * One teammate: header (avatar + name + title → the right panel, ···), the thread, the dock; the right panel beside it
+   * when the page has room (a grid column), else a slide-over at its right edge. The reading column never shrinks. A
+   * deliverable opened from the thread takes this column's place (the reading view) until you go back.
    */
   function MateView({ mate, mates, nav: n, renderSlot }) {
     const th = useThread(mate)
     const runs = React.useMemo(() => th.runs.filter((r) => !(r.quiet && r.trigger === 'routine' && !r.error)), [th.runs])
+    const lists = React.useMemo(() => new Map(runs.map((r) => [r.id, threadOf(r)])), [runs])
     // Migrated runs and finished runs older than the newest five fold to the user line + one row per deliverable.
     const folded = React.useMemo(() => foldedRunIds(runs, 5), [runs])
+    const newestId = runs.length ? runs[runs.length - 1].id : ''
     const live = activeRun(runs)
     const running = mate.state === 'working' || (!!live && isLive(live))
     useTick(running)
@@ -1006,16 +1177,44 @@ function makeComponents(ctx, t) {
     const keep = React.useRef(null)
     const jump = React.useRef({ id: '', tries: 0 })
     const [jumpSeq, setJumpSeq] = React.useState(0)
+    const arriving = useArrivals(runs, lists, th.loaded)
+    // The composer's draft outlives the reading view (the dock is not on screen while a file is open).
+    const draft = React.useRef('')
+
+    // The reading view: the open deliverable's id; the thread's scroll position is kept for the way back.
+    const [reading, setReading] = React.useState('')
+    const readingRef = React.useRef(''); readingRef.current = reading
+    const backTo = React.useRef(null)
+    const openDoc = (d) => { const el = rootRef.current; if (!readingRef.current) backTo.current = el ? el.scrollTop : 0; setReading(String(d.id)) }
+    const closeDoc = React.useCallback(() => setReading(''), [])
+    React.useLayoutEffect(() => {
+      const el = rootRef.current
+      if (!el) return
+      if (reading) { el.scrollTop = 0; return }
+      if (backTo.current !== null) { el.scrollTop = backTo.current; backTo.current = null }
+    }, [reading])
+
+    // 「以下是新的」: unread when it opened, the first run that asked for attention after this browser last had it open
+    // (else the run carrying the teammate's attention time). Captured before this visit marks it seen.
+    const [visit] = React.useState(() => ({ unread: mate.unread === true, seenAt: clientSeenAt(mate.id), attentionAt: mate.attentionAt || '' }))
+    const firstNew = React.useMemo(() => {
+      if (!visit.unread || !runs.length) return ''
+      const since = ms(visit.seenAt)
+      if (since) { const r = runs.find((x) => attentionMs(x) > since); return r ? r.id : '' }
+      const at = ms(visit.attentionAt)
+      const r = at ? runs.find((x) => attentionMs(x) >= at - 1000) : null
+      return (r || runs[runs.length - 1]).id
+    }, [runs, visit])
 
     // The right panel: per teammate, mode 'mate' (电脑 · 例行 · 设置) or 'new-mate' (the form).
-    const [aside, setAside] = React.useState(() => ({ open: asideMemory(mate.id) === 'open', mode: 'mate', section: '', routineId: '', fileId: '', seq: 0 }))
+    const [aside, setAside] = React.useState(() => ({ open: asideMemory(mate.id) === 'open', mode: 'mate', section: '', routineId: '', seq: 0 }))
     const showAside = (open, patch) => { setAside((a) => ({ ...a, open, ...(patch || {}), seq: a.seq + 1 })); if (!patch || patch.mode === 'mate') rememberAside(mate.id, open ? 'open' : 'closed') }
 
     // Navigation requests (the column, toasts, the bell, search): a run to jump to, the panel to open.
     React.useEffect(() => {
       if (n.seq === consumedSeq) return
       consumedSeq = n.seq
-      if (n.runId) { jump.current = { id: n.runId, tries: 0 }; setJumpSeq((x) => x + 1) }
+      if (n.runId) { backTo.current = null; setReading(''); jump.current = { id: n.runId, tries: 0 }; setJumpSeq((x) => x + 1) }
       const a = n.aside
       if (a && a.mode === 'new-mate') showAside(true, { mode: 'new-mate', section: '', routineId: '' })
       else if (a) showAside(true, { mode: 'mate', section: a.section || '', routineId: a.routineId || '' })
@@ -1023,12 +1222,13 @@ function makeComponents(ctx, t) {
 
     // Tell the column what is on screen; mark it seen now and whenever new content lands while it stays open.
     React.useEffect(() => { fire('mywork:thread-opened', { kind: 'mate', id: mate.id }) }, [mate.id])
-    React.useEffect(() => { api('/seen', { id: mate.id }).catch(() => {}) }, [mate.id, mate.lastAt || ''])
+    React.useEffect(() => { api('/seen', { id: mate.id }).catch(() => {}); rememberSeen(mate.id) }, [mate.id, mate.lastAt || ''])
 
-    // Scroll: the thread opens at its end and follows new content while you are at the end; 「加载更早」 keeps your place.
+    // Scroll: the thread opens at its end (or at 「以下是新的」) and follows new content while you are at the end;
+    // 「加载更早」 keeps your place. Nothing moves while the reading view is up.
     const onScroll = () => {
       const el = rootRef.current
-      if (!el) return
+      if (!el || readingRef.current) return
       atBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 120
       // Near the top: the earlier page comes in above, your place kept.
       if (el.scrollTop < 200 && th.loaded && th.nextBefore && !th.busy && !keep.current && !jump.current.id) loadEarlier()
@@ -1037,7 +1237,7 @@ function makeComponents(ctx, t) {
     const sig = runs.length + ':' + (runs[0] ? runs[0].id : '') + ':' + (lastRun ? lastRun.id + lastRun.status + (lastRun.activity || []).length + (lastRun.deliverables || []).length : '') + ':' + pending.text
     React.useLayoutEffect(() => {
       const el = rootRef.current
-      if (!el) return
+      if (!el || readingRef.current) return
       const k = keep.current
       if (k) { keep.current = null; el.scrollTop = k.top + (el.scrollHeight - k.height); return }
       if (atBottom.current && !jump.current.id) el.scrollTop = el.scrollHeight
@@ -1054,6 +1254,17 @@ function makeComponents(ctx, t) {
       const id = requestAnimationFrame(() => { if (atBottom.current && rootRef.current) rootRef.current.scrollTop = rootRef.current.scrollHeight })
       return () => cancelAnimationFrame(id)
     }, [th.loaded])
+    // Unread when it opened: 「以下是新的」 sits ~96 px from the top instead (once, when it first shows).
+    const newScrolled = React.useRef(false)
+    React.useLayoutEffect(() => {
+      if (newScrolled.current || !firstNew || !th.loaded || jump.current.id || readingRef.current) return
+      const el = rootRef.current
+      const line = el && el.querySelector('.mwt-newline')
+      if (!line) return
+      newScrolled.current = true
+      atBottom.current = false
+      el.scrollTop = Math.max(0, el.scrollTop + line.getBoundingClientRect().top - el.getBoundingClientRect().top - 96)
+    }, [firstNew, th.loaded, runs.length])
     const loadEarlier = () => {
       const el = rootRef.current
       if (el) keep.current = { height: el.scrollHeight, top: el.scrollTop }
@@ -1102,29 +1313,26 @@ function makeComponents(ctx, t) {
     }, [shown, split])
 
     const answer = (runId) => (askId, value) => api('/answer', { id: runId, askId, answer: value }).then((d) => { if (d && d.run) th.patchRun(d.run); th.reload(); kick() })
-    const rate = (d, r) => api('/rate', { id: d.id, rating: d.rating === r ? null : r }).then((x) => {
-      const nd = x && x.deliverable
-      if (!nd) return
-      th.setTh((p) => ({ ...p, runs: p.runs.map((run) => (Array.isArray(run.deliverables) && run.deliverables.some((y) => y.id === nd.id) ? { ...run, deliverables: run.deliverables.map((y) => (y.id === nd.id ? { ...y, rating: nd.rating } : y)) } : run)) }))
-    }).catch(() => {})
+    const patchRating = (nd) => th.setTh((p) => ({ ...p, runs: p.runs.map((run) => (Array.isArray(run.deliverables) && run.deliverables.some((y) => y.id === nd.id) ? { ...run, deliverables: run.deliverables.map((y) => (y.id === nd.id ? { ...y, rating: nd.rating } : y)) } : run)) }))
+    const rate = (d, r) => api('/rate', { id: d.id, rating: d.rating === r ? null : r }).then((x) => { if (x && x.deliverable) patchRating(x.deliverable) }).catch(() => {})
     const ack = (e) => api('/routines/ack', { id: e.routineId, at: e.at }).then(() => { th.reload(); kick() }).catch(() => {})
     const stop = () => api('/mates/stop', { id: mate.id }).then(() => { th.reload(); kick() }).catch(() => {})
     const takeover = () => showAside(true, { mode: 'mate', section: 'computer' })
     const textAsk = textAskOf(runs)
-    const openDoc = (d) => showAside(true, { mode: 'file', fileId: d.id, section: '', routineId: '' })
     // The example prompts of an empty thread fill the composer.
     const fillRef = React.useRef(null)
 
     const renderEntry = (run, e) => {
+      const arrive = arriving(run.id + ':' + e.key)
       if (e.kind === 'routine') return h('div', { key: e.key, className: 'mwt-center' }, [e.title, hhmm(e.at)].filter(Boolean).join(' · '))
       if (e.kind === 'scheduled') return h('button', { key: e.key, type: 'button', className: 'mwt-center', onClick: () => showAside(true, { mode: 'mate', section: 'routines', routineId: e.routineId }) }, t('scheduled') + ' · ' + [e.scheduleLabel, e.title].filter(Boolean).join(' '))
       if (e.kind === 'remind') return h('div', { key: e.key, className: 'mwt-turn ai' }, h(RemindCard, { e, onAck: ack }))
       if (e.kind === 'user') return h('div', { key: e.key, className: 'mwt-turn user' }, h('div', { className: 'mwt-bubble' }, e.text))
-      if (e.kind === 'deliver') { const ds = e.ds || [e.d]; return h(React.Fragment, { key: e.key }, h(DeliverBubble, { ds, text: e.text, verify: e.verify, onOpen: openDoc }), h('div', { className: 'mwt-after' }, ds.map((d) => h(DeliverMeta, { key: d.id, d, verify: e.verify, onRate: rate })))) }
-      if (e.kind === 'text') return h('div', { key: e.key, className: 'mwt-turn ai bubble' }, h(Markdown, { text: e.text }))
+      if (e.kind === 'deliver') return h(DeliverEntry, { key: e.key, ds: e.ds || [e.d], text: e.text, verify: e.verify, warn: run.id === newestId, arrive, onOpen: openDoc, onRate: rate })
+      if (e.kind === 'text') return h('div', { key: e.key, className: 'mwt-turn ai bubble' + (arrive ? ' mwt-arrive' : '') }, h(Markdown, { text: e.text }))
       if (e.kind === 'ask') return h('div', { key: e.key, className: 'mwt-turn ai' }, h(AskCard, { e, onAnswer: answer(run.id), onTakeover: takeover }))
       if (e.kind === 'auto') return h('div', { key: e.key, className: 'mwt-turn ai' }, h('div', { className: 'mwt-askline' }, h('span', null, t('askAuto'))))
-      if (e.kind === 'thinking') return h('div', { key: e.key, className: 'mwt-turn ai mwt-working', role: 'status', 'aria-label': t('workingAria').replace('{name}', mate.name || '') }, h(Avatar, { mate, size: 28, working: true }), h('span', { className: 'step mwt-thinking' }, h('span', null, [e.step, elapsedOf(run)].filter(Boolean).join(' · '))))
+      if (e.kind === 'thinking') return h('div', { key: e.key, className: 'mwt-turn ai mwt-working', role: 'status', 'aria-label': t('workingAria').replace('{name}', mate.name || '') }, h(Avatar, { mate, size: 28, working: true }), h('span', { className: 'step' }, [e.step, elapsedOf(run)].filter(Boolean).join(' · ')))
       if (e.kind === 'queued') return h('div', { key: e.key, className: 'mwt-turn ai mwt-queued' }, t('queued'))
       if (e.kind === 'stopped') return h('div', { key: e.key, className: 'mwt-center' }, t('stopped'))
       if (e.kind === 'failed') return h('div', { key: e.key, className: 'mwt-turn ai mwt-failed' }, t('failedTitle') + ' · ' + e.reason)
@@ -1132,58 +1340,59 @@ function makeComponents(ctx, t) {
     }
 
     // Two modes (Rakazo): 设置 through the name, 电脑 (screen or folder + 例行) through the monitor button.
-    const panelMode = aside.mode === 'new-mate' ? 'new-mate' : aside.mode === 'file' ? 'file' : aside.section === 'settings' ? 'settings' : 'computer'
+    const panelMode = aside.mode === 'new-mate' ? 'new-mate' : aside.section === 'settings' ? 'settings' : 'computer'
     const settingsOpen = shown && panelMode === 'settings'
     const computerOpen = shown && panelMode === 'computer'
     const title = panelMode === 'new-mate' ? t('newMate') : panelMode === 'settings' ? t('settings') : [t('computer'), running ? t('working') : ''].filter(Boolean).join(' · ')
     const asideBody = () => aside.mode === 'new-mate'
       ? h(NewMateForm, { onCreated: (m) => { setAside((a) => ({ ...a, open: false, mode: 'mate', seq: a.seq + 1 })); if (getNav().mateId !== m.id) openMate(m.id) } })
-      : h(MatePanel, { mate, mates, live, screen, renderSlot, section: aside.section, routineId: aside.routineId, seq: aside.seq, onJump: (runId) => { jump.current = { id: runId, tries: 0 }; setJumpSeq((x) => x + 1) } })
+      : h(MatePanel, { mate, mates, live, screen, renderSlot, section: aside.section, routineId: aside.routineId, seq: aside.seq, onJump: (runId) => { backTo.current = null; setReading(''); jump.current = { id: runId, tries: 0 }; setJumpSeq((x) => x + 1) } })
     const asidePanel = (mode) => h('aside', { className: 'mwt-aside ' + mode, 'data-open': mode === 'over' ? shown : undefined, 'aria-label': title, 'aria-hidden': mode === 'over' && !shown ? 'true' : undefined, style: mode === 'col' && box.h ? { height: box.h } : undefined },
-      panelMode === 'file' ? (shown && aside.fileId ? h(FilePanel, { id: aside.fileId, onClose: () => showAside(false) }) : null) : h(React.Fragment, null,
       h('div', { className: 'mwt-aside-head' },
         h('span', { className: 'title' }, title),
         h('button', { type: 'button', className: 'mwt-btn ghost round', 'aria-label': t('close'), onClick: () => showAside(false) }, icon('x', { size: 14 }))),
-      shown ? h('div', { className: 'mwt-aside-body' }, asideBody()) : null))
+      shown ? h('div', { className: 'mwt-aside-body' }, asideBody()) : null)
     const menu = [
       running || mate.state === 'waiting' ? { icon: 'square', label: t('stop'), run: stop } : null,
       { icon: 'settings', label: t('settings'), run: () => showAside(true, { mode: 'mate', section: 'settings' }) },
     ]
     const empty = th.loaded && !runs.length && !pending.text
+    const thread = () => h(React.Fragment, null,
+      h('header', { className: 'mwt-head' },
+        h('button', { type: 'button', className: 'mwt-who', 'aria-expanded': settingsOpen, title: mate.title || undefined, onClick: () => showAside(!settingsOpen, { mode: 'mate', section: 'settings', routineId: '' }) },
+          h(Avatar, { mate, size: 26, working: running }),
+          h('span', { className: 'who' }, h('span', { className: 'name' }, mate.name), mate.title ? h('span', { className: 'ttl' }, mate.title) : null)),
+        h('span', { className: 'grow' }),
+        h('button', { type: 'button', className: 'mwt-btn ghost round', 'aria-label': t('computer'), 'aria-pressed': computerOpen, title: t('computer'), onClick: () => showAside(!computerOpen, { mode: 'mate', section: 'computer', routineId: '' }) }, icon('monitor', { size: 16 })),
+        h(Menu, { items: menu })),
+      !th.loaded ? h(Skeleton, { rows: 3 })
+        : th.error ? h('div', { className: 'mwt-retry' }, h('span', null, t('loadFailed')), h('button', { type: 'button', className: 'mwt-btn', onClick: th.reload }, t('retry')))
+        : empty ? h(Hello, { mate, onPick: (text) => { if (fillRef.current) fillRef.current(text) } })
+        : h('section', { className: 'mwt-thread' },
+          th.nextBefore ? h('button', { type: 'button', className: 'mwt-older', disabled: th.busy, onClick: loadEarlier }, t('loadEarlier')) : null,
+          runs.map((run) => {
+            const list = lists.get(run.id) || []
+            const line = run.id === firstNew ? h('div', { key: 'new:' + run.id, className: 'mwt-newline', role: 'separator' }, t('newBelow')) : null
+            const block = folded.has(run.id) && list.some((e) => e.kind === 'deliver')
+              ? h('div', { key: run.id, className: 'mwt-run folded' + (hl === run.id ? ' hl' : ''), 'data-run': run.id },
+                list.map((e) => {
+                  if (e.kind === 'user' || e.kind === 'routine') return renderEntry(run, e)
+                  if (e.kind !== 'deliver') return null
+                  return (e.ds || [e.d]).map((d) => h('div', { key: e.key + ':' + d.id, className: 'mwt-turn ai' }, h(FoldRow, { d, verify: e.verify, onOpen: openDoc })))
+                }))
+              : h('div', { key: run.id, className: 'mwt-run' + (hl === run.id ? ' hl' : ''), 'data-run': run.id },
+                list.map((e) => renderEntry(run, e)),
+                hasProcess(run) ? h(Process, { run, live: isLive(run) }) : null)
+            return line ? [line, block] : block
+          }),
+          pending.text ? h('div', { className: 'mwt-turn user' }, h('div', { className: 'mwt-bubble' }, pending.text)) : null),
+      h('div', { className: 'mwt-dock' }, h(Dock, { key: mate.id, mate, fillRef, draft, targetId: mate.id, running, onStop: stop, textAsk, answering: mate.state === 'waiting' || !!textAsk, onPending: (text) => { atBottom.current = true; setPending({ text, at: text ? Date.now() : 0 }) }, onSent: () => { th.reload(); kick() } })))
     return h('div', { ref: rootRef, className: 'mwt mwt-mate', 'data-mwt-mate': mate.id, onScroll },
       h('style', null, STYLE),
       !split ? h('div', { className: 'mwt-aside-dock' }, h('div', { className: 'mwt-aside-clip', style: box.h ? { height: box.h } : undefined }, asidePanel('over'))) : null,
-      h('div', { className: 'mwt-page mate' + (shown && split ? ' split' : ''), style: shown && split && panelMode === 'file' ? { '--aside-w': ASIDE_FILE_W + 'px' } : undefined },
+      h('div', { className: 'mwt-page mate' + (shown && split ? ' split' : '') },
         h('div', { className: 'mwt-col' },
-          h('header', { className: 'mwt-head' },
-            h('button', { type: 'button', className: 'mwt-who', 'aria-expanded': settingsOpen, title: mate.title || undefined, onClick: () => showAside(!settingsOpen, { mode: 'mate', section: 'settings', routineId: '' }) },
-              h(Avatar, { mate, size: 26, working: running }),
-              h('span', { className: 'name' }, mate.name)),
-            h('span', { className: 'grow' }),
-            h('button', { type: 'button', className: 'mwt-btn ghost round', 'aria-label': t('computer'), 'aria-pressed': computerOpen, title: t('computer'), onClick: () => showAside(!computerOpen, { mode: 'mate', section: 'computer', routineId: '' }) }, icon('monitor', { size: 16 })),
-            h(Menu, { items: menu })),
-          !th.loaded ? h(Skeleton, { rows: 3 })
-            : th.error ? h('div', { className: 'mwt-retry' }, h('span', null, t('loadFailed')), h('button', { type: 'button', className: 'mwt-btn', onClick: th.reload }, t('retry')))
-            : empty ? h(Hello, { mate, onPick: (text) => { if (fillRef.current) fillRef.current(text) } })
-            : h('section', { className: 'mwt-thread' },
-              th.nextBefore ? h('button', { type: 'button', className: 'mwt-older', disabled: th.busy, onClick: loadEarlier }, t('loadEarlier')) : null,
-              runs.map((run) => {
-                const list = threadOf(run)
-                if (folded.has(run.id) && list.some((e) => e.kind === 'deliver')) {
-                  return h('div', { key: run.id, className: 'mwt-run folded' + (hl === run.id ? ' hl' : ''), 'data-run': run.id },
-                    list.map((e) => {
-                      if (e.kind === 'user' || e.kind === 'routine') return renderEntry(run, e)
-                      if (e.kind !== 'deliver') return null
-                      return (e.ds || [e.d]).map((d) => h('div', { key: e.key + ':' + d.id, className: 'mwt-turn ai' },
-                        h(FoldRow, { d, verify: e.verify, open: shown && aside.mode === 'file' && aside.fileId === d.id, onToggle: () => openDoc(d) })))
-                    }))
-                }
-                return h('div', { key: run.id, className: 'mwt-run' + (hl === run.id ? ' hl' : ''), 'data-run': run.id },
-                  list.map((e) => renderEntry(run, e)),
-                  hasProcess(run) ? h(Process, { run, live: isLive(run) }) : null)
-              }),
-              pending.text ? h('div', { className: 'mwt-turn user' }, h('div', { className: 'mwt-bubble' }, pending.text)) : null),
-          h('div', { className: 'mwt-dock' }, h(Dock, { key: mate.id, mate, fillRef, targetId: mate.id, running, onStop: stop, textAsk, answering: mate.state === 'waiting' || !!textAsk, onPending: (text) => { atBottom.current = true; setPending({ text, at: text ? Date.now() : 0 }) }, onSent: () => { th.reload(); kick() } }))),
+          reading ? h(ReadingView, { key: reading, id: reading, mates, backLabel: t('backToThread'), onBack: closeDoc, newestRunId: newestId, onRated: patchRating }) : thread()),
         shown && split ? asidePanel('col') : null))
   }
 
@@ -1208,8 +1417,9 @@ function makeComponents(ctx, t) {
    * run; working: steers the run; waiting: answers the question. Enter sends; what you sent shows at once as a bubble,
    * except an answer (`answering`), which lands as the question's 「已回答」 line when the thread comes back.
    */
-  function Dock({ mate, fillRef, targetId, textAsk, answering, running, onStop, onPending, onSent }) {
-    const [text, setText] = React.useState('')
+  function Dock({ mate, fillRef, draft, targetId, textAsk, answering, running, onStop, onPending, onSent }) {
+    const [text, setTextState] = React.useState(() => (draft && draft.current) || '')
+    const setText = (v) => { if (draft) draft.current = v; setTextState(v) }
     const [busy, setBusy] = React.useState(false)
     const [err, setErr] = React.useState('')
     const ref = React.useRef(null)
@@ -1229,7 +1439,7 @@ function makeComponents(ctx, t) {
       h('div', { className: 'mwt-say' },
         h('textarea', { ref, value: text, rows: 1, placeholder: textAsk ? t('answerPh') : t('sayTo').replace('{name}', mate.name || ''), 'aria-label': textAsk ? t('answerPh') : t('sayTo').replace('{name}', mate.name || ''), onChange: (e) => setText(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); submit() } } }),
         running && onStop ? h('button', { type: 'button', className: 'mwt-btn stop round', 'aria-label': t('stop'), title: t('stop'), onClick: onStop }, icon('square', { size: 13 })) : null,
-        h('button', { type: 'button', className: 'mwt-btn send round', 'aria-label': t('send'), disabled: busy || !text.trim(), onClick: submit }, icon(busy ? 'loader' : 'arrow-up', { size: 16, strokeWidth: 2 }))),
+        h('button', { type: 'button', className: 'mwt-btn send round', 'aria-label': t('send'), disabled: busy || !text.trim(), onClick: submit }, icon('arrow-up', { size: 16, strokeWidth: 2 }))),
       err ? h('small', { className: 'mwt-say-err' }, err) : null)
   }
 
@@ -1254,7 +1464,8 @@ function makeComponents(ctx, t) {
 
   /**
    * 电脑 when no browser is in use: the newest files in the teammate's folder (GET /mates/folder: what it wrote with fs /
-   * bash), up to 8 plain rows (glyph · name · size · time; the path in the tooltip).
+   * bash), up to 8 plain rows (glyph · name · size · time; the path in the tooltip): .csv tables first under 「表格」,
+   * the other files under 「文件」.
    */
   function MateFiles({ mate }) {
     const [items, setItems] = React.useState(null)
@@ -1265,10 +1476,14 @@ function makeComponents(ctx, t) {
     }, [mate.id, mate.lastAt || '', mate.state || ''])
     if (!items) return h(Skeleton, { rows: 2 })
     if (!items.length) return h('div', { className: 'mwt-empty' }, t('folderEmpty'))
-    return h('div', { className: 'mwt-alist' }, items.slice(0, 8).map((f) => h('div', { key: f.path || f.name, className: 'mwt-arow static', title: f.path || undefined },
-      h('span', { className: 'ic' }, icon('file', { size: 15 })),
+    const isTable = (f) => /\.csv$/i.test(String(f.name || ''))
+    const shown = [...items.filter(isTable), ...items.filter((f) => !isTable(f))].slice(0, 8)
+    const row = (f) => h('div', { key: f.path || f.name, className: 'mwt-arow ic static', title: f.path || undefined },
+      h('span', { className: 'ic' }, icon(isTable(f) ? 'sheet' : 'file', { size: 16 })),
       h('span', { className: 'main' }, h('span', { className: 't' }, f.name)),
-      h('span', { className: 'm' }, [fmtSize(f.size), fmtWhen(f.modifiedAt)].filter(Boolean).join(' · ')))))
+      h('span', { className: 'm' }, [fmtSize(f.size), fmtWhen(f.modifiedAt)].filter(Boolean).join(' · ')))
+    const group = (label, list) => (list.length ? [h('div', { key: 'l' + label, className: 'mwt-flabel' }, label), h('div', { key: 'g' + label, className: 'mwt-alist' }, list.map(row))] : null)
+    return h('div', null, group(t('tables'), shown.filter(isTable)), group(t('file'), shown.filter((f) => !isTable(f))))
   }
 
   /**
@@ -1301,14 +1516,13 @@ function makeComponents(ctx, t) {
       !items ? h(Skeleton, { rows: 2 })
         : items.length ? h('div', { className: 'mwt-alist' }, items.map((r) => h(React.Fragment, { key: r.id },
           h('button', { type: 'button', className: 'mwt-arow', 'data-routine': r.id, 'data-off': !r.enabled, 'aria-expanded': open === r.id, onClick: () => setOpen(open === r.id ? '' : r.id) },
-            h('span', { className: 'ic' }, icon(r.kind === 'remind' ? 'bell' : 'repeat', { size: 15 })),
             h('span', { className: 'main' }, h('span', { className: 't' }, r.title), r.scheduleLabel ? h('span', { className: 's' }, r.scheduleLabel) : null),
             h('span', { className: 'm' }, state(r))),
           open === r.id ? h(RoutineDetail, { r, reload: () => { load(); kick() }, onRemoved: () => { setOpen(''); load(); kick() }, onJump }) : null)))
         : h('div', { className: 'mwt-empty' }, t('noRoutines')),
-      h('div', { style: { marginTop: 10 } },
+      h('div', { style: { marginTop: 8 } },
         h('input', { ref: addRef, className: 'mwt-input', value: draft, placeholder: t('newRoutinePh'), 'aria-label': t('newRoutine'), disabled: busy, onChange: (e) => setDraft(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); create() } } }),
-        err ? h('div', { className: 'mwt-field-err', style: { margin: '6px 0 0' } }, err) : null))
+        err ? h('div', { className: 'mwt-field-err', style: { margin: '8px 0 0' } }, err) : null))
   }
 
   function RoutineDetail({ r, reload, onRemoved, onJump }) {
@@ -1324,9 +1538,9 @@ function makeComponents(ctx, t) {
     return h('div', { className: 'mwt-rdetail' },
       h('textarea', { className: 'mwt-input', value: input, rows: 2, 'aria-label': t('routines'), onChange: (e) => setInput(e.target.value), onBlur: save }),
       h('div', { className: 'acts' },
-        h('button', { type: 'button', className: 'mwt-btn small', onClick: () => act('/routines/run', { id: r.id }) }, icon('play', { size: 13 }), t('runNow')),
-        !once || r.enabled ? h('button', { type: 'button', className: 'mwt-btn small ghost', onClick: () => act('/routines/enable', { id: r.id, enabled: !r.enabled }) }, icon(r.enabled ? 'pause' : 'play', { size: 13 }), r.enabled ? t('pause') : t('resume')) : null,
-        h('button', { type: 'button', className: 'mwt-btn small ghost', onClick: () => setConfirm(true) }, icon('trash', { size: 13 }), t('remove'))),
+        h('button', { type: 'button', className: 'mwt-btn small', onClick: () => act('/routines/run', { id: r.id }) }, t('runNow')),
+        !once || r.enabled ? h('button', { type: 'button', className: 'mwt-btn small ghost', onClick: () => act('/routines/enable', { id: r.id, enabled: !r.enabled }) }, r.enabled ? t('pause') : t('resume')) : null,
+        h('button', { type: 'button', className: 'mwt-btn small ghost', onClick: () => setConfirm(true) }, t('remove'))),
       confirm ? h('div', { className: 'mwt-confirm', role: 'alertdialog' }, h('span', null, t('removeRoutineAsk')),
         h('button', { type: 'button', className: 'mwt-btn small danger', onClick: () => act('/routines/remove', { id: r.id }, onRemoved) }, t('remove')),
         h('button', { type: 'button', className: 'mwt-btn small ghost', onClick: () => setConfirm(false) }, t('cancel'))) : null,
@@ -1337,10 +1551,9 @@ function makeComponents(ctx, t) {
         // Every run with a place in the thread jumps there (a quiet one has none): a result, a reminder's card, a failure, one still going.
         const go = kind !== 'quiet' && runId && onJump ? () => onJump(runId) : null
         return h('button', { key: i, type: 'button', className: 'mwt-arow' + (go ? '' : ' static'), onClick: go || undefined, tabIndex: go ? 0 : -1 },
-          h('span', { className: 'ic', 'data-tone': kind === 'failed' ? 'danger' : undefined }, icon(kind === 'failed' ? 'circle-x' : kind === 'fired' ? 'bell' : kind === 'result' ? 'circle-check' : kind === 'running' ? 'loader' : 'history', { size: 14 })),
-          h('span', { className: 'main' }, h('span', { className: 't', style: { fontSize: 13 } }, fmtWhen(x.at) + ' · ' + word[kind])),
-          h('span', { className: 'm' }))
-      }) : h('div', { className: 'mwt-empty', style: { fontSize: 13 } }, t('neverRan'))))
+          h('span', { className: 'main' }, h('span', { className: 't' }, fmtWhen(x.at))),
+          h('span', { className: 'm', 'data-tone': kind === 'failed' ? 'danger' : undefined }, word[kind]))
+      }) : h('div', { className: 'mwt-empty' }, t('neverRan'))))
   }
 
   /**
@@ -1372,15 +1585,18 @@ function makeComponents(ctx, t) {
       field('name', t('name')), field('title', t('title')), field('description', t('duty'), true), groupField,
       sw('pinned', t('pinned'), mate.pinned === true || (!!mate.isDefault && mate.pinned !== false)),
       sw('notify', t('notify'), mate.notify !== false),
-      err ? h('div', { className: 'mwt-field-err', style: { margin: '6px 0' } }, err) : null,
-      mate.isDefault ? null : h('div', { style: { marginTop: 12 } },
+      err ? h('div', { className: 'mwt-field-err', style: { margin: '8px 0' } }, err) : null,
+      mate.isDefault ? null : h('div', { style: { marginTop: 16 } },
         confirm ? h('div', { className: 'mwt-confirm', role: 'alertdialog' }, h('span', null, t('removeMateAsk')),
           h('button', { type: 'button', className: 'mwt-btn small danger', onClick: remove }, t('remove')),
           h('button', { type: 'button', className: 'mwt-btn small ghost', onClick: () => setConfirm(false) }, t('cancel')))
-          : h('button', { type: 'button', className: 'mwt-btn small ghost danger', onClick: () => setConfirm(true) }, icon('trash', { size: 13 }), t('removeMate'))))
+          : h('button', { type: 'button', className: 'mwt-btn small ghost danger', onClick: () => setConfirm(true) }, t('removeMate'))))
   }
 
-  /** 新同事: 「它负责什么」 (required) + 名字 (optional). Created, its thread opens; its intro run comes when the server has it. */
+  /**
+   * 新同事: 「它负责什么」 (required; three examples under it fill it) + 名字 (optional). Created, its thread opens; its
+   * intro run comes when the server has it.
+   */
   function NewMateForm({ onCreated }) {
     const [description, setDescription] = React.useState('')
     const [name, setName] = React.useState('')
@@ -1404,18 +1620,23 @@ function makeComponents(ctx, t) {
         })
         .catch((e) => setErr(e.message || String(e))).finally(() => setBusy(false))
     }
-    return h('div', { style: { paddingTop: 6 } },
+    const fill = (v) => { setDescription(v); setTimeout(() => { const el = ref.current; if (el) { el.focus(); el.setSelectionRange(v.length, v.length) } }, 0) }
+    return h('div', { style: { paddingTop: 8 } },
       h('label', { className: 'mwt-field' }, h('span', null, t('dutyAsk')),
         h('textarea', { ref, className: 'mwt-input', rows: 4, value: description, placeholder: t('dutyPh'), required: true, onChange: (e) => setDescription(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); submit() } } })),
+      h('div', { className: 'mwt-examples' }, [t('dutyEx1'), t('dutyEx2'), t('dutyEx3')].map((x) => h('button', { key: x, type: 'button', className: 'mwt-chip', onClick: () => fill(x) }, x))),
       h('label', { className: 'mwt-field' }, h('span', null, t('name')),
         h('input', { className: 'mwt-input', value: name, placeholder: t('namePh'), onChange: (e) => setName(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); submit() } } })),
       err ? h('div', { className: 'mwt-field-err' }, err) : null,
-      h('button', { type: 'button', className: 'mwt-btn primary', disabled: busy || !description.trim(), onClick: submit }, busy ? icon('loader', { size: 14 }) : null, t('create')))
+      h('button', { type: 'button', className: 'mwt-btn primary', disabled: busy || !description.trim(), onClick: submit }, t('create')))
   }
 
   // ---- 文件 -----------------------------------------------------------------------------------------------------------
 
-  /** 文件: every teammate's files; chips 全部 + one per teammate; search; a row opens the file in place. */
+  /**
+   * 文件: every teammate's files; chips 全部 + one per teammate; search; a row opens the file in the reading view, in
+   * place of the list (back returns to the list where you were).
+   */
   function FilesPage() {
     const s = usePolling()
     const n = useNavState()
@@ -1424,7 +1645,16 @@ function makeComponents(ctx, t) {
     const [who, setWho] = React.useState('all')
     const [items, setItems] = React.useState(null)
     const [open, setOpen] = React.useState(() => n.fileId || '')
-    React.useEffect(() => { if (n.fileId) setOpen(n.fileId); else setOpen('') }, [n.seq])
+    const rootRef = React.useRef(null)
+    const backTo = React.useRef(null)
+    const show = (id) => { const el = rootRef.current; if (id && !open) backTo.current = el ? el.scrollTop : 0; setOpen(id) }
+    React.useLayoutEffect(() => {
+      const el = rootRef.current
+      if (!el) return
+      if (open) { el.scrollTop = 0; return }
+      if (backTo.current !== null) { el.scrollTop = backTo.current; backTo.current = null }
+    }, [open])
+    React.useEffect(() => { if (n.fileId) show(n.fileId); else setOpen('') }, [n.seq])
     React.useEffect(() => { fire('mywork:thread-opened', { kind: 'files', id: '' }) }, [])
     React.useEffect(() => { const id = setTimeout(() => setNeedle(q.trim()), 200); return () => clearTimeout(id) }, [q])
     React.useEffect(() => {
@@ -1434,46 +1664,20 @@ function makeComponents(ctx, t) {
       return () => { on = false }
     }, [who, needle, s.loadedAt])
     const mateName = (id) => (s.mates.find((m) => m.id === id) || {}).name || ''
-    if (open) return h(FilePreview, { id: open, mates: s.mates, onBack: () => setOpen(''), onRated: (d) => setItems((p) => (p || []).map((y) => (y.id === d.id ? { ...y, rating: d.rating } : y))) })
     const word = (d) => { const v = verifyState({ verifying: d.verifying, verification: d.verification }); return v.kind === 'passed' ? t('verified') : v.kind === 'issues' ? t('verifyIssues') : v.kind === 'none' ? t('verifyNone') : v.kind === 'verifying' ? t('verifying') : '' }
-    return h('div', { className: 'mwt mwt-files' }, h('style', null, STYLE), h('div', { className: 'mwt-page' },
-      h('div', { className: 'mwt-title' }, h('h1', null, t('files')), items ? h('span', null, String(items.length)) : null),
-      h('div', { className: 'mwt-filters' },
-        h('label', { className: 'mwt-search' }, icon('search', { size: 14 }), h('input', { type: 'search', value: q, placeholder: t('search'), 'aria-label': t('search'), onChange: (e) => setQ(e.target.value) })),
-        h('div', { className: 'mwt-chips' }, [['all', t('all')], ...mateOrder(s.mates).map((m) => [m.id, m.name])].map(([k, label]) => h('button', { key: k, type: 'button', className: 'mwt-chip', 'data-on': who === k, onClick: () => setWho(k) }, label)))),
-      !items ? h(Skeleton, { rows: 4 })
-        : items.length ? h('div', { className: 'mwt-list' }, items.map((d) => h('button', { key: d.id, type: 'button', className: 'mwt-row', onClick: () => setOpen(d.id) },
-          h('span', { className: 'ic', 'data-tone': d.verification && d.verification.passed === true ? 'success' : undefined }, icon(fileGlyph(d), { size: 16 })),
-          h('span', { className: 't' }, d.title || d.id),
-          h('span', { className: 'm' }, [word(d), mateName(d.mateId), fmtWhen(d.createdAt)].filter(Boolean).join(' · ')))))
-        : h('div', { className: 'mwt-empty' }, needle ? t('noMatch') : t('noFiles'))))
-  }
-
-  function FilePreview({ id, mates, onBack, onRated }) {
-    const [data, setData] = React.useState(null)
-    React.useEffect(() => { let on = true; api('/deliverable?id=' + encodeURIComponent(id)).then((d) => { if (on) setData(d) }).catch(() => { if (on) setData({}) }); return () => { on = false } }, [id])
-    const d = data && data.deliverable ? data.deliverable : null
-    const run = data && (data.run || data.task) ? (data.run || data.task) : null
-    const mateId = d ? d.mateId || (run && run.mateId) || '' : ''
-    const runId = d ? d.runId || (run && run.id) || '' : ''
-    const mate = mates.find((m) => m.id === mateId)
-    const verify = d ? verifyState(run ? { verifying: run.verifying, verification: run.verification } : { verification: d.verification }) : null
-    const rate = (x, r) => api('/rate', { id: x.id, rating: x.rating === r ? null : r }).then((y) => { if (y && y.deliverable) { setData((p) => ({ ...p, deliverable: { ...p.deliverable, rating: y.deliverable.rating } })); onRated(y.deliverable) } }).catch(() => {})
-    return h('div', { className: 'mwt mwt-files' }, h('style', null, STYLE), h('div', { className: 'mwt-page' },
-      h('div', { className: 'mwt-toolbar' },
-        h('button', { type: 'button', className: 'mwt-btn ghost round', 'aria-label': t('back'), onClick: onBack }, icon('arrow-left', { size: 15 })),
-        h('span', { className: 'grow' }),
-        d && mateId ? h('button', { type: 'button', className: 'mwt-btn ghost', onClick: () => openMate(mateId, runId) }, icon('message-circle', { size: 14 }), t('inThread')) : null,
-        d ? h(Menu, { items: [
-          { icon: 'file-text', label: t('exportMd'), run: () => download(safeName(d.title) + '.md', '# ' + d.title + '\n\n' + (d.markdown || '')) },
-          { icon: 'file-text', label: t('exportPdf'), run: () => printDoc(d) },
-        ] }) : null),
-      !data ? h(Skeleton, { rows: 4 })
-        : d ? h(React.Fragment, null,
-          h('h1', { className: 'mwt-doc-title' }, d.title),
-          h('p', { className: 'mwt-doc-meta' }, [mate ? mate.name : '', fmtWhen(d.createdAt)].filter(Boolean).join(' · ')),
-          h(Doc, { d }), h(DeliverMeta, { d, verify, onRate: rate }))
-          : h('div', { className: 'mwt-empty' }, t('noMatch'))))
+    return h('div', { ref: rootRef, className: 'mwt mwt-files' }, h('style', null, STYLE), h('div', { className: 'mwt-page' },
+      open ? h(ReadingView, { key: open, id: open, mates: s.mates, backLabel: t('backToFiles'), onBack: () => setOpen(''), fromFiles: true, onRated: (d) => setItems((p) => (p || []).map((y) => (y.id === d.id ? { ...y, rating: d.rating } : y))) })
+        : h(React.Fragment, null,
+          h('div', { className: 'mwt-title' }, h('h1', null, t('files')), items ? h('span', null, String(items.length)) : null),
+          h('div', { className: 'mwt-filters' },
+            h('label', { className: 'mwt-search' }, icon('search', { size: 14 }), h('input', { type: 'search', value: q, placeholder: t('search'), 'aria-label': t('search'), onChange: (e) => setQ(e.target.value) })),
+            h('div', { className: 'mwt-chips' }, [['all', t('all')], ...mateOrder(s.mates).map((m) => [m.id, m.name])].map(([k, label]) => h('button', { key: k, type: 'button', className: 'mwt-chip', 'data-on': who === k, onClick: () => setWho(k) }, label)))),
+          !items ? h(Skeleton, { rows: 4 })
+            : items.length ? h('div', { className: 'mwt-list' }, items.map((d) => h('button', { key: d.id, type: 'button', className: 'mwt-row', onClick: () => show(d.id) },
+              h('span', { className: 'ic' }, icon(fileGlyph(d), { size: 16 })),
+              h('span', { className: 't' }, d.title || d.id),
+              h('span', { className: 'm' }, [word(d), mateName(d.mateId), fmtWhen(d.createdAt)].filter(Boolean).join(' · ')))))
+            : h('div', { className: 'mwt-empty' }, needle ? t('noMatch') : t('noFiles')))))
   }
 
   /** Always mounted: toasts when a run finishes or needs you (one per teammate), browser notifications, the poll. */

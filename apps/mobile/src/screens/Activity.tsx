@@ -5,15 +5,11 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import { fmtWhen, type ActivityItem } from '../api'
 import { useNav, useStore } from '../store'
-import { IconBtn, ListBox, Row, Screen, Section, TopBar, type IconName, type Tone } from '../components'
+import { IconBtn, ListBox, Row, Screen, Section, TopBar, type Tone } from '../components'
 import { color, size, space } from '../theme'
 
-const look = (k: ActivityItem['kind']): { glyph?: IconName; tone: Tone; spin?: boolean } =>
-  k === 'ask' ? { glyph: 'chatbubble-ellipses-outline', tone: 'warn' }
-    : k === 'failed' ? { glyph: 'close-circle-outline', tone: 'danger' }
-    : k === 'remind' ? { glyph: 'notifications-outline', tone: 'live' }
-    : k === 'working' ? { spin: true, tone: 'live' }
-    : { glyph: 'checkmark-circle-outline', tone: 'success' }
+/** Colour only where it carries a decision: a failure's time in danger; the sections (需要你 · 在干活 · 刚完成) say the rest. */
+const stateTone = (k: ActivityItem['kind']): Tone | undefined => (k === 'failed' ? 'danger' : undefined)
 
 export default function Activity() {
   const nav = useNav()
@@ -34,8 +30,7 @@ export default function Activity() {
             <Section label={g.label} />
             <ListBox>
               {g.items.map((x, i) => {
-                const l = look(x.kind)
-                return <Row key={x.runId + x.kind + i} glyph={l.glyph} tone={l.tone} spin={l.spin} title={x.mateName || nameOf(x.mateId)} sub={x.text} state={fmtWhen(x.at)} onPress={() => nav.openMate(x.mateId, x.runId || undefined)} />
+                return <Row key={x.runId + x.kind + i} stateTone={stateTone(x.kind)} title={x.mateName || nameOf(x.mateId)} sub={x.text} state={fmtWhen(x.at)} onPress={() => nav.openMate(x.mateId, x.runId || undefined)} />
               })}
             </ListBox>
           </View>

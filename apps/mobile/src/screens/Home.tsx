@@ -1,8 +1,8 @@
 /**
  * Home = the teammates list (TEAMMATES.md §9.4 / §9.6). Top: search · the bell (count = 需要你 + 在干活, opens the
  * activity screen) · 「+」 new teammate. Middle: only teammates, in sections — 置顶 (pinned; MyWork by default), one per
- * group (the group with the newest conversation first), 其他 — each pinned / default first, then the latest
- * conversation; working or waiting never reorders. A section header (only when there is more than one section) folds
+ * group in a stable order (alphabetical, zh-CN), 其他 — each pinned / default first, then the latest conversation;
+ * working or waiting never reorders a row or a section. A section header (only when there is more than one section) folds
  * its rows; what is folded is remembered. Bottom: 文件; the mark on the left opens 设置.
  * While the search is non-empty the list becomes the results: teammates, messages (open the mate at that run), files
  * (open the file), routines (open the mate's page with that routine). Rows carry no actions.
@@ -154,7 +154,7 @@ export default function Home() {
 function SectionHead({ label, closed, count, news, onPress }: { label: string; closed: boolean; count: number; news: boolean; onPress: () => void }) {
   return (
     <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ expanded: !closed }} hitSlop={4} style={({ pressed }) => [styles.sec, pressed && { opacity: 0.7 }]}>
-      <Ionicons name="chevron-forward" size={12} color={color.muted} style={{ transform: [{ rotate: closed ? '0deg' : '90deg' }] }} />
+      <Ionicons name="chevron-forward" size={12} color={color.meta} style={{ transform: [{ rotate: closed ? '0deg' : '90deg' }] }} />
       <Text style={styles.secLabel} numberOfLines={1}>{label}</Text>
       {closed ? <Text style={styles.secCount}>{count}</Text> : null}
       {news ? <View style={styles.secDot} /> : null}
@@ -165,24 +165,24 @@ function SectionHead({ label, closed, count, news, onPress }: { label: string; c
 function Circle({ icon, label, onPress, accent, on }: { icon: IconName; label: string; onPress: () => void; accent?: boolean; on?: boolean }) {
   return (
     <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} hitSlop={4} style={({ pressed }) => [styles.circle, accent && styles.circleAccent, on && { backgroundColor: color.bubble }, pressed && (accent ? { opacity: 0.8 } : styles.circlePressed)]}>
-      <Ionicons name={icon} size={accent ? 22 : 19} color={accent ? color.onPrimary : color.fg} />
+      <Ionicons name={icon} size={accent ? 22 : 19} color={color.fg} />
     </Pressable>
   )
 }
 
 const styles = StyleSheet.create({
-  head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: space.lg, paddingTop: space.sm, paddingBottom: 10 },
-  actions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: space.lg, paddingTop: space.sm, paddingBottom: space.sm },
+  actions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   circle: { width: 40, height: 40, borderRadius: 20, backgroundColor: color.input, alignItems: 'center', justifyContent: 'center' },
   circlePressed: { backgroundColor: color.bubble },
-  circleAccent: { backgroundColor: color.primary },
+  circleAccent: { backgroundColor: color.bubble, borderWidth: 1, borderColor: color.border },
   search: { paddingHorizontal: space.lg, paddingBottom: space.sm },
-  badge: { position: 'absolute', top: -3, right: -3, minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 4, backgroundColor: color.primary, borderWidth: 2, borderColor: color.bg, alignItems: 'center', justifyContent: 'center' },
-  badgeText: { fontSize: 10, lineHeight: 12, fontWeight: '700', color: color.onPrimary, fontVariant: ['tabular-nums'] },
+  badge: { position: 'absolute', top: -4, right: -4, minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 4, backgroundColor: color.fg2, borderWidth: 2, borderColor: color.bg, alignItems: 'center', justifyContent: 'center' },
+  badgeText: { fontSize: 10, lineHeight: 12, fontWeight: '700', color: color.bg, fontVariant: ['tabular-nums'] },
   list: { paddingHorizontal: 4, paddingTop: space.xs, paddingBottom: space.sm },
-  empty: { fontSize: size.meta, lineHeight: 18, color: color.muted, paddingHorizontal: 16, paddingVertical: 12 },
-  sec: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 32, paddingHorizontal: 12, paddingTop: 10, paddingBottom: 2 },
-  secLabel: { flexShrink: 1, fontSize: 12, lineHeight: 16, fontWeight: '500', color: color.muted },
+  empty: { fontSize: size.meta, lineHeight: 20, color: color.muted, paddingHorizontal: 16, paddingVertical: 16 },
+  sec: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 32, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 },
+  secLabel: { flexShrink: 1, fontSize: 12, lineHeight: 16, fontWeight: '500', color: color.meta },
   secCount: { fontSize: 12, lineHeight: 16, color: color.meta, fontVariant: ['tabular-nums'] },
   secDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: color.primary },
   foot: { paddingHorizontal: 4, paddingTop: 4, borderTopWidth: 1, borderTopColor: color.border },

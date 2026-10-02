@@ -1,6 +1,7 @@
 /**
- * A teammate's conversation (TEAMMATES.md §9.2 / §9.5 / §9.6). Header: back · avatar + name (serif) + title — tapping it
- * opens the teammate's page · ··· (停止). The line is the runs from GET /mates/thread, oldest first, 「加载更早」 on top;
+ * A teammate's conversation (TEAMMATES.md §9.2 / §9.5 / §9.6). Header: back · avatar + name, its title on a 12px line
+ * under it — tapping it opens the teammate's page · ··· (停止). 32 between runs, 8 inside one; a reply that arrives while
+ * you watch enters over 200ms. The line is the runs from GET /mates/thread, oldest first, 「加载更早」 on top;
  * each run drawn by runEntries(): a routine's centred marker or your bubble, lines said while it worked, 文件 with the
  * live verification line and 有用 / 没用, 找你卡, 「已安排」, 提醒卡 with 知道了, the reply as plain text, 在干活 while it
  * works, a failure line, and its 过程 folded. Dock 「给 <name> 发消息」 (「回答」 while it waits) → POST /mates/say: idle
@@ -8,12 +9,12 @@
  * back until that run is loaded, scrolls to it and lights it up briefly.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type LayoutChangeEvent } from 'react-native'
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type LayoutChangeEvent } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { fmtDay, fmtDuration, fmtTime, fmtWhen, isToday, type Deliverable, type Mate, type Run } from '../api'
 import { useConn, useNav, useStore } from '../store'
-import { Avatar, Btn, Bubble, CenterLine, Composer, DateLine, Empty, Folded, Ghost, IconBtn, Prose, Reply, ReplyBubble, ResultRows, Screen, Sheet, SheetItem, Thinking, VerifyLine, type IconName, type Tone } from '../components'
+import { Arrive, Avatar, Btn, Bubble, CenterLine, Composer, DateLine, Empty, Folded, Ghost, IconBtn, Prose, Reply, ReplyBubble, ResultRows, Screen, Sheet, SheetItem, Thinking, VerifyLine, type IconName } from '../components'
 import { color, font, radius, size, space } from '../theme'
 import { describe, elapsedOf, glyphOf, mergeRuns, pendingAsk, phasesOf, runEntries, time, verifyWords, type ThreadEntry, type VerifyState } from '../thread'
 
@@ -26,6 +27,8 @@ type Page = { runs: Run[]; nextBefore: string | null; loaded: boolean; busy: boo
 const cache = new Map<string, { runs: Run[]; nextBefore: string | null }>()
 
 const errText = (e: unknown) => (e instanceof Error ? e.message : String(e))
+/** Working: not done and not stopped on a question (a queued run counts, it is about to work). */
+const isLive = (r: Run) => !!r.status && r.status !== 'done' && r.status !== 'waiting'
 
 /** Re-render once a second while a run works, so 耗时 moves. */
 function useTick(on: boolean) { const [, set] = useState(0); useEffect(() => { if (!on) return; const t = setInterval(() => set((n) => n + 1), 1000); return () => clearInterval(t) }, [on]) }
@@ -83,6 +86,8 @@ function MateThread({ id, runId }: { id: string; runId?: string }) {
   useEffect(() => { if (api && id) api.seen(id).catch(() => { /* nothing to mark */ }) }, [api, id, stamp])
 
   const runs = useMemo(() => page.runs.filter((r) => !(r.quiet && r.trigger === 'routine')), [page.runs])
+  const fresh = useArrivals(runs, page.loaded)
+  const newestId = runs.length ? runs[runs.length - 1].id : ''
   const active = runs.some((r) => r.status === 'running') || (!!mate && mate.state === 'working')
   useTick(active)
   const waitingOn = useMemo(() => pendingAsk(runs), [runs])
@@ -178,8 +183,11 @@ function MateThread({ id, runId }: { id: string; runId?: string }) {
       <View style={styles.head}>
         <IconBtn name="chevron-back-outline" label="返回" onPress={nav.pop} />
         <Pressable onPress={() => nav.push({ name: 'mateInfo', id })} accessibilityRole="button" style={({ pressed }) => [styles.who, pressed && { opacity: 0.7 }]}>
-          {mate ? <Avatar id={mate.id || mate.name} char={glyphOf(mate)} isDefault={mate.isDefault} working={mate.state === 'working'} dim={30} /> : null}
-          <Text style={styles.name} numberOfLines={1}>{name}</Text>
+          {mate ? <Avatar id={mate.id || mate.name} char={glyphOf(mate)} isDefault={mate.isDefault} working={mate.state === 'working'} dim={32} /> : null}
+          <View style={styles.whoText}>
+            <Text style={styles.name} numberOfLines={1}>{name}</Text>
+            {mate && mate.title ? <Text style={styles.ttl} numberOfLines={1}>{mate.title}</Text> : null}
+          </View>
         </Pressable>
         <IconBtn name="ellipsis-horizontal-outline" label="更多" onPress={() => setSheet(true)} />
       </View>
@@ -208,6 +216,8 @@ function MateThread({ id, runId }: { id: string; runId?: string }) {
                 <RunView
                   run={run}
                   mate={mate}
+                  newest={run.id === newestId}
+                  fresh={fresh}
                   busyAnswer={busyAnswer}
                   acking={acking}
                   onAnswer={(askId, v) => { answer(run, askId, v) }}
@@ -220,7 +230,7 @@ function MateThread({ id, runId }: { id: string; runId?: string }) {
             )
           })}
           {pending ? <View style={styles.run}><Bubble text={pending} /></View> : null}
-          {!page.loaded ? <ActivityIndicator color={color.meta} style={styles.loading} /> : null}
+          {!page.loaded ? <Text style={styles.loading}>…</Text> : null}
         </ScrollView>
         <View style={[styles.dock, { paddingBottom: insets.bottom + space.sm }]}>
           {err ? <Text style={styles.err}>{err}</Text> : null}
@@ -229,42 +239,70 @@ function MateThread({ id, runId }: { id: string; runId?: string }) {
       </KeyboardAvoidingView>
 
       <Sheet open={sheet} onClose={() => setSheet(false)}>
-        {mate && mate.state !== 'idle' ? <SheetItem icon="stop-circle-outline" label="停止" onPress={() => { stop() }} /> : null}
-        <SheetItem icon="person-outline" label="同事资料" onPress={() => { setSheet(false); nav.push({ name: 'mateInfo', id }) }} />
+        {mate && mate.state !== 'idle' ? <SheetItem label="停止" onPress={() => { stop() }} /> : null}
+        <SheetItem label="同事资料" onPress={() => { setSheet(false); nav.push({ name: 'mateInfo', id }) }} />
       </Sheet>
     </Screen>
   )
 }
 
+/**
+ * Reply entries that first show up while the thread is open, in a run it watched working (or one started meanwhile):
+ * they enter over 200ms. The first pass only takes note of what is there; a mark lapses after a second.
+ */
+function useArrivals(runs: Run[], ready: boolean): (key: string) => boolean {
+  const ref = useRef<{ since: number; live: Set<string>; shown: Set<string>; until: Map<string, number>; runs: Run[] | null; primed: boolean } | null>(null)
+  if (!ref.current) ref.current = { since: Date.now(), live: new Set(), shown: new Set(), until: new Map(), runs: null, primed: false }
+  const w = ref.current
+  if (ready && w.runs !== runs) {
+    w.runs = runs
+    const now = Date.now()
+    for (const run of runs) {
+      const watched = w.live.has(run.id) || (w.primed && time(run.createdAt) >= w.since - 2000)
+      for (const e of runEntries(run)) {
+        if (e.kind !== 'deliver' && e.kind !== 'text') continue
+        if (w.shown.has(e.key)) continue
+        w.shown.add(e.key)
+        if (w.primed && watched) w.until.set(e.key, now + 1000)
+      }
+      if (isLive(run)) w.live.add(run.id)
+    }
+    w.primed = true
+  }
+  return (key: string) => (w.until.get(key) || 0) > Date.now()
+}
+
 /** One run: its entries, the 过程 fold, then the 在干活 or failure line. */
-function RunView({ run, mate, busyAnswer, acking, onAnswer, onAck, onRate, onOpenFile, onRoutine }: {
-  run: Run; mate: Mate | null; busyAnswer: boolean; acking: string
+function RunView({ run, mate, newest, fresh, busyAnswer, acking, onAnswer, onAck, onRate, onOpenFile, onRoutine }: {
+  run: Run; mate: Mate | null; newest: boolean; fresh: (key: string) => boolean; busyAnswer: boolean; acking: string
   onAnswer: (askId: string, value: string) => void; onAck: (routineId: string, at: string) => void
   onRate: (d: Deliverable, r: number) => void; onOpenFile: (d: Deliverable) => void; onRoutine: (routineId?: string) => void
 }) {
   const entries = useMemo(() => runEntries(run), [run])
   const body = entries.filter((e) => e.kind !== 'working' && e.kind !== 'failed')
   const end = entries.find((e) => e.kind === 'working' || e.kind === 'failed')
+  const props = { run, mate, newest, busyAnswer, acking, onAnswer, onAck, onRate, onOpenFile, onRoutine }
   return (
     <View style={styles.line}>
-      {body.map((e) => <Entry key={e.key} e={e} run={run} mate={mate} busyAnswer={busyAnswer} acking={acking} onAnswer={onAnswer} onAck={onAck} onRate={onRate} onOpenFile={onOpenFile} onRoutine={onRoutine} />)}
+      {body.map((e) => <Arrive key={e.key} on={fresh(e.key)}><Entry e={e} {...props} /></Arrive>)}
       <Process run={run} />
-      {end ? <Entry e={end} run={run} mate={mate} busyAnswer={busyAnswer} acking={acking} onAnswer={onAnswer} onAck={onAck} onRate={onRate} onOpenFile={onOpenFile} onRoutine={onRoutine} /> : null}
+      {end ? <Entry e={end} {...props} /> : null}
     </View>
   )
 }
 
-function Entry({ e, run, mate, busyAnswer, acking, onAnswer, onAck, onRate, onOpenFile, onRoutine }: {
-  e: ThreadEntry; run: Run; mate: Mate | null; busyAnswer: boolean; acking: string
+function Entry({ e, run, mate, newest, busyAnswer, acking, onAnswer, onAck, onRate, onOpenFile, onRoutine }: {
+  e: ThreadEntry; run: Run; mate: Mate | null; newest: boolean; busyAnswer: boolean; acking: string
   onAnswer: (askId: string, value: string) => void; onAck: (routineId: string, at: string) => void
   onRate: (d: Deliverable, r: number) => void; onOpenFile: (d: Deliverable) => void; onRoutine: (routineId?: string) => void
 }) {
   switch (e.kind) {
-    case 'marker': return <CenterLine icon="repeat-outline" text={e.text} onPress={e.routineId ? () => onRoutine(e.routineId) : undefined} />
-    case 'scheduled': return <CenterLine icon="calendar-outline" text={e.text} onPress={() => onRoutine(e.routineId)} />
+    // The routine's marker attaches to its run (8 below it, the run's 32 above).
+    case 'marker': return <CenterLine text={e.text} onPress={e.routineId ? () => onRoutine(e.routineId) : undefined} />
+    case 'scheduled': return <CenterLine text={e.text} onPress={() => onRoutine(e.routineId)} />
     case 'user': return <Bubble text={e.text} />
     case 'text': return <Reply markdown={e.text} />
-    case 'deliver': return <Delivery ds={e.ds} text={e.text} verify={e.verify} onRate={onRate} onOpen={onOpenFile} />
+    case 'deliver': return <Delivery ds={e.ds} text={e.text} verify={e.verify} warn={newest && e.verify.kind === 'issues'} onRate={onRate} onOpen={onOpenFile} />
     case 'ask': return <AskCard ask={e} busy={busyAnswer} onAnswer={(v) => onAnswer(e.id, v)} />
     case 'remind': return <RemindCard title={e.title} text={e.text} at={e.at} acked={e.acked} busy={acking === e.routineId + e.at} onAck={() => onAck(e.routineId, e.at)} onOpen={() => onRoutine(e.routineId)} />
     case 'auto': return <Text style={styles.muted}>24 小时没有回答，已按合理假设继续</Text>
@@ -279,18 +317,16 @@ function Entry({ e, run, mate, busyAnswer, acking, onAnswer, onAck, onRate, onOp
   }
 }
 
-const verifyWord = (v: VerifyState) => (v.kind === 'passed' ? '已核验' : v.kind === 'issues' ? '核验有问题' : v.kind === 'none' ? '未能核验' : v.kind === 'verifying' ? '核验中' : '')
 const fileIcon = (d: Deliverable): IconName => (d.kind === 'sheet' || d.kind === 'table' ? 'grid-outline' : d.kind === 'report' ? 'document-text-outline' : 'document-outline')
 /** The document's first paragraph, as plain words. */
 const plainWords = (md: string) => String(md || '').replace(/```[\s\S]*?```/g, ' ').replace(/[#>*_`|~\[\]]+/g, ' ').replace(/\(https?:[^)]*\)/g, '').replace(/\s+/g, ' ').trim()
 
 /**
  * One segment's output as ONE grey bubble (web DeliverBubble), never carrying the document: the reply (or, when none
- * follows, the first document's excerpt), every file's ✓ rows, every 文件卡 (tapping opens the File screen).
- * Verification + rating under it, one line per file.
+ * follows, the first document's excerpt), every file's summary rows, then the files as plain rows under a hairline — no
+ * card inside the card (tapping a row opens the File screen). Verification + rating under it, one line per file.
  */
-function Delivery({ ds, text, verify, onRate, onOpen }: { ds: Deliverable[]; text: string; verify: VerifyState; onRate: (d: Deliverable, r: number) => void; onOpen: (d: Deliverable) => void }) {
-  const tone: Tone = verify.kind === 'passed' ? 'success' : verify.kind === 'issues' ? 'warn' : verify.kind === 'verifying' ? 'live' : 'meta'
+function Delivery({ ds, text, verify, warn, onRate, onOpen }: { ds: Deliverable[]; text: string; verify: VerifyState; warn: boolean; onRate: (d: Deliverable, r: number) => void; onOpen: (d: Deliverable) => void }) {
   const first = ds[0]
   const excerpt = !text && first && first.excerpt ? plainWords(first.excerpt) : ''
   return (
@@ -298,18 +334,18 @@ function Delivery({ ds, text, verify, onRate, onOpen }: { ds: Deliverable[]; tex
       <ReplyBubble>
         {text ? <Prose markdown={text} tight /> : excerpt ? <Text style={styles.excerpt} numberOfLines={3}>{excerpt}</Text> : null}
         {ds.map((d, i) => (Array.isArray(d.summary) && d.summary.length ? <ResultRows key={'s' + i} rows={d.summary} /> : null))}
-        {ds.map((d, i) => (
-          <Pressable key={'f' + (d.id || i)} onPress={() => onOpen(d)} accessibilityRole="button" accessibilityLabel={'打开 ' + d.title} style={({ pressed }) => [styles.fileCard, pressed && { backgroundColor: color.bubble }]}>
-            <View style={styles.fileTile}><Ionicons name={fileIcon(d)} size={19} color={color.fg} /></View>
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={styles.fileTitle} numberOfLines={2}>{d.title || d.id}</Text>
-              <Text style={styles.fileMeta} numberOfLines={1}>{['文件', verifyWord(verify), fmtWhen(d.createdAt)].filter(Boolean).join(' · ')}</Text>
-            </View>
-          </Pressable>
-        ))}
+        <View style={styles.files}>
+          {ds.map((d, i) => (
+            <Pressable key={'f' + (d.id || i)} onPress={() => onOpen(d)} accessibilityRole="button" accessibilityLabel={'打开 ' + d.title} hitSlop={4} style={({ pressed }) => [styles.fileRow, pressed && { opacity: 0.7 }]}>
+              <Ionicons name={fileIcon(d)} size={20} color={color.muted} />
+              <Text style={styles.fileTitle} numberOfLines={1}>{d.title || d.id}</Text>
+              <Text style={styles.fileMeta} numberOfLines={1}>{fmtWhen(d.createdAt)}</Text>
+            </Pressable>
+          ))}
+        </View>
       </ReplyBubble>
       <View style={styles.after}>
-        {ds.map((d, i) => <VerifyLine key={d.id || i} words={verifyWords(verify)} tone={tone} notes={verify.kind !== 'verifying' ? verify.notes : ''} rating={d.rating} onRate={(r) => onRate(d, r)} />)}
+        {ds.map((d, i) => <VerifyLine key={d.id || i} words={verifyWords(verify)} warn={warn} notes={verify.kind !== 'verifying' ? verify.notes : ''} rating={d.rating} onRate={(r) => onRate(d, r)} />)}
       </View>
     </View>
   )
@@ -346,7 +382,6 @@ function RemindCard({ title, text, at, acked, busy, onAck, onOpen }: { title: st
   return (
     <View style={styles.remind}>
       <Pressable onPress={onOpen} style={styles.remindMain}>
-        <Ionicons name="notifications-outline" size={16} color={color.fg2} />
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={styles.remindTitle} numberOfLines={1}>{[title, fmtTime(at)].filter(Boolean).join(' · ')}</Text>
           {text && text !== title ? <Text style={styles.remindSub} numberOfLines={2}>{text}</Text> : null}
@@ -410,10 +445,10 @@ function Process({ run }: { run: Run }) {
   return (
     <View>
       <Pressable onPress={() => setOpen(!open)} accessibilityRole="button" accessibilityState={{ expanded: open }} style={styles.procHead}>
-        <Ionicons name="chevron-forward-outline" size={13} color={color.muted} style={{ transform: [{ rotate: open ? '90deg' : '0deg' }] }} />
         <Text style={styles.procText}>{label}</Text>
+        <Ionicons name="chevron-forward-outline" size={12} color={color.meta} style={{ transform: [{ rotate: open ? '90deg' : '0deg' }] }} />
       </Pressable>
-      {open && !src ? <ActivityIndicator size="small" color={color.meta} style={{ alignSelf: 'flex-start', marginLeft: 20 }} /> : null}
+      {open && !src ? <Text style={[styles.procText, { paddingLeft: 8 }]}>…</Text> : null}
       {open && src ? (
         <View style={styles.phases}>
           {rows.map((r, i) => {
@@ -425,7 +460,6 @@ function Process({ run }: { run: Run }) {
               return (
                 <View key={i}>
                   <Pressable onPress={() => setOpenPhase(isOpen ? -1 : i)} accessibilityRole="button" accessibilityState={{ expanded: isOpen }} style={styles.phase}>
-                    <View style={styles.ic}>{running ? <ActivityIndicator size="small" color={color.fg2} /> : <Ionicons name={r.failed ? 'close-circle-outline' : 'checkmark-outline'} size={15} color={r.failed ? color.danger : color.meta} />}</View>
                     <Text style={[styles.verb, running && { color: color.fg }, r.failed > 0 && { color: color.danger }]}>{r.verb}</Text>
                     {pm ? <Text style={styles.phaseMeta}>{pm}</Text> : null}
                     {!isOpen && r.obj ? <Text style={styles.obj} numberOfLines={1}>{r.obj}</Text> : null}
@@ -436,9 +470,8 @@ function Process({ run }: { run: Run }) {
                     const ms = Math.max(0, time(nextAt) - time(c.at))
                     return (
                       <View key={j} style={styles.call}>
-                        <View style={styles.ic}><Ionicons name={c.ok === false ? 'close-circle-outline' : c.ok === true ? 'checkmark-outline' : 'ellipse-outline'} size={13} color={c.ok === false ? color.danger : color.meta} /></View>
                         <View style={{ flex: 1, minWidth: 0 }}>
-                          <Text style={styles.callLine} numberOfLines={2}><Text style={styles.callVerb}>{d.verb}</Text>{d.obj ? '  ' + d.obj : ''}</Text>
+                          <Text style={styles.callLine} numberOfLines={2}><Text style={[styles.callVerb, c.ok === false && { color: color.danger }]}>{d.verb}</Text>{d.obj ? '  ' + d.obj : ''}</Text>
                           {c.ok === false && c.result ? <Text style={styles.callFail} numberOfLines={2}>失败 · {c.result}</Text> : null}
                         </View>
                         {ms > 1500 ? <Text style={styles.phaseMeta}>{fmtDuration(ms)}</Text> : null}
@@ -450,7 +483,6 @@ function Process({ run }: { run: Run }) {
             }
             return (
               <View key={i} style={styles.note}>
-                <View style={[styles.ic, { marginTop: 2 }]}><Ionicons name="chatbox-ellipses-outline" size={15} color={color.meta} /></View>
                 <View style={{ flex: 1 }}><Folded text={r.kind === 'verify' ? '核验 · ' + r.text : r.text} /></View>
               </View>
             )
@@ -462,63 +494,65 @@ function Process({ run }: { run: Run }) {
 }
 
 const styles = StyleSheet.create({
-  head: { height: 56, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, gap: 2 },
-  who: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 10, height: 48, paddingHorizontal: 4 },
-  name: { flexShrink: 1, fontSize: 17, lineHeight: 22, fontWeight: '600', color: color.fg },
+  head: { height: 56, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, gap: 4 },
+  who: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 8, height: 48, paddingHorizontal: 4 },
+  whoText: { flexShrink: 1, minWidth: 0 },
+  name: { fontSize: 16, lineHeight: 20, fontWeight: '600', color: color.fg },
+  ttl: { fontSize: 12, lineHeight: 16, color: color.muted },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  body: { flexGrow: 1, paddingHorizontal: space.md, paddingBottom: space.lg, gap: space.md },
+  // 32 between runs, 8 inside one
+  body: { flexGrow: 1, paddingHorizontal: space.lg, paddingBottom: space.lg, gap: space.xxl },
   older: { alignItems: 'center', minHeight: 8 },
-  run: { gap: space.md, borderRadius: radius.lg },
-  lit: { backgroundColor: color.card, marginHorizontal: -8, paddingHorizontal: 8, paddingVertical: 6 },
-  line: { gap: space.md },
-  loading: { alignSelf: 'center', marginVertical: space.xl },
-  dock: { paddingHorizontal: space.md, paddingTop: space.sm, gap: space.sm, backgroundColor: color.bg },
-  working: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 2 },
+  run: { gap: space.sm, borderRadius: radius.lg },
+  lit: { backgroundColor: color.card, marginHorizontal: -8, paddingHorizontal: 8, paddingVertical: 8 },
+  line: { gap: space.sm },
+  loading: { alignSelf: 'center', marginVertical: space.xl, fontSize: 13, color: color.meta },
+  dock: { paddingHorizontal: space.lg, paddingTop: space.sm, gap: space.sm, backgroundColor: color.bg },
+  working: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   hello: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.lg, paddingVertical: space.xxl, gap: 8 },
-  helloName: { fontSize: 20, lineHeight: 26, fontWeight: '600', color: color.fg, marginTop: 8 },
-  helloDuty: { fontSize: 14, lineHeight: 20, color: color.muted, textAlign: 'center', maxWidth: 300 },
+  helloName: { fontSize: 16, lineHeight: 24, fontWeight: '600', color: color.fg, marginTop: 8 },
+  helloDuty: { fontSize: 13, lineHeight: 20, color: color.muted, textAlign: 'center', maxWidth: 300 },
   pills: { alignSelf: 'stretch', gap: 8, marginTop: space.lg },
-  pill: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 18, paddingVertical: 10, borderRadius: 22, borderWidth: 1, borderColor: color.border, backgroundColor: color.card },
-  pillText: { fontSize: 14.5, lineHeight: 20, color: color.fg2 },
-  err: { fontSize: size.meta, lineHeight: 18, color: color.danger, paddingHorizontal: 6 },
-  muted: { fontSize: size.meta, lineHeight: 18, color: color.muted },
-  failed: { fontSize: size.ui, lineHeight: 22, color: color.danger },
-  // 文件
-  delivery: { gap: 2 },
-  excerpt: { fontSize: size.ui, lineHeight: 23, color: color.fg },
-  fileCard: { flexDirection: 'row', alignItems: 'center', gap: 12, minWidth: 220, padding: 8, marginHorizontal: -6, borderRadius: 14, borderWidth: 1, borderColor: color.border, backgroundColor: color.surface },
-  fileTile: { width: 40, height: 40, borderRadius: 10, backgroundColor: color.bubble, alignItems: 'center', justifyContent: 'center' },
-  fileTitle: { fontSize: size.ui, lineHeight: 20, fontWeight: '600', color: color.fg },
-  fileMeta: { fontSize: 12, lineHeight: 17, color: color.muted, marginTop: 1, fontVariant: ['tabular-nums'] },
-  after: { paddingLeft: 12 },
+  pill: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 24, borderWidth: 1, borderColor: color.border, backgroundColor: color.card },
+  pillText: { fontSize: 15, lineHeight: 24, color: color.fg2 },
+  err: { fontSize: size.meta, lineHeight: 20, color: color.danger, paddingHorizontal: 8 },
+  muted: { fontSize: size.meta, lineHeight: 20, color: color.muted },
+  failed: { fontSize: size.meta, lineHeight: 20, color: color.danger },
+  // 文件: the reply bubble's file rows (no card in the card)
+  delivery: { gap: 4 },
+  excerpt: { fontSize: 15, lineHeight: 26, color: color.fg },
+  files: { borderTopWidth: 1, borderTopColor: color.border, paddingTop: 8, marginTop: 4, gap: 8 },
+  fileRow: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 24 },
+  fileTitle: { flexShrink: 1, fontSize: 14, lineHeight: 20, fontWeight: '500', color: color.fg },
+  fileMeta: { flexShrink: 0, fontSize: 12, lineHeight: 16, color: color.muted, fontVariant: ['tabular-nums'] },
+  after: { paddingLeft: 8 },
   // 提醒卡
-  remind: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 48, paddingLeft: 14, paddingRight: 6, borderWidth: 1, borderColor: color.border, borderRadius: radius.lg, backgroundColor: color.card },
-  remindMain: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 },
-  remindTitle: { fontSize: 14, lineHeight: 20, color: color.fg, fontVariant: ['tabular-nums'] },
-  remindSub: { fontSize: size.small, lineHeight: 18, color: color.muted },
+  remind: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 48, paddingLeft: 16, paddingRight: 8, borderWidth: 1, borderColor: color.border, borderRadius: radius.lg, backgroundColor: color.card },
+  remindMain: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8 },
+  remindTitle: { fontSize: 15, lineHeight: 24, color: color.fg, fontVariant: ['tabular-nums'] },
+  remindSub: { fontSize: 13, lineHeight: 20, color: color.muted },
   remindDone: { fontSize: size.meta, color: color.meta, paddingHorizontal: 8 },
   // 找你卡
-  ask: { gap: 8, padding: 14, borderRadius: 20, backgroundColor: color.card, maxWidth: '92%' },
-  askQ: { fontSize: size.ui, lineHeight: 24, color: color.fg, marginBottom: 2 },
+  ask: { gap: 8, padding: 16, borderRadius: 20, backgroundColor: color.card, maxWidth: '92%' },
+  askQ: { fontSize: 15, lineHeight: 26, color: color.fg },
   askDetail: { maxHeight: 240, borderRadius: radius.md, backgroundColor: color.input, marginBottom: 4 },
-  askDetailText: { fontFamily: font.mono, fontSize: 13, lineHeight: 19, color: color.fg2, padding: 12 },
-  askNote: { fontSize: size.ui, lineHeight: 22, color: color.muted, marginBottom: 2 },
-  askDone: { fontSize: size.meta, lineHeight: 18, color: color.success },
-  outline: { minHeight: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1, borderColor: color.borderStrong, borderRadius: 22, backgroundColor: color.input },
-  outlineFilled: { backgroundColor: color.primary, borderColor: color.primary },
-  outlineText: { fontSize: size.ui, fontWeight: '500', color: color.fg, textAlign: 'center' },
-  // 过程
-  procHead: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 28, alignSelf: 'flex-start', paddingLeft: 12 },
-  procText: { fontSize: 13, lineHeight: 18, color: color.muted, fontVariant: ['tabular-nums'] },
-  ic: { width: 20, alignItems: 'center' },
-  phases: { paddingBottom: space.xs },
-  phase: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 34, paddingVertical: 3 },
-  verb: { fontSize: 14, fontWeight: '500', color: color.fg2 },
-  phaseMeta: { fontSize: size.meta, color: color.meta, fontVariant: ['tabular-nums'] },
-  obj: { flex: 1, fontSize: size.meta, color: color.muted },
-  call: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingLeft: 30, paddingVertical: 4 },
-  callLine: { fontSize: size.meta + 1, lineHeight: 20, color: color.muted },
+  askDetailText: { fontFamily: font.mono, fontSize: 12, lineHeight: 20, color: color.fg2, padding: 16 },
+  askNote: { fontSize: 15, lineHeight: 24, color: color.muted },
+  askDone: { fontSize: size.meta, lineHeight: 20, color: color.meta },
+  outline: { minHeight: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16, paddingVertical: 8, borderWidth: 1, borderColor: color.border, borderRadius: 24, backgroundColor: color.input },
+  outlineFilled: { backgroundColor: color.bubble },
+  outlineText: { fontSize: 15, fontWeight: '500', color: color.fg, textAlign: 'center' },
+  // 过程: one 12px line at 40 %, then the chevron
+  procHead: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 24, alignSelf: 'flex-start', paddingLeft: 8 },
+  procText: { fontSize: 12, lineHeight: 16, color: color.meta, fontVariant: ['tabular-nums'] },
+  phases: { paddingLeft: 8, paddingBottom: space.xs },
+  phase: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 32, paddingVertical: 4 },
+  verb: { fontSize: 13, fontWeight: '500', color: color.fg2 },
+  phaseMeta: { fontSize: 12, color: color.meta, fontVariant: ['tabular-nums'] },
+  obj: { flex: 1, fontSize: 13, color: color.muted },
+  call: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, paddingLeft: 16, paddingVertical: 4 },
+  callLine: { fontSize: 13, lineHeight: 20, color: color.muted },
   callVerb: { color: color.fg2, fontWeight: '500' },
-  callFail: { fontSize: size.meta, lineHeight: 18, color: color.danger },
-  note: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 6 },
+  callFail: { fontSize: 12, lineHeight: 16, color: color.danger },
+  note: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, paddingVertical: 4 },
 })

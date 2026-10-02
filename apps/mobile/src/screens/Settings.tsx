@@ -14,9 +14,9 @@ export default function Settings() {
       <TopBar left={<IconBtn name="chevron-back-outline" label="返回" onPress={nav.pop} />} title="设置" />
       <ScrollView contentContainerStyle={styles.wrap}>
         <ListBox>
-          <Row glyph="laptop-outline" title="连接" sub={conn ? conn.base : ''} />
-          <Row glyph="qr-code-outline" title="重新配对" onPress={() => { forget() }} chevron />
-          <Row glyph="information-circle-outline" title="关于" sub="MyWork 手机端 0.1" />
+          <Row title="连接" sub={conn ? conn.base : ''} />
+          <Row title="重新配对" onPress={() => { forget() }} chevron />
+          <Row title="关于" sub="MyWork 手机端 0.1" />
         </ListBox>
       </ScrollView>
     </Screen>

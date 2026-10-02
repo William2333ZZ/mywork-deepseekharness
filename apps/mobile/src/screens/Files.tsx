@@ -51,7 +51,7 @@ export default function Files({ mateId }: { mateId?: string }) {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
         renderItem={({ item: d }) => (
-          <ThreadRow glyph={d.kind === 'report' ? 'newspaper-outline' : 'document-text-outline'} tone={d.verification && d.verification.passed === true ? 'success' : 'meta'} title={d.title} time={fmtWhen(d.createdAt)} preview={[mate ? '' : nameOf(d.mateId), verdict(d)].filter(Boolean).join(' · ')} onPress={() => nav.push({ name: 'file', id: d.id })} />
+          <ThreadRow glyph={d.kind === 'report' ? 'newspaper-outline' : 'document-text-outline'} title={d.title} time={fmtWhen(d.createdAt)} preview={[mate ? '' : nameOf(d.mateId), verdict(d)].filter(Boolean).join(' · ')} onPress={() => nav.push({ name: 'file', id: d.id })} />
         )}
         ListEmptyComponent={<Text style={styles.empty}>{items ? (needle ? '没有匹配的' : '还没有文件') : '…'}</Text>}
       />
@@ -62,7 +62,7 @@ export default function Files({ mateId }: { mateId?: string }) {
 function Chip({ label, on, onPress }: { label: string; on: boolean; onPress: () => void }) {
   return (
     <Pressable onPress={onPress} accessibilityRole="button" accessibilityState={{ selected: on }} style={({ pressed }) => [styles.chip, on && styles.chipOn, pressed && { opacity: 0.7 }]}>
-      <Text style={[styles.chipText, on && { color: color.onPrimary }]} numberOfLines={1}>{label}</Text>
+      <Text style={[styles.chipText, on && { color: color.fg }]} numberOfLines={1}>{label}</Text>
     </Pressable>
   )
 }
@@ -71,9 +71,9 @@ const styles = StyleSheet.create({
   search: { marginHorizontal: space.lg, marginTop: space.xs, marginBottom: space.sm },
   chipsBar: { flexGrow: 0 },
   chips: { paddingHorizontal: space.lg, gap: space.sm, paddingBottom: space.sm },
-  chip: { height: 32, paddingHorizontal: 14, borderRadius: radius.pill, borderWidth: 1, borderColor: color.border, backgroundColor: color.input, justifyContent: 'center', maxWidth: 160 },
-  chipOn: { backgroundColor: color.primary, borderColor: color.primary },
+  chip: { height: 32, paddingHorizontal: 16, borderRadius: radius.pill, borderWidth: 1, borderColor: color.border, backgroundColor: color.input, justifyContent: 'center', maxWidth: 160 },
+  chipOn: { backgroundColor: color.bubble },
   chipText: { fontSize: size.meta, color: color.fg2 },
-  list: { paddingHorizontal: 6, paddingBottom: space.xl },
-  empty: { fontSize: size.meta, lineHeight: 18, color: color.muted, paddingHorizontal: 10, paddingVertical: 12 },
+  list: { paddingHorizontal: 8, paddingBottom: space.xl },
+  empty: { fontSize: size.meta, lineHeight: 20, color: color.muted, paddingHorizontal: 8, paddingVertical: 16 },
 })

@@ -13,6 +13,8 @@ function inline(s) {
   out = out.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
   out = out.replace(/(^|[^*\w])\*([^*\n]+)\*(?!\w)/g, '$1<em>$2</em>')
   out = out.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, (_, t, u) => '<a href="' + u + '" target="_blank" rel="noopener noreferrer">' + t + '</a>')
+  // A link to a file in the teammate's own folder (no scheme) reads as its name; the folder is in the right panel.
+  out = out.replace(/\[([^\]]+)\]\((?!https?:)[^)\s]+\)/g, '<span class="md-file">$1</span>')
   return out
 }
 

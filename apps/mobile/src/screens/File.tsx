@@ -3,7 +3,7 @@
  * and 「在对话里看」 — the conversation of the teammate that made it, scrolled to the run (§9.3 跳转一条规则).
  */
 import { useEffect, useState } from 'react'
-import { ActivityIndicator, ScrollView, Share, StyleSheet, View } from 'react-native'
+import { ScrollView, Share, StyleSheet, Text, View } from 'react-native'
 import { fmtDate, type Deliverable, type Run } from '../api'
 import { useConn, useNav, useStore } from '../store'
 import { Btn, Empty, IconBtn, Meta, Prose, ResultRows, Screen, Title, TopBar, VerifyLine, type Tone } from '../components'
@@ -41,13 +41,12 @@ export default function File({ id }: { id: string }) {
     return (
       <Screen>
         <TopBar left={<IconBtn name="chevron-back-outline" label="返回" onPress={nav.pop} />} />
-        <View style={styles.center}>{gone ? <Empty text="没有这份文件。" /> : <ActivityIndicator color={color.fg2} />}</View>
+        <View style={styles.center}>{gone ? <Empty text="没有这份文件。" /> : <Text style={styles.wait}>…</Text>}</View>
       </Screen>
     )
   }
   const mate = d.mateId ? (mates || []).find((m) => m.id === d.mateId) : undefined
   const v = verifyOf(d, run)
-  const tone: Tone = v.kind === 'passed' ? 'success' : v.kind === 'issues' ? 'warn' : v.kind === 'verifying' ? 'live' : 'meta'
   return (
     <Screen>
       <TopBar left={<IconBtn name="chevron-back-outline" label="返回" onPress={nav.pop} />} right={<IconBtn name="share-outline" label="分享" onPress={share} />} />
@@ -56,8 +55,8 @@ export default function File({ id }: { id: string }) {
         <Meta style={styles.meta}>{[mate ? mate.name : '', fmtDate(d.createdAt)].filter(Boolean).join(' · ')}</Meta>
         {Array.isArray(d.summary) && d.summary.length ? <View style={styles.sum}><ResultRows rows={d.summary} /></View> : null}
         <View style={styles.doc}><Prose markdown={d.markdown || ''} wide /></View>
-        <VerifyLine words={verifyWords(v)} tone={tone} notes={v.kind !== 'verifying' ? v.notes : ''} rating={d.rating} onRate={(r) => { rate(r) }} />
-        {d.mateId ? <Btn label="在对话里看" icon="chatbubble-outline" onPress={() => nav.openMate(d.mateId!, d.runId)} style={styles.go} /> : null}
+        <VerifyLine words={verifyWords(v)} notes={v.kind !== 'verifying' ? v.notes : ''} rating={d.rating} onRate={(r) => { rate(r) }} />
+        {d.mateId ? <Btn label="在对话里看" onPress={() => nav.openMate(d.mateId!, d.runId)} style={styles.go} /> : null}
       </ScrollView>
     </Screen>
   )
@@ -68,6 +67,7 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   meta: { marginTop: space.sm, marginBottom: space.lg },
   go: { alignSelf: 'flex-start', marginTop: space.lg },
-  sum: { padding: 14, borderRadius: radius.lg, backgroundColor: color.card, borderWidth: 1, borderColor: color.border, marginBottom: space.lg },
+  sum: { marginBottom: space.xl },
+  wait: { fontSize: 13, color: color.meta },
   doc: { marginBottom: space.sm },
 })

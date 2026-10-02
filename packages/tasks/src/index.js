@@ -179,7 +179,7 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     else { const line = lastLineOf(runs); preview = line ? clip((line.you ? '你：' : '') + line.text) : '' }
     return {
       id: m.id, name: m.name || '新同事', named: !!m.name, title: m.title || '', description: m.description || '', glyph: m.glyph || glyphOf(m.name),
-      pinned: !!m.pinned, isDefault: !!m.isDefault, notify: m.notify !== false, createdAt: m.createdAt,
+      pinned: !!m.pinned, isDefault: !!m.isDefault, notify: m.notify !== false, group: m.group || '', createdAt: m.createdAt,
       lastAt: lastAt || m.createdAt, preview, unread: seen.unread(m.id, attentionAt), attentionAt,
       state, step, since: running ? (running.startedAt || running.createdAt) : live.length ? live[0].createdAt : pending ? pending.at : '',
       ask: pending ? { ...askView(pending), runId: waiting.id } : null,
@@ -305,6 +305,7 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     const description = String((b && b.description) || '').trim()
     if (!description) throw bad('写一句它负责什么。')
     const mate = mates.create({ description, name: b.name, title: b.title })
+    if (b.group !== undefined || b.pinned !== undefined) mates.update(mate.id, { group: String(b.group || '').trim().slice(0, 12), pinned: !!b.pinned })
     try { mkdirSync(mate.dir, { recursive: true }) } catch {}
     // The hidden intro run: it names itself when it has no name, sets up a timed duty, and says how it understood its job.
     const intro = store.create({ mateId: mate.id, trigger: 'system', input: '', title: '自我介绍' })
@@ -348,6 +349,7 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     if (b.description !== undefined) { const d = String(b.description || '').trim(); if (!d) throw bad('职责不能为空。'); patch.description = d.slice(0, MATE_DESCRIPTION_MAX) }
     if (b.pinned !== undefined) patch.pinned = !!b.pinned
     if (b.notify !== undefined) patch.notify = !!b.notify
+    if (b.group !== undefined) patch.group = String(b.group || '').replace(/\s+/g, ' ').trim().slice(0, 12) // sidebar section; '' = 未分组
     const identity = ['name', 'title', 'description'].some((k) => k in patch && patch[k] !== m[k])
     const nameChanged = 'name' in patch && patch.name !== m.name
     mates.update(m.id, patch)

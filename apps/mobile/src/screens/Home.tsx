@@ -1,25 +1,56 @@
 /**
  * Home = the teammates list (TEAMMATES.md §9.4 / §9.6). Top: search · the bell (count = 需要你 + 在干活, opens the
- * activity screen) · 「+」 new teammate. Middle: only teammates, one ordering rule — pinned first (MyWork by default),
- * then the latest conversation; working or waiting never reorders. Bottom: 文件; the mark on the left opens 设置.
+ * activity screen) · 「+」 new teammate. Middle: only teammates, in sections — 置顶 (pinned; MyWork by default), one per
+ * group (the group with the newest conversation first), 其他 — each pinned / default first, then the latest
+ * conversation; working or waiting never reorders. A section header (only when there is more than one section) folds
+ * its rows; what is folded is remembered. Bottom: 文件; the mark on the left opens 设置.
  * While the search is non-empty the list becomes the results: teammates, messages (open the mate at that run), files
  * (open the file), routines (open the mate's page with that routine). Rows carry no actions.
  */
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
+import * as SecureStore from 'expo-secure-store'
 import { fmtWhen, type Mate, type SearchResult } from '../api'
 import { useConn, useNav, useStore } from '../store'
 import { Field, Mark, MateRow, Screen, ThreadRow, type IconName } from '../components'
 import { color, size, space } from '../theme'
-import { glyphOf, orderMates, secondLine } from '../thread'
+import { glyphOf, orderMates, secondLine, sectionMates } from '../thread'
 
 const SEARCH_DEBOUNCE_MS = 250
 
 type Hit =
   | { key: string; kind: 'mate'; mate: Mate }
   | { key: string; kind: 'message' | 'file' | 'routine'; glyph: IconName; title: string; sub: string; at: string; open: () => void }
+/** A section header of the list (not in search results): folded, it keeps the count and a dot for news inside. */
+type SectionRow = { key: string; kind: 'section'; secKey: string; label: string; closed: boolean; count: number; news: boolean }
+
+/** Folded section keys ('pinned' | 'g:<name>' | 'other'), kept for the app's life and in the secure store (the app's only store). */
+const SECTIONS_KEY = 'mywork.sections'
+let foldedCache: Record<string, boolean> | null = null
+function useFolded(): [Record<string, boolean>, (key: string) => void] {
+  const [folded, setFolded] = useState<Record<string, boolean>>(foldedCache || {})
+  useEffect(() => {
+    if (foldedCache) return
+    let on = true
+    SecureStore.getItemAsync(SECTIONS_KEY).then((raw) => {
+      if (foldedCache) return // a header was tapped meanwhile: that choice wins
+      const v: unknown = raw ? JSON.parse(raw) : {}
+      foldedCache = v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, boolean>) : {}
+      if (on) setFolded(foldedCache)
+    }).catch(() => { foldedCache = {} })
+    return () => { on = false }
+  }, [])
+  const toggle = useCallback((key: string) => {
+    const next = { ...folded }
+    if (next[key]) delete next[key]; else next[key] = true
+    foldedCache = next
+    setFolded(next)
+    SecureStore.setItemAsync(SECTIONS_KEY, JSON.stringify(next)).catch(() => { /* folded for this run only */ })
+  }, [folded])
+  return [folded, toggle]
+}
 
 export default function Home() {
   const nav = useNav()
@@ -60,7 +91,21 @@ export default function Home() {
     }
     return out
   }, [needle, list, remote, nameOf, nav])
-  const rows: Hit[] = needle ? hits : list.map((m) => ({ key: 'm:' + m.id, kind: 'mate', mate: m }))
+  // ---- the list: sections, with headers only when there is more than one ----
+  const sections = useMemo(() => sectionMates(mates || []), [mates])
+  const [folded, toggleSection] = useFolded()
+  const listRows = useMemo((): (Hit | SectionRow)[] => {
+    if (sections.length <= 1) return (sections.length ? sections[0].mates : []).map((m) => ({ key: 'm:' + m.id, kind: 'mate', mate: m }))
+    const out: (Hit | SectionRow)[] = []
+    for (const sec of sections) {
+      const closed = !!folded[sec.key]
+      const label = sec.kind === 'pinned' ? '置顶' : sec.kind === 'other' ? '其他' : sec.name
+      out.push({ key: 's:' + sec.key, kind: 'section', secKey: sec.key, label, closed, count: sec.mates.length, news: closed && sec.mates.some((m) => m.unread || m.state === 'waiting') })
+      if (!closed) for (const m of sec.mates) out.push({ key: 'm:' + m.id, kind: 'mate', mate: m })
+    }
+    return out
+  }, [sections, folded])
+  const rows: (Hit | SectionRow)[] = needle ? hits : listRows
 
   const [searching, setSearching] = useState(false)
   const closeSearch = () => { setQuery(''); setSearching(false) }
@@ -89,6 +134,7 @@ export default function Home() {
         keyboardDismissMode="on-drag"
         refreshControl={<RefreshControl refreshing={loading && !mates} onRefresh={refresh} tintColor={color.meta} colors={[color.fg]} progressBackgroundColor={color.card} />}
         renderItem={({ item }) => {
+          if (item.kind === 'section') return <SectionHead label={item.label} closed={item.closed} count={item.count} news={item.news} onPress={() => toggleSection(item.secKey)} />
           if (item.kind === 'mate') {
             const m = item.mate
             return <MateRow id={m.id || m.name} char={glyphOf(m)} isDefault={m.isDefault} working={m.state === 'working'} waiting={m.state === 'waiting'} name={m.name} time={fmtWhen(m.lastAt)} unread={m.unread} sub={secondLine(m)} onPress={() => nav.push({ name: 'mate', id: m.id })} />
@@ -101,6 +147,18 @@ export default function Home() {
         <ThreadRow glyph="folder-outline" title="文件" onPress={() => nav.push({ name: 'files' })} />
       </View>
     </Screen>
+  )
+}
+
+/** 11–12px muted, sentence case; the chevron turns when the section is open. */
+function SectionHead({ label, closed, count, news, onPress }: { label: string; closed: boolean; count: number; news: boolean; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ expanded: !closed }} hitSlop={4} style={({ pressed }) => [styles.sec, pressed && { opacity: 0.7 }]}>
+      <Ionicons name="chevron-forward" size={12} color={color.muted} style={{ transform: [{ rotate: closed ? '0deg' : '90deg' }] }} />
+      <Text style={styles.secLabel} numberOfLines={1}>{label}</Text>
+      {closed ? <Text style={styles.secCount}>{count}</Text> : null}
+      {news ? <View style={styles.secDot} /> : null}
+    </Pressable>
   )
 }
 
@@ -123,5 +181,9 @@ const styles = StyleSheet.create({
   badgeText: { fontSize: 10, lineHeight: 12, fontWeight: '700', color: color.onPrimary, fontVariant: ['tabular-nums'] },
   list: { paddingHorizontal: 4, paddingTop: space.xs, paddingBottom: space.sm },
   empty: { fontSize: size.meta, lineHeight: 18, color: color.muted, paddingHorizontal: 16, paddingVertical: 12 },
+  sec: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 32, paddingHorizontal: 12, paddingTop: 10, paddingBottom: 2 },
+  secLabel: { flexShrink: 1, fontSize: 12, lineHeight: 16, fontWeight: '500', color: color.muted },
+  secCount: { fontSize: 12, lineHeight: 16, color: color.meta, fontVariant: ['tabular-nums'] },
+  secDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: color.primary },
   foot: { paddingHorizontal: 4, paddingTop: 4, borderTopWidth: 1, borderTopColor: color.border },
 })

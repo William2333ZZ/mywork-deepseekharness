@@ -39,9 +39,9 @@ export type Activity =
   | { at: string; kind: 'remind'; routineId: string; title: string; text?: string; acked?: boolean; ackedAt?: string }
   | AskActivity
 export type MateState = 'idle' | 'working' | 'waiting'
-/** A teammate (§9.1): one endless conversation, its own folder, its own routines. */
+/** A teammate (§9.1): one endless conversation, its own folder, its own routines. `group` names its section on the list ('' = 其他). */
 export type Mate = {
-  id: string; name: string; title: string; description: string; glyph: string; pinned: boolean; isDefault: boolean; notify: boolean
+  id: string; name: string; title: string; description: string; glyph: string; pinned: boolean; isDefault: boolean; notify: boolean; group: string
   createdAt: string; lastAt: string; preview: string; unread: boolean; state: MateState; step: string; since: string; ask: Ask | null; routineCount: number
 }
 export type RunTrigger = 'user' | 'routine' | 'system'
@@ -117,7 +117,8 @@ export class Api {
   // ---- teammates ----
   mates() { return this.req<{ items: Mate[] }>('/mates') }
   mateCreate(description: string, name?: string, title?: string) { return this.req<{ mate: Mate }>('/mates/create', { description, ...(name ? { name } : {}), ...(title ? { title } : {}) }) }
-  mateUpdate(id: string, patch: Partial<Pick<Mate, 'name' | 'title' | 'description' | 'pinned' | 'notify'>>) { return this.req<{ mate: Mate }>('/mates/update', { id, ...patch }) }
+  /** `group`: up to 12 characters, '' clears it (the teammate goes back to 其他). */
+  mateUpdate(id: string, patch: Partial<Pick<Mate, 'name' | 'title' | 'description' | 'pinned' | 'notify' | 'group'>>) { return this.req<{ mate: Mate }>('/mates/update', { id, ...patch }) }
   /** The default mate refuses (400). */
   mateRemove(id: string) { return this.req<{ removed: boolean }>('/mates/remove', { id }) }
   /** A page of the conversation, runs ascending; `before` is the previous page's nextBefore. */

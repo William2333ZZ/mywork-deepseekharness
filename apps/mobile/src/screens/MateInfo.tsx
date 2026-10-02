@@ -3,12 +3,13 @@
  *   例行   rows (名字 · 计划 · 下次 / 已暂停); a row opens the routine's sheet: the sentence (editable), 现在跑一次,
  *          暂停 / 恢复, 删除, the last 10 runs (a run opens the conversation at it; a quiet one only reads 没有变化).
  *          「新例行」 beside the label opens a sheet with one sentence.
- *   设置   名字 · 头衔 · 职责 (each edited in a sheet) · 置顶 · 通知 · 删除 (not for the default teammate).
+ *   设置   名字 · 头衔 · 职责 · 分组 (each edited in a sheet; 分组 offers the names in use, empty = 其他 on the list) ·
+ *          置顶 · 通知 · 删除 (not for the default teammate).
  *   文件   this teammate's latest files; 全部 opens the files screen filtered to it.
  * With `routineId` the routine's sheet opens on arrival (「已安排」 lines and search results land here).
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Switch, Text, View } from 'react-native'
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native'
 import { ApiError, fmtDate, fmtWhen, type Deliverable, type Mate, type Routine, type RoutineRun } from '../api'
 import { useConn, useNav, useStore } from '../store'
 import { Avatar, Btn, Empty, Field, Ghost, IconBtn, ListBox, Meta, Row, Screen, Section, Sheet, SheetItem, ThreadRow, Title, TopBar } from '../components'
@@ -45,10 +46,12 @@ export default function MateInfo({ id, routineId }: { id: string; routineId?: st
   const [openRoutine, setOpenRoutine] = useState(routineId || '')
   const [creating, setCreating] = useState(false)
   const [edit, setEdit] = useState<EditKey | null>(null)
+  const [grouping, setGrouping] = useState(false)
+  const groups = useMemo(() => [...new Set((store.mates || []).map((m) => String(m.group || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'zh')), [store.mates])
   const [confirmRemove, setConfirmRemove] = useState(false)
   const [busy, setBusy] = useState(false)
 
-  const update = async (patch: Partial<Pick<Mate, 'name' | 'title' | 'description' | 'pinned' | 'notify'>>) => {
+  const update = async (patch: Partial<Pick<Mate, 'name' | 'title' | 'description' | 'pinned' | 'notify' | 'group'>>) => {
     if (!api || !mate) return
     setErr('')
     store.putMate({ ...mate, ...patch }) // the switch moves at once; the server's copy replaces it
@@ -96,6 +99,7 @@ export default function MateInfo({ id, routineId }: { id: string; routineId?: st
           <Row title="名字" state={mate.name} onPress={() => setEdit('name')} chevron />
           <Row title="头衔" state={mate.title || '无'} onPress={() => setEdit('title')} chevron />
           <Row title="职责" sub={mate.description || '无'} onPress={() => setEdit('description')} chevron />
+          <Row title="分组" state={mate.group || '其他'} onPress={() => setGrouping(true)} chevron />
           <SwitchRow label="置顶" value={!!mate.pinned} onChange={(v) => { update({ pinned: v }) }} />
           <SwitchRow label="通知" value={!!mate.notify} onChange={(v) => { update({ notify: v }) }} />
         </ListBox>
@@ -110,6 +114,7 @@ export default function MateInfo({ id, routineId }: { id: string; routineId?: st
 
       {routine ? <RoutineSheet key={routine.id} routine={routine} onClose={() => setOpenRoutine('')} onChanged={loadRoutines} onOpenRun={(runId) => { setOpenRoutine(''); nav.openMate(id, runId) }} /> : null}
       <NewRoutineSheet open={creating} mateId={id} onClose={() => setCreating(false)} onCreated={(r) => { setCreating(false); setRoutines((x) => [...(x || []).filter((y) => y.id !== r.id), r]); loadRoutines() }} />
+      {grouping ? <GroupSheet value={mate.group || ''} groups={groups} onClose={() => setGrouping(false)} onSave={(v) => { setGrouping(false); if (v !== (mate.group || '')) update({ group: v }) }} /> : null}
       {edit ? <EditSheet key={edit} label={EDIT_LABEL[edit]} value={String(mate[edit] || '')} multiline={edit === 'description'} required={edit !== 'title'} onClose={() => setEdit(null)} onSave={(v) => { setEdit(null); update({ [edit]: v }) }} /> : null}
       <Sheet open={confirmRemove} onClose={() => setConfirmRemove(false)} title={`删除「${mate.name}」？对话、例行和文件夹一起删。`}>
         <SheetItem icon="trash-outline" label="删除" danger onPress={() => { remove() }} />
@@ -141,6 +146,36 @@ function EditSheet({ label, value, multiline, required, onClose, onSave }: { lab
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.sheetBox}>
         <Field value={v} onChange={setV} placeholder={label} autoFocus multiline={multiline} onSubmit={can ? () => onSave(next) : undefined} />
         <Btn label="保存" kind="primary" onPress={() => onSave(next)} disabled={!can} style={{ alignSelf: 'flex-end' }} />
+      </KeyboardAvoidingView>
+    </Sheet>
+  )
+}
+
+/**
+ * 分组: one short name (12 characters, as the server keeps it) or nothing for 其他. The names already in use are one tap
+ * each; 移到其他 clears it.
+ */
+function GroupSheet({ value, groups, onClose, onSave }: { value: string; groups: string[]; onClose: () => void; onSave: (v: string) => void }) {
+  const [v, setV] = useState(value)
+  const next = v.replace(/\s+/g, ' ').trim().slice(0, 12)
+  const can = next !== value.trim()
+  return (
+    <Sheet open onClose={onClose} title="分组">
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.sheetBox}>
+        <Field value={v} onChange={(x) => setV(x.slice(0, 12))} placeholder="其他" autoFocus onSubmit={can ? () => onSave(next) : undefined} />
+        {groups.length ? (
+          <View style={styles.chips}>
+            {groups.map((g) => (
+              <Pressable key={g} onPress={() => onSave(g)} accessibilityRole="button" accessibilityState={{ selected: g === value }} style={({ pressed }) => [styles.chip, g === value && styles.chipOn, pressed && { opacity: 0.7 }]}>
+                <Text style={[styles.chipText, g === value && { color: color.fg }]} numberOfLines={1}>{g}</Text>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
+        <View style={styles.sheetActions}>
+          {value ? <Btn label="移到其他" onPress={() => onSave('')} /> : null}
+          <Btn label="保存" kind="primary" onPress={() => onSave(next)} disabled={!can} />
+        </View>
       </KeyboardAvoidingView>
     </Sheet>
   )
@@ -235,4 +270,9 @@ const styles = StyleSheet.create({
   sheetBox: { paddingHorizontal: 12, paddingTop: 4, gap: space.md },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   sub: { fontSize: size.small, lineHeight: 18, fontWeight: '500', color: color.muted, marginTop: space.sm },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+  chip: { height: 32, justifyContent: 'center', paddingHorizontal: 14, borderRadius: 16, borderWidth: 1, borderColor: color.border, backgroundColor: color.input },
+  chipOn: { borderColor: color.borderStrong, backgroundColor: color.bubble },
+  chipText: { fontSize: 14, lineHeight: 18, color: color.fg2 },
+  sheetActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: space.sm },
 })

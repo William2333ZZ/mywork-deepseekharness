@@ -1,15 +1,17 @@
 /**
  * MyWork v2 sidebar (TEAMMATES §9.4): the column is teammates. On top a search field, the bell (a count of what needs
  * you + what is working; a dropdown of 需要你 / 在干活 / 刚完成) and 「+」 for a new teammate. In the middle only
- * teammates — pinned first (MyWork is pinned by default), the rest by their last conversation; state never changes the
- * order. At the bottom 文件 and 设置. Rows carry no actions: opening a row is the only thing it does.
+ * teammates, in sections: 置顶 (pinned; MyWork is pinned by default), then one per group name (the group with the newest
+ * conversation first), then 其他. Within a section: pinned / default first, then the last conversation; state never
+ * changes the order. A section header (only when there is more than one section) folds its rows; what is folded is kept
+ * in localStorage. At the bottom 文件 and 设置. Rows carry no actions: opening a row is the only thing it does.
  *
  * Data comes from dsh-mywork-tasks (/mywork-tasks/api/mates, /activity, /search); navigation into that plugin's pages
  * goes through window events so neither package imports the other: the column dispatches mywork:open-thread and
  * listens for mywork:thread-opened (the highlight) and mywork:mates-updated (the page's own poll, shared).
  */
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactElement, type ReactNode } from 'react'
-import { Bell, FileText, Files, MessageCircle, PanelLeft, Plus, Repeat, Search } from 'lucide-react'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactElement, type ReactNode } from 'react'
+import { Bell, ChevronRight, FileText, Files, MessageCircle, PanelLeft, Plus, Repeat, Search } from 'lucide-react'
 import type { CodexSidebarProps } from './CodexSidebar.tsx'
 
 export const V2_STORAGE_KEY = 'dsh-mywork:v2'
@@ -22,7 +24,17 @@ const SLOW_MS = 30000
 const SEARCH_DEBOUNCE_MS = 200
 
 /** GET /mates → items (the §9.8 contract; only the fields the column reads). */
-type Mate = { id: string; name: string; title?: string; pinned?: boolean; isDefault?: boolean; createdAt?: string; lastAt?: string; preview?: string; unread?: boolean; state?: 'idle' | 'working' | 'waiting'; step?: string; ask?: { question?: string } | null }
+type Mate = { id: string; name: string; title?: string; pinned?: boolean; isDefault?: boolean; group?: string; createdAt?: string; lastAt?: string; preview?: string; unread?: boolean; state?: 'idle' | 'working' | 'waiting'; step?: string; ask?: { question?: string } | null }
+/** One block of the column: 置顶, a group (its name), or 其他 (ungrouped). */
+type Section = { key: string; kind: 'pinned' | 'group' | 'other'; name: string; mates: Mate[] }
+/** Folded section keys ('pinned' | 'g:<name>' | 'other' → true), kept across reloads. */
+const SECTIONS_KEY = 'dsh-mywork:sections'
+function storedSections(): Record<string, boolean> {
+  try {
+    const v: unknown = JSON.parse(localStorage.getItem(SECTIONS_KEY) ?? '{}')
+    return v !== null && typeof v === 'object' && !Array.isArray(v) ? v as Record<string, boolean> : {}
+  } catch { return {} }
+}
 /** GET /activity → { needs, working, recent } of these. */
 type ActivityItem = { mateId: string; mateName?: string; runId?: string; at?: string; text?: string; kind?: string }
 type Activity = { needs: ActivityItem[]; working: ActivityItem[]; recent: ActivityItem[] }
@@ -64,6 +76,15 @@ const stylesheet = `
 .mws-drop .mws-row{min-height:48px;border-radius:14px}
 .mws-drop .mws-row:hover{background:var(--surface-2)}
 .mws-list{flex:1;min-height:0;overflow:auto;padding:0 8px 8px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+/* Section headers: 11px muted, sentence case; the chevron turns when open. Folded, the count and an unread dot stay. */
+.mws-sec+.mws-sec{margin-top:6px}
+.mws-sec-head{appearance:none;display:flex;align-items:center;gap:4px;width:100%;height:28px;padding:0 10px;border:0;border-radius:10px;background:transparent;color:var(--muted);font:inherit;font-size:11px;line-height:16px;font-weight:500;text-align:left;cursor:pointer}
+.mws-sec-head:hover{color:var(--fg)}
+.mws-sec-head svg{flex:none;transition:transform var(--motion-fast) var(--ease-standard)}
+.mws-sec-head[aria-expanded=true] svg{transform:rotate(90deg)}
+.mws-sec-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mws-sec-count{flex:none;margin-left:2px;color:var(--meta);font-variant-numeric:tabular-nums}
+.mws-sec-head .mws-unread{width:6px;height:6px;margin-left:4px}
 /* Rows (Rakazo's chat list): 38 avatar · name + time + dot · two-line preview. */
 .mws-row{appearance:none;display:grid;grid-template-columns:38px minmax(0,1fr);column-gap:12px;align-items:start;width:100%;min-height:64px;padding:11px 10px;border:0;border-radius:16px;background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
 .mws-row-flat{grid-template-columns:20px minmax(0,1fr);align-items:center;min-height:44px;padding:12px 10px}
@@ -109,6 +130,7 @@ const stylesheet = `
 .mws-rail-mate{position:relative;padding:3px;border:0;border-radius:14px;background:transparent;cursor:pointer;transition:background .15s}
 .mws-rail-mate:hover,.mws-rail-mate[aria-current=page]{background:var(--surface-2)}
 .mws-rail-dot{position:absolute;top:2px;right:2px;width:8px;height:8px;border-radius:50%;background:var(--primary);box-shadow:0 0 0 2px var(--surface)}
+.mws-rail-sep{flex:none;width:20px;height:1px;background:var(--border-strong)}
 `
 
 const str = (v: unknown): string => typeof v === 'string' ? v : ''
@@ -130,6 +152,30 @@ export function orderMates(mates: Mate[]): Mate[] {
     || (isPinned(a) && isPinned(b) ? Number(b.isDefault === true) - Number(a.isDefault === true) : 0)
     || ms(str(b.lastAt) || str(b.createdAt)) - ms(str(a.lastAt) || str(a.createdAt))
     || (a.id < b.id ? -1 : 1))
+}
+/**
+ * The column's sections: 置顶 (every pinned teammate, whatever its group), then one per group name — the group holding
+ * the newest conversation first — then 其他 (no group). Empty sections are left out; each keeps orderMates' order.
+ */
+export function sectionMates(mates: Mate[]): Section[] {
+  const pinned: Mate[] = []
+  const other: Mate[] = []
+  const groups = new Map<string, Mate[]>()
+  for (const m of orderMates(mates)) {
+    if (isPinned(m)) { pinned.push(m); continue }
+    const name = str(m.group).trim()
+    if (name === '') { other.push(m); continue }
+    const list = groups.get(name)
+    if (list !== undefined) list.push(m)
+    else groups.set(name, [m])
+  }
+  const newest = (list: Mate[]): number => list.reduce((n, m) => Math.max(n, ms(str(m.lastAt) || str(m.createdAt))), 0)
+  const named = [...groups].sort(([a, x], [b, y]) => newest(y) - newest(x) || (a < b ? -1 : 1))
+  const out: Section[] = []
+  if (pinned.length > 0) out.push({ key: 'pinned', kind: 'pinned', name: '', mates: pinned })
+  for (const [name, list] of named) out.push({ key: 'g:' + name, kind: 'group', name, mates: list })
+  if (other.length > 0) out.push({ key: 'other', kind: 'other', name: '', mates: other })
+  return out
 }
 function asMates(v: unknown): Mate[] { return Array.isArray(v) ? v.filter((x): x is Mate => x !== null && typeof x === 'object' && str((x as Mate).id) !== '') : [] }
 function asItems(v: unknown): ActivityItem[] { return Array.isArray(v) ? v.filter((x): x is ActivityItem => x !== null && typeof x === 'object' && str((x as ActivityItem).mateId) !== '') : [] }
@@ -253,6 +299,14 @@ export function MyworkSidebar({ selectPanel, usePanelInfo = useLegacyPanelInfo, 
   const [bellOpen, setBellOpen] = useState(false)
   // Teammates opened here, with the lastAt they had then: the dot stays off until new activity moves lastAt.
   const [seen, setSeen] = useState<Record<string, string>>({})
+  const [folded, setFolded] = useState<Record<string, boolean>>(storedSections)
+  const toggleSection = (key: string): void => {
+    const next = { ...folded }
+    if (next[key] === true) delete next[key]
+    else next[key] = true
+    setFolded(next)
+    try { localStorage.setItem(SECTIONS_KEY, JSON.stringify(next)) } catch { /* private mode: folded for this visit only */ }
+  }
   const timer = useRef<number | undefined>(undefined)
   const searchSeq = useRef(0)
   const matesRef = useRef<Mate[]>([])
@@ -334,7 +388,9 @@ export function MyworkSidebar({ selectPanel, usePanelInfo = useLegacyPanelInfo, 
     return [...local, ...(remote ?? []).filter(r => !keys.has(r.key))]
   }, [needle, mates, remote])
 
-  const ordered = useMemo(() => orderMates(mates), [mates])
+  const sections = useMemo(() => sectionMates(mates), [mates])
+  // One section needs no header (and cannot fold).
+  const headed = sections.length > 1
   const live = mates.some(m => m.state === 'working')
   const count = activity.needs.length + activity.working.length
   const now = new Date()
@@ -353,19 +409,21 @@ export function MyworkSidebar({ selectPanel, usePanelInfo = useLegacyPanelInfo, 
     : activePanelId === null || activePanelId === MYWORK_PANELS.mate ? opened
       : ''
   const groups: Array<[string, ActivityItem[]]> = [[t('v2.needs'), activity.needs], [t('v2.working'), activity.working], [t('v2.recent'), activity.recent]]
+  const unreadOf = (mate: Mate): boolean => mate.unread === true && seen[mate.id] !== str(mate.lastAt) && highlighted !== 'mate:' + mate.id
+  const sectionLabel = (sec: Section): string => sec.kind === 'pinned' ? t('v2.pinned') : sec.kind === 'other' ? t('v2.other') : sec.name
 
   return <div className={'mws' + (compact ? ' compact' : '')} data-mywork-sidebar="v2">
     <style>{stylesheet}</style>
     {compact ? <>
-      {/* Collapsed = the same teammates without names: switching, unread and working stay one click away. */}
+      {/* Collapsed = the same teammates without names, in the same order, a thin line between sections (none fold here). */}
       <button type="button" className="mws-icon" aria-label={t('sidebar.expand')} onClick={toggleSidebar}><PanelLeft size={16} strokeWidth={1.5} /></button>
       <div className="mws-rail">
-        {ordered.map(mate => {
-          const unread = mate.unread === true && seen[mate.id] !== str(mate.lastAt) && highlighted !== 'mate:' + mate.id
-          return <button key={mate.id} type="button" className="mws-rail-mate" title={mate.name} aria-label={mate.name} aria-current={highlighted === 'mate:' + mate.id ? 'page' : undefined} onClick={() => { open({ kind: 'mate', id: mate.id }) }}>
-            <MateAvatar mate={mate} size={32} />{unread && <span className="mws-rail-dot" />}
-          </button>
-        })}
+        {sections.map((sec, i) => <Fragment key={sec.key}>
+          {i > 0 && <span className="mws-rail-sep" aria-hidden="true" />}
+          {sec.mates.map(mate => <button key={mate.id} type="button" className="mws-rail-mate" title={mate.name} aria-label={mate.name} aria-current={highlighted === 'mate:' + mate.id ? 'page' : undefined} onClick={() => { open({ kind: 'mate', id: mate.id }) }}>
+            <MateAvatar mate={mate} size={32} />{unreadOf(mate) && <span className="mws-rail-dot" />}
+          </button>)}
+        </Fragment>)}
         <button type="button" className="mws-icon" aria-label={t('v2.newMate')} onClick={() => { open({ kind: 'new-mate' }) }}><Plus size={16} strokeWidth={1.5} /></button>
       </div>
       <button type="button" className="mws-icon" aria-label={t('v2.files')} onClick={() => { open({ kind: 'files' }) }}><Files size={16} strokeWidth={1.5} /></button>
@@ -396,7 +454,22 @@ export function MyworkSidebar({ selectPanel, usePanelInfo = useLegacyPanelInfo, 
       </div>
       <div className="mws-list">
         {needle === ''
-          ? ordered.map(mate => <MateRow key={mate.id} mate={mate} t={t} time={fmtWhen(str(mate.lastAt), now)} current={highlighted === 'mate:' + mate.id} unread={mate.unread === true && seen[mate.id] !== str(mate.lastAt) && highlighted !== 'mate:' + mate.id} onOpen={() => { open({ kind: 'mate', id: mate.id }) }} />)
+          ? sections.map(sec => {
+            const rows = sec.mates.map(mate => <MateRow key={mate.id} mate={mate} t={t} time={fmtWhen(str(mate.lastAt), now)} current={highlighted === 'mate:' + mate.id} unread={unreadOf(mate)} onOpen={() => { open({ kind: 'mate', id: mate.id }) }} />)
+            if (!headed) return <Fragment key={sec.key}>{rows}</Fragment>
+            const closed = folded[sec.key] === true
+            // Folded, the header keeps the count and a dot when someone inside has news or waits on you.
+            const news = closed && sec.mates.some(m => unreadOf(m) || m.state === 'waiting')
+            return <div key={sec.key} className="mws-sec" role="group" aria-label={sectionLabel(sec)}>
+              <button type="button" className="mws-sec-head" aria-expanded={!closed} onClick={() => { toggleSection(sec.key) }}>
+                <ChevronRight size={12} strokeWidth={1.75} aria-hidden="true" />
+                <span className="mws-sec-name">{sectionLabel(sec)}</span>
+                {closed && <span className="mws-sec-count">{sec.mates.length}</span>}
+                {news && <i className="mws-unread" aria-hidden="true" />}
+              </button>
+              {!closed && rows}
+            </div>
+          })
           : results.map(row => <ResultItem key={row.key} row={row} time={fmtWhen(row.at, now)} onOpen={() => { open(row.target) }} />)}
         {needle !== '' && remote !== null && results.length === 0 && <div className="mws-empty">{t('v2.noResults')}</div>}
       </div>

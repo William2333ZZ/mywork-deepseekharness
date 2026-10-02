@@ -420,7 +420,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$31 = {
+		const __iconData$32 = {
 			name: "archive",
 			size: 24,
 			node: [
@@ -442,8 +442,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$31.node;
-		const Archive = createLucideIcon(__iconData$31);
+		__iconData$32.node;
+		const Archive = createLucideIcon(__iconData$32);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/arrow-left.mjs
 		/**
@@ -452,7 +452,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$30 = {
+		const __iconData$31 = {
 			name: "arrow-left",
 			size: 24,
 			node: [["path", {
@@ -463,8 +463,8 @@ window.__ModuleLoader__.load({
 				key: "x3x0zl"
 			}]]
 		};
-		__iconData$30.node;
-		const ArrowLeft = createLucideIcon(__iconData$30);
+		__iconData$31.node;
+		const ArrowLeft = createLucideIcon(__iconData$31);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/bell.mjs
 		/**
@@ -473,7 +473,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$29 = {
+		const __iconData$30 = {
 			name: "bell",
 			size: 24,
 			node: [["path", {
@@ -484,8 +484,8 @@ window.__ModuleLoader__.load({
 				key: "11g9vi"
 			}]]
 		};
-		__iconData$29.node;
-		const Bell = createLucideIcon(__iconData$29);
+		__iconData$30.node;
+		const Bell = createLucideIcon(__iconData$30);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/box.mjs
 		/**
@@ -494,7 +494,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$28 = {
+		const __iconData$29 = {
 			name: "box",
 			size: 24,
 			node: [
@@ -512,8 +512,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$28.node;
-		const Box = createLucideIcon(__iconData$28);
+		__iconData$29.node;
+		const Box = createLucideIcon(__iconData$29);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/calendar-clock.mjs
 		/**
@@ -522,7 +522,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$27 = {
+		const __iconData$28 = {
 			name: "calendar-clock",
 			size: 24,
 			node: [
@@ -554,8 +554,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$27.node;
-		const CalendarClock = createLucideIcon(__iconData$27);
+		__iconData$28.node;
+		const CalendarClock = createLucideIcon(__iconData$28);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/chart-column.mjs
 		/**
@@ -564,7 +564,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$26 = {
+		const __iconData$27 = {
 			name: "chart-column",
 			size: 24,
 			node: [
@@ -587,8 +587,26 @@ window.__ModuleLoader__.load({
 			],
 			aliases: ["bar-chart-3"]
 		};
+		__iconData$27.node;
+		const ChartColumn = createLucideIcon(__iconData$27);
+		//#endregion
+		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/chevron-right.mjs
+		/**
+		* @license lucide-react v1.47.0 - ISC
+		*
+		* This source code is licensed under the ISC license.
+		* See the LICENSE file in the root directory of this source tree.
+		*/
+		const __iconData$26 = {
+			name: "chevron-right",
+			size: 24,
+			node: [["path", {
+				d: "m9 18 6-6-6-6",
+				key: "mthhwq"
+			}]]
+		};
 		__iconData$26.node;
-		const ChartColumn = createLucideIcon(__iconData$26);
+		const ChevronRight = createLucideIcon(__iconData$26);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/circle-question-mark.mjs
 		/**
@@ -1552,6 +1570,8 @@ window.__ModuleLoader__.load({
 			"v2.waitingAsk": "等你答",
 			"v2.quiet": "没有新动静",
 			"v2.noResults": "没有结果",
+			"v2.pinned": "置顶",
+			"v2.other": "其他",
 			"sidebar.channelsTab": "频道",
 			"sidebar.scheduleTab": "定时",
 			"sidebar.runsTab": "执行记录",
@@ -1868,6 +1888,8 @@ window.__ModuleLoader__.load({
 			"v2.waitingAsk": "Waiting on you",
 			"v2.quiet": "Nothing new",
 			"v2.noResults": "No results",
+			"v2.pinned": "Pinned",
+			"v2.other": "Other",
 			"sidebar.channelsTab": "Channels",
 			"sidebar.scheduleTab": "Schedule",
 			"sidebar.runsTab": "Run history",
@@ -2384,8 +2406,10 @@ window.__ModuleLoader__.load({
 		/**
 		* MyWork v2 sidebar (TEAMMATES §9.4): the column is teammates. On top a search field, the bell (a count of what needs
 		* you + what is working; a dropdown of 需要你 / 在干活 / 刚完成) and 「+」 for a new teammate. In the middle only
-		* teammates — pinned first (MyWork is pinned by default), the rest by their last conversation; state never changes the
-		* order. At the bottom 文件 and 设置. Rows carry no actions: opening a row is the only thing it does.
+		* teammates, in sections: 置顶 (pinned; MyWork is pinned by default), then one per group name (the group with the newest
+		* conversation first), then 其他. Within a section: pinned / default first, then the last conversation; state never
+		* changes the order. A section header (only when there is more than one section) folds its rows; what is folded is kept
+		* in localStorage. At the bottom 文件 and 设置. Rows carry no actions: opening a row is the only thing it does.
 		*
 		* Data comes from dsh-mywork-tasks (/mywork-tasks/api/mates, /activity, /search); navigation into that plugin's pages
 		* goes through window events so neither package imports the other: the column dispatches mywork:open-thread and
@@ -2407,6 +2431,16 @@ window.__ModuleLoader__.load({
 		const FAST_MS = 4e3;
 		const SLOW_MS = 3e4;
 		const SEARCH_DEBOUNCE_MS = 200;
+		/** Folded section keys ('pinned' | 'g:<name>' | 'other' → true), kept across reloads. */
+		const SECTIONS_KEY = "dsh-mywork:sections";
+		function storedSections() {
+			try {
+				const v = JSON.parse(localStorage.getItem(SECTIONS_KEY) ?? "{}");
+				return v !== null && typeof v === "object" && !Array.isArray(v) ? v : {};
+			} catch {
+				return {};
+			}
+		}
 		/** The teammate the tasks page has open (its sticky nav, shared through sessionStorage). */
 		const MATE_KEY = "dsh-mywork:mate";
 		function storedMate() {
@@ -2453,6 +2487,15 @@ window.__ModuleLoader__.load({
 .mws-drop .mws-row{min-height:48px;border-radius:14px}
 .mws-drop .mws-row:hover{background:var(--surface-2)}
 .mws-list{flex:1;min-height:0;overflow:auto;padding:0 8px 8px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+/* Section headers: 11px muted, sentence case; the chevron turns when open. Folded, the count and an unread dot stay. */
+.mws-sec+.mws-sec{margin-top:6px}
+.mws-sec-head{appearance:none;display:flex;align-items:center;gap:4px;width:100%;height:28px;padding:0 10px;border:0;border-radius:10px;background:transparent;color:var(--muted);font:inherit;font-size:11px;line-height:16px;font-weight:500;text-align:left;cursor:pointer}
+.mws-sec-head:hover{color:var(--fg)}
+.mws-sec-head svg{flex:none;transition:transform var(--motion-fast) var(--ease-standard)}
+.mws-sec-head[aria-expanded=true] svg{transform:rotate(90deg)}
+.mws-sec-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mws-sec-count{flex:none;margin-left:2px;color:var(--meta);font-variant-numeric:tabular-nums}
+.mws-sec-head .mws-unread{width:6px;height:6px;margin-left:4px}
 /* Rows (Rakazo's chat list): 38 avatar · name + time + dot · two-line preview. */
 .mws-row{appearance:none;display:grid;grid-template-columns:38px minmax(0,1fr);column-gap:12px;align-items:start;width:100%;min-height:64px;padding:11px 10px;border:0;border-radius:16px;background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
 .mws-row-flat{grid-template-columns:20px minmax(0,1fr);align-items:center;min-height:44px;padding:12px 10px}
@@ -2498,6 +2541,7 @@ window.__ModuleLoader__.load({
 .mws-rail-mate{position:relative;padding:3px;border:0;border-radius:14px;background:transparent;cursor:pointer;transition:background .15s}
 .mws-rail-mate:hover,.mws-rail-mate[aria-current=page]{background:var(--surface-2)}
 .mws-rail-dot{position:absolute;top:2px;right:2px;width:8px;height:8px;border-radius:50%;background:var(--primary);box-shadow:0 0 0 2px var(--surface)}
+.mws-rail-sep{flex:none;width:20px;height:1px;background:var(--border-strong)}
 `;
 		const str = (v) => typeof v === "string" ? v : "";
 		const ms = (iso) => {
@@ -2517,6 +2561,51 @@ window.__ModuleLoader__.load({
 		/** The column's one order rule: pinned first (MyWork first among them), then the newest conversation. State never moves a row. */
 		function orderMates(mates) {
 			return mates.filter((m) => str(m.id) !== "").slice().sort((a, b) => Number(isPinned(b)) - Number(isPinned(a)) || (isPinned(a) && isPinned(b) ? Number(b.isDefault === true) - Number(a.isDefault === true) : 0) || ms(str(b.lastAt) || str(b.createdAt)) - ms(str(a.lastAt) || str(a.createdAt)) || (a.id < b.id ? -1 : 1));
+		}
+		/**
+		* The column's sections: 置顶 (every pinned teammate, whatever its group), then one per group name — the group holding
+		* the newest conversation first — then 其他 (no group). Empty sections are left out; each keeps orderMates' order.
+		*/
+		function sectionMates(mates) {
+			const pinned = [];
+			const other = [];
+			const groups = /* @__PURE__ */ new Map();
+			for (const m of orderMates(mates)) {
+				if (isPinned(m)) {
+					pinned.push(m);
+					continue;
+				}
+				const name = str(m.group).trim();
+				if (name === "") {
+					other.push(m);
+					continue;
+				}
+				const list = groups.get(name);
+				if (list !== void 0) list.push(m);
+				else groups.set(name, [m]);
+			}
+			const newest = (list) => list.reduce((n, m) => Math.max(n, ms(str(m.lastAt) || str(m.createdAt))), 0);
+			const named = [...groups].sort(([a, x], [b, y]) => newest(y) - newest(x) || (a < b ? -1 : 1));
+			const out = [];
+			if (pinned.length > 0) out.push({
+				key: "pinned",
+				kind: "pinned",
+				name: "",
+				mates: pinned
+			});
+			for (const [name, list] of named) out.push({
+				key: "g:" + name,
+				kind: "group",
+				name,
+				mates: list
+			});
+			if (other.length > 0) out.push({
+				key: "other",
+				kind: "other",
+				name: "",
+				mates: other
+			});
+			return out;
 		}
 		function asMates(v) {
 			return Array.isArray(v) ? v.filter((x) => x !== null && typeof x === "object" && str(x.id) !== "") : [];
@@ -2877,6 +2966,16 @@ window.__ModuleLoader__.load({
 			});
 			const [bellOpen, setBellOpen] = (0, react.useState)(false);
 			const [seen, setSeen] = (0, react.useState)({});
+			const [folded, setFolded] = (0, react.useState)(storedSections);
+			const toggleSection = (key) => {
+				const next = { ...folded };
+				if (next[key] === true) delete next[key];
+				else next[key] = true;
+				setFolded(next);
+				try {
+					localStorage.setItem(SECTIONS_KEY, JSON.stringify(next));
+				} catch {}
+			};
 			const timer = (0, react.useRef)(void 0);
 			const searchSeq = (0, react.useRef)(0);
 			const matesRef = (0, react.useRef)([]);
@@ -3005,7 +3104,8 @@ window.__ModuleLoader__.load({
 				mates,
 				remote
 			]);
-			const ordered = (0, react.useMemo)(() => orderMates(mates), [mates]);
+			const sections = (0, react.useMemo)(() => sectionMates(mates), [mates]);
+			const headed = sections.length > 1;
 			mates.some((m) => m.state === "working");
 			const count = activity.needs.length + activity.working.length;
 			const now = /* @__PURE__ */ new Date();
@@ -3025,6 +3125,8 @@ window.__ModuleLoader__.load({
 				[t("v2.working"), activity.working],
 				[t("v2.recent"), activity.recent]
 			];
+			const unreadOf = (mate) => mate.unread === true && seen[mate.id] !== str(mate.lastAt) && highlighted !== "mate:" + mate.id;
+			const sectionLabel = (sec) => sec.kind === "pinned" ? t("v2.pinned") : sec.kind === "other" ? t("v2.other") : sec.name;
 			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 				className: "mws" + (compact ? " compact" : ""),
 				"data-mywork-sidebar": "v2",
@@ -3043,26 +3145,26 @@ window.__ModuleLoader__.load({
 						}),
 						/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 							className: "mws-rail",
-							children: [ordered.map((mate) => {
-								const unread = mate.unread === true && seen[mate.id] !== str(mate.lastAt) && highlighted !== "mate:" + mate.id;
-								return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
-									type: "button",
-									className: "mws-rail-mate",
-									title: mate.name,
-									"aria-label": mate.name,
-									"aria-current": highlighted === "mate:" + mate.id ? "page" : void 0,
-									onClick: () => {
-										open({
-											kind: "mate",
-											id: mate.id
-										});
-									},
-									children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(MateAvatar, {
-										mate,
-										size: 32
-									}), unread && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { className: "mws-rail-dot" })]
-								}, mate.id);
-							}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+							children: [sections.map((sec, i) => /* @__PURE__ */ (0, react_jsx_runtime.jsxs)(react.Fragment, { children: [i > 0 && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+								className: "mws-rail-sep",
+								"aria-hidden": "true"
+							}), sec.mates.map((mate) => /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
+								type: "button",
+								className: "mws-rail-mate",
+								title: mate.name,
+								"aria-label": mate.name,
+								"aria-current": highlighted === "mate:" + mate.id ? "page" : void 0,
+								onClick: () => {
+									open({
+										kind: "mate",
+										id: mate.id
+									});
+								},
+								children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(MateAvatar, {
+									mate,
+									size: 32
+								}), unreadOf(mate) && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { className: "mws-rail-dot" })]
+							}, mate.id))] }, sec.key)), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
 								type: "button",
 								className: "mws-icon",
 								"aria-label": t("v2.newMate"),
@@ -3200,19 +3302,56 @@ window.__ModuleLoader__.load({
 						}),
 						/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 							className: "mws-list",
-							children: [needle === "" ? ordered.map((mate) => /* @__PURE__ */ (0, react_jsx_runtime.jsx)(MateRow, {
-								mate,
-								t,
-								time: fmtWhen(str(mate.lastAt), now),
-								current: highlighted === "mate:" + mate.id,
-								unread: mate.unread === true && seen[mate.id] !== str(mate.lastAt) && highlighted !== "mate:" + mate.id,
-								onOpen: () => {
-									open({
-										kind: "mate",
-										id: mate.id
-									});
-								}
-							}, mate.id)) : results.map((row) => /* @__PURE__ */ (0, react_jsx_runtime.jsx)(ResultItem, {
+							children: [needle === "" ? sections.map((sec) => {
+								const rows = sec.mates.map((mate) => /* @__PURE__ */ (0, react_jsx_runtime.jsx)(MateRow, {
+									mate,
+									t,
+									time: fmtWhen(str(mate.lastAt), now),
+									current: highlighted === "mate:" + mate.id,
+									unread: unreadOf(mate),
+									onOpen: () => {
+										open({
+											kind: "mate",
+											id: mate.id
+										});
+									}
+								}, mate.id));
+								if (!headed) return /* @__PURE__ */ (0, react_jsx_runtime.jsx)(react.Fragment, { children: rows }, sec.key);
+								const closed = folded[sec.key] === true;
+								const news = closed && sec.mates.some((m) => unreadOf(m) || m.state === "waiting");
+								return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+									className: "mws-sec",
+									role: "group",
+									"aria-label": sectionLabel(sec),
+									children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
+										type: "button",
+										className: "mws-sec-head",
+										"aria-expanded": !closed,
+										onClick: () => {
+											toggleSection(sec.key);
+										},
+										children: [
+											/* @__PURE__ */ (0, react_jsx_runtime.jsx)(ChevronRight, {
+												size: 12,
+												strokeWidth: 1.75,
+												"aria-hidden": "true"
+											}),
+											/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+												className: "mws-sec-name",
+												children: sectionLabel(sec)
+											}),
+											closed && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+												className: "mws-sec-count",
+												children: sec.mates.length
+											}),
+											news && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("i", {
+												className: "mws-unread",
+												"aria-hidden": "true"
+											})
+										]
+									}), !closed && rows]
+								}, sec.key);
+							}) : results.map((row) => /* @__PURE__ */ (0, react_jsx_runtime.jsx)(ResultItem, {
 								row,
 								time: fmtWhen(row.at, now),
 								onOpen: () => {

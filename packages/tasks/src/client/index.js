@@ -106,7 +106,7 @@ const zh = {
   nextRun: '下次', paused: '已暂停', ended: '已结束', runNow: '现在跑一次', pause: '暂停', resume: '恢复', remove: '删除', cancel: '取消',
   removeRoutineAsk: '删除这个例行？', removeMate: '删除同事', removeMateAsk: '删除这位同事、它的对话和例行？',
   runResult: '有结果', runQuiet: '没有变化', runFailed: '失败', runFired: '提醒', runRunning: '在跑', neverRan: '还没跑过',
-  name: '名字', title: '头衔', duty: '职责', pinned: '置顶', notify: '通知',
+  name: '名字', title: '头衔', duty: '职责', pinned: '置顶', notify: '通知', group: '分组', groupPh: '其他',
   newMate: '新同事', dutyAsk: '它负责什么', dutyPh: '例如：每天盯三家竞品的价格，有变化告诉我', namePh: '可以不填', create: '创建',
   search: '搜索', all: '全部', noMatch: '没有匹配的', inThread: '在对话里看', exportMd: '导出 Markdown', exportPdf: '导出 PDF',
   doneToast: '做完了', failedToast: '失败了', needsYouToast: '需要你', open: '打开',
@@ -127,7 +127,7 @@ const en = {
   nextRun: 'Next', paused: 'Paused', ended: 'Ended', runNow: 'Run now', pause: 'Pause', resume: 'Resume', remove: 'Delete', cancel: 'Cancel',
   removeRoutineAsk: 'Delete this routine?', removeMate: 'Delete teammate', removeMateAsk: 'Delete this teammate, its conversation and routines?',
   runResult: 'Result', runQuiet: 'No change', runFailed: 'Failed', runFired: 'Reminder', runRunning: 'Running', neverRan: 'Never ran',
-  name: 'Name', title: 'Title', duty: 'Job', pinned: 'Pinned', notify: 'Notifications',
+  name: 'Name', title: 'Title', duty: 'Job', pinned: 'Pinned', notify: 'Notifications', group: 'Group', groupPh: 'Other',
   newMate: 'New teammate', dutyAsk: 'What is it responsible for', dutyPh: 'e.g. watch three competitors’ prices every day and tell me when they change', namePh: 'Optional', create: 'Create',
   search: 'Search', all: 'All', noMatch: 'Nothing matches', inThread: 'See in conversation', exportMd: 'Export Markdown', exportPdf: 'Export PDF',
   doneToast: 'Done', failedToast: 'Failed', needsYouToast: 'Needs you', open: 'Open',
@@ -1138,7 +1138,7 @@ function makeComponents(ctx, t) {
     const title = panelMode === 'new-mate' ? t('newMate') : panelMode === 'settings' ? t('settings') : [t('computer'), running ? t('working') : ''].filter(Boolean).join(' · ')
     const asideBody = () => aside.mode === 'new-mate'
       ? h(NewMateForm, { onCreated: (m) => { setAside((a) => ({ ...a, open: false, mode: 'mate', seq: a.seq + 1 })); if (getNav().mateId !== m.id) openMate(m.id) } })
-      : h(MatePanel, { mate, live, screen, renderSlot, section: aside.section, routineId: aside.routineId, seq: aside.seq, onJump: (runId) => { jump.current = { id: runId, tries: 0 }; setJumpSeq((x) => x + 1) } })
+      : h(MatePanel, { mate, mates, live, screen, renderSlot, section: aside.section, routineId: aside.routineId, seq: aside.seq, onJump: (runId) => { jump.current = { id: runId, tries: 0 }; setJumpSeq((x) => x + 1) } })
     const asidePanel = (mode) => h('aside', { className: 'mwt-aside ' + mode, 'data-open': mode === 'over' ? shown : undefined, 'aria-label': title, 'aria-hidden': mode === 'over' && !shown ? 'true' : undefined, style: mode === 'col' && box.h ? { height: box.h } : undefined },
       panelMode === 'file' ? (shown && aside.fileId ? h(FilePanel, { id: aside.fileId, onClose: () => showAside(false) }) : null) : h(React.Fragment, null,
       h('div', { className: 'mwt-aside-head' },
@@ -1235,7 +1235,7 @@ function makeComponents(ctx, t) {
 
   // ---- the right panel: 电脑 · 例行 · 设置 -----------------------------------------------------------------------------
 
-  function MatePanel({ mate, live, screen, renderSlot, section, routineId, seq, onJump }) {
+  function MatePanel({ mate, mates, live, screen, renderSlot, section, routineId, seq, onJump }) {
     const ref = React.useRef(null)
     React.useEffect(() => {
       if (!section || !ref.current) return
@@ -1243,7 +1243,7 @@ function makeComponents(ctx, t) {
       if (el && typeof el.scrollIntoView === 'function') { try { el.scrollIntoView({ block: 'start' }) } catch {} }
     }, [seq])
     const addRef = React.useRef(null)
-    if (section === 'settings') return h('div', { ref }, h('section', { className: 'mwt-sec', 'data-sec': 'settings' }, h(MateSettings, { key: mate.id, mate })))
+    if (section === 'settings') return h('div', { ref }, h('section', { className: 'mwt-sec', 'data-sec': 'settings' }, h(MateSettings, { key: mate.id, mate, mates })))
     return h('div', { ref },
       h('section', { className: 'mwt-sec', 'data-sec': 'computer' },
         screen ? renderSlot(ASIDE_SLOT, { task: live, deliverables: (live && live.deliverables) || [], live: isLive(live) }, { only: screen.id }) : h(MateFiles, { mate })),
@@ -1343,23 +1343,33 @@ function makeComponents(ctx, t) {
       }) : h('div', { className: 'mwt-empty', style: { fontSize: 13 } }, t('neverRan'))))
   }
 
-  /** 设置: 名字, 头衔, 职责 (saved on blur), 置顶 and 通知 switches, 删除同事 (not for the default teammate). */
-  function MateSettings({ mate }) {
-    const [f, setF] = React.useState({ name: mate.name || '', title: mate.title || '', description: mate.description || '' })
+  /**
+   * 设置: 名字, 头衔, 职责, 分组 (saved on blur; 分组 offers the names already in use, empty = 其他 in the column), 置顶 and
+   * 通知 switches, 删除同事 (not for the default teammate).
+   */
+  function MateSettings({ mate, mates }) {
+    const [f, setF] = React.useState({ name: mate.name || '', title: mate.title || '', description: mate.description || '', group: mate.group || '' })
     const focus = React.useRef('')
     const [confirm, setConfirm] = React.useState(false)
     const [err, setErr] = React.useState('')
     // The server's copy flows in unless you are editing that field.
-    React.useEffect(() => { setF((p) => ({ name: focus.current === 'name' ? p.name : mate.name || '', title: focus.current === 'title' ? p.title : mate.title || '', description: focus.current === 'description' ? p.description : mate.description || '' })) }, [mate.name, mate.title, mate.description])
+    React.useEffect(() => { setF((p) => ({ name: focus.current === 'name' ? p.name : mate.name || '', title: focus.current === 'title' ? p.title : mate.title || '', description: focus.current === 'description' ? p.description : mate.description || '', group: focus.current === 'group' ? p.group : mate.group || '' })) }, [mate.name, mate.title, mate.description, mate.group])
     const update = (patch) => { setErr(''); return api('/mates/update', { id: mate.id, ...patch }).then(() => kick()).catch((e) => setErr(e.message || String(e))) }
-    const blur = (k) => () => { focus.current = ''; const v = f[k].trim(); if (k === 'name' && !v) { setF((p) => ({ ...p, name: mate.name || '' })); return } if (v !== String(mate[k] || '')) update({ [k]: v }) }
+    // A group name is one short line, as the server keeps it (spaces folded, 12 characters).
+    const clean = (k, v) => (k === 'group' ? v.replace(/\s+/g, ' ').trim().slice(0, 12) : v.trim())
+    const blur = (k) => () => { focus.current = ''; const v = clean(k, f[k]); if (k === 'name' && !v) { setF((p) => ({ ...p, name: mate.name || '' })); return } if (k === 'group') setF((p) => ({ ...p, group: v })); if (v !== String(mate[k] || '')) update({ [k]: v }) }
     const field = (k, label, multi) => h('label', { className: 'mwt-field' }, h('span', null, label),
       h(multi ? 'textarea' : 'input', { className: 'mwt-input', value: f[k], rows: multi ? 4 : undefined, onFocus: () => { focus.current = k }, onChange: (e) => { const v = e.target.value; setF((p) => ({ ...p, [k]: v })) }, onBlur: blur(k) }))
+    const groups = React.useMemo(() => [...new Set((mates || []).map((m) => String(m.group || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'zh')), [mates])
+    const listId = 'mwt-groups-' + mate.id
+    const groupField = h('label', { className: 'mwt-field' }, h('span', null, t('group')),
+      h('input', { className: 'mwt-input', list: listId, value: f.group, maxLength: 12, placeholder: t('groupPh'), autoComplete: 'off', onFocus: () => { focus.current = 'group' }, onChange: (e) => { const v = e.target.value; setF((p) => ({ ...p, group: v })) }, onBlur: blur('group'), onKeyDown: (e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); e.currentTarget.blur() } } }),
+      h('datalist', { id: listId }, groups.map((g) => h('option', { key: g, value: g }))))
     const sw = (k, label, on) => h('div', { className: 'mwt-switch-row' }, h('span', null, label),
       h('button', { type: 'button', role: 'switch', className: 'mwt-switch', 'aria-checked': on, 'aria-label': label, onClick: () => update({ [k]: !on }) }))
     const remove = () => api('/mates/remove', { id: mate.id }).then(() => { kick(); openMate('') }).catch((e) => setErr(e.message || String(e)))
     return h('div', null,
-      field('name', t('name')), field('title', t('title')), field('description', t('duty'), true),
+      field('name', t('name')), field('title', t('title')), field('description', t('duty'), true), groupField,
       sw('pinned', t('pinned'), mate.pinned === true || (!!mate.isDefault && mate.pinned !== false)),
       sw('notify', t('notify'), mate.notify !== false),
       err ? h('div', { className: 'mwt-field-err', style: { margin: '6px 0' } }, err) : null,

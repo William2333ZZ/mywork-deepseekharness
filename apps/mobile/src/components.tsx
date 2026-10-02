@@ -164,14 +164,14 @@ export function Avatar({ id, isDefault, dim = 36, working }: { id: string; char?
 export function MateRow({ id, char, isDefault, working, waiting, name, time, unread, sub, onPress }: { id: string; char: string; isDefault?: boolean; working?: boolean; waiting?: boolean; name: string; time?: string; unread?: boolean; sub?: string; onPress: () => void }) {
   return (
     <Pressable onPress={onPress} accessibilityRole="button" style={({ pressed }) => [styles.mrow, pressed && { backgroundColor: color.pressed }]}>
-      <Avatar id={id} char={char} isDefault={isDefault} working={working} dim={44} />
+      <Avatar id={id} char={char} isDefault={isDefault} working={working} dim={38} />
       <View style={styles.trowMain}>
         <View style={styles.trowLine}>
           <Text style={[styles.mrowName, unread && { fontWeight: '600', color: color.fg }]} numberOfLines={1}>{name}</Text>
           {time ? <Text style={styles.trowTime}>{time}</Text> : null}
           {unread ? <View style={styles.trowDot} /> : null}
         </View>
-        {sub ? <Text style={[styles.mrowSub, waiting && { color: color.warn }]} numberOfLines={2}>{sub}</Text> : null}
+        {sub ? <Text style={[styles.mrowSub, waiting && { color: color.warn }]} numberOfLines={1}>{sub}</Text> : null}
       </View>
     </Pressable>
   )
@@ -416,9 +416,9 @@ const styles = StyleSheet.create({
   trowTime: { marginLeft: 8, fontSize: 11.5, lineHeight: 22, color: color.meta, fontVariant: ['tabular-nums'], textAlign: 'right' },
   trowDot: { width: 8, height: 8, borderRadius: 4, marginLeft: 8, backgroundColor: color.primary },
   trowSub: { fontSize: size.meta, lineHeight: 18, color: color.muted },
-  mrow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, minHeight: 68, paddingVertical: 10, paddingHorizontal: 12, borderRadius: radius.lg },
-  mrowSub: { fontSize: 14, lineHeight: 20, color: color.muted, marginTop: 1 },
-  mrowName: { flex: 1, minWidth: 0, fontSize: size.body, lineHeight: 22, fontWeight: '400', color: color.fg2 },
+  mrow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 58, paddingVertical: 9, paddingHorizontal: 12, borderRadius: radius.lg },
+  mrowSub: { fontSize: 13, lineHeight: 18, color: color.muted, marginTop: 1 },
+  mrowName: { flex: 1, minWidth: 0, fontSize: 15, lineHeight: 20, fontWeight: '500', color: color.fg },
   center: { flexDirection: 'row', alignSelf: 'center', alignItems: 'center', gap: 5, paddingVertical: 3, paddingHorizontal: 10, borderRadius: 10, maxWidth: '90%' },
   centerText: { fontSize: 12, lineHeight: 16, color: color.muted, textAlign: 'center', fontVariant: ['tabular-nums'] },
   // thread pieces

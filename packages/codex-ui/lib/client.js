@@ -2497,8 +2497,8 @@ window.__ModuleLoader__.load({
 .mws-sec-count{flex:none;margin-left:2px;color:var(--meta);font-variant-numeric:tabular-nums}
 .mws-sec-head .mws-unread{width:6px;height:6px;margin-left:4px}
 /* Rows (Rakazo's chat list): 38 avatar · name + time + dot · two-line preview. */
-.mws-row{appearance:none;display:grid;grid-template-columns:38px minmax(0,1fr);column-gap:12px;align-items:start;width:100%;min-height:64px;padding:11px 10px;border:0;border-radius:16px;background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
-.mws-row-flat{grid-template-columns:20px minmax(0,1fr);align-items:center;min-height:44px;padding:12px 10px}
+.mws-row{appearance:none;display:grid;grid-template-columns:32px minmax(0,1fr);column-gap:10px;align-items:center;width:100%;min-height:52px;padding:8px 10px;border:0;border-radius:16px;background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
+.mws-row-flat{grid-template-columns:20px minmax(0,1fr);align-items:center;min-height:40px;padding:8px 10px}
 .mws-row:hover,.mws-row[aria-current=page]{background:var(--surface-2)}
 .mws-glyph{display:inline-grid;place-items:center;width:20px;height:20px;color:var(--muted)}
 .mws-glyph.wide{width:38px;height:38px;border-radius:50%;background:var(--card)}
@@ -2511,12 +2511,12 @@ window.__ModuleLoader__.load({
 @media (prefers-reduced-motion:reduce){.mws-av[data-working=true] svg{animation:none}}
 .mws-main{min-width:0;display:grid;gap:3px}
 .mws-line{display:flex;align-items:center;min-width:0}
-.mws-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;line-height:20px;font-weight:500}
+.mws-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13.5px;line-height:18px;font-weight:500;letter-spacing:-.005em}
 .mws-row[data-unread=true] .mws-title{font-weight:600}
-.mws-time{flex:none;margin-left:8px;color:var(--muted);font-size:11.5px;line-height:20px;font-variant-numeric:tabular-nums;text-align:right}
+.mws-time{flex:none;margin-left:8px;color:var(--meta);font-size:11px;line-height:18px;font-variant-numeric:tabular-nums;text-align:right}
 .mws-unread{flex:none;width:8px;height:8px;margin-left:6px;border-radius:50%;background:var(--primary)}
 .mws-chip{justify-self:start;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 7px;border:1px solid var(--border-strong);border-radius:999px;color:var(--muted);font-size:11px;line-height:17px}
-.mws-sub{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:var(--muted);font-size:12.5px;line-height:17px;word-break:break-word}
+.mws-sub{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px;color:var(--muted);font-size:12px;line-height:16px}
 .mws-sub[data-tone=warn]{color:var(--warn)}
 .mws-empty{padding:12px 10px;color:var(--muted);font-size:12.5px;line-height:18px}
 .mws-mark{display:inline-grid;place-items:center;flex:none;border-radius:50%;background:var(--primary);color:var(--primary-on)}
@@ -2528,7 +2528,7 @@ window.__ModuleLoader__.load({
 .mws-foot{flex:none;padding:8px 8px 0;border-top:1px solid var(--border)}
 /* The settings entry is dsh's own trigger, kept outside the footer so it stays mounted across collapse; it wears the same row recipe as 文件 above it. */
 .mws-settings{flex:none;padding:0 8px 12px}
-.mws-settings .dcu-settings-trigger{height:44px;min-height:44px;padding:0 10px;border-radius:16px;color:var(--fg);font-family:inherit;font-size:14px;line-height:20px;transition:background-color var(--motion-fast) var(--ease-standard),color var(--motion-fast) var(--ease-standard),transform var(--motion-fast) var(--ease-standard)}
+.mws-settings .dcu-settings-trigger{height:40px;min-height:40px;padding:0 10px;border-radius:16px;color:var(--fg);font-family:inherit;font-size:13.5px;line-height:18px;transition:background-color var(--motion-fast) var(--ease-standard),color var(--motion-fast) var(--ease-standard),transform var(--motion-fast) var(--ease-standard)}
 .mws-settings .dcu-settings-trigger:hover{background:var(--surface-2);color:var(--fg)}
 .mws-settings .dcu-settings-trigger:hover svg{transform:none}
 .mws-settings .dcu-settings-trigger:focus-visible{outline:none;box-shadow:var(--focus-ring)}
@@ -2870,7 +2870,10 @@ window.__ModuleLoader__.load({
 				"aria-current": current ? "page" : void 0,
 				"data-unread": unread ? "true" : void 0,
 				onClick: onOpen,
-				children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(MateAvatar, { mate }), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
+				children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(MateAvatar, {
+					mate,
+					size: 32
+				}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
 					className: "mws-main",
 					children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
 						className: "mws-line",

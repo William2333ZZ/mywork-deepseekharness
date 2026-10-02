@@ -420,7 +420,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$32 = {
+		const __iconData$29 = {
 			name: "archive",
 			size: 24,
 			node: [
@@ -442,8 +442,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$32.node;
-		const Archive = createLucideIcon(__iconData$32);
+		__iconData$29.node;
+		const Archive = createLucideIcon(__iconData$29);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/arrow-left.mjs
 		/**
@@ -452,7 +452,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$31 = {
+		const __iconData$28 = {
 			name: "arrow-left",
 			size: 24,
 			node: [["path", {
@@ -463,8 +463,8 @@ window.__ModuleLoader__.load({
 				key: "x3x0zl"
 			}]]
 		};
-		__iconData$31.node;
-		const ArrowLeft = createLucideIcon(__iconData$31);
+		__iconData$28.node;
+		const ArrowLeft = createLucideIcon(__iconData$28);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/bell.mjs
 		/**
@@ -473,7 +473,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$30 = {
+		const __iconData$27 = {
 			name: "bell",
 			size: 24,
 			node: [["path", {
@@ -484,8 +484,8 @@ window.__ModuleLoader__.load({
 				key: "11g9vi"
 			}]]
 		};
-		__iconData$30.node;
-		const Bell = createLucideIcon(__iconData$30);
+		__iconData$27.node;
+		const Bell = createLucideIcon(__iconData$27);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/box.mjs
 		/**
@@ -494,7 +494,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$29 = {
+		const __iconData$26 = {
 			name: "box",
 			size: 24,
 			node: [
@@ -512,8 +512,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$29.node;
-		const Box = createLucideIcon(__iconData$29);
+		__iconData$26.node;
+		const Box = createLucideIcon(__iconData$26);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/calendar-clock.mjs
 		/**
@@ -522,7 +522,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$28 = {
+		const __iconData$25 = {
 			name: "calendar-clock",
 			size: 24,
 			node: [
@@ -554,8 +554,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$28.node;
-		const CalendarClock = createLucideIcon(__iconData$28);
+		__iconData$25.node;
+		const CalendarClock = createLucideIcon(__iconData$25);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/chart-column.mjs
 		/**
@@ -564,7 +564,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$27 = {
+		const __iconData$24 = {
 			name: "chart-column",
 			size: 24,
 			node: [
@@ -587,26 +587,26 @@ window.__ModuleLoader__.load({
 			],
 			aliases: ["bar-chart-3"]
 		};
-		__iconData$27.node;
-		const ChartColumn = createLucideIcon(__iconData$27);
+		__iconData$24.node;
+		const ChartColumn = createLucideIcon(__iconData$24);
 		//#endregion
-		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/chevron-right.mjs
+		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/chevron-down.mjs
 		/**
 		* @license lucide-react v1.47.0 - ISC
 		*
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$26 = {
-			name: "chevron-right",
+		const __iconData$23 = {
+			name: "chevron-down",
 			size: 24,
 			node: [["path", {
-				d: "m9 18 6-6-6-6",
-				key: "mthhwq"
+				d: "m6 9 6 6 6-6",
+				key: "qrunsl"
 			}]]
 		};
-		__iconData$26.node;
-		const ChevronRight = createLucideIcon(__iconData$26);
+		__iconData$23.node;
+		const ChevronDown = createLucideIcon(__iconData$23);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/circle-question-mark.mjs
 		/**
@@ -615,7 +615,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$25 = {
+		const __iconData$22 = {
 			name: "circle-question-mark",
 			size: 24,
 			node: [
@@ -636,8 +636,8 @@ window.__ModuleLoader__.load({
 			],
 			aliases: ["help-circle", "circle-help"]
 		};
-		__iconData$25.node;
-		const CircleQuestionMark = createLucideIcon(__iconData$25);
+		__iconData$22.node;
+		const CircleQuestionMark = createLucideIcon(__iconData$22);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/clock.mjs
 		/**
@@ -646,7 +646,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$24 = {
+		const __iconData$21 = {
 			name: "clock",
 			size: 24,
 			node: [["circle", {
@@ -659,8 +659,8 @@ window.__ModuleLoader__.load({
 				key: "mmk7yg"
 			}]]
 		};
-		__iconData$24.node;
-		const Clock = createLucideIcon(__iconData$24);
+		__iconData$21.node;
+		const Clock = createLucideIcon(__iconData$21);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/cpu.mjs
 		/**
@@ -669,7 +669,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$23 = {
+		const __iconData$20 = {
 			name: "cpu",
 			size: 24,
 			node: [
@@ -739,8 +739,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$23.node;
-		const Cpu = createLucideIcon(__iconData$23);
+		__iconData$20.node;
+		const Cpu = createLucideIcon(__iconData$20);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/eye-off.mjs
 		/**
@@ -749,7 +749,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$22 = {
+		const __iconData$19 = {
 			name: "eye-off",
 			size: 24,
 			node: [
@@ -771,8 +771,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$22.node;
-		const EyeOff = createLucideIcon(__iconData$22);
+		__iconData$19.node;
+		const EyeOff = createLucideIcon(__iconData$19);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/eye.mjs
 		/**
@@ -781,7 +781,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$21 = {
+		const __iconData$18 = {
 			name: "eye",
 			size: 24,
 			node: [["path", {
@@ -794,8 +794,8 @@ window.__ModuleLoader__.load({
 				key: "1v7zrd"
 			}]]
 		};
-		__iconData$21.node;
-		const Eye = createLucideIcon(__iconData$21);
+		__iconData$18.node;
+		const Eye = createLucideIcon(__iconData$18);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/file-spreadsheet.mjs
 		/**
@@ -804,7 +804,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$20 = {
+		const __iconData$17 = {
 			name: "file-spreadsheet",
 			size: 24,
 			node: [
@@ -834,72 +834,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$20.node;
-		const FileSpreadsheet = createLucideIcon(__iconData$20);
-		//#endregion
-		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/file-text.mjs
-		/**
-		* @license lucide-react v1.47.0 - ISC
-		*
-		* This source code is licensed under the ISC license.
-		* See the LICENSE file in the root directory of this source tree.
-		*/
-		const __iconData$19 = {
-			name: "file-text",
-			size: 24,
-			node: [
-				["path", {
-					d: "M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z",
-					key: "1oefj6"
-				}],
-				["path", {
-					d: "M14 2v5a1 1 0 0 0 1 1h5",
-					key: "wfsgrz"
-				}],
-				["path", {
-					d: "M10 9H8",
-					key: "b1mrlr"
-				}],
-				["path", {
-					d: "M16 13H8",
-					key: "t4e002"
-				}],
-				["path", {
-					d: "M16 17H8",
-					key: "z1uh3a"
-				}]
-			]
-		};
-		__iconData$19.node;
-		const FileText = createLucideIcon(__iconData$19);
-		//#endregion
-		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/files.mjs
-		/**
-		* @license lucide-react v1.47.0 - ISC
-		*
-		* This source code is licensed under the ISC license.
-		* See the LICENSE file in the root directory of this source tree.
-		*/
-		const __iconData$18 = {
-			name: "files",
-			size: 24,
-			node: [
-				["path", {
-					d: "M15 2h-4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V8",
-					key: "14sh0y"
-				}],
-				["path", {
-					d: "M16.706 2.706A2.4 2.4 0 0 0 15 2v5a1 1 0 0 0 1 1h5a2.4 2.4 0 0 0-.706-1.706z",
-					key: "1970lx"
-				}],
-				["path", {
-					d: "M5 7a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h8a2 2 0 0 0 1.732-1",
-					key: "l4dndm"
-				}]
-			]
-		};
-		__iconData$18.node;
-		const Files = createLucideIcon(__iconData$18);
+		__iconData$17.node;
+		const FileSpreadsheet = createLucideIcon(__iconData$17);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/globe.mjs
 		/**
@@ -908,7 +844,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$17 = {
+		const __iconData$16 = {
 			name: "globe",
 			size: 24,
 			node: [
@@ -928,8 +864,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$17.node;
-		const Globe = createLucideIcon(__iconData$17);
+		__iconData$16.node;
+		const Globe = createLucideIcon(__iconData$16);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/link.mjs
 		/**
@@ -938,7 +874,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$16 = {
+		const __iconData$15 = {
 			name: "link",
 			size: 24,
 			node: [["path", {
@@ -949,8 +885,8 @@ window.__ModuleLoader__.load({
 				key: "19qd67"
 			}]]
 		};
-		__iconData$16.node;
-		const Link = createLucideIcon(__iconData$16);
+		__iconData$15.node;
+		const Link = createLucideIcon(__iconData$15);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/message-circle.mjs
 		/**
@@ -959,7 +895,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$15 = {
+		const __iconData$14 = {
 			name: "message-circle",
 			size: 24,
 			node: [["path", {
@@ -967,8 +903,8 @@ window.__ModuleLoader__.load({
 				key: "1sd12s"
 			}]]
 		};
-		__iconData$15.node;
-		const MessageCircle = createLucideIcon(__iconData$15);
+		__iconData$14.node;
+		const MessageCircle = createLucideIcon(__iconData$14);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/message-square-more.mjs
 		/**
@@ -977,7 +913,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$14 = {
+		const __iconData$13 = {
 			name: "message-square-more",
 			size: 24,
 			node: [
@@ -999,8 +935,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$14.node;
-		const MessageSquareMore = createLucideIcon(__iconData$14);
+		__iconData$13.node;
+		const MessageSquareMore = createLucideIcon(__iconData$13);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/message-square.mjs
 		/**
@@ -1009,7 +945,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$13 = {
+		const __iconData$12 = {
 			name: "message-square",
 			size: 24,
 			node: [["path", {
@@ -1017,8 +953,8 @@ window.__ModuleLoader__.load({
 				key: "18887p"
 			}]]
 		};
-		__iconData$13.node;
-		const MessageSquare = createLucideIcon(__iconData$13);
+		__iconData$12.node;
+		const MessageSquare = createLucideIcon(__iconData$12);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/panel-left.mjs
 		/**
@@ -1027,7 +963,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$12 = {
+		const __iconData$11 = {
 			name: "panel-left",
 			size: 24,
 			node: [["rect", {
@@ -1043,8 +979,8 @@ window.__ModuleLoader__.load({
 			}]],
 			aliases: ["sidebar"]
 		};
-		__iconData$12.node;
-		const PanelLeft = createLucideIcon(__iconData$12);
+		__iconData$11.node;
+		const PanelLeft = createLucideIcon(__iconData$11);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/panel-right.mjs
 		/**
@@ -1053,7 +989,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$11 = {
+		const __iconData$10 = {
 			name: "panel-right",
 			size: 24,
 			node: [["rect", {
@@ -1068,8 +1004,8 @@ window.__ModuleLoader__.load({
 				key: "14nvp0"
 			}]]
 		};
-		__iconData$11.node;
-		const PanelRight = createLucideIcon(__iconData$11);
+		__iconData$10.node;
+		const PanelRight = createLucideIcon(__iconData$10);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/pin.mjs
 		/**
@@ -1078,7 +1014,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$10 = {
+		const __iconData$9 = {
 			name: "pin",
 			size: 24,
 			node: [["path", {
@@ -1089,8 +1025,8 @@ window.__ModuleLoader__.load({
 				key: "1nkz8b"
 			}]]
 		};
-		__iconData$10.node;
-		const Pin = createLucideIcon(__iconData$10);
+		__iconData$9.node;
+		const Pin = createLucideIcon(__iconData$9);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/plug.mjs
 		/**
@@ -1099,7 +1035,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$9 = {
+		const __iconData$8 = {
 			name: "plug",
 			size: 24,
 			node: [
@@ -1121,8 +1057,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$9.node;
-		const Plug = createLucideIcon(__iconData$9);
+		__iconData$8.node;
+		const Plug = createLucideIcon(__iconData$8);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/plus.mjs
 		/**
@@ -1131,7 +1067,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$8 = {
+		const __iconData$7 = {
 			name: "plus",
 			size: 24,
 			node: [["path", {
@@ -1142,40 +1078,8 @@ window.__ModuleLoader__.load({
 				key: "s699le"
 			}]]
 		};
-		__iconData$8.node;
-		const Plus = createLucideIcon(__iconData$8);
-		//#endregion
-		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/repeat.mjs
-		/**
-		* @license lucide-react v1.47.0 - ISC
-		*
-		* This source code is licensed under the ISC license.
-		* See the LICENSE file in the root directory of this source tree.
-		*/
-		const __iconData$7 = {
-			name: "repeat",
-			size: 24,
-			node: [
-				["path", {
-					d: "m17 2 4 4-4 4",
-					key: "nntrym"
-				}],
-				["path", {
-					d: "M3 11v-1a4 4 0 0 1 4-4h14",
-					key: "84bu3i"
-				}],
-				["path", {
-					d: "m7 22-4-4 4-4",
-					key: "1wqhfi"
-				}],
-				["path", {
-					d: "M21 13v1a4 4 0 0 1-4 4H3",
-					key: "1rx37r"
-				}]
-			]
-		};
 		__iconData$7.node;
-		const Repeat = createLucideIcon(__iconData$7);
+		const Plus = createLucideIcon(__iconData$7);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/search.mjs
 		/**
@@ -1572,6 +1476,7 @@ window.__ModuleLoader__.load({
 			"v2.noResults": "没有结果",
 			"v2.pinned": "置顶",
 			"v2.other": "其他",
+			"v2.routine": "例行",
 			"sidebar.channelsTab": "频道",
 			"sidebar.scheduleTab": "定时",
 			"sidebar.runsTab": "执行记录",
@@ -1890,6 +1795,7 @@ window.__ModuleLoader__.load({
 			"v2.noResults": "No results",
 			"v2.pinned": "Pinned",
 			"v2.other": "Other",
+			"v2.routine": "Routine",
 			"sidebar.channelsTab": "Channels",
 			"sidebar.scheduleTab": "Schedule",
 			"sidebar.runsTab": "Run history",
@@ -2404,12 +2310,16 @@ window.__ModuleLoader__.load({
 		//#endregion
 		//#region src/client/MyworkSidebar.tsx
 		/**
-		* MyWork v2 sidebar (TEAMMATES §9.4): the column is teammates. On top a search field, the bell (a count of what needs
-		* you + what is working; a dropdown of 需要你 / 在干活 / 刚完成) and 「+」 for a new teammate. In the middle only
-		* teammates, in sections: 置顶 (pinned; MyWork is pinned by default), then one per group name in a stable order
-		* (alphabetical, zh-CN collation), then 其他. Within a section: pinned / default first, then the last conversation; state
-		* never changes the order of rows or sections. A section header (only when there is more than one section) folds its rows; what is folded is kept
-		* in localStorage. At the bottom 文件 and 设置. Rows carry no actions: opening a row is the only thing it does.
+		* MyWork v2 sidebar (TEAMMATES §9.4): the column is teammates, set brutalist (pure black, white type at 100 / 65 / 50 %,
+		* no fills; each teammate keeps its flat avatar). On top the MyWork mark (18px, white), a search field, the bell (a
+		* dot: white while someone works, --warn when someone needs you; a dropdown of 需要你 / 在干活 / 刚完成), 「+」 for a new
+		* teammate and collapse. In the middle only teammates, in sections: 置顶 (pinned; MyWork is pinned by default), then one
+		* per type (the `group` field, 「类型」 in the UI) in the order the types were formed, then 其他. Within a section:
+		* pinned / default first, then the last conversation; state never changes the order of rows or sections. A section
+		* label (only when there is more than one section) folds its rows; what is folded is kept in localStorage. A row is the
+		* avatar, the name and one line (等你答 in --warn, 在干活 breathing, else the last thing said). At the bottom 文件 and 设置
+		* as plain text rows. Collapsed: the mark, each teammate's avatar, + and 文件. Rows carry no actions: opening a row is
+		* the only thing it does.
 		*
 		* Data comes from dsh-mywork-tasks (/mywork-tasks/api/mates, /activity, /search); navigation into that plugin's pages
 		* goes through window events so neither package imports the other: the column dispatches mywork:open-thread and
@@ -2464,90 +2374,97 @@ window.__ModuleLoader__.load({
 		};
 		const stylesheet$5 = `
 /*
- * Tokens: Rakazo's surfaces, an achromatic text scale (#ececee at 100 / 65 / 40 %), borders white at 10 / 5 %. Colour only
- * for a decision (--warn: needs you); the cream primary is the unread dot. Spacing 4 / 8 / 16 / 24 / 32; shadows only on
- * the bell's dropdown. Dark by default; a light twin only when dsh itself is light and the OS asks for light.
+ * Brutalist structure, aesthetic execution (the tasks page shares these tokens): pure black, white text at 100 / 65 /
+ * 50 %, rules white at 10 / 5 %; --warn only for "needs you". No fills, no decoration: a row is the teammate's avatar
+ * (32, flat, its own colour and shape), its name (15) and one line (13 at 65 %); the selected row a 5 % ground, radius
+ * 8. Line icons only where they act, at 50 %,
+ * 100 % on hover. Spacing 8 / 16 / 24 (4 inline). Shadows only on the bell's elevated dropdown. Motion: colour /
+ * opacity 150 ms; a working teammate breathes (opacity 1 ↔ .5, 2.4 s; reduced motion holds .65); nothing else moves.
  */
-.mws{--bg:#0b0c0e;--surface:#111215;--surface-2:#18191e;--card:#141518;--fg:#ececee;--fg-2:rgba(236,236,238,.65);--muted:rgba(236,236,238,.65);--meta:rgba(236,236,238,.5);--border:rgba(255,255,255,.1);--border-soft:rgba(255,255,255,.05);--border-strong:rgba(255,255,255,.1);--border-focus:rgba(236,236,238,.4);--primary:#f1f1ef;--primary-on:#0b0c0e;--warn:#f0a35e;--focus-ring:0 0 0 2px rgba(236,236,238,.4);--elev-raised:0 10px 30px rgba(0,0,0,.5),0 2px 8px rgba(0,0,0,.4);--motion-fast:150ms;--ease-standard:cubic-bezier(.2,0,0,1);--av-bg:var(--card);--av-fg:#efe8da;position:relative;width:100%;height:100%;min-width:0;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;background:var(--surface);color:var(--fg);border-right:1px solid var(--border);font:14px/20px Geist,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei UI",sans-serif;-webkit-font-smoothing:antialiased}
-@media all{html[data-mywork-theme="light"] .mws{--bg:#ffffff;--surface:#f7f7f8;--surface-2:#ececee;--card:#f2f2f3;--fg:#111113;--fg-2:rgba(17,17,19,.65);--muted:rgba(17,17,19,.65);--meta:rgba(17,17,19,.55);--border:rgba(0,0,0,.1);--border-soft:rgba(0,0,0,.05);--border-strong:rgba(0,0,0,.1);--border-focus:rgba(17,17,19,.4);--primary:#111113;--primary-on:#ffffff;--warn:#b5480a;--focus-ring:0 0 0 2px rgba(17,17,19,.25);--elev-raised:0 10px 30px rgba(0,0,0,.08),0 2px 8px rgba(0,0,0,.05);--av-bg:#1f1d1a;--av-fg:#faf7f0}}
+.mws{--bg:#000;--elevated:#111;--fg:#fff;--fg-2:rgba(255,255,255,.65);--fg-3:rgba(255,255,255,.5);--rule:rgba(255,255,255,.1);--rule-soft:rgba(255,255,255,.05);--warn:#f0a35e;--danger:#f87171;--av-mark-bg:#2a2a2a;--av-mark-fg:#fff;--shadow:0 8px 24px rgba(0,0,0,.5);--fast:150ms ease;--font:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Hiragino Sans GB","Microsoft YaHei UI",sans-serif;position:relative;width:100%;height:100%;min-width:0;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;background:var(--bg);color:var(--fg);border-right:1px solid var(--rule);font:15px/20px var(--font);letter-spacing:0;-webkit-font-smoothing:antialiased}
+html[data-mywork-theme="light"] .mws{--bg:#fff;--elevated:#fff;--fg:#000;--fg-2:rgba(0,0,0,.65);--fg-3:rgba(0,0,0,.55);--rule:rgba(0,0,0,.1);--rule-soft:rgba(0,0,0,.05);--warn:#b5480a;--danger:#c0392b;--av-mark-bg:#111;--av-mark-fg:#fff;--shadow:0 8px 24px rgba(0,0,0,.08)}
 .mws *{box-sizing:border-box}
-.mws button{font-family:inherit;transition:background-color var(--motion-fast) var(--ease-standard),color var(--motion-fast) var(--ease-standard),transform var(--motion-fast) var(--ease-standard)}
-.mws button:active{transform:scale(.98)}
-.mws :focus-visible{outline:none;box-shadow:var(--focus-ring)}
+.mws button{font-family:inherit;transition:color var(--fast),background-color var(--fast),border-color var(--fast),opacity var(--fast)}
+/* (html body .mws: the shell theme rings every :focus-visible in its brand colour; ours is white at 50 %.) */
+html body .mws :focus-visible{outline:2px solid var(--fg-3);outline-offset:-2px}
+html body .mws input:focus{outline:none}
+.mws ::selection{background:rgba(255,255,255,.25);color:var(--fg)}
 @media (prefers-reduced-motion:reduce){.mws *{transition:none!important;animation:none!important}}
-.mws-head{position:relative;display:flex;align-items:center;gap:4px;flex:none;padding:16px 8px 8px}
-.mws-search{flex:1;min-width:0;display:flex;align-items:center;gap:8px;height:32px;margin:0 4px;padding:0 8px;border:1px solid var(--border);border-radius:999px;background:var(--card);color:var(--meta);transition:border-color var(--motion-fast) var(--ease-standard)}
-.mws-search:focus-within{border-color:var(--border-focus)}
-.mws-search svg{flex:none}
-.mws-search input{flex:1;min-width:0;height:100%;margin:0;padding:0;border:0;background:transparent;color:var(--fg);font:inherit;font-size:13px;outline:none}
-.mws-search input::placeholder{color:var(--meta)}
-.mws-search input:focus-visible{box-shadow:none}
-.mws-icon{appearance:none;position:relative;display:inline-grid;place-items:center;flex:none;width:32px;height:32px;border:0;border-radius:12px;background:transparent;color:var(--muted);cursor:pointer}
-.mws-icon:hover,.mws-icon[aria-expanded=true]{background:var(--surface-2);color:var(--fg)}
-.mws-count{position:absolute;top:2px;right:1px;min-width:15px;height:15px;padding:0 4px;border-radius:8px;background:var(--fg-2);color:var(--bg);font-size:10px;line-height:15px;font-weight:600;font-variant-numeric:tabular-nums;text-align:center;pointer-events:none}
-.mws-count[data-needs=true]{background:var(--warn)}
-/* The bell's panel: under the header, over the list (a floating layer, so it casts the column's one shadow). */
-.mws-drop{position:absolute;top:calc(100% - 4px);left:8px;right:8px;z-index:20;max-height:min(420px,calc(100vh - 120px));overflow:auto;padding:8px;border:1px solid var(--border);border-radius:18px;background:var(--card);box-shadow:var(--elev-raised)}
-.mws-drop h3{margin:8px 8px 4px;font-size:12px;line-height:16px;font-weight:500;color:var(--meta)}
-.mws-drop .mws-row{min-height:48px;border-radius:16px}
-.mws-drop .mws-row:hover{background:var(--surface-2)}
-.mws-list{flex:1;min-height:0;overflow:auto;padding:0 8px 8px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
-/* Section headers: 11px at 40 %, sentence case; the chevron (the fold control) turns when open. Folded, the count and an unread dot stay. */
-.mws-sec+.mws-sec{margin-top:8px}
-.mws-sec-head{appearance:none;display:flex;align-items:center;gap:4px;width:100%;height:28px;padding:0 8px;border:0;border-radius:8px;background:transparent;color:var(--meta);font:inherit;font-size:11px;line-height:16px;font-weight:500;text-align:left;cursor:pointer}
-.mws-sec-head:hover{color:var(--fg)}
-.mws-sec-head svg{flex:none;transition:transform var(--motion-fast) var(--ease-standard)}
-.mws-sec-head[aria-expanded=true] svg{transform:rotate(90deg)}
-.mws-sec-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mws-sec-count{flex:none;margin-left:4px;color:var(--meta);font-variant-numeric:tabular-nums}
-.mws-sec-head .mws-unread{width:6px;height:6px;margin-left:4px}
-/* Rows (Rakazo's chat list): 32 avatar · name + time + dot · one line of preview. */
-.mws-row{appearance:none;display:grid;grid-template-columns:32px minmax(0,1fr);column-gap:8px;align-items:center;width:100%;min-height:52px;padding:8px;border:0;border-radius:16px;background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
-.mws-row-flat{grid-template-columns:20px minmax(0,1fr);align-items:center;min-height:40px;padding:8px}
-.mws-row:hover,.mws-row[aria-current=page]{background:var(--surface-2)}
-.mws-glyph{display:inline-grid;place-items:center;width:20px;height:20px;color:var(--muted)}
-.mws-glyph.wide{width:32px;height:32px;border-radius:50%;background:var(--card)}
-.mws-glyph svg{display:block}
-/* Avatar: a flat shape in the teammate's colour (the calmer version unless it is the open one) with two eyes. Working, it
- * breathes: opacity 1 to .55 and back over 2.4 s; reduced motion holds it at .7. */
-.mws-av{position:relative;display:inline-block;flex:none;line-height:0;user-select:none}
-.mws-av svg{display:block;overflow:visible}
-.mws-av[data-working=true] svg{animation:mws-breathe 2.4s ease-in-out infinite}
-@keyframes mws-breathe{0%,100%{opacity:1}50%{opacity:.55}}
-@media (prefers-reduced-motion:reduce){.mws .mws-av[data-working=true] svg{animation:none!important;opacity:.7}}
-.mws-main{min-width:0;display:grid;gap:4px}
-.mws-line{display:flex;align-items:center;min-width:0}
-.mws-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13.5px;line-height:18px;font-weight:500;letter-spacing:-.005em}
-.mws-row[data-unread=true] .mws-title{font-weight:600}
-.mws-time{flex:none;margin-left:8px;color:var(--meta);font-size:11px;line-height:18px;font-variant-numeric:tabular-nums;text-align:right}
-.mws-unread{flex:none;width:8px;height:8px;margin-left:8px;border-radius:50%;background:var(--primary)}
-.mws-chip{justify-self:start;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 8px;border:1px solid var(--border);border-radius:999px;color:var(--muted);font-size:11px;line-height:17px}
-.mws-sub{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:12px;line-height:16px}
-.mws-sub[data-tone=warn]{color:var(--warn)}
-.mws-empty{padding:16px 8px;color:var(--muted);font-size:12.5px;line-height:18px}
-.mws-mark{display:inline-grid;place-items:center;flex:none;border-radius:50%;background:var(--primary);color:var(--primary-on)}
+.mws-breathe{animation:mws-breathe 2.4s ease-in-out infinite}
+@keyframes mws-breathe{0%,100%{opacity:1}50%{opacity:.5}}
+@media (prefers-reduced-motion:reduce){.mws .mws-breathe{opacity:.65}}
+/* The MyWork mark: an M whose last stroke turns into a check, 18px, white. */
+.mws-mark{display:inline-grid;place-items:center;flex:none;color:var(--fg)}
 .mws-mark svg{display:block}
-.mws-mark path{stroke-dasharray:60;stroke-dashoffset:0}
-.mws-mark[data-live=true] path{animation:mws-draw 2.4s var(--ease-standard) infinite}
-@keyframes mws-draw{0%{stroke-dashoffset:60}55%{stroke-dashoffset:0}80%{stroke-dashoffset:0;opacity:1}100%{stroke-dashoffset:0;opacity:.35}}
-@media (prefers-reduced-motion:reduce){.mws-mark[data-live=true] path{animation:none}}
-.mws-foot{flex:none;padding:8px 8px 0;border-top:1px solid var(--border)}
-/* The settings entry is dsh's own trigger, kept outside the footer so it stays mounted across collapse; it wears the same row recipe as 文件 above it. */
+/* Header: the mark · search · bell · + · collapse. */
+.mws-head{position:relative;display:flex;align-items:center;gap:4px;flex:none;height:64px;padding:0 8px 0 24px}
+.mws-search{flex:1;min-width:0;height:32px;margin:0 4px 0 12px;border:1px solid var(--rule);border-radius:8px;transition:border-color var(--fast)}
+.mws-search:focus-within{border-color:var(--fg-3)}
+.mws-search input{display:block;width:100%;height:100%;margin:0;padding:0 8px;border:0;background:transparent;color:var(--fg);font:inherit;font-size:13px;outline:none}
+.mws-search input::placeholder{color:var(--fg-3)}
+.mws-icon{appearance:none;position:relative;display:inline-grid;place-items:center;flex:none;width:28px;height:32px;padding:0;border:0;border-radius:8px;background:transparent;color:var(--fg-3);cursor:pointer}
+.mws-icon:hover,.mws-icon[aria-expanded=true]{color:var(--fg)}
+.mws-icon svg{display:block}
+/* The bell's dot: white while someone works, --warn when someone needs you. */
+.mws-dot{position:absolute;top:7px;right:5px;width:6px;height:6px;border-radius:50%;background:var(--fg);pointer-events:none}
+.mws-dot[data-needs=true]{background:var(--warn)}
+/* The bell's panel: an elevated layer under the header, over the list. */
+.mws-drop{position:absolute;top:56px;left:8px;right:8px;z-index:20;max-height:min(420px,calc(100vh - 120px));overflow:auto;padding:8px;border:1px solid var(--rule);border-radius:8px;background:var(--elevated);box-shadow:var(--shadow)}
+.mws-drop h3{margin:8px 16px 4px;color:var(--fg-3);font-size:12px;line-height:16px;font-weight:400}
+.mws-list{flex:1;min-height:0;overflow:auto;padding:0 8px 16px;scrollbar-width:thin;scrollbar-color:var(--rule) transparent}
+/* Section labels: 12 at 50 %, sentence case, the chevron after the words (open: down; folded: right, with the count). */
+.mws-sec+.mws-sec{margin-top:16px}
+.mws-sec-head{appearance:none;display:flex;align-items:center;gap:4px;width:100%;height:32px;padding:0 16px;border:0;border-radius:8px;background:transparent;color:var(--fg-3);font:inherit;font-size:12px;line-height:16px;font-weight:400;text-align:left;cursor:pointer}
+.mws-sec-head:hover{color:var(--fg)}
+.mws-sec-head svg{flex:none}
+.mws-sec-head[aria-expanded=false] svg{transform:rotate(-90deg)}
+.mws-sec-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mws-sec-count{flex:none;margin-left:4px;font-variant-numeric:tabular-nums}
+.mws-sec-head .mws-unread{margin-left:4px}
+/* Rows: the avatar (32), then the name 15 and the time 12 at 50 % on one line, one line of 13 at 65 % under it. */
+.mws-row{appearance:none;display:grid;grid-template-columns:32px minmax(0,1fr);column-gap:8px;align-items:center;width:100%;min-width:0;padding:12px 16px;border:0;border-radius:8px;background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
+.mws-main{display:grid;gap:4px;min-width:0}
+.mws-av{display:inline-block;flex:none;line-height:0;user-select:none}
+.mws-av svg{display:block;overflow:visible}
+.mws-av-none{display:block;width:32px;height:32px}
+.mws-row:hover,.mws-row[aria-current=page]{background:var(--rule-soft)}
+.mws-line{display:flex;align-items:baseline;min-width:0}
+.mws-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px;line-height:20px;font-weight:400}
+.mws-row[data-unread=true] .mws-title{font-weight:600}
+.mws-time{flex:none;margin-left:8px;color:var(--fg-3);font-size:12px;line-height:16px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.mws-unread{flex:none;align-self:center;width:6px;height:6px;margin-left:8px;border-radius:50%;background:var(--fg)}
+.mws-sub{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--fg-2);font-size:13px;line-height:20px}
+.mws-sub[data-tone=warn]{color:var(--warn)}
+.mws-empty{padding:16px;color:var(--fg-3);font-size:13px;line-height:20px}
+/* Footer: 文件 and 设置 as plain text rows. */
+.mws-foot{flex:none;padding:8px 8px 0;border-top:1px solid var(--rule)}
+.mws-flat{appearance:none;display:flex;align-items:center;width:100%;height:40px;padding:0 16px;border:0;border-radius:8px;background:transparent;color:var(--fg);font:inherit;font-size:15px;line-height:20px;text-align:left;cursor:pointer}
+.mws-flat:hover,.mws-flat[aria-current=page]{background:var(--rule-soft)}
+/* The settings entry is dsh's own trigger, kept outside the footer so it stays mounted across collapse; it wears the 文件 row. */
 .mws-settings{flex:none;padding:0 8px 16px}
-.mws-settings .dcu-settings-trigger{height:40px;min-height:40px;padding:0 8px;border-radius:16px;color:var(--fg);font-family:inherit;font-size:13.5px;line-height:18px;transition:background-color var(--motion-fast) var(--ease-standard),color var(--motion-fast) var(--ease-standard),transform var(--motion-fast) var(--ease-standard)}
-.mws-settings .dcu-settings-trigger:hover{background:var(--surface-2);color:var(--fg)}
-.mws-settings .dcu-settings-trigger:hover svg{transform:none}
-.mws-settings .dcu-settings-trigger:focus-visible{outline:none;box-shadow:var(--focus-ring)}
-.mws-settings .dcu-settings-trigger-content{column-gap:8px}
-.mws-settings .dcu-settings-trigger-content svg{justify-self:center;color:var(--muted)}
-/* Collapsed: dsh keeps a 56px rail on the web. Only the mark and the expand control live there. */
-.mws.compact{align-items:center;gap:8px;padding:16px 0 8px}
+.mws-settings .dcu-settings-trigger{height:40px;min-height:40px;padding:0 16px;border-radius:8px;color:var(--fg);font:400 15px/20px var(--font);transition:background-color var(--fast),color var(--fast)}
+.mws-settings .dcu-settings-trigger:hover,.mws-settings .dcu-settings-trigger[aria-expanded=true]{background:var(--rule-soft);color:var(--fg)}
+.mws-settings .dcu-settings-trigger:active{transform:none}
+html body .mws-settings .dcu-settings-trigger:focus-visible{outline:2px solid var(--fg-3);outline-offset:-2px;background:transparent}
+.mws-settings .dcu-settings-trigger-content{display:block}
+.mws-settings .dcu-settings-trigger-content svg{display:none}
+/* Collapsed: dsh keeps a 56px rail. The mark (it expands; on hover the panel icon stands in), each teammate's avatar
+ * (32; selected: a 5 % ground; unread: a white dot; waiting on you: a --warn dot; working: it breathes), then + and 文件. */
+.mws.compact{align-items:center;padding:16px 0}
 .mws.compact .mws-settings{position:absolute;width:0;height:0;overflow:hidden}
-.mws-rail{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;align-items:center;gap:8px;padding:4px 0;scrollbar-width:none}
-.mws-rail-mate{position:relative;padding:4px;border:0;border-radius:14px;background:transparent;cursor:pointer;transition:background var(--motion-fast) var(--ease-standard)}
-.mws-rail-mate:hover,.mws-rail-mate[aria-current=page]{background:var(--surface-2)}
-.mws-rail-dot{position:absolute;top:2px;right:2px;width:8px;height:8px;border-radius:50%;background:var(--primary);box-shadow:0 0 0 2px var(--surface)}
-.mws-rail-sep{flex:none;width:24px;height:1px;background:var(--border)}
+.mws-railtop{appearance:none;display:grid;place-items:center;flex:none;width:32px;height:32px;margin:0 0 16px;padding:0;border:0;border-radius:8px;background:transparent;color:var(--fg);cursor:pointer}
+.mws-railtop>*{grid-area:1/1;transition:opacity var(--fast)}
+.mws-railtop .alt{display:grid;place-items:center;opacity:0}
+.mws-railtop:hover .mws-mark,.mws-railtop:focus-visible .mws-mark{opacity:0}
+.mws-railtop:hover .alt,.mws-railtop:focus-visible .alt{opacity:1}
+.mws-rail{flex:1;min-height:0;width:100%;overflow-y:auto;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 0;scrollbar-width:none}
+.mws-rail-gap{flex:none;height:8px}
+.mws-rail-mate{appearance:none;position:relative;display:grid;place-items:center;flex:none;width:40px;height:40px;padding:0;border:0;border-radius:8px;background:transparent;cursor:pointer}
+.mws-rail-mate:hover,.mws-rail-mate[aria-current=page]{background:var(--rule-soft)}
+.mws-rail-dot{position:absolute;top:2px;right:2px;width:6px;height:6px;border-radius:50%;background:var(--fg);box-shadow:0 0 0 2px var(--bg)}
+.mws-rail-dot[data-tone=warn]{background:var(--warn)}
+.mws-railtext{appearance:none;flex:none;height:32px;margin-top:8px;padding:0 4px;border:0;border-radius:8px;background:transparent;color:var(--fg-3);font:inherit;font-size:13px;line-height:16px;cursor:pointer}
+.mws-railtext:hover,.mws-railtext[aria-current=page]{color:var(--fg)}
 `;
 		const str = (v) => typeof v === "string" ? v : "";
 		const ms = (iso) => {
@@ -2653,6 +2570,7 @@ window.__ModuleLoader__.load({
 				out.push({
 					key: `msg:${mateId}:${str(x.runId)}:${i}`,
 					glyph: "message",
+					mate: byId.get(mateId),
 					title: byId.get(mateId)?.name ?? str(x.mateName),
 					sub: str(x.text),
 					at: str(x.at),
@@ -2669,6 +2587,7 @@ window.__ModuleLoader__.load({
 				out.push({
 					key: "file:" + id,
 					glyph: "file",
+					mate: byId.get(str(x.mateId)),
 					title: str(x.title),
 					sub: byId.get(str(x.mateId))?.name ?? "",
 					at: str(x.createdAt),
@@ -2685,6 +2604,7 @@ window.__ModuleLoader__.load({
 				out.push({
 					key: "routine:" + id,
 					glyph: "routine",
+					mate: byId.get(str(x.mateId)),
 					title: str(x.title),
 					sub: [str(x.scheduleLabel), owner].filter((s) => s !== "").join(" · "),
 					at: str(x.lastAt) || str(x.nextRunAt),
@@ -2707,121 +2627,73 @@ window.__ModuleLoader__.load({
 				return false;
 			}
 		}
-		/** Rakazo's bot palette (packages/core bot-avatar-colors): light → dark, eye colour. The light one is the identity colour. */
-		const AVATAR_COLORS = [
-			[
-				"#A97EFE",
-				"#7C3AED",
-				"#FFFFFF"
-			],
-			[
-				"#00C972",
-				"#059669",
-				"#FFFFFF"
-			],
-			[
-				"#FF781C",
-				"#EA580C",
-				"#FFFFFF"
-			],
-			[
-				"#1CC3B0",
-				"#0284C7",
-				"#FFFFFF"
-			],
-			[
-				"#2A92FE",
-				"#1D4ED8",
-				"#FFFFFF"
-			],
-			[
-				"#FFAF38",
-				"#D97706",
-				"#141414"
-			],
-			[
-				"#A27952",
-				"#78350F",
-				"#FFFFFF"
-			],
-			[
-				"#FF3E51",
-				"#BE123C",
-				"#FFFFFF"
-			],
-			[
-				"#FF5EB1",
-				"#BE185D",
-				"#FFFFFF"
-			],
-			[
-				"#94A3B8",
-				"#475569",
-				"#FFFFFF"
-			]
-		];
-		/** Rakazo's shippedHash (FNV-1a). */
+		/** The MyWork mark: an M whose last stroke turns into a check — the product mark, white, 18px by default. */
+		function BrandMark({ size = 18 }) {
+			return /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+				className: "mws-mark",
+				style: {
+					width: size,
+					height: size
+				},
+				"aria-hidden": "true",
+				children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("svg", {
+					viewBox: "0 0 24 24",
+					width: size,
+					height: size,
+					fill: "none",
+					children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("path", {
+						d: "M4.5 18.5V7l5.5 6.5L15.5 7M10.5 17l3 3 6-6",
+						stroke: "currentColor",
+						strokeWidth: "2.6",
+						strokeLinecap: "round",
+						strokeLinejoin: "round"
+					})
+				})
+			});
+		}
+		/**
+		* Avatars (the same recipe as dsh-mywork-tasks' page): a flat shape with two eyes in the look the owner picked for the
+		* teammate (mate.avatar { color, shape }: one of 8 muted colour keys and 4 shapes), else derived from its id per field.
+		* The colours are mid-tones that sit on #000 without glowing; [fill, eyes]. MyWork keeps its M-check mark.
+		*/
+		const AV_COLORS = {
+			slate: ["#5f6b7a", "#ffffff"],
+			blue: ["#4c6d9e", "#ffffff"],
+			teal: ["#3f7f7b", "#ffffff"],
+			green: ["#5a8160", "#ffffff"],
+			amber: ["#a48344", "#141414"],
+			orange: ["#a9673f", "#ffffff"],
+			rose: ["#9d5868", "#ffffff"],
+			violet: ["#71609f", "#ffffff"]
+		};
+		const AV_COLOR_KEYS = Object.keys(AV_COLORS);
+		/** In a 100 box; the hexagon is drawn with a round-joined stroke of its own colour, so its corners are soft. */
+		const AV_SHAPES = {
+			circle: "M50 4a46 46 0 1 1 0 92a46 46 0 1 1 0-92Z",
+			squircle: "M34 4h32c20 0 30 10 30 30v32c0 20-10 30-30 30H34C14 96 4 86 4 66V34C4 14 14 4 34 4Z",
+			pebble: "M50 8c28 0 46 14 46 40s-18 44-46 44S4 74 4 48 22 8 50 8Z",
+			hex: "M50 8L86.4 29V71L50 92L13.6 71V29Z"
+		};
+		const AV_SHAPE_KEYS = Object.keys(AV_SHAPES);
+		/** Rakazo's shippedHash (FNV-1a): the derived look is stable per teammate. */
 		function avatarHash(v) {
 			let x = 2166136261;
 			for (let i = 0; i < v.length; i++) x = Math.imul(x ^ v.charCodeAt(i), 16777619);
 			return x >>> 0;
 		}
-		/** Simple stand-ins for Rakazo's shapes, in a 100 box: blob, squircle, pebble. */
-		const AVATAR_SHAPES = [
-			"M50 4a46 46 0 1 1 0 92a46 46 0 1 1 0-92Z",
-			"M34 4h32c20 0 30 10 30 30v32c0 20-10 30-30 30H34C14 96 4 86 4 66V34C4 14 14 4 34 4Z",
-			"M50 8c28 0 46 14 46 40s-18 44-46 44S4 74 4 48 22 8 50 8Z"
-		];
-		/** A colour with its saturation and lightness lowered by 15 % (HSL): the same identity, receding behind the content. */
-		function calmHex(hex) {
-			const n = parseInt(hex.slice(1), 16);
-			const r = (n >> 16 & 255) / 255, g = (n >> 8 & 255) / 255, b = (n & 255) / 255;
-			const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
-			let hue = 0;
-			if (d !== 0) hue = max === r ? (g - b) / d % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
-			hue = (hue * 60 + 360) % 360;
-			const l0 = (max + min) / 2;
-			const s = (d !== 0 ? d / (1 - Math.abs(2 * l0 - 1)) : 0) * .85, l = l0 * .85;
-			const c = (1 - Math.abs(2 * l - 1)) * s, x = c * (1 - Math.abs(hue / 60 % 2 - 1)), m = l - c / 2;
-			const [r1, g1, b1] = hue < 60 ? [
-				c,
-				x,
-				0
-			] : hue < 120 ? [
-				x,
-				c,
-				0
-			] : hue < 180 ? [
-				0,
-				c,
-				x
-			] : hue < 240 ? [
-				0,
-				x,
-				c
-			] : hue < 300 ? [
-				x,
-				0,
-				c
-			] : [
-				c,
-				0,
-				x
-			];
-			const to = (v) => Math.round((v + m) * 255).toString(16).padStart(2, "0");
-			return "#" + to(r1) + to(g1) + to(b1);
+		function lookOf(mate) {
+			const a = mate.avatar ?? {};
+			const hash = avatarHash(str(mate.id) || str(mate.name) || "mate");
+			return {
+				color: a.color !== void 0 && a.color in AV_COLORS ? a.color : AV_COLOR_KEYS[hash % AV_COLOR_KEYS.length],
+				shape: a.shape !== void 0 && a.shape in AV_SHAPES ? a.shape : AV_SHAPE_KEYS[(Math.imul(hash ^ hash >>> 16, 73244475) >>> 0) % AV_SHAPE_KEYS.length]
+			};
 		}
-		const AVATAR_CALM = AVATAR_COLORS.map(([light]) => calmHex(light));
-		/**
-		* A teammate's avatar: a flat shape in its identity colour (picked from its id) with two eyes; MyWork keeps its mark in
-		* the same frame. `full` (the open teammate's row) shows the colour as is, every other place the calmer version.
-		* Working, it breathes (opacity 1 ↔ .55 over 2.4 s; static .7 under reduced motion).
-		*/
-		function MateAvatar({ mate, size = 38, full }) {
-			const working = mate.state === "working";
+		/** A teammate's avatar; working, it breathes (opacity 1 ↔ .5 over 2.4 s; .65 under reduced motion). */
+		function MateAvatar({ mate, size = 32 }) {
+			const cls = "mws-av" + (mate.state === "working" ? " mws-breathe" : "");
 			if (mate.isDefault === true) return /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
-				className: "mws-av",
-				"data-working": working ? "true" : void 0,
+				className: cls,
 				"aria-hidden": "true",
 				children: /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("svg", {
 					viewBox: "0 0 100 100",
@@ -2831,39 +2703,43 @@ window.__ModuleLoader__.load({
 						cx: "50",
 						cy: "50",
 						r: "46",
-						fill: "var(--av-bg)"
+						fill: "var(--av-mark-bg)"
 					}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("svg", {
-						x: "20",
-						y: "20",
-						width: "60",
-						height: "60",
+						x: "22",
+						y: "22",
+						width: "56",
+						height: "56",
 						viewBox: "0 0 24 24",
 						fill: "none",
 						children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("path", {
 							d: "M4.5 18.5V7l5.5 6.5L15.5 7M10.5 17l3 3 6-6",
-							stroke: "var(--av-fg)",
-							strokeWidth: "3.2",
+							stroke: "var(--av-mark-fg)",
+							strokeWidth: "3",
 							strokeLinecap: "round",
 							strokeLinejoin: "round"
 						})
 					})]
 				})
 			});
-			const hash = avatarHash(str(mate.id) || str(mate.name) || "mate");
-			const i = hash % AVATAR_COLORS.length;
-			const [light, , eye] = AVATAR_COLORS[i];
-			const shape = AVATAR_SHAPES[(Math.imul(hash ^ hash >>> 16, 73244475) >>> 0) % AVATAR_SHAPES.length];
+			const look = lookOf(mate);
+			const [fill, eye] = AV_COLORS[look.color] ?? AV_COLORS.slate;
+			const d = AV_SHAPES[look.shape] ?? AV_SHAPES.circle;
 			return /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
-				className: "mws-av",
-				"data-working": working ? "true" : void 0,
+				className: cls,
 				"aria-hidden": "true",
 				children: /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("svg", {
 					viewBox: "0 0 100 100",
 					width: size,
 					height: size,
-					children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("path", {
-						d: shape,
-						fill: full === true ? light : AVATAR_CALM[i]
+					children: [look.shape === "hex" ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("path", {
+						d,
+						fill,
+						stroke: fill,
+						strokeWidth: "8",
+						strokeLinejoin: "round"
+					}) : /* @__PURE__ */ (0, react_jsx_runtime.jsx)("path", {
+						d,
+						fill
 					}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("g", {
 						fill: eye,
 						children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("ellipse", {
@@ -2881,7 +2757,7 @@ window.__ModuleLoader__.load({
 				})
 			});
 		}
-		/** The second line: 等你答 · question / 在干活 · step / the last thing said. */
+		/** The second line: 等你答 · question (--warn) / 在干活 · step (breathing) / the last thing said. */
 		function secondLine(mate, t) {
 			if (mate.state === "waiting") {
 				const q = str(mate.ask?.question).replace(/\*\*|__|`/g, "");
@@ -2890,7 +2766,10 @@ window.__ModuleLoader__.load({
 					tone: "warn"
 				};
 			}
-			if (mate.state === "working") return { text: [t("v2.working"), str(mate.step)].filter((s) => s !== "").join(" · ") };
+			if (mate.state === "working") return {
+				text: [t("v2.working"), str(mate.step)].filter((s) => s !== "").join(" · "),
+				live: true
+			};
 			return { text: str(mate.preview) };
 		}
 		function MateRow({ mate, time, current, unread, t, onOpen }) {
@@ -2903,8 +2782,7 @@ window.__ModuleLoader__.load({
 				onClick: onOpen,
 				children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(MateAvatar, {
 					mate,
-					size: 32,
-					full: current
+					size: 32
 				}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
 					className: "mws-main",
 					children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
@@ -2924,35 +2802,30 @@ window.__ModuleLoader__.load({
 							})
 						]
 					}), sub.text !== "" && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
-						className: "mws-sub",
+						className: "mws-sub" + (sub.live === true ? " mws-breathe" : ""),
 						"data-tone": sub.tone,
 						children: sub.text
 					})]
 				})]
 			});
 		}
-		function ResultItem({ row, time, onOpen }) {
-			const glyph = row.glyph === "mate" && row.mate !== void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)(MateAvatar, {
-				mate: row.mate,
-				size: 32
-			}) : /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
-				className: "mws-glyph wide",
-				children: row.glyph === "message" ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)(MessageCircle, {
-					size: 16,
-					strokeWidth: 1.5
-				}) : row.glyph === "file" ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)(FileText, {
-					size: 16,
-					strokeWidth: 1.5
-				}) : /* @__PURE__ */ (0, react_jsx_runtime.jsx)(Repeat, {
-					size: 16,
-					strokeWidth: 1.5
-				})
-			});
+		/**
+		* A search result: the avatar of the teammate it belongs to and the same two lines; a file or a routine says what it
+		* is at the start of its second line.
+		*/
+		function ResultItem({ row, time, t, onOpen }) {
+			const sub = [row.glyph === "file" ? t("v2.files") : row.glyph === "routine" ? t("v2.routine") : "", row.sub].filter((s) => s !== "").join(" · ");
 			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
 				type: "button",
 				className: "mws-row",
 				onClick: onOpen,
-				children: [glyph, /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
+				children: [row.mate !== void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)(MateAvatar, {
+					mate: row.mate,
+					size: 32
+				}) : /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+					className: "mws-av-none",
+					"aria-hidden": "true"
+				}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
 					className: "mws-main",
 					children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
 						className: "mws-line",
@@ -2963,31 +2836,10 @@ window.__ModuleLoader__.load({
 							className: "mws-time",
 							children: time
 						})]
-					}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+					}), sub !== "" && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 						className: "mws-sub",
-						children: row.sub
+						children: sub
 					})]
-				})]
-			});
-		}
-		function FlatRow({ label, icon, current, onOpen }) {
-			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
-				type: "button",
-				className: "mws-row mws-row-flat",
-				"aria-current": current ? "page" : void 0,
-				onClick: onOpen,
-				children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
-					className: "mws-glyph",
-					children: icon
-				}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
-					className: "mws-main",
-					children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
-						className: "mws-line",
-						children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
-							className: "mws-title",
-							children: label
-						})
-					})
 				})]
 			});
 		}
@@ -3144,7 +2996,6 @@ window.__ModuleLoader__.load({
 			]);
 			const sections = (0, react.useMemo)(() => sectionMates(mates), [mates]);
 			const headed = sections.length > 1;
-			mates.some((m) => m.state === "working");
 			const count = activity.needs.length + activity.working.length;
 			const now = /* @__PURE__ */ new Date();
 			/** mywork:open-thread is the contract; if nothing handled it (the tasks client is not loaded yet), its page is selected. */
@@ -3159,9 +3010,21 @@ window.__ModuleLoader__.load({
 			};
 			const highlighted = activePanelId === MYWORK_PANELS.files ? "files" : activePanelId === null || activePanelId === MYWORK_PANELS.mate ? opened : "";
 			const groups = [
-				[t("v2.needs"), activity.needs],
-				[t("v2.working"), activity.working],
-				[t("v2.recent"), activity.recent]
+				[
+					t("v2.needs"),
+					activity.needs,
+					true
+				],
+				[
+					t("v2.working"),
+					activity.working,
+					false
+				],
+				[
+					t("v2.recent"),
+					activity.recent,
+					false
+				]
 			];
 			const unreadOf = (mate) => mate.unread === true && seen[mate.id] !== str(mate.lastAt) && highlighted !== "mate:" + mate.id;
 			const sectionLabel = (sec) => sec.kind === "pinned" ? t("v2.pinned") : sec.kind === "other" ? t("v2.other") : sec.name;
@@ -3171,20 +3034,24 @@ window.__ModuleLoader__.load({
 				children: [
 					/* @__PURE__ */ (0, react_jsx_runtime.jsx)("style", { children: stylesheet$5 }),
 					compact ? /* @__PURE__ */ (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [
-						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+						/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
 							type: "button",
-							className: "mws-icon",
+							className: "mws-railtop",
 							"aria-label": t("sidebar.expand"),
+							title: t("sidebar.expand"),
 							onClick: toggleSidebar,
-							children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(PanelLeft, {
-								size: 16,
-								strokeWidth: 1.5
-							})
+							children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(BrandMark, {}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+								className: "alt",
+								children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(PanelLeft, {
+									size: 16,
+									strokeWidth: 1.5
+								})
+							})]
 						}),
 						/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 							className: "mws-rail",
 							children: [sections.map((sec, i) => /* @__PURE__ */ (0, react_jsx_runtime.jsxs)(react.Fragment, { children: [i > 0 && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
-								className: "mws-rail-sep",
+								className: "mws-rail-gap",
 								"aria-hidden": "true"
 							}), sec.mates.map((mate) => /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
 								type: "button",
@@ -3200,13 +3067,20 @@ window.__ModuleLoader__.load({
 								},
 								children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(MateAvatar, {
 									mate,
-									size: 32,
-									full: highlighted === "mate:" + mate.id
-								}), unreadOf(mate) && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { className: "mws-rail-dot" })]
+									size: 32
+								}), mate.state === "waiting" ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+									className: "mws-rail-dot",
+									"data-tone": "warn",
+									"aria-hidden": "true"
+								}) : unreadOf(mate) && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+									className: "mws-rail-dot",
+									"aria-hidden": "true"
+								})]
 							}, mate.id))] }, sec.key)), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
 								type: "button",
 								className: "mws-icon",
 								"aria-label": t("v2.newMate"),
+								title: t("v2.newMate"),
 								onClick: () => {
 									open({ kind: "new-mate" });
 								},
@@ -3218,38 +3092,22 @@ window.__ModuleLoader__.load({
 						}),
 						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
 							type: "button",
-							className: "mws-icon",
-							"aria-label": t("v2.files"),
+							className: "mws-railtext",
+							"aria-current": highlighted === "files" ? "page" : void 0,
 							onClick: () => {
 								open({ kind: "files" });
 							},
-							children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(Files, {
-								size: 16,
-								strokeWidth: 1.5
-							})
+							children: t("v2.files")
 						})
 					] }) : /* @__PURE__ */ (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [
 						/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 							className: "mws-head",
 							ref: headRef,
 							children: [
-								/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
-									type: "button",
-									className: "mws-icon",
-									"aria-label": t("sidebar.collapse"),
-									onClick: toggleSidebar,
-									children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(PanelLeft, {
-										size: 16,
-										strokeWidth: 1.5
-									})
-								}),
-								/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("label", {
+								/* @__PURE__ */ (0, react_jsx_runtime.jsx)(BrandMark, {}),
+								/* @__PURE__ */ (0, react_jsx_runtime.jsx)("label", {
 									className: "mws-search",
-									children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(Search, {
-										size: 14,
-										strokeWidth: 1.5,
-										"aria-hidden": "true"
-									}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("input", {
+									children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("input", {
 										type: "text",
 										value: query,
 										placeholder: t("v2.search"),
@@ -3265,12 +3123,13 @@ window.__ModuleLoader__.load({
 												setQuery("");
 											}
 										}
-									})]
+									})
 								}),
 								/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
 									type: "button",
 									className: "mws-icon",
 									"aria-label": t("v2.bell"),
+									title: t("v2.bell"),
 									"aria-haspopup": "true",
 									"aria-expanded": bellOpen,
 									onClick: () => {
@@ -3280,19 +3139,31 @@ window.__ModuleLoader__.load({
 										size: 16,
 										strokeWidth: 1.5
 									}), count > 0 && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
-										className: "mws-count",
+										className: "mws-dot",
 										"data-needs": activity.needs.length > 0 ? "true" : void 0,
-										children: count > 99 ? "99" : count
+										"aria-hidden": "true"
 									})]
 								}),
 								/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
 									type: "button",
 									className: "mws-icon",
 									"aria-label": t("v2.newMate"),
+									title: t("v2.newMate"),
 									onClick: () => {
 										open({ kind: "new-mate" });
 									},
 									children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(Plus, {
+										size: 16,
+										strokeWidth: 1.5
+									})
+								}),
+								/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+									type: "button",
+									className: "mws-icon",
+									"aria-label": t("sidebar.collapse"),
+									title: t("sidebar.collapse"),
+									onClick: toggleSidebar,
+									children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(PanelLeft, {
 										size: 16,
 										strokeWidth: 1.5
 									})
@@ -3304,7 +3175,7 @@ window.__ModuleLoader__.load({
 									children: [groups.every(([, items]) => items.length === 0) && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
 										className: "mws-empty",
 										children: t("v2.quiet")
-									}), groups.map(([label, items]) => items.length === 0 ? null : /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("h3", { children: label }), items.map((item, i) => {
+									}), groups.map(([label, items, needs]) => items.length === 0 ? null : /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("h3", { children: label }), items.map((item, i) => {
 										const mate = byId.get(item.mateId) ?? {
 											id: item.mateId,
 											name: str(item.mateName)
@@ -3333,8 +3204,9 @@ window.__ModuleLoader__.load({
 														className: "mws-time",
 														children: fmtWhen(str(item.at), now)
 													})]
-												}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+												}), str(item.text) !== "" && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 													className: "mws-sub",
+													"data-tone": needs ? "warn" : void 0,
 													children: str(item.text)
 												})]
 											})]
@@ -3374,14 +3246,14 @@ window.__ModuleLoader__.load({
 											toggleSection(sec.key);
 										},
 										children: [
-											/* @__PURE__ */ (0, react_jsx_runtime.jsx)(ChevronRight, {
-												size: 12,
-												strokeWidth: 1.75,
-												"aria-hidden": "true"
-											}),
 											/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 												className: "mws-sec-name",
 												children: sectionLabel(sec)
+											}),
+											/* @__PURE__ */ (0, react_jsx_runtime.jsx)(ChevronDown, {
+												size: 12,
+												strokeWidth: 1.5,
+												"aria-hidden": "true"
 											}),
 											closed && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 												className: "mws-sec-count",
@@ -3396,6 +3268,7 @@ window.__ModuleLoader__.load({
 								}, sec.key);
 							}) : results.map((row) => /* @__PURE__ */ (0, react_jsx_runtime.jsx)(ResultItem, {
 								row,
+								t,
 								time: fmtWhen(row.at, now),
 								onOpen: () => {
 									open(row.target);
@@ -3407,16 +3280,14 @@ window.__ModuleLoader__.load({
 						}),
 						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("footer", {
 							className: "mws-foot",
-							children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(FlatRow, {
-								label: t("v2.files"),
-								icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(Files, {
-									size: 16,
-									strokeWidth: 1.5
-								}),
-								current: highlighted === "files",
-								onOpen: () => {
+							children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+								type: "button",
+								className: "mws-flat",
+								"aria-current": highlighted === "files" ? "page" : void 0,
+								onClick: () => {
 									open({ kind: "files" });
-								}
+								},
+								children: t("v2.files")
 							})
 						})
 					] }),

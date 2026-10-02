@@ -6,7 +6,7 @@
  *   $DSH_HOME/mywork/deliverables.json  { version, items: Deliverable[] }
  *   $DSH_HOME/mywork/seen.json          { $since, [mateId]: ISO }          read state of the sidebar, one stamp per teammate
  *
- * Mate        { id, name, title, description, glyph, pinned, group, isDefault, notify, createdAt, sessionId, dir }
+ * Mate        { id, name, title, description, glyph, pinned, group, avatar, isDefault, notify, createdAt, sessionId, dir }
  *             sessionId stays empty until the teammate's dsh session ('mywork-mate-<id>') has been created.
  * Run         { id, mateId, trigger: 'user'|'routine'|'system', routineId, routineTitle, title, input, status, steps[],
  *               activity[], deliverableIds[], sessionId, dispatched, pendingText, quiet, verification, verifying,

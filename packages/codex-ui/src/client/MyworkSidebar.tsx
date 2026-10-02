@@ -1,17 +1,21 @@
 /**
- * MyWork v2 sidebar (TEAMMATES §9.4): the column is teammates. On top a search field, the bell (a count of what needs
- * you + what is working; a dropdown of 需要你 / 在干活 / 刚完成) and 「+」 for a new teammate. In the middle only
- * teammates, in sections: 置顶 (pinned; MyWork is pinned by default), then one per group name in a stable order
- * (alphabetical, zh-CN collation), then 其他. Within a section: pinned / default first, then the last conversation; state
- * never changes the order of rows or sections. A section header (only when there is more than one section) folds its rows; what is folded is kept
- * in localStorage. At the bottom 文件 and 设置. Rows carry no actions: opening a row is the only thing it does.
+ * MyWork v2 sidebar (TEAMMATES §9.4): the column is teammates, set brutalist (pure black, white type at 100 / 65 / 50 %,
+ * no fills; each teammate keeps its flat avatar). On top the MyWork mark (18px, white), a search field, the bell (a
+ * dot: white while someone works, --warn when someone needs you; a dropdown of 需要你 / 在干活 / 刚完成), 「+」 for a new
+ * teammate and collapse. In the middle only teammates, in sections: 置顶 (pinned; MyWork is pinned by default), then one
+ * per type (the `group` field, 「类型」 in the UI) in the order the types were formed, then 其他. Within a section:
+ * pinned / default first, then the last conversation; state never changes the order of rows or sections. A section
+ * label (only when there is more than one section) folds its rows; what is folded is kept in localStorage. A row is the
+ * avatar, the name and one line (等你答 in --warn, 在干活 breathing, else the last thing said). At the bottom 文件 and 设置
+ * as plain text rows. Collapsed: the mark, each teammate's avatar, + and 文件. Rows carry no actions: opening a row is
+ * the only thing it does.
  *
  * Data comes from dsh-mywork-tasks (/mywork-tasks/api/mates, /activity, /search); navigation into that plugin's pages
  * goes through window events so neither package imports the other: the column dispatches mywork:open-thread and
  * listens for mywork:thread-opened (the highlight) and mywork:mates-updated (the page's own poll, shared).
  */
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactElement, type ReactNode } from 'react'
-import { Bell, ChevronRight, FileText, Files, MessageCircle, PanelLeft, Plus, Repeat, Search } from 'lucide-react'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactElement } from 'react'
+import { Bell, ChevronDown, PanelLeft, Plus } from 'lucide-react'
 import type { CodexSidebarProps } from './CodexSidebar.tsx'
 
 export const V2_STORAGE_KEY = 'dsh-mywork:v2'
@@ -24,7 +28,7 @@ const SLOW_MS = 30000
 const SEARCH_DEBOUNCE_MS = 200
 
 /** GET /mates → items (the §9.8 contract; only the fields the column reads). */
-type Mate = { id: string; name: string; title?: string; pinned?: boolean; isDefault?: boolean; group?: string; createdAt?: string; lastAt?: string; preview?: string; unread?: boolean; state?: 'idle' | 'working' | 'waiting'; step?: string; ask?: { question?: string } | null }
+type Mate = { id: string; name: string; title?: string; pinned?: boolean; isDefault?: boolean; group?: string; avatar?: { color?: string; shape?: string } | null; createdAt?: string; lastAt?: string; preview?: string; unread?: boolean; state?: 'idle' | 'working' | 'waiting'; step?: string; ask?: { question?: string } | null }
 /** One block of the column: 置顶, a group (its name), or 其他 (ungrouped). */
 type Section = { key: string; kind: 'pinned' | 'group' | 'other'; name: string; mates: Mate[] }
 /** Folded section keys ('pinned' | 'g:<name>' | 'other' → true), kept across reloads. */
@@ -53,90 +57,97 @@ const EMPTY_ACTIVITY: Activity = { needs: [], working: [], recent: [] }
 
 const stylesheet = `
 /*
- * Tokens: Rakazo's surfaces, an achromatic text scale (#ececee at 100 / 65 / 40 %), borders white at 10 / 5 %. Colour only
- * for a decision (--warn: needs you); the cream primary is the unread dot. Spacing 4 / 8 / 16 / 24 / 32; shadows only on
- * the bell's dropdown. Dark by default; a light twin only when dsh itself is light and the OS asks for light.
+ * Brutalist structure, aesthetic execution (the tasks page shares these tokens): pure black, white text at 100 / 65 /
+ * 50 %, rules white at 10 / 5 %; --warn only for "needs you". No fills, no decoration: a row is the teammate's avatar
+ * (32, flat, its own colour and shape), its name (15) and one line (13 at 65 %); the selected row a 5 % ground, radius
+ * 8. Line icons only where they act, at 50 %,
+ * 100 % on hover. Spacing 8 / 16 / 24 (4 inline). Shadows only on the bell's elevated dropdown. Motion: colour /
+ * opacity 150 ms; a working teammate breathes (opacity 1 ↔ .5, 2.4 s; reduced motion holds .65); nothing else moves.
  */
-.mws{--bg:#0b0c0e;--surface:#111215;--surface-2:#18191e;--card:#141518;--fg:#ececee;--fg-2:rgba(236,236,238,.65);--muted:rgba(236,236,238,.65);--meta:rgba(236,236,238,.5);--border:rgba(255,255,255,.1);--border-soft:rgba(255,255,255,.05);--border-strong:rgba(255,255,255,.1);--border-focus:rgba(236,236,238,.4);--primary:#f1f1ef;--primary-on:#0b0c0e;--warn:#f0a35e;--focus-ring:0 0 0 2px rgba(236,236,238,.4);--elev-raised:0 10px 30px rgba(0,0,0,.5),0 2px 8px rgba(0,0,0,.4);--motion-fast:150ms;--ease-standard:cubic-bezier(.2,0,0,1);--av-bg:var(--card);--av-fg:#efe8da;position:relative;width:100%;height:100%;min-width:0;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;background:var(--surface);color:var(--fg);border-right:1px solid var(--border);font:14px/20px Geist,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei UI",sans-serif;-webkit-font-smoothing:antialiased}
-@media all{html[data-mywork-theme="light"] .mws{--bg:#ffffff;--surface:#f7f7f8;--surface-2:#ececee;--card:#f2f2f3;--fg:#111113;--fg-2:rgba(17,17,19,.65);--muted:rgba(17,17,19,.65);--meta:rgba(17,17,19,.55);--border:rgba(0,0,0,.1);--border-soft:rgba(0,0,0,.05);--border-strong:rgba(0,0,0,.1);--border-focus:rgba(17,17,19,.4);--primary:#111113;--primary-on:#ffffff;--warn:#b5480a;--focus-ring:0 0 0 2px rgba(17,17,19,.25);--elev-raised:0 10px 30px rgba(0,0,0,.08),0 2px 8px rgba(0,0,0,.05);--av-bg:#1f1d1a;--av-fg:#faf7f0}}
+.mws{--bg:#000;--elevated:#111;--fg:#fff;--fg-2:rgba(255,255,255,.65);--fg-3:rgba(255,255,255,.5);--rule:rgba(255,255,255,.1);--rule-soft:rgba(255,255,255,.05);--warn:#f0a35e;--danger:#f87171;--av-mark-bg:#2a2a2a;--av-mark-fg:#fff;--shadow:0 8px 24px rgba(0,0,0,.5);--fast:150ms ease;--font:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Hiragino Sans GB","Microsoft YaHei UI",sans-serif;position:relative;width:100%;height:100%;min-width:0;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;background:var(--bg);color:var(--fg);border-right:1px solid var(--rule);font:15px/20px var(--font);letter-spacing:0;-webkit-font-smoothing:antialiased}
+html[data-mywork-theme="light"] .mws{--bg:#fff;--elevated:#fff;--fg:#000;--fg-2:rgba(0,0,0,.65);--fg-3:rgba(0,0,0,.55);--rule:rgba(0,0,0,.1);--rule-soft:rgba(0,0,0,.05);--warn:#b5480a;--danger:#c0392b;--av-mark-bg:#111;--av-mark-fg:#fff;--shadow:0 8px 24px rgba(0,0,0,.08)}
 .mws *{box-sizing:border-box}
-.mws button{font-family:inherit;transition:background-color var(--motion-fast) var(--ease-standard),color var(--motion-fast) var(--ease-standard),transform var(--motion-fast) var(--ease-standard)}
-.mws button:active{transform:scale(.98)}
-.mws :focus-visible{outline:none;box-shadow:var(--focus-ring)}
+.mws button{font-family:inherit;transition:color var(--fast),background-color var(--fast),border-color var(--fast),opacity var(--fast)}
+/* (html body .mws: the shell theme rings every :focus-visible in its brand colour; ours is white at 50 %.) */
+html body .mws :focus-visible{outline:2px solid var(--fg-3);outline-offset:-2px}
+html body .mws input:focus{outline:none}
+.mws ::selection{background:rgba(255,255,255,.25);color:var(--fg)}
 @media (prefers-reduced-motion:reduce){.mws *{transition:none!important;animation:none!important}}
-.mws-head{position:relative;display:flex;align-items:center;gap:4px;flex:none;padding:16px 8px 8px}
-.mws-search{flex:1;min-width:0;display:flex;align-items:center;gap:8px;height:32px;margin:0 4px;padding:0 8px;border:1px solid var(--border);border-radius:999px;background:var(--card);color:var(--meta);transition:border-color var(--motion-fast) var(--ease-standard)}
-.mws-search:focus-within{border-color:var(--border-focus)}
-.mws-search svg{flex:none}
-.mws-search input{flex:1;min-width:0;height:100%;margin:0;padding:0;border:0;background:transparent;color:var(--fg);font:inherit;font-size:13px;outline:none}
-.mws-search input::placeholder{color:var(--meta)}
-.mws-search input:focus-visible{box-shadow:none}
-.mws-icon{appearance:none;position:relative;display:inline-grid;place-items:center;flex:none;width:32px;height:32px;border:0;border-radius:12px;background:transparent;color:var(--muted);cursor:pointer}
-.mws-icon:hover,.mws-icon[aria-expanded=true]{background:var(--surface-2);color:var(--fg)}
-.mws-count{position:absolute;top:2px;right:1px;min-width:15px;height:15px;padding:0 4px;border-radius:8px;background:var(--fg-2);color:var(--bg);font-size:10px;line-height:15px;font-weight:600;font-variant-numeric:tabular-nums;text-align:center;pointer-events:none}
-.mws-count[data-needs=true]{background:var(--warn)}
-/* The bell's panel: under the header, over the list (a floating layer, so it casts the column's one shadow). */
-.mws-drop{position:absolute;top:calc(100% - 4px);left:8px;right:8px;z-index:20;max-height:min(420px,calc(100vh - 120px));overflow:auto;padding:8px;border:1px solid var(--border);border-radius:18px;background:var(--card);box-shadow:var(--elev-raised)}
-.mws-drop h3{margin:8px 8px 4px;font-size:12px;line-height:16px;font-weight:500;color:var(--meta)}
-.mws-drop .mws-row{min-height:48px;border-radius:16px}
-.mws-drop .mws-row:hover{background:var(--surface-2)}
-.mws-list{flex:1;min-height:0;overflow:auto;padding:0 8px 8px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
-/* Section headers: 11px at 40 %, sentence case; the chevron (the fold control) turns when open. Folded, the count and an unread dot stay. */
-.mws-sec+.mws-sec{margin-top:8px}
-.mws-sec-head{appearance:none;display:flex;align-items:center;gap:4px;width:100%;height:28px;padding:0 8px;border:0;border-radius:8px;background:transparent;color:var(--meta);font:inherit;font-size:11px;line-height:16px;font-weight:500;text-align:left;cursor:pointer}
-.mws-sec-head:hover{color:var(--fg)}
-.mws-sec-head svg{flex:none;transition:transform var(--motion-fast) var(--ease-standard)}
-.mws-sec-head[aria-expanded=true] svg{transform:rotate(90deg)}
-.mws-sec-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mws-sec-count{flex:none;margin-left:4px;color:var(--meta);font-variant-numeric:tabular-nums}
-.mws-sec-head .mws-unread{width:6px;height:6px;margin-left:4px}
-/* Rows (Rakazo's chat list): 32 avatar · name + time + dot · one line of preview. */
-.mws-row{appearance:none;display:grid;grid-template-columns:32px minmax(0,1fr);column-gap:8px;align-items:center;width:100%;min-height:52px;padding:8px;border:0;border-radius:16px;background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
-.mws-row-flat{grid-template-columns:20px minmax(0,1fr);align-items:center;min-height:40px;padding:8px}
-.mws-row:hover,.mws-row[aria-current=page]{background:var(--surface-2)}
-.mws-glyph{display:inline-grid;place-items:center;width:20px;height:20px;color:var(--muted)}
-.mws-glyph.wide{width:32px;height:32px;border-radius:50%;background:var(--card)}
-.mws-glyph svg{display:block}
-/* Avatar: a flat shape in the teammate's colour (the calmer version unless it is the open one) with two eyes. Working, it
- * breathes: opacity 1 to .55 and back over 2.4 s; reduced motion holds it at .7. */
-.mws-av{position:relative;display:inline-block;flex:none;line-height:0;user-select:none}
-.mws-av svg{display:block;overflow:visible}
-.mws-av[data-working=true] svg{animation:mws-breathe 2.4s ease-in-out infinite}
-@keyframes mws-breathe{0%,100%{opacity:1}50%{opacity:.55}}
-@media (prefers-reduced-motion:reduce){.mws .mws-av[data-working=true] svg{animation:none!important;opacity:.7}}
-.mws-main{min-width:0;display:grid;gap:4px}
-.mws-line{display:flex;align-items:center;min-width:0}
-.mws-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13.5px;line-height:18px;font-weight:500;letter-spacing:-.005em}
-.mws-row[data-unread=true] .mws-title{font-weight:600}
-.mws-time{flex:none;margin-left:8px;color:var(--meta);font-size:11px;line-height:18px;font-variant-numeric:tabular-nums;text-align:right}
-.mws-unread{flex:none;width:8px;height:8px;margin-left:8px;border-radius:50%;background:var(--primary)}
-.mws-chip{justify-self:start;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 8px;border:1px solid var(--border);border-radius:999px;color:var(--muted);font-size:11px;line-height:17px}
-.mws-sub{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:12px;line-height:16px}
-.mws-sub[data-tone=warn]{color:var(--warn)}
-.mws-empty{padding:16px 8px;color:var(--muted);font-size:12.5px;line-height:18px}
-.mws-mark{display:inline-grid;place-items:center;flex:none;border-radius:50%;background:var(--primary);color:var(--primary-on)}
+.mws-breathe{animation:mws-breathe 2.4s ease-in-out infinite}
+@keyframes mws-breathe{0%,100%{opacity:1}50%{opacity:.5}}
+@media (prefers-reduced-motion:reduce){.mws .mws-breathe{opacity:.65}}
+/* The MyWork mark: an M whose last stroke turns into a check, 18px, white. */
+.mws-mark{display:inline-grid;place-items:center;flex:none;color:var(--fg)}
 .mws-mark svg{display:block}
-.mws-mark path{stroke-dasharray:60;stroke-dashoffset:0}
-.mws-mark[data-live=true] path{animation:mws-draw 2.4s var(--ease-standard) infinite}
-@keyframes mws-draw{0%{stroke-dashoffset:60}55%{stroke-dashoffset:0}80%{stroke-dashoffset:0;opacity:1}100%{stroke-dashoffset:0;opacity:.35}}
-@media (prefers-reduced-motion:reduce){.mws-mark[data-live=true] path{animation:none}}
-.mws-foot{flex:none;padding:8px 8px 0;border-top:1px solid var(--border)}
-/* The settings entry is dsh's own trigger, kept outside the footer so it stays mounted across collapse; it wears the same row recipe as 文件 above it. */
+/* Header: the mark · search · bell · + · collapse. */
+.mws-head{position:relative;display:flex;align-items:center;gap:4px;flex:none;height:64px;padding:0 8px 0 24px}
+.mws-search{flex:1;min-width:0;height:32px;margin:0 4px 0 12px;border:1px solid var(--rule);border-radius:8px;transition:border-color var(--fast)}
+.mws-search:focus-within{border-color:var(--fg-3)}
+.mws-search input{display:block;width:100%;height:100%;margin:0;padding:0 8px;border:0;background:transparent;color:var(--fg);font:inherit;font-size:13px;outline:none}
+.mws-search input::placeholder{color:var(--fg-3)}
+.mws-icon{appearance:none;position:relative;display:inline-grid;place-items:center;flex:none;width:28px;height:32px;padding:0;border:0;border-radius:8px;background:transparent;color:var(--fg-3);cursor:pointer}
+.mws-icon:hover,.mws-icon[aria-expanded=true]{color:var(--fg)}
+.mws-icon svg{display:block}
+/* The bell's dot: white while someone works, --warn when someone needs you. */
+.mws-dot{position:absolute;top:7px;right:5px;width:6px;height:6px;border-radius:50%;background:var(--fg);pointer-events:none}
+.mws-dot[data-needs=true]{background:var(--warn)}
+/* The bell's panel: an elevated layer under the header, over the list. */
+.mws-drop{position:absolute;top:56px;left:8px;right:8px;z-index:20;max-height:min(420px,calc(100vh - 120px));overflow:auto;padding:8px;border:1px solid var(--rule);border-radius:8px;background:var(--elevated);box-shadow:var(--shadow)}
+.mws-drop h3{margin:8px 16px 4px;color:var(--fg-3);font-size:12px;line-height:16px;font-weight:400}
+.mws-list{flex:1;min-height:0;overflow:auto;padding:0 8px 16px;scrollbar-width:thin;scrollbar-color:var(--rule) transparent}
+/* Section labels: 12 at 50 %, sentence case, the chevron after the words (open: down; folded: right, with the count). */
+.mws-sec+.mws-sec{margin-top:16px}
+.mws-sec-head{appearance:none;display:flex;align-items:center;gap:4px;width:100%;height:32px;padding:0 16px;border:0;border-radius:8px;background:transparent;color:var(--fg-3);font:inherit;font-size:12px;line-height:16px;font-weight:400;text-align:left;cursor:pointer}
+.mws-sec-head:hover{color:var(--fg)}
+.mws-sec-head svg{flex:none}
+.mws-sec-head[aria-expanded=false] svg{transform:rotate(-90deg)}
+.mws-sec-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mws-sec-count{flex:none;margin-left:4px;font-variant-numeric:tabular-nums}
+.mws-sec-head .mws-unread{margin-left:4px}
+/* Rows: the avatar (32), then the name 15 and the time 12 at 50 % on one line, one line of 13 at 65 % under it. */
+.mws-row{appearance:none;display:grid;grid-template-columns:32px minmax(0,1fr);column-gap:8px;align-items:center;width:100%;min-width:0;padding:12px 16px;border:0;border-radius:8px;background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
+.mws-main{display:grid;gap:4px;min-width:0}
+.mws-av{display:inline-block;flex:none;line-height:0;user-select:none}
+.mws-av svg{display:block;overflow:visible}
+.mws-av-none{display:block;width:32px;height:32px}
+.mws-row:hover,.mws-row[aria-current=page]{background:var(--rule-soft)}
+.mws-line{display:flex;align-items:baseline;min-width:0}
+.mws-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px;line-height:20px;font-weight:400}
+.mws-row[data-unread=true] .mws-title{font-weight:600}
+.mws-time{flex:none;margin-left:8px;color:var(--fg-3);font-size:12px;line-height:16px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.mws-unread{flex:none;align-self:center;width:6px;height:6px;margin-left:8px;border-radius:50%;background:var(--fg)}
+.mws-sub{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--fg-2);font-size:13px;line-height:20px}
+.mws-sub[data-tone=warn]{color:var(--warn)}
+.mws-empty{padding:16px;color:var(--fg-3);font-size:13px;line-height:20px}
+/* Footer: 文件 and 设置 as plain text rows. */
+.mws-foot{flex:none;padding:8px 8px 0;border-top:1px solid var(--rule)}
+.mws-flat{appearance:none;display:flex;align-items:center;width:100%;height:40px;padding:0 16px;border:0;border-radius:8px;background:transparent;color:var(--fg);font:inherit;font-size:15px;line-height:20px;text-align:left;cursor:pointer}
+.mws-flat:hover,.mws-flat[aria-current=page]{background:var(--rule-soft)}
+/* The settings entry is dsh's own trigger, kept outside the footer so it stays mounted across collapse; it wears the 文件 row. */
 .mws-settings{flex:none;padding:0 8px 16px}
-.mws-settings .dcu-settings-trigger{height:40px;min-height:40px;padding:0 8px;border-radius:16px;color:var(--fg);font-family:inherit;font-size:13.5px;line-height:18px;transition:background-color var(--motion-fast) var(--ease-standard),color var(--motion-fast) var(--ease-standard),transform var(--motion-fast) var(--ease-standard)}
-.mws-settings .dcu-settings-trigger:hover{background:var(--surface-2);color:var(--fg)}
-.mws-settings .dcu-settings-trigger:hover svg{transform:none}
-.mws-settings .dcu-settings-trigger:focus-visible{outline:none;box-shadow:var(--focus-ring)}
-.mws-settings .dcu-settings-trigger-content{column-gap:8px}
-.mws-settings .dcu-settings-trigger-content svg{justify-self:center;color:var(--muted)}
-/* Collapsed: dsh keeps a 56px rail on the web. Only the mark and the expand control live there. */
-.mws.compact{align-items:center;gap:8px;padding:16px 0 8px}
+.mws-settings .dcu-settings-trigger{height:40px;min-height:40px;padding:0 16px;border-radius:8px;color:var(--fg);font:400 15px/20px var(--font);transition:background-color var(--fast),color var(--fast)}
+.mws-settings .dcu-settings-trigger:hover,.mws-settings .dcu-settings-trigger[aria-expanded=true]{background:var(--rule-soft);color:var(--fg)}
+.mws-settings .dcu-settings-trigger:active{transform:none}
+html body .mws-settings .dcu-settings-trigger:focus-visible{outline:2px solid var(--fg-3);outline-offset:-2px;background:transparent}
+.mws-settings .dcu-settings-trigger-content{display:block}
+.mws-settings .dcu-settings-trigger-content svg{display:none}
+/* Collapsed: dsh keeps a 56px rail. The mark (it expands; on hover the panel icon stands in), each teammate's avatar
+ * (32; selected: a 5 % ground; unread: a white dot; waiting on you: a --warn dot; working: it breathes), then + and 文件. */
+.mws.compact{align-items:center;padding:16px 0}
 .mws.compact .mws-settings{position:absolute;width:0;height:0;overflow:hidden}
-.mws-rail{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;align-items:center;gap:8px;padding:4px 0;scrollbar-width:none}
-.mws-rail-mate{position:relative;padding:4px;border:0;border-radius:14px;background:transparent;cursor:pointer;transition:background var(--motion-fast) var(--ease-standard)}
-.mws-rail-mate:hover,.mws-rail-mate[aria-current=page]{background:var(--surface-2)}
-.mws-rail-dot{position:absolute;top:2px;right:2px;width:8px;height:8px;border-radius:50%;background:var(--primary);box-shadow:0 0 0 2px var(--surface)}
-.mws-rail-sep{flex:none;width:24px;height:1px;background:var(--border)}
+.mws-railtop{appearance:none;display:grid;place-items:center;flex:none;width:32px;height:32px;margin:0 0 16px;padding:0;border:0;border-radius:8px;background:transparent;color:var(--fg);cursor:pointer}
+.mws-railtop>*{grid-area:1/1;transition:opacity var(--fast)}
+.mws-railtop .alt{display:grid;place-items:center;opacity:0}
+.mws-railtop:hover .mws-mark,.mws-railtop:focus-visible .mws-mark{opacity:0}
+.mws-railtop:hover .alt,.mws-railtop:focus-visible .alt{opacity:1}
+.mws-rail{flex:1;min-height:0;width:100%;overflow-y:auto;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 0;scrollbar-width:none}
+.mws-rail-gap{flex:none;height:8px}
+.mws-rail-mate{appearance:none;position:relative;display:grid;place-items:center;flex:none;width:40px;height:40px;padding:0;border:0;border-radius:8px;background:transparent;cursor:pointer}
+.mws-rail-mate:hover,.mws-rail-mate[aria-current=page]{background:var(--rule-soft)}
+.mws-rail-dot{position:absolute;top:2px;right:2px;width:6px;height:6px;border-radius:50%;background:var(--fg);box-shadow:0 0 0 2px var(--bg)}
+.mws-rail-dot[data-tone=warn]{background:var(--warn)}
+.mws-railtext{appearance:none;flex:none;height:32px;margin-top:8px;padding:0 4px;border:0;border-radius:8px;background:transparent;color:var(--fg-3);font:inherit;font-size:13px;line-height:16px;cursor:pointer}
+.mws-railtext:hover,.mws-railtext[aria-current=page]{color:var(--fg)}
 `
 
 const str = (v: unknown): string => typeof v === 'string' ? v : ''
@@ -202,18 +213,18 @@ function parseSearch(data: unknown, byId: Map<string, Mate>): ResultRow[] {
   list('messages').forEach((x, i) => {
     const mateId = str(x.mateId)
     if (mateId === '') return
-    out.push({ key: `msg:${mateId}:${str(x.runId)}:${i}`, glyph: 'message', title: byId.get(mateId)?.name ?? str(x.mateName), sub: str(x.text), at: str(x.at), target: { kind: 'mate', id: mateId, runId: str(x.runId) || undefined } })
+    out.push({ key: `msg:${mateId}:${str(x.runId)}:${i}`, glyph: 'message', mate: byId.get(mateId), title: byId.get(mateId)?.name ?? str(x.mateName), sub: str(x.text), at: str(x.at), target: { kind: 'mate', id: mateId, runId: str(x.runId) || undefined } })
   })
   for (const x of list('files')) {
     const id = str(x.id)
     if (id === '') continue
-    out.push({ key: 'file:' + id, glyph: 'file', title: str(x.title), sub: byId.get(str(x.mateId))?.name ?? '', at: str(x.createdAt), target: { kind: 'files', id } })
+    out.push({ key: 'file:' + id, glyph: 'file', mate: byId.get(str(x.mateId)), title: str(x.title), sub: byId.get(str(x.mateId))?.name ?? '', at: str(x.createdAt), target: { kind: 'files', id } })
   }
   for (const x of list('routines')) {
     const id = str(x.id)
     if (id === '') continue
     const owner = byId.get(str(x.mateId))?.name ?? ''
-    out.push({ key: 'routine:' + id, glyph: 'routine', title: str(x.title), sub: [str(x.scheduleLabel), owner].filter(s => s !== '').join(' · '), at: str(x.lastAt) || str(x.nextRunAt), target: { kind: 'routine', id, mateId: str(x.mateId) || undefined } })
+    out.push({ key: 'routine:' + id, glyph: 'routine', mate: byId.get(str(x.mateId)), title: str(x.title), sub: [str(x.scheduleLabel), owner].filter(s => s !== '').join(' · '), at: str(x.lastAt) || str(x.nextRunAt), target: { kind: 'routine', id, mateId: str(x.mateId) || undefined } })
   }
   return out
 }
@@ -221,96 +232,83 @@ function fire(name: string, detail: Record<string, unknown>, cancelable = false)
   try { return !window.dispatchEvent(new CustomEvent(name, { detail, cancelable })) } catch { return false }
 }
 
-/** The MyWork mark: an M whose last stroke turns into a check. While something runs it draws itself. */
-export function BrandMark({ live, size = 22, round }: { live?: boolean; size?: number; round?: boolean }): ReactElement {
-  const box: CSSProperties = { width: size, height: size, borderRadius: round === true ? '50%' : undefined }
-  const glyph = Math.round(size * (round === true ? 0.62 : 0.72))
-  return <span className="mws-mark" style={box} data-live={live ? 'true' : undefined} aria-hidden="true">
-    <svg viewBox="0 0 24 24" width={glyph} height={glyph} fill="none"><path d="M4.5 18.5V7l5.5 6.5L15.5 7M10.5 17l3 3 6-6" stroke="currentColor" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
+/** The MyWork mark: an M whose last stroke turns into a check — the product mark, white, 18px by default. */
+export function BrandMark({ size = 18 }: { size?: number }): ReactElement {
+  const box: CSSProperties = { width: size, height: size }
+  return <span className="mws-mark" style={box} aria-hidden="true">
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none"><path d="M4.5 18.5V7l5.5 6.5L15.5 7M10.5 17l3 3 6-6" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
   </span>
 }
 
-/** Rakazo's bot palette (packages/core bot-avatar-colors): light → dark, eye colour. The light one is the identity colour. */
-const AVATAR_COLORS: Array<[string, string, string]> = [['#A97EFE', '#7C3AED', '#FFFFFF'], ['#00C972', '#059669', '#FFFFFF'], ['#FF781C', '#EA580C', '#FFFFFF'], ['#1CC3B0', '#0284C7', '#FFFFFF'], ['#2A92FE', '#1D4ED8', '#FFFFFF'], ['#FFAF38', '#D97706', '#141414'], ['#A27952', '#78350F', '#FFFFFF'], ['#FF3E51', '#BE123C', '#FFFFFF'], ['#FF5EB1', '#BE185D', '#FFFFFF'], ['#94A3B8', '#475569', '#FFFFFF']]
-/** Rakazo's shippedHash (FNV-1a). */
-function avatarHash(v: string): number { let x = 2166136261; for (let i = 0; i < v.length; i++) x = Math.imul(x ^ v.charCodeAt(i), 16777619); return x >>> 0 }
-/** Simple stand-ins for Rakazo's shapes, in a 100 box: blob, squircle, pebble. */
-const AVATAR_SHAPES = ['M50 4a46 46 0 1 1 0 92a46 46 0 1 1 0-92Z', 'M34 4h32c20 0 30 10 30 30v32c0 20-10 30-30 30H34C14 96 4 86 4 66V34C4 14 14 4 34 4Z', 'M50 8c28 0 46 14 46 40s-18 44-46 44S4 74 4 48 22 8 50 8Z']
-/** A colour with its saturation and lightness lowered by 15 % (HSL): the same identity, receding behind the content. */
-function calmHex(hex: string): string {
-  const n = parseInt(hex.slice(1), 16)
-  const r = ((n >> 16) & 255) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255
-  const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min
-  let hue = 0
-  if (d !== 0) hue = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4
-  hue = (hue * 60 + 360) % 360
-  const l0 = (max + min) / 2
-  const s0 = d !== 0 ? d / (1 - Math.abs(2 * l0 - 1)) : 0
-  const s = s0 * 0.85, l = l0 * 0.85
-  const c = (1 - Math.abs(2 * l - 1)) * s, x = c * (1 - Math.abs(((hue / 60) % 2) - 1)), m = l - c / 2
-  const [r1, g1, b1] = hue < 60 ? [c, x, 0] : hue < 120 ? [x, c, 0] : hue < 180 ? [0, c, x] : hue < 240 ? [0, x, c] : hue < 300 ? [x, 0, c] : [c, 0, x]
-  const to = (v: number): string => Math.round((v + m) * 255).toString(16).padStart(2, '0')
-  return '#' + to(r1) + to(g1) + to(b1)
-}
-const AVATAR_CALM = AVATAR_COLORS.map(([light]) => calmHex(light))
 /**
- * A teammate's avatar: a flat shape in its identity colour (picked from its id) with two eyes; MyWork keeps its mark in
- * the same frame. `full` (the open teammate's row) shows the colour as is, every other place the calmer version.
- * Working, it breathes (opacity 1 ↔ .55 over 2.4 s; static .7 under reduced motion).
+ * Avatars (the same recipe as dsh-mywork-tasks' page): a flat shape with two eyes in the look the owner picked for the
+ * teammate (mate.avatar { color, shape }: one of 8 muted colour keys and 4 shapes), else derived from its id per field.
+ * The colours are mid-tones that sit on #000 without glowing; [fill, eyes]. MyWork keeps its M-check mark.
  */
-export function MateAvatar({ mate, size = 38, full }: { mate: Mate; size?: number; full?: boolean }): ReactElement {
-  const working = mate.state === 'working'
+const AV_COLORS: Record<string, [string, string]> = { slate: ['#5f6b7a', '#ffffff'], blue: ['#4c6d9e', '#ffffff'], teal: ['#3f7f7b', '#ffffff'], green: ['#5a8160', '#ffffff'], amber: ['#a48344', '#141414'], orange: ['#a9673f', '#ffffff'], rose: ['#9d5868', '#ffffff'], violet: ['#71609f', '#ffffff'] }
+const AV_COLOR_KEYS = Object.keys(AV_COLORS)
+/** In a 100 box; the hexagon is drawn with a round-joined stroke of its own colour, so its corners are soft. */
+const AV_SHAPES: Record<string, string> = { circle: 'M50 4a46 46 0 1 1 0 92a46 46 0 1 1 0-92Z', squircle: 'M34 4h32c20 0 30 10 30 30v32c0 20-10 30-30 30H34C14 96 4 86 4 66V34C4 14 14 4 34 4Z', pebble: 'M50 8c28 0 46 14 46 40s-18 44-46 44S4 74 4 48 22 8 50 8Z', hex: 'M50 8L86.4 29V71L50 92L13.6 71V29Z' }
+const AV_SHAPE_KEYS = Object.keys(AV_SHAPES)
+/** Rakazo's shippedHash (FNV-1a): the derived look is stable per teammate. */
+function avatarHash(v: string): number { let x = 2166136261; for (let i = 0; i < v.length; i++) x = Math.imul(x ^ v.charCodeAt(i), 16777619); return x >>> 0 }
+function lookOf(mate: Mate): { color: string; shape: string } {
+  const a = mate.avatar ?? {}
+  const hash = avatarHash(str(mate.id) || str(mate.name) || 'mate')
+  const color = a.color !== undefined && a.color in AV_COLORS ? a.color : AV_COLOR_KEYS[hash % AV_COLOR_KEYS.length]
+  const shape = a.shape !== undefined && a.shape in AV_SHAPES ? a.shape : AV_SHAPE_KEYS[(Math.imul(hash ^ (hash >>> 16), 73244475) >>> 0) % AV_SHAPE_KEYS.length]
+  return { color, shape }
+}
+/** A teammate's avatar; working, it breathes (opacity 1 ↔ .5 over 2.4 s; .65 under reduced motion). */
+export function MateAvatar({ mate, size = 32 }: { mate: Mate; size?: number }): ReactElement {
+  const cls = 'mws-av' + (mate.state === 'working' ? ' mws-breathe' : '')
   if (mate.isDefault === true) {
-    return <span className="mws-av" data-working={working ? 'true' : undefined} aria-hidden="true">
-      <svg viewBox="0 0 100 100" width={size} height={size}><circle cx="50" cy="50" r="46" fill="var(--av-bg)" /><svg x="20" y="20" width="60" height="60" viewBox="0 0 24 24" fill="none"><path d="M4.5 18.5V7l5.5 6.5L15.5 7M10.5 17l3 3 6-6" stroke="var(--av-fg)" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" /></svg></svg>
+    return <span className={cls} aria-hidden="true">
+      <svg viewBox="0 0 100 100" width={size} height={size}><circle cx="50" cy="50" r="46" fill="var(--av-mark-bg)" /><svg x="22" y="22" width="56" height="56" viewBox="0 0 24 24" fill="none"><path d="M4.5 18.5V7l5.5 6.5L15.5 7M10.5 17l3 3 6-6" stroke="var(--av-mark-fg)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg></svg>
     </span>
   }
-  const hash = avatarHash(str(mate.id) || str(mate.name) || 'mate')
-  const i = hash % AVATAR_COLORS.length
-  const [light, , eye] = AVATAR_COLORS[i]
-  const shape = AVATAR_SHAPES[(Math.imul(hash ^ (hash >>> 16), 73244475) >>> 0) % AVATAR_SHAPES.length]
-  return <span className="mws-av" data-working={working ? 'true' : undefined} aria-hidden="true">
+  const look = lookOf(mate)
+  const [fill, eye] = AV_COLORS[look.color] ?? AV_COLORS.slate
+  const d = AV_SHAPES[look.shape] ?? AV_SHAPES.circle
+  return <span className={cls} aria-hidden="true">
     <svg viewBox="0 0 100 100" width={size} height={size}>
-      <path d={shape} fill={full === true ? light : AVATAR_CALM[i]} />
+      {look.shape === 'hex' ? <path d={d} fill={fill} stroke={fill} strokeWidth="8" strokeLinejoin="round" /> : <path d={d} fill={fill} />}
       <g fill={eye}><ellipse cx="37.3" cy="46.5" rx="4.4" ry="3.1" /><ellipse cx="62.7" cy="46.5" rx="4.4" ry="3.1" /></g>
     </svg>
   </span>
 }
 
-/** The second line: 等你答 · question / 在干活 · step / the last thing said. */
-function secondLine(mate: Mate, t: SidebarProps['t']): { text: string; tone?: 'warn' } {
+/** The second line: 等你答 · question (--warn) / 在干活 · step (breathing) / the last thing said. */
+function secondLine(mate: Mate, t: SidebarProps['t']): { text: string; tone?: 'warn'; live?: boolean } {
   if (mate.state === 'waiting') { const q = str(mate.ask?.question).replace(/\*\*|__|`/g, ''); return { text: [t('v2.waitingAsk'), q].filter(s => s !== '').join(' · '), tone: 'warn' } }
-  if (mate.state === 'working') return { text: [t('v2.working'), str(mate.step)].filter(s => s !== '').join(' · ') }
+  if (mate.state === 'working') return { text: [t('v2.working'), str(mate.step)].filter(s => s !== '').join(' · '), live: true }
   return { text: str(mate.preview) }
 }
 
 function MateRow({ mate, time, current, unread, t, onOpen }: { mate: Mate; time: string; current: boolean; unread: boolean; t: SidebarProps['t']; onOpen: () => void }): ReactElement {
   const sub = secondLine(mate, t)
   return <button type="button" className="mws-row" aria-current={current ? 'page' : undefined} data-unread={unread ? 'true' : undefined} onClick={onOpen}>
-    <MateAvatar mate={mate} size={32} full={current} />
+    <MateAvatar mate={mate} size={32} />
     <span className="mws-main">
       <span className="mws-line"><span className="mws-title">{mate.name}</span>{time !== '' && <span className="mws-time">{time}</span>}{unread && <i className="mws-unread" aria-hidden="true" />}</span>
-      {sub.text !== '' && <span className="mws-sub" data-tone={sub.tone}>{sub.text}</span>}
+      {sub.text !== '' && <span className={'mws-sub' + (sub.live === true ? ' mws-breathe' : '')} data-tone={sub.tone}>{sub.text}</span>}
     </span>
   </button>
 }
 
-function ResultItem({ row, time, onOpen }: { row: ResultRow; time: string; onOpen: () => void }): ReactElement {
-  const glyph = row.glyph === 'mate' && row.mate !== undefined ? <MateAvatar mate={row.mate} size={32} />
-    : <span className="mws-glyph wide">{row.glyph === 'message' ? <MessageCircle size={16} strokeWidth={1.5} /> : row.glyph === 'file' ? <FileText size={16} strokeWidth={1.5} /> : <Repeat size={16} strokeWidth={1.5} />}</span>
+/**
+ * A search result: the avatar of the teammate it belongs to and the same two lines; a file or a routine says what it
+ * is at the start of its second line.
+ */
+function ResultItem({ row, time, t, onOpen }: { row: ResultRow; time: string; t: SidebarProps['t']; onOpen: () => void }): ReactElement {
+  const kind = row.glyph === 'file' ? t('v2.files') : row.glyph === 'routine' ? t('v2.routine') : ''
+  const sub = [kind, row.sub].filter(s => s !== '').join(' · ')
   return <button type="button" className="mws-row" onClick={onOpen}>
-    {glyph}
+    {row.mate !== undefined ? <MateAvatar mate={row.mate} size={32} /> : <span className="mws-av-none" aria-hidden="true" />}
     <span className="mws-main">
       <span className="mws-line"><span className="mws-title">{row.title}</span>{time !== '' && <span className="mws-time">{time}</span>}</span>
-      <span className="mws-sub">{row.sub}</span>
+      {sub !== '' && <span className="mws-sub">{sub}</span>}
     </span>
-  </button>
-}
-
-function FlatRow({ label, icon, current, onOpen }: { label: string; icon: ReactNode; current: boolean; onOpen: () => void }): ReactElement {
-  return <button type="button" className="mws-row mws-row-flat" aria-current={current ? 'page' : undefined} onClick={onOpen}>
-    <span className="mws-glyph">{icon}</span>
-    <span className="mws-main"><span className="mws-line"><span className="mws-title">{label}</span></span></span>
   </button>
 }
 
@@ -418,7 +416,6 @@ export function MyworkSidebar({ selectPanel, usePanelInfo = useLegacyPanelInfo, 
   const sections = useMemo(() => sectionMates(mates), [mates])
   // One section needs no header (and cannot fold).
   const headed = sections.length > 1
-  const live = mates.some(m => m.state === 'working')
   const count = activity.needs.length + activity.working.length
   const now = new Date()
 
@@ -435,36 +432,39 @@ export function MyworkSidebar({ selectPanel, usePanelInfo = useLegacyPanelInfo, 
   const highlighted = activePanelId === MYWORK_PANELS.files ? 'files'
     : activePanelId === null || activePanelId === MYWORK_PANELS.mate ? opened
       : ''
-  const groups: Array<[string, ActivityItem[]]> = [[t('v2.needs'), activity.needs], [t('v2.working'), activity.working], [t('v2.recent'), activity.recent]]
+  const groups: Array<[string, ActivityItem[], boolean]> = [[t('v2.needs'), activity.needs, true], [t('v2.working'), activity.working, false], [t('v2.recent'), activity.recent, false]]
   const unreadOf = (mate: Mate): boolean => mate.unread === true && seen[mate.id] !== str(mate.lastAt) && highlighted !== 'mate:' + mate.id
   const sectionLabel = (sec: Section): string => sec.kind === 'pinned' ? t('v2.pinned') : sec.kind === 'other' ? t('v2.other') : sec.name
 
   return <div className={'mws' + (compact ? ' compact' : '')} data-mywork-sidebar="v2">
     <style>{stylesheet}</style>
     {compact ? <>
-      {/* Collapsed = the same teammates without names, in the same order, a thin line between sections (none fold here). */}
-      <button type="button" className="mws-icon" aria-label={t('sidebar.expand')} onClick={toggleSidebar}><PanelLeft size={16} strokeWidth={1.5} /></button>
+      {/* Collapsed = the same teammates' avatars, in the same order, 8 more air between sections (none fold here). */}
+      <button type="button" className="mws-railtop" aria-label={t('sidebar.expand')} title={t('sidebar.expand')} onClick={toggleSidebar}>
+        <BrandMark /><span className="alt"><PanelLeft size={16} strokeWidth={1.5} /></span>
+      </button>
       <div className="mws-rail">
         {sections.map((sec, i) => <Fragment key={sec.key}>
-          {i > 0 && <span className="mws-rail-sep" aria-hidden="true" />}
+          {i > 0 && <span className="mws-rail-gap" aria-hidden="true" />}
           {sec.mates.map(mate => <button key={mate.id} type="button" className="mws-rail-mate" title={mate.name} aria-label={mate.name} aria-current={highlighted === 'mate:' + mate.id ? 'page' : undefined} onClick={() => { open({ kind: 'mate', id: mate.id }) }}>
-            <MateAvatar mate={mate} size={32} full={highlighted === 'mate:' + mate.id} />{unreadOf(mate) && <span className="mws-rail-dot" />}
+            <MateAvatar mate={mate} size={32} />{mate.state === 'waiting' ? <span className="mws-rail-dot" data-tone="warn" aria-hidden="true" /> : unreadOf(mate) && <span className="mws-rail-dot" aria-hidden="true" />}
           </button>)}
         </Fragment>)}
-        <button type="button" className="mws-icon" aria-label={t('v2.newMate')} onClick={() => { open({ kind: 'new-mate' }) }}><Plus size={16} strokeWidth={1.5} /></button>
+        <button type="button" className="mws-icon" aria-label={t('v2.newMate')} title={t('v2.newMate')} onClick={() => { open({ kind: 'new-mate' }) }}><Plus size={16} strokeWidth={1.5} /></button>
       </div>
-      <button type="button" className="mws-icon" aria-label={t('v2.files')} onClick={() => { open({ kind: 'files' }) }}><Files size={16} strokeWidth={1.5} /></button>
+      <button type="button" className="mws-railtext" aria-current={highlighted === 'files' ? 'page' : undefined} onClick={() => { open({ kind: 'files' }) }}>{t('v2.files')}</button>
     </> : <>
       <div className="mws-head" ref={headRef}>
-        <button type="button" className="mws-icon" aria-label={t('sidebar.collapse')} onClick={toggleSidebar}><PanelLeft size={16} strokeWidth={1.5} /></button>
-        <label className="mws-search"><Search size={14} strokeWidth={1.5} aria-hidden="true" /><input type="text" value={query} placeholder={t('v2.search')} aria-label={t('v2.search')} autoComplete="off" spellCheck={false} onChange={event => { setQuery(event.target.value) }} onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); setQuery('') } }} /></label>
-        <button type="button" className="mws-icon" aria-label={t('v2.bell')} aria-haspopup="true" aria-expanded={bellOpen} onClick={() => { setBellOpen(!bellOpen) }}>
-          <Bell size={16} strokeWidth={1.5} />{count > 0 && <span className="mws-count" data-needs={activity.needs.length > 0 ? 'true' : undefined}>{count > 99 ? '99' : count}</span>}
+        <BrandMark />
+        <label className="mws-search"><input type="text" value={query} placeholder={t('v2.search')} aria-label={t('v2.search')} autoComplete="off" spellCheck={false} onChange={event => { setQuery(event.target.value) }} onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); setQuery('') } }} /></label>
+        <button type="button" className="mws-icon" aria-label={t('v2.bell')} title={t('v2.bell')} aria-haspopup="true" aria-expanded={bellOpen} onClick={() => { setBellOpen(!bellOpen) }}>
+          <Bell size={16} strokeWidth={1.5} />{count > 0 && <span className="mws-dot" data-needs={activity.needs.length > 0 ? 'true' : undefined} aria-hidden="true" />}
         </button>
-        <button type="button" className="mws-icon" aria-label={t('v2.newMate')} onClick={() => { open({ kind: 'new-mate' }) }}><Plus size={16} strokeWidth={1.5} /></button>
+        <button type="button" className="mws-icon" aria-label={t('v2.newMate')} title={t('v2.newMate')} onClick={() => { open({ kind: 'new-mate' }) }}><Plus size={16} strokeWidth={1.5} /></button>
+        <button type="button" className="mws-icon" aria-label={t('sidebar.collapse')} title={t('sidebar.collapse')} onClick={toggleSidebar}><PanelLeft size={16} strokeWidth={1.5} /></button>
         {bellOpen && <div className="mws-drop" role="dialog" aria-label={t('v2.bell')}>
           {groups.every(([, items]) => items.length === 0) && <div className="mws-empty">{t('v2.quiet')}</div>}
-          {groups.map(([label, items]) => items.length === 0 ? null : <div key={label}>
+          {groups.map(([label, items, needs]) => items.length === 0 ? null : <div key={label}>
             <h3>{label}</h3>
             {items.map((item, i) => {
               const mate = byId.get(item.mateId) ?? { id: item.mateId, name: str(item.mateName) }
@@ -472,7 +472,7 @@ export function MyworkSidebar({ selectPanel, usePanelInfo = useLegacyPanelInfo, 
                 <MateAvatar mate={mate} size={32} />
                 <span className="mws-main">
                   <span className="mws-line"><span className="mws-title">{str(mate.name) || str(item.mateName)}</span><span className="mws-time">{fmtWhen(str(item.at), now)}</span></span>
-                  <span className="mws-sub">{str(item.text)}</span>
+                  {str(item.text) !== '' && <span className="mws-sub" data-tone={needs ? 'warn' : undefined}>{str(item.text)}</span>}
                 </span>
               </button>
             })}
@@ -485,23 +485,23 @@ export function MyworkSidebar({ selectPanel, usePanelInfo = useLegacyPanelInfo, 
             const rows = sec.mates.map(mate => <MateRow key={mate.id} mate={mate} t={t} time={fmtWhen(str(mate.lastAt), now)} current={highlighted === 'mate:' + mate.id} unread={unreadOf(mate)} onOpen={() => { open({ kind: 'mate', id: mate.id }) }} />)
             if (!headed) return <Fragment key={sec.key}>{rows}</Fragment>
             const closed = folded[sec.key] === true
-            // Folded, the header keeps the count and a dot when someone inside has news or waits on you.
+            // Folded, the label keeps the count and a dot when someone inside has news or waits on you.
             const news = closed && sec.mates.some(m => unreadOf(m) || m.state === 'waiting')
             return <div key={sec.key} className="mws-sec" role="group" aria-label={sectionLabel(sec)}>
               <button type="button" className="mws-sec-head" aria-expanded={!closed} onClick={() => { toggleSection(sec.key) }}>
-                <ChevronRight size={12} strokeWidth={1.75} aria-hidden="true" />
                 <span className="mws-sec-name">{sectionLabel(sec)}</span>
+                <ChevronDown size={12} strokeWidth={1.5} aria-hidden="true" />
                 {closed && <span className="mws-sec-count">{sec.mates.length}</span>}
                 {news && <i className="mws-unread" aria-hidden="true" />}
               </button>
               {!closed && rows}
             </div>
           })
-          : results.map(row => <ResultItem key={row.key} row={row} time={fmtWhen(row.at, now)} onOpen={() => { open(row.target) }} />)}
+          : results.map(row => <ResultItem key={row.key} row={row} t={t} time={fmtWhen(row.at, now)} onOpen={() => { open(row.target) }} />)}
         {needle !== '' && remote !== null && results.length === 0 && <div className="mws-empty">{t('v2.noResults')}</div>}
       </div>
       <footer className="mws-foot">
-        <FlatRow label={t('v2.files')} icon={<Files size={16} strokeWidth={1.5} />} current={highlighted === 'files'} onOpen={() => { open({ kind: 'files' }) }} />
+        <button type="button" className="mws-flat" aria-current={highlighted === 'files' ? 'page' : undefined} onClick={() => { open({ kind: 'files' }) }}>{t('v2.files')}</button>
       </footer>
     </>}
     <div className="mws-settings">{renderSlot('sidebar.settings', { wide: !compact })}</div>

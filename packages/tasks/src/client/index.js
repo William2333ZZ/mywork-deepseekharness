@@ -15,8 +15,10 @@
  *   mywork-mate       one teammate: a sticky header (avatar · name · title → 设置; 电脑 · ··· at the right), the thread
  *                     (GET /mates/thread, 「加载更早」),
  *                     the dock (POST /mates/say); the right panel (电脑 · 例行 · 设置, or the 「新同事」 form). A file
- *                     opened from the thread — or a table / note from 电脑 (GET /mates/file, polled every 15 s) —
- *                     replaces the column with the reading view (「← 回到对话」 / Escape)
+ *                     opened from the thread — or any file from 电脑: a table / note read in place (GET /mates/file,
+ *                     polled every 15 s), anything else from a signed link (GET /mates/link: an image shown, HTML /
+ *                     PDF sent to the live browser, the rest downloaded) — replaces the column with the reading view
+ *                     (「← 回到对话」 / Escape)
  *   mywork-files      文件: every teammate's files, a text tab per teammate, search; a file opens in the same reading view
  * Overlay (shell.overlay): toasts when a run finishes or needs you (from GET /activity), keyed by teammate; keeps the
  * poll alive for the sidebar.
@@ -39,7 +41,7 @@
 
 const React = require('react')
 const md = require('./md.cjs')
-const { foldedRunIds, threadOf, isLive, isQueued, mergeRuns, activeRun, textAskOf, mateOrder, routineRunKind, fileKindOf, tableOf, linkRuns } = require('./thread.cjs')
+const { foldedRunIds, threadOf, isLive, isQueued, mergeRuns, activeRun, textAskOf, mateOrder, routineRunKind, fileKindOf, openKindOf, tableOf, linkRuns } = require('./thread.cjs')
 const icons = require('./client-icons.cjs')
 // Lucide line icons this bundle needs that the shared set does not carry (the prelude is this bundle's own copy).
 const EXTRA_ICONS = {
@@ -123,6 +125,7 @@ const zh = {
   downloadMd: '下载 .md', openInFiles: '在文件页打开', backToThread: '回到对话', backToFiles: '回到文件',
   newBelow: '以下是新的', tables: '表格', you: '你', routineWord: '例行',
   download: '下载', editInThread: '在对话里改', editPrefix: '把 {name} 里 ', rowsCount: '{n} 行', truncated: '只显示前 512 KB', fileEmpty: '文件是空的',
+  openInBrowser: '在浏览器里打开', openingInBrowser: '正在浏览器里打开…', openedInBrowser: '已在浏览器里打开', openFailed: '没能在浏览器里打开：{e}', downloadFailed: '没能下载：{e}', imageFailed: '图片没加载出来',
   dutyEx1: '每天早上 8 点按信源整理 AI 技术动态，只报和我有关的', dutyEx2: '帮我管日程，记在一张表里，每天 8:30 给我今日安排', dutyEx3: '盯竞品的定价页和更新日志，有变化就告诉我',
 }
 const en = {
@@ -150,6 +153,7 @@ const en = {
   downloadMd: 'Download .md', openInFiles: 'Open in Files', backToThread: 'Back to conversation', backToFiles: 'Back to files',
   newBelow: 'New since you last looked', tables: 'Tables', you: 'You', routineWord: 'Routine',
   download: 'Download', editInThread: 'Edit in conversation', editPrefix: 'In {name}, ', rowsCount: '{n} rows', truncated: 'Showing the first 512 KB', fileEmpty: 'The file is empty',
+  openInBrowser: 'Open in browser', openingInBrowser: 'Opening in the browser…', openedInBrowser: 'Opened in the browser', openFailed: 'Could not open it in the browser: {e}', downloadFailed: 'Could not download: {e}', imageFailed: 'The image did not load',
   dutyEx1: 'Every morning at 8, gather AI tech news from my sources and report only what concerns me', dutyEx2: 'Run my calendar in one sheet and send me today’s plan every day at 8:30', dutyEx3: 'Watch competitors’ pricing pages and changelogs and tell me when something changes',
 }
 
@@ -474,6 +478,14 @@ textarea.mwt-input{resize:vertical;min-height:80px;line-height:1.75}
 .mwt .mwt-tbl a:hover{text-decoration-color:var(--fg)}
 .mwt-code{margin:0;padding:0 0 0 16px;border-left:1px solid var(--rule);overflow:auto;color:var(--fg-2);font:13px/1.6 var(--font-mono);white-space:pre;tab-size:2}
 .mwt-read-end{display:flex;align-items:center;gap:16px;margin:48px 0 0;padding-top:16px;border-top:1px solid var(--rule);color:var(--fg-3);font-size:12px;line-height:16px}
+/*
+ * Any other folder file (a signed link): an image at its natural size up to the column (80vh at most), radius 8 and a
+ * 10 % rule; HTML / PDF / the rest: the actions as buttons (在浏览器里打开 primary), then one line of what happened.
+ */
+.mwt-file-img{display:block;width:auto;height:auto;max-width:100%;max-height:80vh;object-fit:contain;border:1px solid var(--rule);border-radius:8px}
+.mwt-file-acts{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.mwt-file-note{margin:16px 0 0;color:var(--fg-3);font-size:13px;line-height:20px;overflow-wrap:anywhere}
+.mwt-file-note[data-tone=danger]{color:var(--danger)}
 /* Markdown: type only. Code without fills (a rule at its left), tables with 5 % hairlines and no fills. */
 .mwt-md{color:var(--fg);font-size:16px;line-height:1.8;word-break:break-word}
 .mwt-md>:first-child{margin-top:0}
@@ -526,6 +538,20 @@ async function api(path, body) {
   const data = await res.json().catch(() => ({}))
   if (!res.ok || (data && data.error)) throw new Error((data && data.error) || ('HTTP ' + res.status))
   return data || {}
+}
+/** No live browser here (dsh-mywork-browser is not installed): 「在浏览器里打开」 stays hidden for the rest of the page. */
+let browserAbsent = false
+/**
+ * Show a page in the live browser (dsh's right sidebar 实时浏览器, our 电脑 picture): POST /mywork-browser/api/open. The
+ * live Chrome has no dsh cookie, so `url` is a signed link. No such route throws an error with `absent: true`.
+ */
+async function openLive(url) {
+  const res = await fetch('/mywork-browser/api/open', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ url }) })
+  const data = /json/i.test(res.headers.get('content-type') || '') ? await res.json().catch(() => null) : null
+  // 404 / 405 / 501, or a page instead of JSON (the shell's fallback): the plugin is not there.
+  if (res.status === 404 || res.status === 405 || res.status === 501 || (res.ok && !data)) { browserAbsent = true; throw Object.assign(new Error('absent'), { absent: true }) }
+  if (!res.ok || !data || data.error) throw new Error((data && data.error) || ('HTTP ' + res.status))
+  return data
 }
 const itemKey = (x) => (x.kind || '') + '|' + (x.runId || '') + '|' + (x.at || '')
 /** Activity items seen so far (toasts fire for the ones a poll brings that were not there before). */
@@ -1058,6 +1084,103 @@ function makeComponents(ctx, t) {
   }
 
   /**
+   * Any other file from the teammate's folder in the reading view, from a signed link (GET /mates/link, asked for again
+   * each time the file opens; a link lives 10 minutes, so an action renews one about to lapse). The title is the file
+   * name, the meta line teammate · size · modified. An image shows here (its natural size up to the column, 80vh at
+   * most) with 「下载」 and 「在浏览器里打开」 as text links; HTML / PDF never in an iframe: 「在浏览器里打开」 (once by
+   * itself as the file opens; one line says whether it worked) and 「下载」; anything else (Office files…) 「下载」 only.
+   * Without the browser plugin, 「在浏览器里打开」 goes away and 「下载」 stays.
+   */
+  function LinkView({ mate, path, backLabel, onBack }) {
+    const [link, setLink] = React.useState(null)
+    const [src, setSrc] = React.useState('')
+    const [imgFailed, setImgFailed] = React.useState(false)
+    // In the live browser: '' | 'busy' | 'done' | 'error' (+ the error's words); a download that failed.
+    const [live, setLive] = React.useState({ state: '', error: '' })
+    const [dlError, setDlError] = React.useState('')
+    const [absent, setAbsent] = React.useState(browserAbsent)
+    const linkRef = React.useRef(null); linkRef.current = link
+    const on = React.useRef(true)
+    const imgRetried = React.useRef(false)
+    const autoOpened = React.useRef(false)
+    const fetchLink = () => api('/mates/link?id=' + encodeURIComponent(mate.id) + '&path=' + encodeURIComponent(path)).then((x) => { if (on.current) setLink(x); return x })
+    React.useEffect(() => {
+      on.current = true
+      fetchLink().catch((e) => { if (on.current) setLink({ error: (e && e.message) || String(e) }) })
+      return () => { on.current = false }
+    }, [mate.id, path])
+    useEscapeBack(onBack)
+    // The image keeps the first link (a renewed one must not reload it); a failed load tries once more with a new link.
+    React.useEffect(() => { if (link && link.url && !src) setSrc(link.url) }, [link])
+    const onImgError = () => {
+      if (imgRetried.current) { setImgFailed(true); return }
+      imgRetried.current = true
+      fetchLink().then((x) => { if (on.current) setSrc(x.url) }).catch(() => { if (on.current) setImgFailed(true) })
+    }
+    /** The current link while it has more than a minute left, else a new one. */
+    const fresh = () => { const l = linkRef.current; return l && l.url && Date.parse(l.expiresAt) - Date.now() > 60000 ? Promise.resolve(l) : fetchLink() }
+    const download = () => {
+      setDlError('')
+      fresh().then((l) => {
+        const a = document.createElement('a')
+        a.href = l.url + '&dl=1'
+        a.download = l.name || ''
+        document.body.appendChild(a); a.click(); a.remove()
+      }).catch((e) => { if (on.current) setDlError(t('downloadFailed').replace('{e}', (e && e.message) || String(e))) })
+    }
+    // A click asks for a new link, so the page has its full ten minutes in the live browser; the automatic open uses the
+    // one just fetched.
+    const openInBrowser = (given) => {
+      setLive({ state: 'busy', error: '' })
+      ;(given ? Promise.resolve(given) : fetchLink())
+        .then((l) => openLive(location.origin + l.url))
+        .then(() => { if (on.current) setLive({ state: 'done', error: '' }) })
+        .catch((e) => {
+          if (!on.current) return
+          if (e && e.absent) { setAbsent(true); setLive({ state: '', error: '' }) } else setLive({ state: 'error', error: (e && e.message) || String(e) })
+        })
+    }
+    const name = (link && link.name) || String(path).split('/').pop() || path
+    const kind = openKindOf(name)
+    React.useEffect(() => {
+      if (autoOpened.current || kind !== 'page' || absent || !link || !link.url) return
+      autoOpened.current = true
+      openInBrowser(link)
+    }, [link])
+    const ok = link && !link.error
+    const busy = live.state === 'busy'
+    const canOpen = !absent && kind !== 'download'
+    const meta = ok ? [
+      h('span', { key: 'n' }, mate.name),
+      Number.isFinite(Number(link.size)) ? h('span', { key: 's' }, fmtSize(link.size)) : null,
+      link.modifiedAt ? h('span', { key: 'w' }, fmtWhen(link.modifiedAt)) : null,
+      kind === 'image' ? h('button', { key: 'dl', type: 'button', className: 'mwt-tbtn', onClick: download }, t('download')) : null,
+      kind === 'image' && canOpen ? h('button', { key: 'br', type: 'button', className: 'mwt-tbtn', disabled: busy, onClick: () => openInBrowser() }, t('openInBrowser')) : null,
+    ] : []
+    const notes = [
+      live.state === 'busy' ? h('p', { key: 'b', className: 'mwt-file-note', role: 'status' }, t('openingInBrowser')) : null,
+      live.state === 'done' ? h('p', { key: 'd', className: 'mwt-file-note', role: 'status' }, t('openedInBrowser')) : null,
+      live.state === 'error' ? h('p', { key: 'e', className: 'mwt-file-note', 'data-tone': 'danger', role: 'alert' }, t('openFailed').replace('{e}', live.error)) : null,
+      dlError ? h('p', { key: 'x', className: 'mwt-file-note', 'data-tone': 'danger', role: 'alert' }, dlError) : null,
+    ]
+    const body = !ok ? null
+      : kind === 'image' ? h(React.Fragment, null,
+        imgFailed ? h('div', { className: 'mwt-retry' }, h('span', null, t('imageFailed')))
+          : src ? h('img', { className: 'mwt-file-img', src, alt: name, onError: onImgError }) : null,
+        notes)
+        : h(React.Fragment, null,
+          h('div', { className: 'mwt-file-acts' },
+            canOpen ? h('button', { type: 'button', className: 'mwt-btn primary', disabled: busy, onClick: () => openInBrowser() }, t('openInBrowser')) : null,
+            h('button', { type: 'button', className: 'mwt-btn' + (canOpen ? '' : ' primary'), onClick: download }, t('download'))),
+          notes)
+    return h('article', { className: 'mwt-read', 'data-file': path, 'data-open-kind': kind },
+      h('button', { type: 'button', className: 'mwt-read-back', onClick: onBack }, '← ' + backLabel),
+      !link ? h(Skeleton, { rows: 6 })
+        : link.error ? h(React.Fragment, null, h('h1', null, name), h('div', { className: 'mwt-retry', style: { marginTop: 16 } }, h('span', null, link.error)))
+          : h(React.Fragment, null, h('h1', null, name), metaLine(meta), body))
+  }
+
+  /**
    * 过程: a 12px 「过程 · 8 步」 link under the teammate's group (shown on hover of the group, always on touch); open,
    * the phases under it.
    */
@@ -1275,8 +1398,9 @@ function makeComponents(ctx, t) {
     // The composer's draft outlives the reading view (the dock is not on screen while a file is open).
     const draft = React.useRef('')
 
-    // The reading view: null, { kind: 'doc', id } (a deliverable) or { kind: 'file', path } (a file of the teammate's
-    // folder, opened from 电脑); the thread's scroll position is kept for the way back.
+    // The reading view: null, { kind: 'doc', id } (a deliverable) or { kind: 'file', path, at } (a file of the teammate's
+    // folder, opened from 电脑; `at` makes a signed-link file open afresh, a new link each time); the thread's scroll
+    // position is kept for the way back.
     const [reading, setReading] = React.useState(null)
     const readingRef = React.useRef(null); readingRef.current = reading
     const backTo = React.useRef(null)
@@ -1417,7 +1541,7 @@ function makeComponents(ctx, t) {
     // The example prompts of an empty thread fill the composer.
     const fillRef = React.useRef(null)
     // A file from 电脑 opens in the centre; as a slide-over, the panel steps aside for it (without remembering it closed).
-    const openFile = (f) => { openReading({ kind: 'file', path: String(f.path) }); if (!split) setAside((a) => (a.open ? { ...a, open: false, seq: a.seq + 1 } : a)) }
+    const openFile = (f) => { openReading({ kind: 'file', path: String(f.path), at: Date.now() }); if (!split) setAside((a) => (a.open ? { ...a, open: false, seq: a.seq + 1 } : a)) }
     // 「在对话里改」: back to the thread, the composer filled with 「把 <表名> 里 」 and focused (the dock mounts on the way back).
     const editInThread = (name) => {
       const text = t('editPrefix').replace('{name}', name)
@@ -1556,7 +1680,9 @@ function makeComponents(ctx, t) {
       h('div', { className: 'mwt-page mate' + (shown && split ? ' split' : '') },
         h('div', { className: 'mwt-col' },
           reading ? h('div', { className: 'mwt-inner' }, reading.kind === 'file'
-            ? h(FileView, { key: 'f:' + reading.path, mate, path: reading.path, backLabel: t('backToThread'), onBack: closeDoc, onEdit: editInThread })
+            ? (openKindOf(reading.path) === 'text'
+              ? h(FileView, { key: 'f:' + reading.path, mate, path: reading.path, backLabel: t('backToThread'), onBack: closeDoc, onEdit: editInThread })
+              : h(LinkView, { key: 'l:' + reading.path + ':' + (reading.at || 0), mate, path: reading.path, backLabel: t('backToThread'), onBack: closeDoc }))
             : h(ReadingView, { key: 'd:' + reading.id, id: reading.id, mates, backLabel: t('backToThread'), onBack: closeDoc, onRated: patchRating })) : thread()),
         shown && split ? asidePanel('col') : null))
   }
@@ -1631,8 +1757,8 @@ function makeComponents(ctx, t) {
   /**
    * 电脑 when no browser is in use: the newest files in the teammate's folder (GET /mates/folder: what it wrote with fs /
    * bash), up to 8 rows of text (name 15 · size · time 12; the path in the tooltip): .csv / .tsv tables first under
-   * 「表格」, the other files under 「文件」. A table, .md, .txt or .json row opens the file in the centre reading view
-   * (the open one keeps a 5 % ground); other files are listed only.
+   * 「表格」, the other files under 「文件」. Every row opens the file in the centre reading view (the open one keeps a
+   * 5 % ground): tables and text read in place, images shown, HTML / PDF sent to the live browser, the rest to download.
    */
   function MateFiles({ mate, openPath, onOpen }) {
     const [items, setItems] = React.useState(null)
@@ -1646,7 +1772,7 @@ function makeComponents(ctx, t) {
     const isTable = (f) => fileKindOf(f.name) === 'table'
     const shown = [...items.filter(isTable), ...items.filter((f) => !isTable(f))].slice(0, 8)
     const row = (f) => {
-      const can = !!onOpen && !!f.path && !!fileKindOf(f.name)
+      const can = !!onOpen && !!f.path
       const kids = [
         h('span', { key: 'a', className: 'main' }, h('span', { className: 't' }, f.name)),
         h('span', { key: 'b', className: 'm' }, [fmtSize(f.size), fmtWhen(f.modifiedAt)].filter(Boolean).join(' · ')),

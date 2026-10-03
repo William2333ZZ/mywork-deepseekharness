@@ -34,7 +34,9 @@ const ASIDE_SLOT = 'mywork.thread.aside'
 /** Last model navigation seen on the activity feed (page-wide), so a freshly mounted viewer knows the model is browsing. */
 const liveState = { modelAt: 0 }
 /** A created / navigated page that is not dsh itself: the model (or the user in the live tab) moved the browser. */
-const isModelNav = (ev) => !!(ev && (ev.type === 'created' || ev.type === 'changed') && ev.targetId && ev.url && ev.url !== 'about:blank' && !ev.url.startsWith(location.origin))
+/** dsh's own pages are not content; a teammate's file opened by a signed link is. */
+const isOwnPage = (url) => url.startsWith(location.origin) && !url.startsWith(location.origin + '/mywork-tasks/files/raw')
+const isModelNav = (ev) => !!(ev && (ev.type === 'created' || ev.type === 'changed') && ev.targetId && ev.url && ev.url !== 'about:blank' && !isOwnPage(ev.url))
 /** Tool names that mean "this task used the browser": Playwright's browser_* (with or without the MCP prefix), this package's browser_set_cookies / open_url, and web_fetch. */
 const BROWSER_TOOLS = new Set(['open_url', 'web_fetch'])
 function isBrowserTool(name) {
@@ -725,7 +727,7 @@ exports.apply = function apply(ctx) {
       return onActivity((ev) => {
         if (ev.type === 'destroyed' || !ev.url || ev.url === 'about:blank') return
         // a page showing dsh itself (screenshots, a second dsh tab) is not something to reveal
-        if (ev.url.startsWith(location.origin)) return
+        if (isOwnPage(ev.url)) return
         const now = Date.now()
         if (now - lastReveal < 800) return
         lastReveal = now

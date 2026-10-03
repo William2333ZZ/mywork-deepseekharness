@@ -245,6 +245,18 @@ function fileKindOf(name) {
 }
 
 /**
+ * How any folder file opens (every 电脑 row opens): 'text' — read in the reading view (fileKindOf, GET /mates/file);
+ * 'image' — shown in the reading view from a signed link; 'page' — HTML / PDF, shown in the live browser (never an
+ * iframe); 'download' — Office files and anything else.
+ */
+function openKindOf(name) {
+  if (fileKindOf(name)) return 'text'
+  const m = str(name).toLowerCase().match(/\.([a-z0-9]+)$/)
+  const ext = m ? m[1] : ''
+  return /^(png|jpe?g|gif|webp)$/.test(ext) ? 'image' : /^(html?|pdf)$/.test(ext) ? 'page' : 'download'
+}
+
+/**
  * CSV (or, with a tab, TSV) as rows of cells, RFC 4180: a field that starts with a quote may hold the delimiter, line
  * breaks and doubled quotes (""); CRLF, LF or CR end a row; a leading BOM goes; blank lines are not rows; an unclosed
  * quote runs to the end. Rows keep their own length (tableOf pads them).
@@ -324,5 +336,5 @@ function linkRuns(text) {
 
 module.exports = {
   foldedRunIds, threadOf, verifyState, isLive, isQueued, isStopped, remindOf, mergeRuns, activeRun, textAskOf, mateOrder, routineRunKind, initialOf,
-  fileKindOf, parseDelimited, isNumericCell, tableOf, linkRuns,
+  fileKindOf, openKindOf, parseDelimited, isNumericCell, tableOf, linkRuns,
 }

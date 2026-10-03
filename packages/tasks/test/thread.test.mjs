@@ -5,7 +5,7 @@
  */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { foldedRunIds, threadOf, verifyState, isLive, isQueued, isStopped, remindOf, mergeRuns, activeRun, textAskOf, mateOrder, routineRunKind, initialOf } from '../src/client/thread.cjs'
+import { foldedRunIds, threadOf, verifyState, isLive, isQueued, isStopped, remindOf, mergeRuns, activeRun, textAskOf, mateOrder, routineRunKind, initialOf, fileKindOf, openKindOf } from '../src/client/thread.cjs'
 
 const T0 = '2026-09-30T09:00:00.000Z'
 const at = (s) => new Date(new Date(T0).getTime() + s * 1000).toISOString()
@@ -293,4 +293,11 @@ test('foldedRunIds: migrated runs and finished runs older than the newest five f
   runs.push({ id: 'live', status: 'running' })
   const f = foldedRunIds(runs, 5)
   assert.deepEqual([...f].sort(), ['r0', 'r1', 'r2', 'r6'])
+})
+
+test('openKindOf: every folder file opens — text read in place, images shown, HTML / PDF in the live browser, the rest downloaded', () => {
+  for (const n of ['日程表.CSV', 'a.tsv', 'n.md', 'x.txt', 'x.json']) { assert.ok(fileKindOf(n)); assert.equal(openKindOf(n), 'text') }
+  for (const n of ['radar.png', 'a.JPG', 'b.jpeg', 'c.gif', 'd/e.webp']) assert.equal(openKindOf(n), 'image')
+  for (const n of ['report.html', 'old.HTM', 'paper.pdf']) assert.equal(openKindOf(n), 'page')
+  for (const n of ['plan.docx', 'sheet.xlsx', 'deck.pptx', 'archive.zip', 'Makefile', '', 'x.svg']) assert.equal(openKindOf(n), 'download')
 })

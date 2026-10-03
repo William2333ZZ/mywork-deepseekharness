@@ -235,6 +235,94 @@ function foldedRunIds(runs, keep) {
   return out
 }
 
+// ---- a teammate's folder files (the 电脑 rows that open in the reading view) -----------------------------------------
+
+/** What the reading view does with a folder file, by extension (the server reads these five): table | markdown | text | json | ''. */
+function fileKindOf(name) {
+  const m = str(name).toLowerCase().match(/\.([a-z0-9]+)$/)
+  const ext = m ? m[1] : ''
+  return ext === 'csv' || ext === 'tsv' ? 'table' : ext === 'md' ? 'markdown' : ext === 'txt' ? 'text' : ext === 'json' ? 'json' : ''
+}
+
+/**
+ * CSV (or, with a tab, TSV) as rows of cells, RFC 4180: a field that starts with a quote may hold the delimiter, line
+ * breaks and doubled quotes (""); CRLF, LF or CR end a row; a leading BOM goes; blank lines are not rows; an unclosed
+ * quote runs to the end. Rows keep their own length (tableOf pads them).
+ */
+function parseDelimited(text, delimiter) {
+  const s = str(text).replace(/^﻿/, '')
+  const d = delimiter || ','
+  const rows = []
+  let row = []
+  let cell = ''
+  let quoted = false
+  let start = true // at the start of a field: a quote here opens a quoted field
+  let any = false // the row has something in it (a blank line is not a row)
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i]
+    if (quoted) {
+      if (c !== '"') { cell += c; continue }
+      if (s[i + 1] === '"') { cell += '"'; i++; continue }
+      quoted = false
+      continue
+    }
+    if (c === '"' && start) { quoted = true; start = false; any = true; continue }
+    if (c === d) { row.push(cell); cell = ''; start = true; any = true; continue }
+    if (c === '\n' || c === '\r') {
+      if (c === '\r' && s[i + 1] === '\n') i++
+      if (any) { row.push(cell); rows.push(row) }
+      row = []; cell = ''; start = true; any = false
+      continue
+    }
+    cell += c; start = false; any = true
+  }
+  if (any) { row.push(cell); rows.push(row) }
+  return rows
+}
+
+/** A number as a table cell may hold it: 1,234.5 · -3 · +1.2% · ¥12 · $1,000 (no units, no dates, no times). */
+const NUMERIC = /^[+\-−]?[¥$€£]?\s?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?\s?[%‰]?$|^[+\-−]?\.\d+%?$/
+const isNumericCell = (v) => NUMERIC.test(str(v).trim())
+
+/**
+ * A table file for the reading view: { header, rows, width, numeric } — the first row is the header, every row padded to
+ * the widest one, and numeric[j] when every non-empty cell of column j (below the header) is a number (right-aligned).
+ */
+function tableOf(text, delimiter) {
+  const all = parseDelimited(text, delimiter)
+  const width = all.reduce((n, r) => Math.max(n, r.length), 0)
+  const pad = (r) => (r.length < width ? r.concat(Array(width - r.length).fill('')) : r)
+  const header = all.length ? pad(all[0]) : []
+  const rows = all.slice(1).map(pad)
+  const numeric = header.map((_, j) => {
+    let seen = 0
+    for (const r of rows) { const v = str(r[j]).trim(); if (!v) continue; if (!isNumericCell(v)) return false; seen++ }
+    return seen > 0
+  })
+  return { header, rows, width, numeric }
+}
+
+/** A cell's text split into plain runs and http(s) links: [{ text, href? }]; a link's trailing punctuation stays text. */
+function linkRuns(text) {
+  const s = str(text)
+  const out = []
+  const re = /https?:\/\/[^\s<>"'，。；、！？）】」]+/gi
+  let at = 0
+  let m
+  while ((m = re.exec(s))) {
+    let url = m[0]
+    const trail = url.match(/[.,;:!?)\]]+$/)
+    if (trail) url = url.slice(0, -trail[0].length)
+    if (m.index > at) out.push({ text: s.slice(at, m.index) })
+    out.push({ text: url, href: url })
+    at = m.index + url.length
+    re.lastIndex = at
+  }
+  if (at < s.length) out.push({ text: s.slice(at) })
+  return out
+}
+
 module.exports = {
   foldedRunIds, threadOf, verifyState, isLive, isQueued, isStopped, remindOf, mergeRuns, activeRun, textAskOf, mateOrder, routineRunKind, initialOf,
+  fileKindOf, parseDelimited, isNumericCell, tableOf, linkRuns,
 }

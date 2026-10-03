@@ -5,10 +5,12 @@
  * teammate and collapse. In the middle only teammates, in sections: 置顶 (pinned; MyWork is pinned by default), then one
  * per type (the `group` field, 「类型」 in the UI) in the order the types were formed, then 其他. Within a section:
  * pinned / default first, then the last conversation; state never changes the order of rows or sections. A section
- * label (only when there is more than one section) folds its rows; what is folded is kept in localStorage. A row is the
- * avatar, the name and one line (等你答 in --warn, 在干活 breathing, else the last thing said). At the bottom 文件 and 设置
- * as plain text rows. Collapsed: the mark, each teammate's avatar, + and 文件. Rows carry no actions: opening a row is
- * the only thing it does.
+ * label (only when there is more than one section) folds its rows; what is folded is kept in localStorage (folded, it
+ * carries the sum of its rows' badges). A row is the avatar, the name (never bold) and the time, then one line (等你答
+ * in --warn, 在干活 breathing, else the last thing said) with the unread count at the right under the time — an IM
+ * badge (white on red, 99+): results since you last opened that teammate, at least 1 while it waits on your answer.
+ * At the bottom 文件 and 设置 as plain text rows. Collapsed: the mark, each teammate's avatar (the badge on its
+ * top-right), + and 文件. Rows carry no actions: opening a row is the only thing it does.
  *
  * Data comes from dsh-mywork-tasks (/mywork-tasks/api/mates, /activity, /search); navigation into that plugin's pages
  * goes through window events so neither package imports the other: the column dispatches mywork:open-thread and
@@ -28,7 +30,7 @@ const SLOW_MS = 30000
 const SEARCH_DEBOUNCE_MS = 200
 
 /** GET /mates → items (the §9.8 contract; only the fields the column reads). */
-type Mate = { id: string; name: string; title?: string; pinned?: boolean; isDefault?: boolean; group?: string; avatar?: { color?: string; shape?: string } | null; createdAt?: string; lastAt?: string; preview?: string; unread?: boolean; state?: 'idle' | 'working' | 'waiting'; step?: string; ask?: { question?: string } | null }
+type Mate = { id: string; name: string; title?: string; pinned?: boolean; isDefault?: boolean; group?: string; avatar?: { color?: string; shape?: string } | null; createdAt?: string; lastAt?: string; preview?: string; unread?: boolean; unreadCount?: number; state?: 'idle' | 'working' | 'waiting'; step?: string; ask?: { question?: string } | null }
 /** One block of the column: 置顶, a group (its name), or 其他 (ungrouped). */
 type Section = { key: string; kind: 'pinned' | 'group' | 'other'; name: string; mates: Mate[] }
 /** Folded section keys ('pinned' | 'g:<name>' | 'other' → true), kept across reloads. */
@@ -58,7 +60,8 @@ const EMPTY_ACTIVITY: Activity = { needs: [], working: [], recent: [] }
 const stylesheet = `
 /*
  * Brutalist structure, aesthetic execution (the tasks page shares these tokens): pure black, white text at 100 / 65 /
- * 50 %, rules white at 10 / 5 %; --warn only for "needs you". No fills, no decoration: a row is the teammate's avatar
+ * 50 %, rules white at 10 / 5 %; --warn only for a pending question (等你答). The one other colour is the unread badge
+ * (white on #e5484d, as in IM). No fills, no decoration: a row is the teammate's avatar
  * (32, flat, its own colour and shape), its name (15) and one line (13 at 65 %); the selected row a 5 % ground, radius
  * 8. Line icons only where they act, at 50 %,
  * 100 % on hover. Spacing 8 / 16 / 24 (4 inline). Shadows only on the bell's elevated dropdown. Motion: colour /
@@ -88,7 +91,7 @@ html body .mws input:focus{outline:none}
 .mws-icon{appearance:none;position:relative;display:inline-grid;place-items:center;flex:none;width:28px;height:32px;padding:0;border:0;border-radius:8px;background:transparent;color:var(--fg-3);cursor:pointer}
 .mws-icon:hover,.mws-icon[aria-expanded=true]{color:var(--fg)}
 .mws-icon svg{display:block}
-/* The bell's dot: white while someone works, --warn when someone needs you. */
+/* The bell's dot: white while someone works or something needs you, --warn when a question waits on you. */
 .mws-dot{position:absolute;top:7px;right:5px;width:6px;height:6px;border-radius:50%;background:var(--fg);pointer-events:none}
 .mws-dot[data-needs=true]{background:var(--warn)}
 /* The bell's panel: an elevated layer under the header, over the list. */
@@ -103,8 +106,9 @@ html body .mws input:focus{outline:none}
 .mws-sec-head[aria-expanded=false] svg{transform:rotate(-90deg)}
 .mws-sec-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mws-sec-count{flex:none;margin-left:4px;font-variant-numeric:tabular-nums}
-.mws-sec-head .mws-unread{margin-left:4px}
-/* Rows: the avatar (32), then the name 15 and the time 12 at 50 % on one line, one line of 13 at 65 % under it. */
+.mws-sec-head .mws-badge{margin-left:8px}
+/* Rows: the avatar (32), then the name 15 and the time 12 at 50 % on one line, one line of 13 at 65 % under it with the
+ * unread badge at its right (under the time). */
 .mws-row{appearance:none;display:grid;grid-template-columns:32px minmax(0,1fr);column-gap:8px;align-items:center;width:100%;min-width:0;padding:12px 16px;border:0;border-radius:8px;background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
 .mws-main{display:grid;gap:4px;min-width:0}
 .mws-av{display:inline-block;flex:none;line-height:0;user-select:none}
@@ -113,11 +117,15 @@ html body .mws input:focus{outline:none}
 .mws-row:hover,.mws-row[aria-current=page]{background:var(--rule-soft)}
 .mws-line{display:flex;align-items:baseline;min-width:0}
 .mws-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px;line-height:20px;font-weight:400}
-.mws-row[data-unread=true] .mws-title{font-weight:600}
 .mws-time{flex:none;margin-left:8px;color:var(--fg-3);font-size:12px;line-height:16px;font-variant-numeric:tabular-nums;white-space:nowrap}
-.mws-unread{flex:none;align-self:center;width:6px;height:6px;margin-left:8px;border-radius:50%;background:var(--fg)}
-.mws-sub{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--fg-2);font-size:13px;line-height:20px}
+.mws-line.sub{align-items:center}
+.mws-sub{display:block;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--fg-2);font-size:13px;line-height:20px}
 .mws-sub[data-tone=warn]{color:var(--warn)}
+.mws-sub[data-tone=danger]{color:var(--danger)}
+/* The unread badge (IM): a pill, min 18, white 11 / 600 tabular on red; on the rail 16 at the avatar's top-right. */
+.mws-badge{flex:none;display:inline-block;min-width:18px;height:18px;margin-left:8px;padding:0 6px;border-radius:9px;background:#e5484d;color:#fff;font-size:11px;line-height:18px;font-weight:600;font-variant-numeric:tabular-nums;text-align:center;white-space:nowrap}
+.mws-rail-av{position:relative;display:block;line-height:0}
+.mws-badge.rail{position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;margin:0;padding:0 4px;border-radius:8px;font-size:10px;line-height:16px;box-shadow:0 0 0 2px var(--bg)}
 .mws-empty{padding:16px;color:var(--fg-3);font-size:13px;line-height:20px}
 /* Footer: 文件 and 设置 as plain text rows. */
 .mws-foot{flex:none;padding:8px 8px 0;border-top:1px solid var(--rule)}
@@ -132,7 +140,7 @@ html body .mws-settings .dcu-settings-trigger:focus-visible{outline:2px solid va
 .mws-settings .dcu-settings-trigger-content{display:block}
 .mws-settings .dcu-settings-trigger-content svg{display:none}
 /* Collapsed: dsh keeps a 56px rail. The mark (it expands; on hover the panel icon stands in), each teammate's avatar
- * (32; selected: a 5 % ground; unread: a white dot; waiting on you: a --warn dot; working: it breathes), then + and 文件. */
+ * (32; selected: a 5 % ground; unread or waiting on you: the badge at its top-right; working: it breathes), then + and 文件. */
 .mws.compact{align-items:center;padding:16px 0}
 .mws.compact .mws-settings{position:absolute;width:0;height:0;overflow:hidden}
 .mws-railtop{appearance:none;display:grid;place-items:center;flex:none;width:32px;height:32px;margin:0 0 16px;padding:0;border:0;border-radius:8px;background:transparent;color:var(--fg);cursor:pointer}
@@ -144,8 +152,6 @@ html body .mws-settings .dcu-settings-trigger:focus-visible{outline:2px solid va
 .mws-rail-gap{flex:none;height:8px}
 .mws-rail-mate{appearance:none;position:relative;display:grid;place-items:center;flex:none;width:40px;height:40px;padding:0;border:0;border-radius:8px;background:transparent;cursor:pointer}
 .mws-rail-mate:hover,.mws-rail-mate[aria-current=page]{background:var(--rule-soft)}
-.mws-rail-dot{position:absolute;top:2px;right:2px;width:6px;height:6px;border-radius:50%;background:var(--fg);box-shadow:0 0 0 2px var(--bg)}
-.mws-rail-dot[data-tone=warn]{background:var(--warn)}
 .mws-railtext{appearance:none;flex:none;height:32px;margin-top:8px;padding:0 4px;border:0;border-radius:8px;background:transparent;color:var(--fg-3);font:inherit;font-size:13px;line-height:16px;cursor:pointer}
 .mws-railtext:hover,.mws-railtext[aria-current=page]{color:var(--fg)}
 `
@@ -285,13 +291,22 @@ function secondLine(mate: Mate, t: SidebarProps['t']): { text: string; tone?: 'w
   return { text: str(mate.preview) }
 }
 
-function MateRow({ mate, time, current, unread, t, onOpen }: { mate: Mate; time: string; current: boolean; unread: boolean; t: SidebarProps['t']; onOpen: () => void }): ReactElement {
+/** The unread count as an IM badge (nothing at 0; 99+ above 99). */
+function Badge({ n, rail = false, t }: { n: number; rail?: boolean; t: SidebarProps['t'] }): ReactElement | null {
+  if (n <= 0) return null
+  return <span className={'mws-badge' + (rail ? ' rail' : '')} role="img" aria-label={t('v2.unreadCount').replace('{0}', String(n))}>{n > 99 ? '99+' : String(n)}</span>
+}
+
+function MateRow({ mate, time, current, unread, t, onOpen }: { mate: Mate; time: string; current: boolean; unread: number; t: SidebarProps['t']; onOpen: () => void }): ReactElement {
   const sub = secondLine(mate, t)
-  return <button type="button" className="mws-row" aria-current={current ? 'page' : undefined} data-unread={unread ? 'true' : undefined} onClick={onOpen}>
+  return <button type="button" className="mws-row" aria-current={current ? 'page' : undefined} data-unread={unread > 0 ? 'true' : undefined} onClick={onOpen}>
     <MateAvatar mate={mate} size={32} />
     <span className="mws-main">
-      <span className="mws-line"><span className="mws-title">{mate.name}</span>{time !== '' && <span className="mws-time">{time}</span>}{unread && <i className="mws-unread" aria-hidden="true" />}</span>
-      {sub.text !== '' && <span className={'mws-sub' + (sub.live === true ? ' mws-breathe' : '')} data-tone={sub.tone}>{sub.text}</span>}
+      <span className="mws-line"><span className="mws-title">{mate.name}</span>{time !== '' && <span className="mws-time">{time}</span>}</span>
+      {(sub.text !== '' || unread > 0) && <span className="mws-line sub">
+        <span className={'mws-sub' + (sub.live === true ? ' mws-breathe' : '')} data-tone={sub.tone}>{sub.text}</span>
+        <Badge n={unread} t={t} />
+      </span>}
     </span>
   </button>
 }
@@ -417,6 +432,7 @@ export function MyworkSidebar({ selectPanel, usePanelInfo = useLegacyPanelInfo, 
   // One section needs no header (and cannot fold).
   const headed = sections.length > 1
   const count = activity.needs.length + activity.working.length
+  const asking = activity.needs.some(x => x.kind === 'ask')
   const now = new Date()
 
   /** mywork:open-thread is the contract; if nothing handled it (the tasks client is not loaded yet), its page is selected. */
@@ -432,8 +448,19 @@ export function MyworkSidebar({ selectPanel, usePanelInfo = useLegacyPanelInfo, 
   const highlighted = activePanelId === MYWORK_PANELS.files ? 'files'
     : activePanelId === null || activePanelId === MYWORK_PANELS.mate ? opened
       : ''
-  const groups: Array<[string, ActivityItem[], boolean]> = [[t('v2.needs'), activity.needs, true], [t('v2.working'), activity.working, false], [t('v2.recent'), activity.recent, false]]
-  const unreadOf = (mate: Mate): boolean => mate.unread === true && seen[mate.id] !== str(mate.lastAt) && highlighted !== 'mate:' + mate.id
+  const groups: Array<[string, ActivityItem[]]> = [[t('v2.needs'), activity.needs], [t('v2.working'), activity.working], [t('v2.recent'), activity.recent]]
+  /**
+   * The row's badge: results since you last opened that teammate (the server's unreadCount; 1 when it only says unread),
+   * and at least 1 while it waits on your answer. Nothing on the teammate you have open, or one you just opened here
+   * (until its lastAt moves). POST /seen on open is the page's.
+   */
+  const unreadOf = (mate: Mate): number => {
+    if (highlighted === 'mate:' + mate.id) return 0
+    const count = typeof mate.unreadCount === 'number' && Number.isFinite(mate.unreadCount) ? Math.max(0, Math.floor(mate.unreadCount)) : 0
+    const fresh = (mate.unread === true || count > 0) && seen[mate.id] !== str(mate.lastAt)
+    const n = fresh ? Math.max(1, count) : 0
+    return mate.state === 'waiting' ? Math.max(1, n) : n
+  }
   const sectionLabel = (sec: Section): string => sec.kind === 'pinned' ? t('v2.pinned') : sec.kind === 'other' ? t('v2.other') : sec.name
 
   return <div className={'mws' + (compact ? ' compact' : '')} data-mywork-sidebar="v2">
@@ -447,7 +474,7 @@ export function MyworkSidebar({ selectPanel, usePanelInfo = useLegacyPanelInfo, 
         {sections.map((sec, i) => <Fragment key={sec.key}>
           {i > 0 && <span className="mws-rail-gap" aria-hidden="true" />}
           {sec.mates.map(mate => <button key={mate.id} type="button" className="mws-rail-mate" title={mate.name} aria-label={mate.name} aria-current={highlighted === 'mate:' + mate.id ? 'page' : undefined} onClick={() => { open({ kind: 'mate', id: mate.id }) }}>
-            <MateAvatar mate={mate} size={32} />{mate.state === 'waiting' ? <span className="mws-rail-dot" data-tone="warn" aria-hidden="true" /> : unreadOf(mate) && <span className="mws-rail-dot" aria-hidden="true" />}
+            <span className="mws-rail-av"><MateAvatar mate={mate} size={32} /><Badge n={unreadOf(mate)} rail t={t} /></span>
           </button>)}
         </Fragment>)}
         <button type="button" className="mws-icon" aria-label={t('v2.newMate')} title={t('v2.newMate')} onClick={() => { open({ kind: 'new-mate' }) }}><Plus size={16} strokeWidth={1.5} /></button>
@@ -458,13 +485,13 @@ export function MyworkSidebar({ selectPanel, usePanelInfo = useLegacyPanelInfo, 
         <BrandMark />
         <label className="mws-search"><input type="text" value={query} placeholder={t('v2.search')} aria-label={t('v2.search')} autoComplete="off" spellCheck={false} onChange={event => { setQuery(event.target.value) }} onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); setQuery('') } }} /></label>
         <button type="button" className="mws-icon" aria-label={t('v2.bell')} title={t('v2.bell')} aria-haspopup="true" aria-expanded={bellOpen} onClick={() => { setBellOpen(!bellOpen) }}>
-          <Bell size={16} strokeWidth={1.5} />{count > 0 && <span className="mws-dot" data-needs={activity.needs.length > 0 ? 'true' : undefined} aria-hidden="true" />}
+          <Bell size={16} strokeWidth={1.5} />{count > 0 && <span className="mws-dot" data-needs={asking ? 'true' : undefined} aria-hidden="true" />}
         </button>
         <button type="button" className="mws-icon" aria-label={t('v2.newMate')} title={t('v2.newMate')} onClick={() => { open({ kind: 'new-mate' }) }}><Plus size={16} strokeWidth={1.5} /></button>
         <button type="button" className="mws-icon" aria-label={t('sidebar.collapse')} title={t('sidebar.collapse')} onClick={toggleSidebar}><PanelLeft size={16} strokeWidth={1.5} /></button>
         {bellOpen && <div className="mws-drop" role="dialog" aria-label={t('v2.bell')}>
           {groups.every(([, items]) => items.length === 0) && <div className="mws-empty">{t('v2.quiet')}</div>}
-          {groups.map(([label, items, needs]) => items.length === 0 ? null : <div key={label}>
+          {groups.map(([label, items]) => items.length === 0 ? null : <div key={label}>
             <h3>{label}</h3>
             {items.map((item, i) => {
               const mate = byId.get(item.mateId) ?? { id: item.mateId, name: str(item.mateName) }
@@ -472,7 +499,7 @@ export function MyworkSidebar({ selectPanel, usePanelInfo = useLegacyPanelInfo, 
                 <MateAvatar mate={mate} size={32} />
                 <span className="mws-main">
                   <span className="mws-line"><span className="mws-title">{str(mate.name) || str(item.mateName)}</span><span className="mws-time">{fmtWhen(str(item.at), now)}</span></span>
-                  {str(item.text) !== '' && <span className="mws-sub" data-tone={needs ? 'warn' : undefined}>{str(item.text)}</span>}
+                  {str(item.text) !== '' && <span className="mws-sub" data-tone={item.kind === 'ask' ? 'warn' : item.kind === 'failed' ? 'danger' : undefined}>{str(item.text)}</span>}
                 </span>
               </button>
             })}
@@ -485,14 +512,14 @@ export function MyworkSidebar({ selectPanel, usePanelInfo = useLegacyPanelInfo, 
             const rows = sec.mates.map(mate => <MateRow key={mate.id} mate={mate} t={t} time={fmtWhen(str(mate.lastAt), now)} current={highlighted === 'mate:' + mate.id} unread={unreadOf(mate)} onOpen={() => { open({ kind: 'mate', id: mate.id }) }} />)
             if (!headed) return <Fragment key={sec.key}>{rows}</Fragment>
             const closed = folded[sec.key] === true
-            // Folded, the label keeps the count and a dot when someone inside has news or waits on you.
-            const news = closed && sec.mates.some(m => unreadOf(m) || m.state === 'waiting')
+            // Folded, the label keeps the count of teammates and the sum of their badges.
+            const news = closed ? sec.mates.reduce((n, m) => n + unreadOf(m), 0) : 0
             return <div key={sec.key} className="mws-sec" role="group" aria-label={sectionLabel(sec)}>
               <button type="button" className="mws-sec-head" aria-expanded={!closed} onClick={() => { toggleSection(sec.key) }}>
                 <span className="mws-sec-name">{sectionLabel(sec)}</span>
                 <ChevronDown size={12} strokeWidth={1.5} aria-hidden="true" />
                 {closed && <span className="mws-sec-count">{sec.mates.length}</span>}
-                {news && <i className="mws-unread" aria-hidden="true" />}
+                <Badge n={news} t={t} />
               </button>
               {!closed && rows}
             </div>

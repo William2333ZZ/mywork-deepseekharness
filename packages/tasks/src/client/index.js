@@ -6,15 +6,17 @@
  * (threadOf in thread.cjs), shown the way IM shows a chat (Feishu / WeChat / Telegram): the teammate on the left (its
  * avatar beside its bubbles), you on the right; one side's messages within 5 minutes grouped; a centred time after a
  * 5-minute gap; centred notices for a routine's trigger, 「已安排」 and 「以下是新的」. A delivery is a message card (title,
- * key-figure fields, verification · 打开) that opens the reading view; the question it stopped on is a card with a
- * --warn top rule; while it works, its avatar breathes under the last message; 「过程」 under its group on hover; the
- * input bar at the bottom. On the black / opacity tokens of the brutalist pass (no colour but --warn and --danger).
+ * key-figure fields, time · 打开) that opens the reading view; the question it stopped on is a card with a --warn top
+ * rule; while it works, its avatar breathes under the last message; 「过程」 under its group on hover; the input bar at
+ * the bottom. On the black / opacity tokens of the brutalist pass (no colour but --warn and --danger). Verification is
+ * never shown (the server runs it only when configured; the UI says nothing about it).
  *
  * Pages (main slot):
  *   mywork-mate       one teammate: a sticky header (avatar · name · title → 设置; 电脑 · ··· at the right), the thread
  *                     (GET /mates/thread, 「加载更早」),
  *                     the dock (POST /mates/say); the right panel (电脑 · 例行 · 设置, or the 「新同事」 form). A file
- *                     opened from the thread replaces the column with the reading view (「← 回到对话」 / Escape)
+ *                     opened from the thread — or a table / note from 电脑 (GET /mates/file, polled every 15 s) —
+ *                     replaces the column with the reading view (「← 回到对话」 / Escape)
  *   mywork-files      文件: every teammate's files, a text tab per teammate, search; a file opens in the same reading view
  * Overlay (shell.overlay): toasts when a run finishes or needs you (from GET /activity), keyed by teammate; keeps the
  * poll alive for the sidebar.
@@ -37,7 +39,7 @@
 
 const React = require('react')
 const md = require('./md.cjs')
-const { foldedRunIds, threadOf, verifyState, isLive, isQueued, mergeRuns, activeRun, textAskOf, mateOrder, routineRunKind } = require('./thread.cjs')
+const { foldedRunIds, threadOf, isLive, isQueued, mergeRuns, activeRun, textAskOf, mateOrder, routineRunKind, fileKindOf, tableOf, linkRuns } = require('./thread.cjs')
 const icons = require('./client-icons.cjs')
 // Lucide line icons this bundle needs that the shared set does not carry (the prelude is this bundle's own copy).
 const EXTRA_ICONS = {
@@ -93,12 +95,13 @@ const SPLIT_GAP = 24
 const SPLIT_MIN = COL_MIN + 64 + SPLIT_GAP + ASIDE_W
 /** How long a run jumped to stays highlighted. */
 const HIGHLIGHT_MS = 1200
+/** An open folder file is read again this often, so a teammate's edits show up. */
+const FILE_POLL_MS = 15000
 
 const zh = {
   mate: '同事', files: '文件',
   sayTo: '给 {name} 发消息', answerPh: '回答', send: '发送', more: '更多', stop: '停止', settings: '设置', close: '关闭', back: '返回',
   working: '在干活', workingAria: '{name} 正在工作', file: '文件', loadEarlier: '加载更早', process: '过程', phases: '步', times: '次', toolFailed: '失败', none2: '无',
-  verified: '已核验', verifyIssues: '核验发现问题', verifyFound: '核验发现 {n} 处', verifyNone: '未能核验', verifying: '核验中', checked: '核对', issues: '问题', verifyLabel: '核验', passed: '通过',
   ratingGood: '有用', ratingBad: '没用', failedTitle: '失败', stopped: '已停止', queued: '排队',
   scheduled: '已安排', remindCard: '提醒', gotIt: '知道了', acked: '已知道',
   answeredLine: '已回答：{a}', answerBelow: '在下面的输入框回答', askClosed: '不再等待', askAuto: '24 小时没有回答，按合理假设继续',
@@ -119,13 +122,13 @@ const zh = {
   loadFailed: '没连上服务，稍后再试。', retry: '重试', today: '今天',
   downloadMd: '下载 .md', openInFiles: '在文件页打开', backToThread: '回到对话', backToFiles: '回到文件',
   newBelow: '以下是新的', tables: '表格', you: '你', routineWord: '例行',
+  download: '下载', editInThread: '在对话里改', editPrefix: '把 {name} 里 ', rowsCount: '{n} 行', truncated: '只显示前 512 KB', fileEmpty: '文件是空的',
   dutyEx1: '每天早上 8 点按信源整理 AI 技术动态，只报和我有关的', dutyEx2: '帮我管日程，记在一张表里，每天 8:30 给我今日安排', dutyEx3: '盯竞品的定价页和更新日志，有变化就告诉我',
 }
 const en = {
   mate: 'Teammate', files: 'Files',
   sayTo: 'Message {name}', answerPh: 'Answer', send: 'Send', more: 'More', stop: 'Stop', settings: 'Settings', close: 'Close', back: 'Back',
   working: 'Working', workingAria: '{name} is working', file: 'File', loadEarlier: 'Load earlier', process: 'Process', phases: 'steps', times: 'calls', toolFailed: 'failed', none2: 'none',
-  verified: 'Verified', verifyIssues: 'Issues found', verifyFound: 'Verification found {n}', verifyNone: 'Not verified', verifying: 'Verifying', checked: 'checked', issues: 'issues', verifyLabel: 'Verification', passed: 'passed',
   ratingGood: 'Useful', ratingBad: 'Not useful', failedTitle: 'Failed', stopped: 'Stopped', queued: 'Queued',
   scheduled: 'Scheduled', remindCard: 'Reminder', gotIt: 'Got it', acked: 'Seen',
   answeredLine: 'Answered: {a}', answerBelow: 'Answer in the box below', askClosed: 'No longer waiting', askAuto: 'No answer in 24 hours, continued on reasonable assumptions',
@@ -146,14 +149,15 @@ const en = {
   loadFailed: 'Could not reach the service, try again shortly.', retry: 'Retry', today: 'today',
   downloadMd: 'Download .md', openInFiles: 'Open in Files', backToThread: 'Back to conversation', backToFiles: 'Back to files',
   newBelow: 'New since you last looked', tables: 'Tables', you: 'You', routineWord: 'Routine',
+  download: 'Download', editInThread: 'Edit in conversation', editPrefix: 'In {name}, ', rowsCount: '{n} rows', truncated: 'Showing the first 512 KB', fileEmpty: 'The file is empty',
   dutyEx1: 'Every morning at 8, gather AI tech news from my sources and report only what concerns me', dutyEx2: 'Run my calendar in one sheet and send me today’s plan every day at 8:30', dutyEx3: 'Watch competitors’ pricing pages and changelogs and tell me when something changes',
 }
 
 const STYLE = `
 /*
  * Tokens (brutalist structure, aesthetic execution — blakecrosley.com/zh-Hans/blog/beauty-brutalism-design): pure black;
- * white text at 100 / 65 / 50 %; rules white at 10 / 5 %. No colour but --warn (only "needs you": a pending question,
- * the newest failed verification), --danger (failures) and each teammate's avatar. The conversation follows IM
+ * white text at 100 / 65 / 50 %; rules white at 10 / 5 %. No colour but --warn (only a pending question: 等你答),
+ * --danger (failures) and each teammate's avatar. The conversation follows IM
  * conventions: bubbles (#1a1a1a the teammate's, white at 12 % yours), message cards (#0d0d0d, a 1px rule). Type: 12 meta
  * · 13 small · 15 messages · 16 body · 20 section · 28 reading title; weights 400 / 500 / 600; CJK 1.7–1.8, headings
  * 1.3–1.4, no negative tracking. Spacing 8 / 16 / 24 / 32 / 48 / 64 (4 inline and between grouped bubbles). Shadows
@@ -269,7 +273,7 @@ button.mwt-note:hover{color:var(--fg)}
 /*
  * A deliverable is a message card (a Feishu bot card): 1px rule, #0d0d0d, radius 12, 440 wide at most. The file title
  * 15 / 600 (two lines), the key figures as a two-column field grid (label 12 at 50 % over value 15 tabular), a footer:
- * the verification word (--warn when the newest run's check found issues) and 「打开」. The whole card opens it.
+ * the time at 50 % and 「打开」 at the right. The whole card opens it.
  */
 .mwt-card{position:relative;display:block;width:440px;max-width:100%;min-width:0;margin:0;padding:0;border:1px solid var(--rule);border-radius:12px;background:var(--card);color:var(--fg);font:inherit;text-align:left;overflow:hidden}
 button.mwt-card{appearance:none;cursor:pointer}
@@ -284,8 +288,7 @@ button.mwt-card:hover{border-color:var(--fg-3)}
 .mwt-card-d{margin:0;padding:8px 16px 16px;color:var(--fg-2);font-size:13px;line-height:1.7;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
 .mwt-card-h+.mwt-card-f{margin-top:16px}
 .mwt-card-f{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:40px;padding:12px 16px;border-top:1px solid var(--rule-soft);color:var(--fg-3);font-size:12px;line-height:16px;font-variant-numeric:tabular-nums}
-.mwt-card-f [data-tone=warn]{color:var(--warn)}
-.mwt-card-f .go{flex:none;color:var(--fg);transition:opacity var(--fast)}
+.mwt-card-f .go{flex:none;margin-left:auto;color:var(--fg);transition:opacity var(--fast)}
 button.mwt-card:hover .mwt-card-f .go{text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--fg-3)}
 .mwt-card-f .mwt-tbtn{color:var(--fg)}
 .mwt-card-opts{display:grid;gap:8px;padding:16px}
@@ -313,7 +316,6 @@ button.mwt-phase-head:hover .verb,button.mwt-phase-head:hover .obj{color:var(--f
 .mwt-phase-note{padding:4px 0;font-size:13px;line-height:1.75;color:var(--fg);cursor:pointer}
 .mwt-phase-note .body{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-wrap;word-break:break-word;color:var(--fg-2)}
 .mwt-phase-note.open .body{display:block;color:var(--fg)}
-.mwt-phase-note .lbl{color:var(--fg-2);font-weight:500}
 .mwt-ev{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 8px;min-height:24px;font-size:13px;line-height:20px}
 .mwt-ev .verb{font-weight:500;color:var(--fg-2)}
 .mwt-ev[data-ok=false] .verb{color:var(--danger)}
@@ -322,14 +324,10 @@ button.mwt-phase-head:hover .verb,button.mwt-phase-head:hover .obj{color:var(--f
 /* Working: under the last message, the teammate's avatar breathing and 「在干活 · <step> · 40s」. */
 .mwt-grp.status{align-items:center}
 .mwt-status{color:var(--fg-3);font-size:12px;line-height:16px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-/* The verification word and 有用 / 没用 in the reading view. */
+/* 有用 / 没用 in the reading view. */
 .mwt-meta-btn{appearance:none;padding:4px 0;border:0;background:transparent;color:var(--fg-3);font:inherit;font-size:12px;line-height:16px;cursor:pointer}
 .mwt-meta-btn:hover,.mwt-meta-btn[aria-pressed=true]{color:var(--fg)}
-.mwt-verdict{color:var(--fg-3)}
-.mwt-verdict[data-tone=warn]{color:var(--warn)}
-button.mwt-verdict[data-tone=warn]:hover{color:var(--warn);text-decoration:underline;text-underline-offset:3px}
 .mwt-rate{display:inline-flex;gap:8px}
-.mwt-notes{margin:-16px 0 0;padding-left:16px;border-left:1px solid var(--rule);color:var(--fg-2);font-size:13px;line-height:1.75;white-space:pre-wrap;word-break:break-word}
 /* An empty thread: the teammate introduced in the middle — avatar, name, title, job — and three things to ask. */
 .mwt-hello{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:64px 0 48px;text-align:center}
 .mwt-hello .nm{margin-top:8px;font-size:20px;line-height:1.4;font-weight:600}
@@ -379,6 +377,7 @@ button.mwt-verdict[data-tone=warn]:hover{color:var(--warn);text-decoration:under
 .mwt-arow{appearance:none;display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:16px;align-items:baseline;width:calc(100% + 16px);min-height:40px;margin:0 -8px;padding:8px;border:0;border-radius:8px;background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
 .mwt-arow:hover,.mwt-arow[aria-expanded=true]{background:var(--rule-soft)}
 .mwt-arow.static{cursor:default}
+.mwt-arow[aria-current=true]{background:var(--rule-soft)}
 .mwt-arow.static:hover{background:transparent}
 .mwt-arow .main{min-width:0;display:grid;gap:4px}
 .mwt-arow .t{font-size:15px;line-height:20px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -450,14 +449,30 @@ textarea.mwt-input{resize:vertical;min-height:80px;line-height:1.75}
 .mwt-read-back:hover{color:var(--fg)}
 .mwt-read h1{margin:0;font-size:28px;line-height:1.35;font-weight:600;word-break:break-word}
 .mwt-read-meta{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;margin:16px 0 48px;color:var(--fg-3);font-size:12px;line-height:16px;font-variant-numeric:tabular-nums}
-.mwt-read-meta .mwt-meta-btn{padding:0}
-.mwt-read>.mwt-notes{margin:-32px 0 48px}
 .mwt-sum{display:grid;grid-template-columns:fit-content(40%) minmax(0,1fr);gap:8px 24px;margin:0 0 48px;font-size:13px;line-height:20px;font-variant-numeric:tabular-nums}
 .mwt-sum dt{margin:0;color:var(--fg-3);overflow-wrap:anywhere}
 .mwt-sum dd{margin:0;min-width:0;color:var(--fg);overflow-wrap:anywhere}
 .mwt-read .mwt-md h1,.mwt-read .mwt-md h2,.mwt-read .mwt-md h3{margin:48px 0 16px;font-size:20px;line-height:1.4;font-weight:600}
 .mwt-read .mwt-md h4,.mwt-read .mwt-md h5,.mwt-read .mwt-md h6{margin:32px 0 8px;font-size:16px;line-height:1.4;font-weight:600}
 .mwt-read .mwt-md>:first-child{margin-top:0}
+/*
+ * A table file (.csv / .tsv from the teammate's folder): no fills; the header row sticks (12 at 50 %), rows 14 with 5 %
+ * rules, tabular numerals, number columns right-aligned, an empty cell a faint 「—」 at 30 %, links underlined. The
+ * table scrolls inside its own box (both ways), so the header stays while the rows move.
+ */
+.mwt-tbl-wrap{max-height:max(240px,calc(100vh - 248px));overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--rule) transparent}
+.mwt-tbl{border-collapse:separate;border-spacing:0;min-width:100%;font-size:14px;line-height:20px;font-variant-numeric:tabular-nums}
+.mwt-tbl th{position:sticky;top:0;z-index:1;padding:8px 24px 8px 0;border-bottom:1px solid var(--rule);background:var(--bg);color:var(--fg-3);font-size:12px;line-height:16px;font-weight:400;text-align:left;white-space:nowrap}
+.mwt-tbl td{padding:8px 24px 8px 0;border-bottom:1px solid var(--rule-soft);color:var(--fg);text-align:left;vertical-align:top;white-space:pre-wrap;word-break:break-word}
+/* A cell is as wide as its words up to 360 (then it wraps), so short cells never squeeze: the table scrolls instead. */
+.mwt-tbl td>.c{display:block;width:max-content;max-width:360px}
+.mwt-tbl th:last-child,.mwt-tbl td:last-child{padding-right:0}
+.mwt-tbl .num{text-align:right;white-space:nowrap}
+.mwt-tbl .num>.c{margin-left:auto}
+.mwt-tbl .nil{color:var(--fg);opacity:.3}
+.mwt .mwt-tbl a{color:var(--fg);text-decoration:underline;text-decoration-color:var(--fg-3);text-underline-offset:3px}
+.mwt .mwt-tbl a:hover{text-decoration-color:var(--fg)}
+.mwt-code{margin:0;padding:0 0 0 16px;border-left:1px solid var(--rule);overflow:auto;color:var(--fg-2);font:13px/1.6 var(--font-mono);white-space:pre;tab-size:2}
 .mwt-read-end{display:flex;align-items:center;gap:16px;margin:48px 0 0;padding-top:16px;border-top:1px solid var(--rule);color:var(--fg-3);font-size:12px;line-height:16px}
 /* Markdown: type only. Code without fills (a rule at its left), tables with 5 % hairlines and no fills. */
 .mwt-md{color:var(--fg);font-size:16px;line-height:1.8;word-break:break-word}
@@ -895,22 +910,6 @@ function makeComponents(ctx, t) {
     if (!Array.isArray(rows) || !rows.length) return null
     return h('dl', { className: 'mwt-sum' }, rows.map((r, i) => h(React.Fragment, { key: i }, h('dt', null, r.label), h('dd', null, r.value === undefined || r.value === null ? '' : String(r.value)))))
   }
-  /** The verification in words: 核验中 / 已核验 / 核验发现 n 处 / 未能核验 ('' when there is nothing to say). */
-  const verifyText = (v) => (!v ? '' : v.kind === 'verifying' ? t('verifying')
-    : v.kind === 'passed' ? t('verified')
-    : v.kind === 'issues' ? t('verifyFound').replace('{n}', String(v.issues || 0))
-    : v.kind === 'none' ? t('verifyNone') : '')
-  /**
-   * The verification word at 50 %; --warn only when `warn` (issues found on the thread's newest run). With the verifier's
-   * notes it is a button that opens them; without, plain words.
-   */
-  function Verdict({ v, warn, open, onToggle }) {
-    const text = verifyText(v)
-    if (!text) return null
-    const tone = warn && v.kind === 'issues' ? 'warn' : undefined
-    if (!(v.notes && v.kind !== 'verifying')) return h('span', { className: 'mwt-verdict', 'data-tone': tone }, text)
-    return h('button', { type: 'button', className: 'mwt-meta-btn mwt-verdict', 'data-tone': tone, 'aria-expanded': !!open, onClick: onToggle }, text)
-  }
   /** 有用 / 没用 as two 12px words (the reading view's last line). */
   function Rating({ d, onRate }) {
     return h('span', { className: 'mwt-rate', 'data-chosen': d.rating === 1 || d.rating === -1 },
@@ -920,30 +919,23 @@ function makeComponents(ctx, t) {
   /**
    * A deliverable as an IM message card (a Feishu bot card) under the teammate's avatar: the file title (15 / 600, two
    * lines), its key figures as a two-column field grid (or, without any, the file's first sentence), a footer with the
-   * verification word (--warn when the newest run's check found issues) and 「打开」. The whole card opens the reading
-   * view; 有用 / 没用 live there. `compact` (an older, folded run): the title and the footer only.
+   * time at 50 % and 「打开」 at the right. The whole card opens the reading view; 有用 / 没用 live there. `compact` (an
+   * older, folded run): the title and the footer only.
    */
-  function DocCard({ d, verify, warn, compact, arrive, onOpen }) {
+  function DocCard({ d, compact, arrive, onOpen }) {
     const fields = compact ? [] : fieldsOf(d)
     const deck = compact || fields.length ? '' : firstSentence(d.excerpt)
-    const v = verify || { kind: '' }
+    const when = imTime(d.createdAt, t('yesterday'))
     return h('button', { type: 'button', className: 'mwt-card' + (arrive ? ' mwt-arrive' : ''), onClick: () => onOpen(d) },
       h('span', { className: 'mwt-card-h' }, d.title || d.id),
       fields.length ? h('span', { className: 'mwt-card-b' }, fields.map((f, i) => h('span', { key: i }, h('span', { className: 'k' }, f.label), h('span', { className: 'v' }, f.value)))) : null,
       deck ? h('span', { className: 'mwt-card-d' }, deck) : null,
       h('span', { className: 'mwt-card-f' },
-        h('span', { 'data-tone': warn && v.kind === 'issues' ? 'warn' : undefined }, verifyText(v)),
+        when ? h('span', null, when) : null,
         h('span', { className: 'go' }, t('open'))))
   }
-  /**
-   * The reading view: a deliverable opened in the centre column (the mate page swaps its column for it, the files page
-   * its list). 「← 回到对话」, the title 28, a meta line at 50 % (teammate · time · verification, then underlined text
-   * links), the summary rows, the body; 有用 / 没用 at the end. Escape goes back too.
-   */
-  function ReadingView({ id, mates, backLabel, onBack, fromFiles, newestRunId, onRated }) {
-    const [data, setData] = React.useState(null)
-    const [notes, setNotes] = React.useState(false)
-    React.useEffect(() => { let on = true; setData(null); api('/deliverable?id=' + encodeURIComponent(id)).then((x) => { if (on) setData(x || {}) }).catch(() => { if (on) setData({}) }); return () => { on = false } }, [id])
+  /** Escape leaves the reading view (not from a field, the right panel or a menu). */
+  function useEscapeBack(onBack) {
     const back = React.useRef(onBack); back.current = onBack
     React.useEffect(() => {
       const onKey = (ev) => {
@@ -956,12 +948,23 @@ function makeComponents(ctx, t) {
       window.addEventListener('keydown', onKey)
       return () => window.removeEventListener('keydown', onKey)
     }, [])
+  }
+  /** The meta line: its parts at 50 %, a 「·」 between them. */
+  const metaLine = (parts) => h('div', { className: 'mwt-read-meta' }, parts.filter(Boolean).map((x, i) => (i ? [h('span', { key: 's' + i, 'aria-hidden': 'true' }, '·'), x] : x)))
+  /**
+   * The reading view: a deliverable opened in the centre column (the mate page swaps its column for it, the files page
+   * its list). 「← 回到对话」, the title 28, a meta line at 50 % (teammate · time, then underlined text links), the
+   * summary rows, the body; 有用 / 没用 at the end. Escape goes back too.
+   */
+  function ReadingView({ id, mates, backLabel, onBack, fromFiles, onRated }) {
+    const [data, setData] = React.useState(null)
+    React.useEffect(() => { let on = true; setData(null); api('/deliverable?id=' + encodeURIComponent(id)).then((x) => { if (on) setData(x || {}) }).catch(() => { if (on) setData({}) }); return () => { on = false } }, [id])
+    useEscapeBack(onBack)
     const d = data && data.deliverable ? data.deliverable : null
     const run = data && (data.run || data.task) ? (data.run || data.task) : null
     const mateId = d ? d.mateId || (run && run.mateId) || '' : ''
     const runId = d ? d.runId || (run && run.id) || '' : ''
     const mate = (mates || []).find((m) => m.id === mateId)
-    const v = d ? verifyState(run ? { verifying: run.verifying, verification: run.verification } : { verification: d.verification }) : { kind: '' }
     const rate = (x, r) => api('/rate', { id: x.id, rating: x.rating === r ? null : r }).then((y) => {
       if (!y || !y.deliverable) return
       setData((p) => ({ ...p, deliverable: { ...p.deliverable, rating: y.deliverable.rating } }))
@@ -971,7 +974,6 @@ function makeComponents(ctx, t) {
     if (d) {
       if (mate) meta.push(h('span', { key: 'n' }, mate.name))
       meta.push(h('span', { key: 'w' }, fmtWhen(d.createdAt)))
-      if (verifyText(v)) meta.push(h(Verdict, { key: 'v', v, warn: !!runId && runId === newestRunId, open: notes, onToggle: () => setNotes(!notes) }))
       meta.push(h('button', { key: 'md', type: 'button', className: 'mwt-tbtn', onClick: () => download(safeName(d.title) + '.md', '# ' + d.title + '\n\n' + (d.markdown || '')) }, t('downloadMd')))
       if (!fromFiles) meta.push(h('button', { key: 'fp', type: 'button', className: 'mwt-tbtn', onClick: () => openFiles(d.id) }, t('openInFiles')))
       else {
@@ -985,11 +987,74 @@ function makeComponents(ctx, t) {
         : !d ? h('div', { className: 'mwt-empty' }, t('noMatch'))
           : h(React.Fragment, null,
             h('h1', null, d.title || d.id),
-            h('div', { className: 'mwt-read-meta' }, meta.map((x, i) => (i ? [h('span', { key: 's' + i, 'aria-hidden': 'true' }, '·'), x] : x))),
-            notes && v.notes ? h('div', { className: 'mwt-notes' }, v.notes) : null,
+            metaLine(meta),
             h(SumList, { rows: d.summary }),
             h(Markdown, { text: withoutTitle(d.markdown, d.title) }),
             h('div', { className: 'mwt-read-end' }, h(Rating, { d, onRate: rate }))))
+  }
+
+  /** A table cell: a faint 「—」 when empty, its links underlined. */
+  const cellNode = (v) => {
+    const s = String(v === undefined || v === null ? '' : v)
+    if (!s.trim()) return h('span', { className: 'nil' }, '—')
+    const runs = linkRuns(s)
+    if (runs.length === 1 && !runs[0].href) return s
+    return runs.map((r, i) => (r.href ? h('a', { key: i, href: r.href, target: '_blank', rel: 'noopener noreferrer' }, r.text) : r.text))
+  }
+  /** A .csv / .tsv as a real table (thread.cjs tableOf): the header sticks, number columns right-aligned. */
+  function TableBody({ table }) {
+    const al = (j) => (table.numeric[j] ? 'num' : undefined)
+    return h('div', { className: 'mwt-tbl-wrap', tabIndex: 0 },
+      h('table', { className: 'mwt-tbl' },
+        h('thead', null, h('tr', null, table.header.map((c, j) => h('th', { key: j, className: al(j), scope: 'col' }, String(c).trim() ? c : h('span', { className: 'nil' }, '—'))))),
+        h('tbody', null, table.rows.map((r, i) => h('tr', { key: i }, r.map((c, j) => h('td', { key: j, className: al(j) }, h('span', { className: 'c' }, cellNode(c)))))))))
+  }
+  /**
+   * A file from the teammate's folder in the reading view (GET /mates/file, read again every 15 s): the title is the
+   * name without its extension; the meta line teammate · rows · modified time, then 「下载」 (the raw file) and
+   * 「在对话里改」 (back to the thread, the composer filled with 「把 <表名> 里 」). A .csv / .tsv is a table, .md / .txt
+   * the Markdown body, .json a monospace block.
+   */
+  function FileView({ mate, path, backLabel, onBack, onEdit }) {
+    const [data, setData] = React.useState(null)
+    React.useEffect(() => {
+      let on = true
+      setData(null)
+      const url = '/mates/file?id=' + encodeURIComponent(mate.id) + '&path=' + encodeURIComponent(path)
+      // A later read that fails keeps what is on screen; the same text keeps the same object (no re-render).
+      const load = () => api(url).then((x) => { if (on) setData((p) => (p && !p.error && p.text === x.text && p.modifiedAt === x.modifiedAt ? p : x)) })
+        .catch((e) => { if (on) setData((p) => (p && !p.error ? p : { error: (e && e.message) || String(e) })) })
+      load()
+      const timer = setInterval(() => { if (typeof document === 'undefined' || document.visibilityState !== 'hidden') load() }, FILE_POLL_MS)
+      return () => { on = false; clearInterval(timer) }
+    }, [mate.id, path])
+    useEscapeBack(onBack)
+    const name = (data && data.name) || String(path).split('/').pop() || path
+    const title = name.replace(/\.[^./]+$/, '') || name
+    const kind = fileKindOf(name)
+    const text = data && typeof data.text === 'string' ? data.text : ''
+    const table = React.useMemo(() => (kind === 'table' && data && !data.error ? tableOf(text, /\.tsv$/i.test(name) ? '\t' : ',') : null), [kind, text, name, !!(data && data.error)])
+    const json = React.useMemo(() => { if (kind !== 'json') return ''; try { return JSON.stringify(JSON.parse(text), null, 2) } catch { return text } }, [kind, text])
+    const type = kind === 'table' ? (/\.tsv$/i.test(name) ? 'text/tab-separated-values' : 'text/csv') : kind === 'json' ? 'application/json' : kind === 'markdown' ? 'text/markdown' : 'text/plain'
+    const ok = data && !data.error
+    const meta = ok ? [
+      h('span', { key: 'n' }, mate.name),
+      table ? h('span', { key: 'r' }, t('rowsCount').replace('{n}', String(table.rows.length))) : null,
+      data.modifiedAt ? h('span', { key: 'w' }, fmtWhen(data.modifiedAt)) : null,
+      data.truncated ? h('span', { key: 'tr' }, t('truncated')) : null,
+      h('button', { key: 'dl', type: 'button', className: 'mwt-tbtn', onClick: () => download(name, text, type + ';charset=utf-8') }, t('download')),
+      h('button', { key: 'ed', type: 'button', className: 'mwt-tbtn', onClick: () => onEdit(title) }, t('editInThread')),
+    ] : []
+    const body = !ok ? null
+      : !text.trim() ? h('div', { className: 'mwt-empty' }, t('fileEmpty'))
+        : kind === 'table' ? h(TableBody, { table })
+          : kind === 'json' ? h('pre', { className: 'mwt-code' }, json)
+            : h(Markdown, { text: kind === 'markdown' ? withoutTitle(text, title) : text })
+    return h('article', { className: 'mwt-read', 'data-file': path },
+      h('button', { type: 'button', className: 'mwt-read-back', onClick: onBack }, '← ' + backLabel),
+      !data ? h(Skeleton, { rows: 6 })
+        : data.error ? h(React.Fragment, null, h('h1', null, title), h('div', { className: 'mwt-retry', style: { marginTop: 16 } }, h('span', null, data.error)))
+          : h(React.Fragment, null, h('h1', null, title), metaLine(meta), body))
   }
 
   /**
@@ -1026,21 +1091,19 @@ function makeComponents(ctx, t) {
         out.push({ kind: 'phase', verb: d.verb, obj: d.obj, items: [e], at: e.at, failed: e.ok === false ? 1 : 0 })
         continue
       }
-      if (e.kind === 'text' || e.kind === 'verify') out.push(e)
+      if (e.kind === 'text') out.push(e)
     }
     const end = run.finishedAt || new Date().toISOString()
     for (let i = 0; i < out.length; i++) if (out[i].kind === 'phase') out[i].ms = new Date((out[i + 1] && out[i + 1].at) || end) - new Date(out[i].at)
     return out
   }
-  const hasProcess = (run) => !!(run.process && run.process.tools) || (Array.isArray(run.activity) ? run.activity : []).some((e) => e && (e.kind === 'tool' || e.kind === 'verify'))
+  const hasProcess = (run) => !!(run.process && run.process.tools) || (Array.isArray(run.activity) ? run.activity : []).some((e) => e && e.kind === 'tool')
 
   function Phases({ run, rows, live }) {
     const [open, setOpen] = React.useState(-1)
     const lastIdx = rows.length - 1
     React.useEffect(() => { if (live && rows[lastIdx] && rows[lastIdx].kind === 'phase') setOpen(lastIdx) }, [live, rows.length])
-    const v = run.verification && typeof run.verification === 'object' ? run.verification : null
-    const vs = verifyState(run)
-    if (!rows.length && !v) return h('div', { className: 'mwt-empty' }, t('none2'))
+    if (!rows.length) return h('div', { className: 'mwt-empty' }, t('none2'))
     return h('div', { className: 'mwt-phases' },
       rows.map((r, i) => {
         if (r.kind === 'phase') {
@@ -1054,18 +1117,15 @@ function makeComponents(ctx, t) {
               open !== i && r.obj ? h('span', { className: 'obj' }, r.obj) : null),
             open === i ? h('div', { className: 'mwt-phase-body' }, r.items.map((e, j) => { const d = describeTool(e.name, e.detail); return h('div', { key: j, className: 'mwt-ev', 'data-ok': e.ok === undefined ? undefined : e.ok, title: e.name + (e.detail ? ' ' + e.detail : '') }, h('span', { className: 'verb' }, d.verb), d.obj ? h('span', { className: 'obj' }, d.obj) : null, e.ok === false && e.result ? h('span', { className: 'result' }, t('toolFailed') + ' · ' + e.result) : null) })) : null)
         }
-        return h(PhaseNote, { key: i, text: r.text, label: r.kind === 'verify' ? t('verifyLabel') : '' })
-      }),
-      v ? h('div', { className: 'mwt-phase-head', 'data-tone': vs.kind === 'verifying' ? 'live' : undefined },
-        h('span', { className: 'verb' }, t('verifyLabel')),
-        h('span', { className: 'meta' }, [vs.kind === 'verifying' ? t('verifying') : vs.kind === 'passed' ? t('passed') : vs.kind === 'issues' ? t('verifyIssues') : t('verifyNone'), vs.checked ? t('checked') + ' ' + vs.checked : '', vs.issues ? t('issues') + ' ' + vs.issues : ''].filter(Boolean).join(' · '))) : null)
+        return h(PhaseNote, { key: i, text: r.text })
+      }))
   }
 
   /** What the teammate said mid-run: two lines, the whole note on tap. */
-  function PhaseNote({ text, label }) {
+  function PhaseNote({ text }) {
     const [open, setOpen] = React.useState(false)
     return h('div', { className: 'mwt-phase-note' + (open ? ' open' : ''), role: 'button', tabIndex: 0, onClick: () => setOpen(!open), onKeyDown: (e) => { if (e.key === 'Enter') setOpen(!open) } },
-      h('div', { className: 'body' }, label ? h('span', { className: 'lbl' }, label + ' · ') : null, text))
+      h('div', { className: 'body' }, text))
   }
 
   function Menu({ items }) {
@@ -1198,7 +1258,6 @@ function makeComponents(ctx, t) {
     const lists = React.useMemo(() => new Map(runs.map((r) => [r.id, threadOf(r)])), [runs])
     // Migrated runs and finished runs older than the newest five fold to the user line + one row per deliverable.
     const folded = React.useMemo(() => foldedRunIds(runs, 5), [runs])
-    const newestId = runs.length ? runs[runs.length - 1].id : ''
     const live = activeRun(runs)
     const running = mate.state === 'working' || (!!live && isLive(live))
     useTick(running)
@@ -1216,12 +1275,14 @@ function makeComponents(ctx, t) {
     // The composer's draft outlives the reading view (the dock is not on screen while a file is open).
     const draft = React.useRef('')
 
-    // The reading view: the open deliverable's id; the thread's scroll position is kept for the way back.
-    const [reading, setReading] = React.useState('')
-    const readingRef = React.useRef(''); readingRef.current = reading
+    // The reading view: null, { kind: 'doc', id } (a deliverable) or { kind: 'file', path } (a file of the teammate's
+    // folder, opened from 电脑); the thread's scroll position is kept for the way back.
+    const [reading, setReading] = React.useState(null)
+    const readingRef = React.useRef(null); readingRef.current = reading
     const backTo = React.useRef(null)
-    const openDoc = (d) => { const el = rootRef.current; if (!readingRef.current) backTo.current = el ? el.scrollTop : 0; setReading(String(d.id)) }
-    const closeDoc = React.useCallback(() => setReading(''), [])
+    const openReading = (r) => { const el = rootRef.current; if (!readingRef.current) backTo.current = el ? el.scrollTop : 0; setReading(r) }
+    const openDoc = (d) => openReading({ kind: 'doc', id: String(d.id) })
+    const closeDoc = React.useCallback(() => setReading(null), [])
     React.useLayoutEffect(() => {
       const el = rootRef.current
       if (!el) return
@@ -1249,7 +1310,7 @@ function makeComponents(ctx, t) {
     React.useEffect(() => {
       if (n.seq === consumedSeq) return
       consumedSeq = n.seq
-      if (n.runId) { backTo.current = null; setReading(''); jump.current = { id: n.runId, tries: 0 }; setJumpSeq((x) => x + 1) }
+      if (n.runId) { backTo.current = null; setReading(null); jump.current = { id: n.runId, tries: 0 }; setJumpSeq((x) => x + 1) }
       const a = n.aside
       if (a && a.mode === 'new-mate') showAside(true, { mode: 'new-mate', section: '', routineId: '' })
       else if (a) showAside(true, { mode: 'mate', section: a.section || '', routineId: a.routineId || '' })
@@ -1355,6 +1416,15 @@ function makeComponents(ctx, t) {
     const textAsk = textAskOf(runs)
     // The example prompts of an empty thread fill the composer.
     const fillRef = React.useRef(null)
+    // A file from 电脑 opens in the centre; as a slide-over, the panel steps aside for it (without remembering it closed).
+    const openFile = (f) => { openReading({ kind: 'file', path: String(f.path) }); if (!split) setAside((a) => (a.open ? { ...a, open: false, seq: a.seq + 1 } : a)) }
+    // 「在对话里改」: back to the thread, the composer filled with 「把 <表名> 里 」 and focused (the dock mounts on the way back).
+    const editInThread = (name) => {
+      const text = t('editPrefix').replace('{name}', name)
+      draft.current = text
+      setReading(null)
+      setTimeout(() => { if (fillRef.current) fillRef.current(text) }, 0)
+    }
 
     /**
      * One run as IM items in time order: { side: 'me' | 'mate' | 'note' | 'status', at, key, make(first), card }.
@@ -1377,7 +1447,7 @@ function makeComponents(ctx, t) {
         else if (e.kind === 'text') add('mate', e, bubble('', arrive, h(Markdown, { text: e.text })))
         else if (e.kind === 'deliver') {
           if (!fold && plainOf(e.text)) add('mate', { ...e, key: e.key + ':t' }, bubble('', arrive, h(Markdown, { text: e.text })))
-          for (const d of e.ds || [e.d]) add('mate', { ...e, key: e.key + ':' + d.id }, () => h(DocCard, { d, verify: e.verify, warn: run.id === newestId, compact: fold, arrive, onOpen: openDoc }), { card: true })
+          for (const d of e.ds || [e.d]) add('mate', { ...e, key: e.key + ':' + d.id }, () => h(DocCard, { d, compact: fold, arrive, onOpen: openDoc }), { card: true })
         } else if (e.kind === 'ask') add('mate', e, () => h(AskCard, { e, onAnswer: answer(run.id), onTakeover: takeover }), { card: true })
         else if (e.kind === 'remind') add('mate', e, () => h(RemindCard, { e, onAck: ack }), { card: true })
         else if (e.kind === 'failed') add('mate', e, bubble('danger', false, t('failedTitle') + ' · ' + e.reason))
@@ -1450,7 +1520,7 @@ function makeComponents(ctx, t) {
     const title = panelMode === 'new-mate' ? t('newMate') : panelMode === 'settings' ? t('settings') : t('computer')
     const asideBody = () => aside.mode === 'new-mate'
       ? h(NewMateForm, { mates, onCreated: (m) => { setAside((a) => ({ ...a, open: false, mode: 'mate', seq: a.seq + 1 })); if (getNav().mateId !== m.id) openMate(m.id) } })
-      : h(MatePanel, { mate, mates, live, screen, renderSlot, section: aside.section, routineId: aside.routineId, seq: aside.seq, onJump: (runId) => { backTo.current = null; setReading(''); jump.current = { id: runId, tries: 0 }; setJumpSeq((x) => x + 1) } })
+      : h(MatePanel, { mate, mates, live, screen, renderSlot, section: aside.section, routineId: aside.routineId, seq: aside.seq, openPath: reading && reading.kind === 'file' ? reading.path : '', onOpenFile: openFile, onJump: (runId) => { backTo.current = null; setReading(null); jump.current = { id: runId, tries: 0 }; setJumpSeq((x) => x + 1) } })
     const asidePanel = (mode) => h('aside', { className: 'mwt-aside ' + mode, 'data-open': mode === 'over' ? shown : undefined, 'aria-label': title, 'aria-hidden': mode === 'over' && !shown ? 'true' : undefined, style: mode === 'col' && box.h ? { height: box.h } : undefined },
       h('div', { className: 'mwt-aside-head' },
         h('span', { className: 'title' }, title),
@@ -1485,7 +1555,9 @@ function makeComponents(ctx, t) {
       !split ? h('div', { className: 'mwt-aside-dock' }, h('div', { className: 'mwt-aside-clip', style: box.h ? { height: box.h } : undefined }, asidePanel('over'))) : null,
       h('div', { className: 'mwt-page mate' + (shown && split ? ' split' : '') },
         h('div', { className: 'mwt-col' },
-          reading ? h('div', { className: 'mwt-inner' }, h(ReadingView, { key: reading, id: reading, mates, backLabel: t('backToThread'), onBack: closeDoc, newestRunId: newestId, onRated: patchRating })) : thread()),
+          reading ? h('div', { className: 'mwt-inner' }, reading.kind === 'file'
+            ? h(FileView, { key: 'f:' + reading.path, mate, path: reading.path, backLabel: t('backToThread'), onBack: closeDoc, onEdit: editInThread })
+            : h(ReadingView, { key: 'd:' + reading.id, id: reading.id, mates, backLabel: t('backToThread'), onBack: closeDoc, onRated: patchRating })) : thread()),
         shown && split ? asidePanel('col') : null))
   }
 
@@ -1539,7 +1611,7 @@ function makeComponents(ctx, t) {
 
   // ---- the right panel: 电脑 · 例行 · 设置 -----------------------------------------------------------------------------
 
-  function MatePanel({ mate, mates, live, screen, renderSlot, section, routineId, seq, onJump }) {
+  function MatePanel({ mate, mates, live, screen, renderSlot, section, routineId, seq, openPath, onOpenFile, onJump }) {
     const ref = React.useRef(null)
     React.useEffect(() => {
       if (!section || !ref.current) return
@@ -1550,7 +1622,7 @@ function makeComponents(ctx, t) {
     if (section === 'settings') return h('div', { ref }, h('section', { className: 'mwt-sec', 'data-sec': 'settings' }, h(MateSettings, { key: mate.id, mate, mates })))
     return h('div', { ref },
       h('section', { className: 'mwt-sec', 'data-sec': 'computer' },
-        screen ? renderSlot(ASIDE_SLOT, { task: live, deliverables: (live && live.deliverables) || [], live: isLive(live) }, { only: screen.id }) : h(MateFiles, { mate })),
+        screen ? renderSlot(ASIDE_SLOT, { task: live, deliverables: (live && live.deliverables) || [], live: isLive(live) }, { only: screen.id }) : h(MateFiles, { mate, openPath, onOpen: onOpenFile })),
       h('section', { className: 'mwt-sec', 'data-sec': 'routines' },
         h('h2', null, t('routines'), h('span', { className: 'grow' }), h('button', { type: 'button', className: 'mwt-ibtn', 'aria-label': t('newRoutine'), title: t('newRoutine'), onClick: () => { if (addRef.current) addRef.current.focus() } }, icon('plus', { size: 16 }))),
         h(MateRoutines, { mate, expand: routineId, seq, onJump, addRef })))
@@ -1558,10 +1630,11 @@ function makeComponents(ctx, t) {
 
   /**
    * 电脑 when no browser is in use: the newest files in the teammate's folder (GET /mates/folder: what it wrote with fs /
-   * bash), up to 8 rows of text (name 15 · size · time 12; the path in the tooltip): .csv tables first under 「表格」,
-   * the other files under 「文件」.
+   * bash), up to 8 rows of text (name 15 · size · time 12; the path in the tooltip): .csv / .tsv tables first under
+   * 「表格」, the other files under 「文件」. A table, .md, .txt or .json row opens the file in the centre reading view
+   * (the open one keeps a 5 % ground); other files are listed only.
    */
-  function MateFiles({ mate }) {
+  function MateFiles({ mate, openPath, onOpen }) {
     const [items, setItems] = React.useState(null)
     React.useEffect(() => {
       let on = true
@@ -1570,11 +1643,18 @@ function makeComponents(ctx, t) {
     }, [mate.id, mate.lastAt || '', mate.state || ''])
     if (!items) return h(Skeleton, { rows: 2 })
     if (!items.length) return h('div', { className: 'mwt-empty' }, t('folderEmpty'))
-    const isTable = (f) => /\.csv$/i.test(String(f.name || ''))
+    const isTable = (f) => fileKindOf(f.name) === 'table'
     const shown = [...items.filter(isTable), ...items.filter((f) => !isTable(f))].slice(0, 8)
-    const row = (f) => h('div', { key: f.path || f.name, className: 'mwt-arow static', title: f.path || undefined },
-      h('span', { className: 'main' }, h('span', { className: 't' }, f.name)),
-      h('span', { className: 'm' }, [fmtSize(f.size), fmtWhen(f.modifiedAt)].filter(Boolean).join(' · ')))
+    const row = (f) => {
+      const can = !!onOpen && !!f.path && !!fileKindOf(f.name)
+      const kids = [
+        h('span', { key: 'a', className: 'main' }, h('span', { className: 't' }, f.name)),
+        h('span', { key: 'b', className: 'm' }, [fmtSize(f.size), fmtWhen(f.modifiedAt)].filter(Boolean).join(' · ')),
+      ]
+      return can
+        ? h('button', { key: f.path, type: 'button', className: 'mwt-arow', title: f.path, 'aria-current': openPath === f.path ? 'true' : undefined, onClick: () => onOpen(f) }, kids)
+        : h('div', { key: f.path || f.name, className: 'mwt-arow static', title: f.path || undefined }, kids)
+    }
     const group = (label, list) => (list.length ? [h('div', { key: 'l' + label, className: 'mwt-flabel' }, label), h('div', { key: 'g' + label, className: 'mwt-alist' }, list.map(row))] : null)
     return h('div', null, group(t('tables'), shown.filter(isTable)), group(t('file'), shown.filter((f) => !isTable(f))))
   }
@@ -1772,7 +1852,7 @@ function makeComponents(ctx, t) {
 
   /**
    * 文件: every teammate's files — the title 32 and the count, plain text tabs (全部 + one per teammate), search, rows
-   * of text (title 16; teammate · verification · time at 50 %) between 5 % rules. A row opens the file in the reading
+   * of text (title 16; teammate · time at 50 %) between 5 % rules. A row opens the file in the reading
    * view, in place of the list (back returns to the list where you were).
    */
   function FilesPage() {
@@ -1802,7 +1882,6 @@ function makeComponents(ctx, t) {
       return () => { on = false }
     }, [who, needle, s.loadedAt])
     const mateName = (id) => (s.mates.find((m) => m.id === id) || {}).name || ''
-    const word = (d) => { const v = verifyState({ verifying: d.verifying, verification: d.verification }); return v.kind === 'passed' ? t('verified') : v.kind === 'issues' ? t('verifyIssues') : v.kind === 'none' ? t('verifyNone') : v.kind === 'verifying' ? t('verifying') : '' }
     return h('div', { ref: rootRef, className: 'mwt mwt-files' }, h('style', null, STYLE), h('div', { className: 'mwt-page' + (open ? ' reading' : '') },
       open ? h(ReadingView, { key: open, id: open, mates: s.mates, backLabel: t('backToFiles'), onBack: () => setOpen(''), fromFiles: true, onRated: (d) => setItems((p) => (p || []).map((y) => (y.id === d.id ? { ...y, rating: d.rating } : y))) })
         : h(React.Fragment, null,
@@ -1813,7 +1892,7 @@ function makeComponents(ctx, t) {
           !items ? h(Skeleton, { rows: 4 })
             : items.length ? h('div', { className: 'mwt-list' }, items.map((d) => h('button', { key: d.id, type: 'button', className: 'mwt-row', onClick: () => show(d.id) },
               h('span', { className: 't' }, d.title || d.id),
-              h('span', { className: 'm' }, [mateName(d.mateId), word(d), fmtWhen(d.createdAt)].filter(Boolean).join(' · ')))))
+              h('span', { className: 'm' }, [mateName(d.mateId), fmtWhen(d.createdAt)].filter(Boolean).join(' · ')))))
             : h('div', { className: 'mwt-empty' }, needle ? t('noMatch') : t('noFiles')))))
   }
 

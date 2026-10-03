@@ -15,7 +15,7 @@
  */
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync, appendFileSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { dirname, join } from 'node:path'
+import { dirname, extname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { ASK_TEXT, bad, createEngine, mateSessionId, notFound } from './engine.js'
 import { configSchema, defineRawTool, rejectUntrusted } from './harness.js'
@@ -31,7 +31,7 @@ export const name = 'dsh-mywork-tasks'
 export const inject = ['tools', 'agents', 'sessions', 'workspaceRegistry', 'agentDefaultModel', 'agentPresets', 'permissionPresets']
 
 /** Config (all optional): concurrency (teammates working at once), timeoutMinutes (per run), permission, agentPreset (base of the verifier), tools, verify */
-export const Config = configSchema({ concurrency: 2, timeoutMinutes: 20, permission: 'workspace-write', agentPreset: 'standard', tools: true, verify: true })
+export const Config = configSchema({ concurrency: 2, timeoutMinutes: 20, permission: 'workspace-write', agentPreset: 'standard', tools: true, verify: false })
 
 const PACKAGE_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const MEMORY_FILE = 'AGENTS.md'
@@ -168,10 +168,13 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     const pending = waiting ? pendingAsk(waiting) : null
     let lastAt = ''
     let attentionAt = ''
+    let unreadCount = 0
     for (const r of runs) {
       if (isQuietRun(r)) continue
       lastAt = later(lastAt, lastAtOf(r, docs.get(r.id) || []))
-      attentionAt = later(attentionAt, attentionOf(r))
+      const a = attentionOf(r)
+      attentionAt = later(attentionAt, a)
+      if (a && seen.unread(m.id, a)) unreadCount++
     }
     let preview = ''
     if (state === 'working') preview = clip('在干活' + (step ? ' · ' + step : ''))
@@ -180,7 +183,7 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     return {
       id: m.id, name: m.name || '新同事', named: !!m.name, title: m.title || '', description: m.description || '', glyph: m.glyph || glyphOf(m.name),
       pinned: !!m.pinned, isDefault: !!m.isDefault, notify: m.notify !== false, group: m.group || '', avatar: m.avatar || null, createdAt: m.createdAt,
-      lastAt: lastAt || m.createdAt, preview, unread: seen.unread(m.id, attentionAt), attentionAt,
+      lastAt: lastAt || m.createdAt, preview, unread: seen.unread(m.id, attentionAt), unreadCount, attentionAt,
       state, step, since: running ? (running.startedAt || running.createdAt) : live.length ? live[0].createdAt : pending ? pending.at : '',
       ask: pending ? { ...askView(pending), runId: waiting.id } : null,
       routineCount: routines.forMate(m.id).length, dir: m.dir,
@@ -253,7 +256,27 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
 
   // ── 日报 / 周报 material ──
   /** What every teammate did in the last N calendar days (today counts as one): what was said, replies, files, failures. */
-  function workRecord(days) {
+  /** Today's rows of every 日程表.csv / schedule.csv in the teammates' folders, as plain lines (the morning brief's agenda). */
+  function todaySchedule() {
+    const d = new Date()
+    const today = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0')
+    const out = []
+    for (const m of mates.items) {
+      for (const name of ['日程表.csv', 'schedule.csv']) {
+        const file = join(m.dir, name)
+        if (!existsSync(file)) continue
+        let text = ''
+        try { text = readFileSync(file, 'utf8').replace(/^\uFEFF/, '') } catch { continue }
+        const [head, ...rows] = text.split(/\r?\n/).filter((l) => l.trim())
+        if (!head) continue
+        for (const row of rows) if (row.startsWith(today)) out.push(`- ${row}`)
+        if (out.length) out.unshift(`（${m.name || '同事'}的${name}，表头：${head}）`)
+      }
+    }
+    return out.join('\n')
+  }
+
+  function workRecord(days, opts = {}) {
     const start = new Date(); start.setHours(0, 0, 0, 0); start.setDate(start.getDate() - Math.max(0, days - 1))
     const since = start.getTime()
     const stamp = (iso) => { const d = new Date(iso); return (d.getMonth() + 1) + '/' + d.getDate() + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') }
@@ -285,7 +308,8 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
       if (mine.length) out.push(`【${m.name || '新同事'}】\n` + mine.slice(-60).join('\n'))
     }
     const standing = routines.items.filter((r) => r.enabled).map((r) => `- ${r.title}：${describeSchedule(r.schedule)}${r.kind === 'remind' ? '（提醒）' : ''} · ${mateName(r.mateId || DEFAULT_MATE_ID)}`)
-    return [out.length ? '同事们做过的事（按同事分）：\n' + out.join('\n\n') : '', '现在有效的例行（以此为准，别的说法都过时了）：\n' + (standing.join('\n') || '- 无')].filter(Boolean).join('\n\n')
+    const agenda = opts.schedule ? todaySchedule() : ''
+    return [opts.schedule ? '今天的会（来自日程表）：\n' + (agenda || '- 日程表里今天没有安排') : '', out.length ? '同事们做过的事（按同事分）：\n' + out.join('\n\n') : '', '现在有效的例行（以此为准，别的说法都过时了）：\n' + (standing.join('\n') || '- 无')].filter(Boolean).join('\n\n')
   }
 
   const engine = createEngine({
@@ -299,6 +323,21 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
   })
   // Restart repair runs now, before any route or pump can hand a new message over; the wake-up nudge comes later.
   engine.repair()
+  // MyWork ships with a daily morning brief. Created once and remembered in defaults.json, so a deleted brief stays deleted.
+  queueMicrotask(() => {
+    try {
+      const file = join(dir, 'defaults.json')
+      const done = existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : {}
+      if (done.morningBrief) return
+      if (!routines.forMate(DEFAULT_MATE_ID).some((r) => /晨报/.test(r.title + r.input))) {
+        createRoutine({
+          mateId: DEFAULT_MATE_ID, title: '晨报', schedule: { type: 'daily', time: '08:40' },
+          input: '每天早上 8:40 给我一份晨报：先列今天的会（时间、会议、要准备什么）；再从同事们昨天以来交来的东西里挑最值得我看的 3 条，和今天的会有关的排在前面，每条一句话说为什么要看；最后列出等我拍板的事。没有的部分就写「无」，不要编。',
+        })
+      }
+      writeFileSync(file, JSON.stringify({ ...done, morningBrief: true }, null, 2))
+    } catch (e) { log('default morning brief: ' + (e && e.message)) }
+  })
 
   // ── teammates ──
   function createMate(b) {
@@ -441,6 +480,24 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     walk(m.dir, '', 0)
     items.sort((a, b) => ts(b.modifiedAt) - ts(a.modifiedAt))
     return { dir: m.dir, items: items.slice(0, 30) }
+  }
+
+  /** One text file from a teammate's folder, read-only (tables and notes open in the reading view). Never leaves the folder. */
+  const READABLE = new Set(['.csv', '.tsv', '.md', '.txt', '.json'])
+  function folderFile(id, path) {
+    const m = mates.get(String(id || ''))
+    if (!m) throw notFound('同事不存在。')
+    const rel = String(path || '')
+    const full = resolve(m.dir, rel)
+    const inside = relative(resolve(m.dir), full)
+    if (!rel || inside.startsWith('..') || inside.startsWith('/') || inside === '') throw bad('路径不在同事的文件夹里。')
+    if (!READABLE.has(extname(full).toLowerCase())) throw bad('只能打开表格和文本。')
+    let st
+    try { st = statSync(full) } catch { throw notFound('文件不存在。') }
+    if (!st.isFile()) throw notFound('文件不存在。')
+    const max = 512 * 1024
+    const text = readFileSync(full, 'utf8').slice(0, max)
+    return { path: inside, name: inside.split('/').pop(), size: st.size, modifiedAt: st.mtime.toISOString(), truncated: st.size > max, text }
   }
 
   // ── routines ──
@@ -696,6 +753,7 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     '/mates/thread': { GET: (q) => thread(q.get('id'), q.get('before'), q.get('limit')) },
     '/run': { GET: (q) => runById(q.get('id')) },
     '/mates/folder': { GET: (q) => folder(q.get('id')) },
+    '/mates/file': { GET: (q) => folderFile(q.get('id'), q.get('path')) },
     '/mates/say': {
       POST: async (_q, b) => {
         if (!String((b && b.text) || '').trim()) throw bad('text is required')

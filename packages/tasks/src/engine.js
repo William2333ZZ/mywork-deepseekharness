@@ -31,7 +31,7 @@ import { existsSync, mkdirSync } from 'node:fs'
 import { randomUUID } from 'node:crypto'
 import { ACTIVITY_DETAIL_MAX, ASK_DETAIL_MAX, ASK_EXPIRY_MS, ASK_KINDS, ASK_MAX_PER_TASK, ASK_OPTION_MAX, ASK_OPTIONS_MAX, ASK_OPTIONS_MIN, ASK_QUESTION_MAX, MATE_SESSION_PREFIX, pendingAsk, titleOf, ts } from './store.js'
 import { defaultVerifyPrompt, parseVerdict, stepNameFor } from './scenarios.js'
-import { changedVerdict, parseSchedule, recordDays, routinePrompt, stripVerdict, wantsRecord } from './routines.js'
+import { changedVerdict, parseSchedule, recordDays, routinePrompt, stripVerdict, wantsRecord, wantsSchedule } from './routines.js'
 
 const VERIFY_TIMEOUT_MS = 5 * 60000
 const VERIFY_PREFIX = 'mywork-verify-'
@@ -320,7 +320,7 @@ export function createEngine({ ctx, store, deliverables, mates, routines, scenar
       if (routine) {
         const previousRun = (routine.runs || []).find((r) => r.taskId && r.taskId !== run.id && r.deliverableId)
         const previous = previousRun ? deliverables.get(previousRun.deliverableId) : null
-        const record = wantsRecord(routine) && typeof workRecord === 'function' ? workRecord(recordDays(routine)) : ''
+        const record = wantsRecord(routine) && typeof workRecord === 'function' ? workRecord(recordDays(routine), { schedule: wantsSchedule(routine) }) : ''
         if (record) store.update(run.id, { material: record, report: true }) // the verifier must see the same record
         return routinePrompt(routine, previous, record)
       }

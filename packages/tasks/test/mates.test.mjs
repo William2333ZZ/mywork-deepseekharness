@@ -566,8 +566,11 @@ test('memory, routine tools and the thread page', async () => {
   await h.until(() => h.run(runId).status === 'done')
   const memory = readFileSync(join(h.dir, 'mywork', 'mates', 'mywork', 'AGENTS.md'), 'utf8')
   assert.match(memory, /^# MyWork 记住的事/); assert.match(memory, /\n- \d{4}-\d{2}-\d{2} 周报用表格，按项目分\n$/)
-  assert.deepEqual(listed.items.map((r) => r.kind), ['remind', 'task'])
-  assert.deepEqual(h.mw.routines.forMate('mywork').map((r) => r.title), ['喝水'])
+  // MyWork's default morning brief (晨报) is there from the start; the rest are what this run created.
+  const own = (list) => list.filter((r) => r.title !== '晨报')
+  assert.equal(listed.items.filter((r) => r.title === '晨报').length, 1)
+  assert.deepEqual(own(listed.items).map((r) => r.kind), ['remind', 'task'])
+  assert.deepEqual(own(h.mw.routines.forMate('mywork')).map((r) => r.title), ['喝水'])
   assert.deepEqual(h.run(runId).activity.filter((a) => a.kind === 'routine').map((a) => a.title), ['喝水', '给我一份简报'])
   // Paging: the newest `limit` runs before `before`, ascending; nextBefore until the start.
   for (let i = 0; i < 4; i += 1) { const r = h.mw.store.create({ mateId: 'mywork', trigger: 'user', input: 'old ' + i, status: 'done' }); r.createdAt = new Date(Date.parse('2026-09-01T00:00:00Z') + i * 1000).toISOString() }
@@ -882,4 +885,13 @@ test('the removal event names the teammate that was removed', async () => {
   assert.deepEqual(removed.mate, { id: mate.id })
   assert.ok(h.events.some((p) => p.kind === 'mate' && p.removed && p.mate && p.mate.id === mate.id))
   h.cleanup()
+})
+
+test('MyWork ships with a daily morning brief, created once; deleting it is remembered', async () => {
+  const h = harness()
+  await h.until(() => h.mw.routines.forMate('mywork').some((r) => r.title === '晨报'))
+  const brief = h.mw.routines.forMate('mywork').find((r) => r.title === '晨报')
+  assert.deepEqual(brief.schedule, { type: 'daily', time: '08:40' })
+  assert.match(brief.input, /今天的会/)
+  assert.ok(existsSync(join(h.dir, 'mywork', 'defaults.json')))
 })

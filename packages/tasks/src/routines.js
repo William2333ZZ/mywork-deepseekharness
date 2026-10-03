@@ -258,12 +258,15 @@ export function routineView(r, seen) {
 
 /** The prompt of one routine run: the standing request plus what last time delivered, changes first. */
 /** Does this routine write about a period of work (周报 / 日报 / 总结)? Then the run gets MyWork's record of that period. */
-export function wantsRecord(routine) { return /周报|日报|月报|汇报|总结|回顾|复盘/.test(String(routine.input || '') + String(routine.title || '')) }
+export function wantsRecord(routine) { return /晨报|周报|日报|月报|汇报|总结|回顾|复盘/.test(String(routine.input || '') + String(routine.title || '')) }
+/** The morning brief also gets today's meetings from the teammates' schedule tables. */
+export function wantsSchedule(routine) { return /晨报/.test(String(routine.input || '') + String(routine.title || '')) }
 export function recordDays(routine) {
   const text = String(routine.input || '') + String(routine.title || '')
   if (/月报/.test(text)) return 30
   if (/周报/.test(text)) return 7
   if (/日报/.test(text)) return 1
+  if (/晨报/.test(text)) return 2 // yesterday and this morning
   const s = routine.schedule || {}
   return s.type === 'weekly' ? 7 : s.type === 'daily' || s.type === 'workdays' || s.type === 'interval' || s.type === 'hourly' ? 1 : 7
 }

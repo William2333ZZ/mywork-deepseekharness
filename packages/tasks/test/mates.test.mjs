@@ -895,3 +895,24 @@ test('MyWork ships with a daily morning brief, created once; deleting it is reme
   assert.match(brief.input, /今天的会/)
   assert.ok(existsSync(join(h.dir, 'mywork', 'defaults.json')))
 })
+
+test('any file in a teammate folder opens by a signed link; tampered or escaping links are refused; HTML is sandboxed', async () => {
+  const h = harness()
+  const dir = join(h.dir, 'mywork', 'mates', 'mywork')
+  mkdirSync(dir, { recursive: true })
+  writeFileSync(join(dir, 'report.html'), '<h1>hi</h1>')
+  writeFileSync(join(dir, 'chart.png'), Buffer.from([0x89, 0x50, 0x4e, 0x47]))
+  const link = (await h.ok('GET', '/mates/link', { id: 'mywork', path: 'report.html' }))
+  assert.match(link.url, /^\/mywork-tasks\/files\/raw\?/)
+  const serve = (url) => new Promise((resolve) => {
+    const chunks = []; const res = { headers: {}, status: 0, writeHead(s, hd) { this.status = s; Object.assign(this.headers, hd || {}) }, write(c) { chunks.push(Buffer.from(c)) }, end(c) { if (c) chunks.push(Buffer.from(c)); resolve({ status: this.status, headers: this.headers, body: Buffer.concat(chunks).toString() }) }, on() {}, once() {}, emit() {}, removeListener() {} }
+    h.mw.api.serveFile({ url }, res)
+  })
+  const ok = await serve(link.url)
+  assert.equal(ok.status, 200); assert.match(ok.headers['content-type'], /text\/html/); assert.match(ok.headers['content-security-policy'], /sandbox/); assert.equal(ok.body, '<h1>hi</h1>')
+  assert.equal((await serve(link.url.replace(/sig=[^&]+/, 'sig=AAAA'))).status, 403)
+  assert.equal((await serve(link.url.replace('report.html', 'chart.png'))).status, 403) // the signature covers the path
+  assert.equal((await h.call('GET', '/mates/link', { id: 'mywork', path: '../../mates.json' })).status, 400)
+  const img = await h.ok('GET', '/mates/link', { id: 'mywork', path: 'chart.png' })
+  assert.equal(img.mime, 'image/png')
+})

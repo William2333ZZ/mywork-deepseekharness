@@ -13,7 +13,8 @@
  *
  * createMyWork() holds everything that does not need cordis (tests drive it with a fake host); apply() wires it into dsh.
  */
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync, appendFileSync } from 'node:fs'
+import { createReadStream, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync, appendFileSync } from 'node:fs'
+import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
 import { homedir } from 'node:os'
 import { dirname, extname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -500,6 +501,52 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     return { path: inside, name: inside.split('/').pop(), size: st.size, modifiedAt: st.mtime.toISOString(), truncated: st.size > max, text }
   }
 
+  /**
+   * Any file in a teammate's folder, by a short-lived signed link (10 min). The page asks GET /mates/link for one; images
+   * load from it inline, HTML / PDF open from it in the live browser (which has no dsh cookie), anything else downloads.
+   * HTML is served under a CSP sandbox, so a page a teammate wrote runs in an opaque origin and can never reach the app.
+   */
+  const LINK_SECRET = randomBytes(32)
+  const LINK_TTL = 10 * 60 * 1000
+  const MIME = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp', '.pdf': 'application/pdf', '.html': 'text/html; charset=utf-8', '.htm': 'text/html; charset=utf-8', '.csv': 'text/csv; charset=utf-8', '.tsv': 'text/tab-separated-values; charset=utf-8', '.md': 'text/markdown; charset=utf-8', '.txt': 'text/plain; charset=utf-8', '.json': 'application/json; charset=utf-8', '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation' }
+  const signOf = (id, path, exp) => createHmac('sha256', LINK_SECRET).update(id + '\n' + path + '\n' + exp).digest('base64url')
+  function folderPath(id, path) {
+    const m = mates.get(String(id || ''))
+    if (!m) throw notFound('同事不存在。')
+    const rel = String(path || '')
+    const full = resolve(m.dir, rel)
+    const inside = relative(resolve(m.dir), full)
+    if (!rel || inside.startsWith('..') || inside.startsWith('/') || inside === '') throw bad('路径不在同事的文件夹里。')
+    let st
+    try { st = statSync(full) } catch { throw notFound('文件不存在。') }
+    if (!st.isFile()) throw notFound('文件不存在。')
+    return { mate: m, full, inside, st }
+  }
+  function fileLink(id, path) {
+    const { inside, st } = folderPath(id, path)
+    const exp = Date.now() + LINK_TTL
+    const q = new URLSearchParams({ id: String(id), path: inside, exp: String(exp), sig: signOf(String(id), inside, exp) })
+    const ext = extname(inside).toLowerCase()
+    return { url: '/mywork-tasks/files/raw?' + q, name: inside.split('/').pop(), size: st.size, modifiedAt: st.mtime.toISOString(), mime: MIME[ext] || 'application/octet-stream', expiresAt: new Date(exp).toISOString() }
+  }
+  /** Serve one signed file (no cookie needed: the signature is the authority). */
+  function serveFile(req, res) {
+    const q = new URL(req.url || '/', 'http://localhost').searchParams
+    const id = q.get('id') || '', path = q.get('path') || '', exp = Number(q.get('exp') || 0), sig = q.get('sig') || ''
+    const want = Buffer.from(signOf(id, path, exp)), got = Buffer.from(sig)
+    if (!(exp > Date.now()) || want.length !== got.length || !timingSafeEqual(want, got)) { res.writeHead(403, { 'content-type': 'text/plain; charset=utf-8' }); res.end('链接已过期，请回到 MyWork 重新打开。'); return }
+    let f
+    try { f = folderPath(id, path) } catch (e) { res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' }); res.end(String(e && e.message)); return }
+    const ext = extname(f.inside).toLowerCase()
+    const type = MIME[ext] || 'application/octet-stream'
+    const download = q.get('dl') === '1' || !MIME[ext] || /officedocument/.test(type)
+    const name = encodeURIComponent(f.inside.split('/').pop())
+    const headers = { 'content-type': type, 'content-length': String(f.st.size), 'cache-control': 'private, max-age=300', 'x-content-type-options': 'nosniff', 'content-disposition': (download ? 'attachment' : 'inline') + "; filename*=UTF-8''" + name }
+    if (type.startsWith('text/html')) headers['content-security-policy'] = 'sandbox allow-scripts allow-popups allow-forms; default-src * data: blob: \'unsafe-inline\''
+    res.writeHead(200, headers)
+    createReadStream(f.full).pipe(res)
+  }
+
   // ── routines ──
   /** A sentence with a time becomes a routine of one teammate. */
   function createRoutine({ mateId, input, schedule, kind, title }) {
@@ -754,6 +801,7 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     '/run': { GET: (q) => runById(q.get('id')) },
     '/mates/folder': { GET: (q) => folder(q.get('id')) },
     '/mates/file': { GET: (q) => folderFile(q.get('id'), q.get('path')) },
+    '/mates/link': { GET: (q) => fileLink(q.get('id'), q.get('path')) },
     '/mates/say': {
       POST: async (_q, b) => {
         if (!String((b && b.text) || '').trim()) throw bad('text is required')
@@ -806,7 +854,7 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     register: (s) => scenarios.register(s),
     mates: () => listMates(),
     mate: (id) => mateViewById(id),
-    createMate, updateMate, removeMate, thread,
+    createMate, updateMate, removeMate, thread, serveFile,
     say: (id, text) => engine.say(id, text),
     routines: (mateId) => (mateId ? routines.forMate(mateId) : routines.items).map(rview),
     createRoutine, runRoutine,
@@ -834,6 +882,8 @@ export function apply(ctx, config = {}) {
   if (config.tools !== false) for (const t of mw.tools) ctx.tools.register(defineRawTool(t))
 
   ctx.inject(['webServer'], (wctx) => {
+    // Signed file links: no cookie guard on purpose (the live browser has none); the signature and expiry are checked inside.
+    wctx.webServer.register({ kind: 'exact', path: '/mywork-tasks/files/raw', handler: (req, res) => { try { mw.api.serveFile(req, res) } catch (e) { res.writeHead(500); res.end(String(e && e.message)) } } })
     const json = (res, body, status = 200) => { res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }); res.end(JSON.stringify(body)) }
     const readBody = (req) => new Promise((resolve, reject) => { let d = ''; let n = 0; req.on('data', (c) => { n += c.length; if (n > 256 * 1024) { reject(new Error('body too large')); req.destroy(); return } d += c }); req.on('end', () => { try { resolve(d ? JSON.parse(d) : {}) } catch (e) { reject(e) } }); req.on('error', reject) })
     for (const path of Object.keys(mw.routes)) {

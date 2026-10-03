@@ -100,9 +100,9 @@ The product logic follows [Rakazo](https://github.com/elie222/rakazo) (persisten
 | Area | Content |
 | --- | --- |
 | Top | Collapse · search (teammates, messages, files, routines) · bell (needs you / working / just finished) · new teammate |
-| Middle | Teammates only. Pinned first (MyWork by default), then by most recent conversation; state never reorders. Each row: avatar, name, time, unread dot, latest line (the step while working, the question while waiting). |
+| Middle | Teammates only, in sections: pinned, then types, then other. Pinned first (MyWork by default), then by most recent conversation; state never reorders. Each row: avatar (red unread count at its top-right), name, time, latest line (the step while working, the question while waiting); the list ends with "New teammate". |
 | Bottom | Files · Settings |
-| Collapsed | A column of avatars (unread dot, pulse while working), new teammate, files |
+| Collapsed | The same layout with the words hidden: the mark, every avatar and its count, the sections, new teammate, files and settings stay exactly where they were |
 | Right panel | Click the name or the monitor button: computer (live picture with take-over while it browses, otherwise its folder), routines, settings; or the file you're reading. |
 | One jump rule | Anything that shows a result jumps to that message in that teammate's conversation and highlights it. |
 

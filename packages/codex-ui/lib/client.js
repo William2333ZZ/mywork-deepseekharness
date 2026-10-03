@@ -2319,11 +2319,15 @@ window.__ModuleLoader__.load({
 		* per type (the `group` field, 「类型」 in the UI) in the order the types were formed, then 其他. Within a section:
 		* pinned / default first, then the last conversation; state never changes the order of rows or sections. A section
 		* label (only when there is more than one section) folds its rows; what is folded is kept in localStorage (folded, it
-		* carries the sum of its rows' badges). A row is the avatar, the name (never bold) and the time, then one line (等你答
-		* in --warn, 在干活 breathing, else the last thing said) with the unread count at the right under the time — an IM
-		* badge (white on red, 99+): results since you last opened that teammate, at least 1 while it waits on your answer.
-		* At the bottom 文件 and 设置 as plain text rows. Collapsed: the mark, each teammate's avatar (the badge on its
-		* top-right), + and 文件. Rows carry no actions: opening a row is the only thing it does.
+		* carries the sum of its rows' badges). A row is the avatar with the unread count on its top-right — an IM badge (white
+		* on red, 99+): results since you last opened that teammate, at least 1 while it waits on your answer — then the name
+		* (never bold) and the time over one line (等你答 in --warn, 在干活 breathing, else the last thing said). The list ends
+		* with 新同事. At the bottom 文件 and 设置 as plain text rows. Rows carry no actions: opening a row is the only thing it
+		* does.
+		*
+		* Collapsing is clipping, not another layout: the same tree in dsh's 56px rail, where the avatar column (left 12,
+		* centre 28) is all that shows. Every avatar, the mark, the section breaks (a short rule where the label was), 新同事,
+		* 文件 and 设置 stay exactly where they were; only the words go.
 		*
 		* Data comes from dsh-mywork-tasks (/mywork-tasks/api/mates, /activity, /search); navigation into that plugin's pages
 		* goes through window events so neither package imports the other: the column dispatches mywork:open-thread and
@@ -2401,9 +2405,20 @@ html body .mws input:focus{outline:none}
 /* The MyWork mark: an M whose last stroke turns into a check, 18px, white. */
 .mws-mark{display:inline-grid;place-items:center;flex:none;color:var(--fg)}
 .mws-mark svg{display:block}
-/* Header: the mark · search · bell · + · collapse. */
-.mws-head{position:relative;display:flex;align-items:center;gap:4px;flex:none;height:64px;padding:0 8px 0 24px}
-.mws-search{flex:1;min-width:0;height:32px;margin:0 4px 0 12px;border:1px solid var(--rule);border-radius:8px;transition:border-color var(--fast)}
+/*
+ * One geometry for both states. dsh's collapsed rail is 56px, so the avatar column is left 12 / 32 wide / centre 28
+ * everywhere: list 4 + row 8 to the avatar, the mark in a 32 box on the same column, labels and 文件 / 设置 starting at
+ * 12. Collapsed, nothing moves; the words are hidden and the rail clips the rest.
+ */
+/* Header: the mark · search · bell · + · collapse (collapsed: the mark alone; it expands, the panel icon on hover). */
+.mws-head{position:relative;display:flex;align-items:center;gap:4px;flex:none;height:64px;padding:0 8px 0 12px}
+.mws-brand{appearance:none;display:grid;place-items:center;flex:none;width:32px;height:32px;padding:0;border:0;border-radius:8px;background:transparent;color:var(--fg)}
+.mws-brand>*{grid-area:1/1;transition:opacity var(--fast)}
+.mws-brand .alt{display:grid;place-items:center;opacity:0}
+button.mws-brand{cursor:pointer}
+button.mws-brand:hover .mws-mark,button.mws-brand:focus-visible .mws-mark{opacity:0}
+button.mws-brand:hover .alt,button.mws-brand:focus-visible .alt{opacity:1}
+.mws-search{flex:1;min-width:0;height:32px;margin:0 4px 0 8px;border:1px solid var(--rule);border-radius:8px;transition:border-color var(--fast)}
 .mws-search:focus-within{border-color:var(--fg-3)}
 .mws-search input{display:block;width:100%;height:100%;margin:0;padding:0 8px;border:0;background:transparent;color:var(--fg);font:inherit;font-size:13px;outline:none}
 .mws-search input::placeholder{color:var(--fg-3)}
@@ -2415,21 +2430,26 @@ html body .mws input:focus{outline:none}
 .mws-dot[data-needs=true]{background:var(--warn)}
 /* The bell's panel: an elevated layer under the header, over the list. */
 .mws-drop{position:absolute;top:56px;left:8px;right:8px;z-index:20;max-height:min(420px,calc(100vh - 120px));overflow:auto;padding:8px;border:1px solid var(--rule);border-radius:8px;background:var(--elevated);box-shadow:var(--shadow)}
-.mws-drop h3{margin:8px 16px 4px;color:var(--fg-3);font-size:12px;line-height:16px;font-weight:400}
-.mws-list{flex:1;min-height:0;overflow:auto;padding:0 8px 16px;scrollbar-width:thin;scrollbar-color:var(--rule) transparent}
+.mws-drop h3{margin:8px 8px 4px;color:var(--fg-3);font-size:12px;line-height:16px;font-weight:400}
+.mws-list{flex:1;min-height:0;overflow-x:hidden;overflow-y:auto;padding:0 4px 16px;scrollbar-width:thin;scrollbar-color:var(--rule) transparent}
 /* Section labels: 12 at 50 %, sentence case, the chevron after the words (open: down; folded: right, with the count). */
 .mws-sec+.mws-sec{margin-top:16px}
-.mws-sec-head{appearance:none;display:flex;align-items:center;gap:4px;width:100%;height:32px;padding:0 16px;border:0;border-radius:8px;background:transparent;color:var(--fg-3);font:inherit;font-size:12px;line-height:16px;font-weight:400;text-align:left;cursor:pointer}
+.mws-sec-head{appearance:none;display:flex;align-items:center;gap:4px;width:100%;height:32px;padding:0 8px;border:0;border-radius:8px;background:transparent;color:var(--fg-3);font:inherit;font-size:12px;line-height:16px;font-weight:400;text-align:left;cursor:pointer}
 .mws-sec-head:hover{color:var(--fg)}
 .mws-sec-head svg{flex:none}
 .mws-sec-head[aria-expanded=false] svg{transform:rotate(-90deg)}
 .mws-sec-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mws-sec-count{flex:none;margin-left:4px;font-variant-numeric:tabular-nums}
 .mws-sec-head .mws-badge{margin-left:8px}
-/* Rows: the avatar (32), then the name 15 and the time 12 at 50 % on one line, one line of 13 at 65 % under it with the
- * unread badge at its right (under the time). */
-.mws-row{appearance:none;display:grid;grid-template-columns:32px minmax(0,1fr);column-gap:8px;align-items:center;width:100%;min-width:0;padding:12px 16px;border:0;border-radius:8px;background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
+/* Collapsed, the label's place holds a 16px rule on the avatar column; folded, the count (or the badge sum) instead. */
+.mws-sec-mark{display:grid;place-items:center;width:32px;height:16px;font-variant-numeric:tabular-nums}
+.mws-sec-mark:empty::before{content:'';width:16px;height:1px;background:var(--rule)}
+.mws-sec-mark .mws-badge{margin:0}
+/* Rows: the avatar (32, the unread badge on its top-right), then the name 15 and the time 12 at 50 % on one line and one
+ * line of 13 at 65 % under it. */
+.mws-row{appearance:none;display:grid;grid-template-columns:32px minmax(0,1fr);column-gap:8px;align-items:center;width:100%;min-width:0;padding:12px 12px 12px 8px;border:0;border-radius:8px;background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
 .mws-main{display:grid;gap:4px;min-width:0}
+.mws-avw{position:relative;isolation:isolate;display:block;width:32px;height:32px;line-height:0}
 .mws-av{display:inline-block;flex:none;line-height:0;user-select:none}
 .mws-av svg{display:block;overflow:visible}
 .mws-av-none{display:block;width:32px;height:32px}
@@ -2437,42 +2457,37 @@ html body .mws input:focus{outline:none}
 .mws-line{display:flex;align-items:baseline;min-width:0}
 .mws-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px;line-height:20px;font-weight:400}
 .mws-time{flex:none;margin-left:8px;color:var(--fg-3);font-size:12px;line-height:16px;font-variant-numeric:tabular-nums;white-space:nowrap}
-.mws-line.sub{align-items:center}
 .mws-sub{display:block;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--fg-2);font-size:13px;line-height:20px}
 .mws-sub[data-tone=warn]{color:var(--warn)}
 .mws-sub[data-tone=danger]{color:var(--danger)}
-/* The unread badge (IM): a pill, min 18, white 11 / 600 tabular on red; on the rail 16 at the avatar's top-right. */
+/* The unread badge (IM): a pill, white 11 / 600 tabular on red; on an avatar 16 high at its top-right, ringed in the ground. */
 .mws-badge{flex:none;display:inline-block;min-width:18px;height:18px;margin-left:8px;padding:0 6px;border-radius:9px;background:#e5484d;color:#fff;font-size:11px;line-height:18px;font-weight:600;font-variant-numeric:tabular-nums;text-align:center;white-space:nowrap}
-.mws-rail-av{position:relative;display:block;line-height:0}
-.mws-badge.rail{position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;margin:0;padding:0 4px;border-radius:8px;font-size:10px;line-height:16px;box-shadow:0 0 0 2px var(--bg)}
-.mws-empty{padding:16px;color:var(--fg-3);font-size:13px;line-height:20px}
-/* Footer: 文件 and 设置 as plain text rows. */
-.mws-foot{flex:none;padding:8px 8px 0;border-top:1px solid var(--rule)}
-.mws-flat{appearance:none;display:flex;align-items:center;width:100%;height:40px;padding:0 16px;border:0;border-radius:8px;background:transparent;color:var(--fg);font:inherit;font-size:15px;line-height:20px;text-align:left;cursor:pointer}
+.mws-badge.on{position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;margin:0;padding:0 4px;border-radius:8px;font-size:10px;line-height:16px;box-shadow:0 0 0 2px var(--bg)}
+/* 新同事 closes the list: a 32 outlined square with + on the avatar column, the words at 50 %. */
+.mws-add{margin-top:8px;color:var(--fg-3)}
+.mws-add:hover{color:var(--fg)}
+.mws-add-box{display:grid;place-items:center;width:32px;height:32px;border:1px solid var(--rule);border-radius:8px}
+.mws-empty{padding:16px 8px;color:var(--fg-3);font-size:13px;line-height:20px}
+/* Footer: 文件 and 设置 as plain text rows, the words at 12 (two characters of 15 sit on the avatar column). */
+.mws-foot{flex:none;padding:8px 4px 0;border-top:1px solid var(--rule)}
+.mws-flat{appearance:none;display:flex;align-items:center;width:100%;height:40px;padding:0 8px;border:0;border-radius:8px;background:transparent;color:var(--fg);font:inherit;font-size:15px;line-height:20px;text-align:left;white-space:nowrap;cursor:pointer}
 .mws-flat:hover,.mws-flat[aria-current=page]{background:var(--rule-soft)}
-/* The settings entry is dsh's own trigger, kept outside the footer so it stays mounted across collapse; it wears the 文件 row. */
-.mws-settings{flex:none;padding:0 8px 16px}
-.mws-settings .dcu-settings-trigger{height:40px;min-height:40px;padding:0 16px;border-radius:8px;color:var(--fg);font:400 15px/20px var(--font);transition:background-color var(--fast),color var(--fast)}
+/* The settings entry is dsh's own trigger; it wears the 文件 row. */
+.mws-settings{flex:none;padding:0 4px 16px}
+.mws-settings .dcu-settings-trigger{height:40px;min-height:40px;padding:0 8px;border-radius:8px;color:var(--fg);font:400 15px/20px var(--font);white-space:nowrap;transition:background-color var(--fast),color var(--fast)}
 .mws-settings .dcu-settings-trigger:hover,.mws-settings .dcu-settings-trigger[aria-expanded=true]{background:var(--rule-soft);color:var(--fg)}
 .mws-settings .dcu-settings-trigger:active{transform:none}
 html body .mws-settings .dcu-settings-trigger:focus-visible{outline:2px solid var(--fg-3);outline-offset:-2px;background:transparent}
 .mws-settings .dcu-settings-trigger-content{display:block}
 .mws-settings .dcu-settings-trigger-content svg{display:none}
-/* Collapsed: dsh keeps a 56px rail. The mark (it expands; on hover the panel icon stands in), each teammate's avatar
- * (32; selected: a 5 % ground; unread or waiting on you: the badge at its top-right; working: it breathes), then + and 文件. */
-.mws.compact{align-items:center;padding:16px 0}
-.mws.compact .mws-settings{position:absolute;width:0;height:0;overflow:hidden}
-.mws-railtop{appearance:none;display:grid;place-items:center;flex:none;width:32px;height:32px;margin:0 0 16px;padding:0;border:0;border-radius:8px;background:transparent;color:var(--fg);cursor:pointer}
-.mws-railtop>*{grid-area:1/1;transition:opacity var(--fast)}
-.mws-railtop .alt{display:grid;place-items:center;opacity:0}
-.mws-railtop:hover .mws-mark,.mws-railtop:focus-visible .mws-mark{opacity:0}
-.mws-railtop:hover .alt,.mws-railtop:focus-visible .alt{opacity:1}
-.mws-rail{flex:1;min-height:0;width:100%;overflow-y:auto;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 0;scrollbar-width:none}
-.mws-rail-gap{flex:none;height:8px}
-.mws-rail-mate{appearance:none;position:relative;display:grid;place-items:center;flex:none;width:40px;height:40px;padding:0;border:0;border-radius:8px;background:transparent;cursor:pointer}
-.mws-rail-mate:hover,.mws-rail-mate[aria-current=page]{background:var(--rule-soft)}
-.mws-railtext{appearance:none;flex:none;height:32px;margin-top:8px;padding:0 4px;border:0;border-radius:8px;background:transparent;color:var(--fg-3);font:inherit;font-size:13px;line-height:16px;cursor:pointer}
-.mws-railtext:hover,.mws-railtext[aria-current=page]{color:var(--fg)}
+/* Collapsed: the same rows; the words hidden, the selected / hovered ground a 40 square around the avatar. */
+.mws.compact .mws-list{scrollbar-width:none}
+.mws.compact .mws-list::-webkit-scrollbar{display:none}
+.mws.compact .mws-main{visibility:hidden}
+.mws.compact .mws-row{padding-right:0}
+.mws.compact .mws-row:hover,.mws.compact .mws-row[aria-current=page]{background:transparent}
+.mws.compact .mws-row:hover .mws-avw::before,.mws.compact .mws-row[aria-current=page] .mws-avw::before{content:'';position:absolute;z-index:-1;inset:-4px;border-radius:8px;background:var(--rule-soft)}
+.mws.compact .mws-flat,.mws.compact .mws-settings .dcu-settings-trigger{padding-right:0}
 `;
 		const str = (v) => typeof v === "string" ? v : "";
 		const ms = (iso) => {
@@ -2781,26 +2796,35 @@ html body .mws-settings .dcu-settings-trigger:focus-visible{outline:2px solid va
 			return { text: str(mate.preview) };
 		}
 		/** The unread count as an IM badge (nothing at 0; 99+ above 99). */
-		function Badge({ n, rail = false, t }) {
+		function Badge({ n, on = false, t }) {
 			if (n <= 0) return null;
 			return /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
-				className: "mws-badge" + (rail ? " rail" : ""),
+				className: "mws-badge" + (on ? " on" : ""),
 				role: "img",
 				"aria-label": t("v2.unreadCount").replace("{0}", String(n)),
 				children: n > 99 ? "99+" : String(n)
 			});
 		}
-		function MateRow({ mate, time, current, unread, t, onOpen }) {
+		/** A teammate's row; collapsed, the same row with the words hidden (its name becomes the tooltip). */
+		function MateRow({ mate, time, current, unread, compact, t, onOpen }) {
 			const sub = secondLine(mate, t);
 			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
 				type: "button",
 				className: "mws-row",
+				title: compact ? mate.name : void 0,
 				"aria-current": current ? "page" : void 0,
 				"data-unread": unread > 0 ? "true" : void 0,
 				onClick: onOpen,
-				children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(MateAvatar, {
-					mate,
-					size: 32
+				children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
+					className: "mws-avw",
+					children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(MateAvatar, {
+						mate,
+						size: 32
+					}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)(Badge, {
+						n: unread,
+						on: true,
+						t
+					})]
 				}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
 					className: "mws-main",
 					children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
@@ -2812,16 +2836,13 @@ html body .mws-settings .dcu-settings-trigger:focus-visible{outline:2px solid va
 							className: "mws-time",
 							children: time
 						})]
-					}), (sub.text !== "" || unread > 0) && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
-						className: "mws-line sub",
-						children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+					}), sub.text !== "" && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+						className: "mws-line",
+						children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 							className: "mws-sub" + (sub.live === true ? " mws-breathe" : ""),
 							"data-tone": sub.tone,
 							children: sub.text
-						}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)(Badge, {
-							n: unread,
-							t
-						})]
+						})
 					})]
 				})]
 			});
@@ -3044,83 +3065,34 @@ html body .mws-settings .dcu-settings-trigger:focus-visible{outline:2px solid va
 				return mate.state === "waiting" ? Math.max(1, n) : n;
 			};
 			const sectionLabel = (sec) => sec.kind === "pinned" ? t("v2.pinned") : sec.kind === "other" ? t("v2.other") : sec.name;
+			const searching = needle !== "" && !compact;
 			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 				className: "mws" + (compact ? " compact" : ""),
 				"data-mywork-sidebar": "v2",
 				children: [
 					/* @__PURE__ */ (0, react_jsx_runtime.jsx)("style", { children: stylesheet$5 }),
-					compact ? /* @__PURE__ */ (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [
-						/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
-							type: "button",
-							className: "mws-railtop",
-							"aria-label": t("sidebar.expand"),
-							title: t("sidebar.expand"),
-							onClick: toggleSidebar,
-							children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(BrandMark, {}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
-								className: "alt",
-								children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(PanelLeft, {
-									size: 16,
-									strokeWidth: 1.5
-								})
-							})]
-						}),
-						/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
-							className: "mws-rail",
-							children: [sections.map((sec, i) => /* @__PURE__ */ (0, react_jsx_runtime.jsxs)(react.Fragment, { children: [i > 0 && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
-								className: "mws-rail-gap",
-								"aria-hidden": "true"
-							}), sec.mates.map((mate) => /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+					/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+						className: "mws-head",
+						ref: headRef,
+						children: [
+							compact ? /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
 								type: "button",
-								className: "mws-rail-mate",
-								title: mate.name,
-								"aria-label": mate.name,
-								"aria-current": highlighted === "mate:" + mate.id ? "page" : void 0,
-								onClick: () => {
-									open({
-										kind: "mate",
-										id: mate.id
-									});
-								},
-								children: /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
-									className: "mws-rail-av",
-									children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(MateAvatar, {
-										mate,
-										size: 32
-									}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)(Badge, {
-										n: unreadOf(mate),
-										rail: true,
-										t
-									})]
-								})
-							}, mate.id))] }, sec.key)), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
-								type: "button",
-								className: "mws-icon",
-								"aria-label": t("v2.newMate"),
-								title: t("v2.newMate"),
-								onClick: () => {
-									open({ kind: "new-mate" });
-								},
-								children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(Plus, {
-									size: 16,
-									strokeWidth: 1.5
-								})
-							})]
-						}),
-						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
-							type: "button",
-							className: "mws-railtext",
-							"aria-current": highlighted === "files" ? "page" : void 0,
-							onClick: () => {
-								open({ kind: "files" });
-							},
-							children: t("v2.files")
-						})
-					] }) : /* @__PURE__ */ (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [
-						/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
-							className: "mws-head",
-							ref: headRef,
-							children: [
-								/* @__PURE__ */ (0, react_jsx_runtime.jsx)(BrandMark, {}),
+								className: "mws-brand",
+								"aria-label": t("sidebar.expand"),
+								title: t("sidebar.expand"),
+								onClick: toggleSidebar,
+								children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(BrandMark, {}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+									className: "alt",
+									children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(PanelLeft, {
+										size: 16,
+										strokeWidth: 1.5
+									})
+								})]
+							}) : /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+								className: "mws-brand",
+								children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(BrandMark, {})
+							}),
+							!compact && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [
 								/* @__PURE__ */ (0, react_jsx_runtime.jsx)("label", {
 									className: "mws-search",
 									children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("input", {
@@ -3183,60 +3155,63 @@ html body .mws-settings .dcu-settings-trigger:focus-visible{outline:2px solid va
 										size: 16,
 										strokeWidth: 1.5
 									})
-								}),
-								bellOpen && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
-									className: "mws-drop",
-									role: "dialog",
-									"aria-label": t("v2.bell"),
-									children: [groups.every(([, items]) => items.length === 0) && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
-										className: "mws-empty",
-										children: t("v2.quiet")
-									}), groups.map(([label, items]) => items.length === 0 ? null : /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("h3", { children: label }), items.map((item, i) => {
-										const mate = byId.get(item.mateId) ?? {
-											id: item.mateId,
-											name: str(item.mateName)
-										};
-										return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
-											type: "button",
-											className: "mws-row",
-											onClick: () => {
-												open({
-													kind: "mate",
-													id: item.mateId,
-													runId: str(item.runId) || void 0
-												});
-											},
-											children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(MateAvatar, {
-												mate,
-												size: 32
-											}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
-												className: "mws-main",
-												children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
-													className: "mws-line",
-													children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
-														className: "mws-title",
-														children: str(mate.name) || str(item.mateName)
-													}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
-														className: "mws-time",
-														children: fmtWhen(str(item.at), now)
-													})]
-												}), str(item.text) !== "" && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
-													className: "mws-sub",
-													"data-tone": item.kind === "ask" ? "warn" : item.kind === "failed" ? "danger" : void 0,
-													children: str(item.text)
-												})]
-											})]
-										}, `${item.mateId}:${str(item.runId)}:${i}`);
-									})] }, label))]
 								})
-							]
-						}),
-						/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
-							className: "mws-list",
-							children: [needle === "" ? sections.map((sec) => {
+							] }),
+							bellOpen && !compact && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+								className: "mws-drop",
+								role: "dialog",
+								"aria-label": t("v2.bell"),
+								children: [groups.every(([, items]) => items.length === 0) && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+									className: "mws-empty",
+									children: t("v2.quiet")
+								}), groups.map(([label, items]) => items.length === 0 ? null : /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("h3", { children: label }), items.map((item, i) => {
+									const mate = byId.get(item.mateId) ?? {
+										id: item.mateId,
+										name: str(item.mateName)
+									};
+									return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
+										type: "button",
+										className: "mws-row",
+										onClick: () => {
+											open({
+												kind: "mate",
+												id: item.mateId,
+												runId: str(item.runId) || void 0
+											});
+										},
+										children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(MateAvatar, {
+											mate,
+											size: 32
+										}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
+											className: "mws-main",
+											children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
+												className: "mws-line",
+												children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+													className: "mws-title",
+													children: str(mate.name) || str(item.mateName)
+												}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+													className: "mws-time",
+													children: fmtWhen(str(item.at), now)
+												})]
+											}), str(item.text) !== "" && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+												className: "mws-sub",
+												"data-tone": item.kind === "ask" ? "warn" : item.kind === "failed" ? "danger" : void 0,
+												children: str(item.text)
+											})]
+										})]
+									}, `${item.mateId}:${str(item.runId)}:${i}`);
+								})] }, label))]
+							})
+						]
+					}),
+					/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+						className: "mws-list",
+						children: [
+							!searching ? sections.map((sec) => {
 								const rows = sec.mates.map((mate) => /* @__PURE__ */ (0, react_jsx_runtime.jsx)(MateRow, {
 									mate,
 									t,
+									compact,
 									time: fmtWhen(str(mate.lastAt), now),
 									current: highlighted === "mate:" + mate.id,
 									unread: unreadOf(mate),
@@ -3254,14 +3229,21 @@ html body .mws-settings .dcu-settings-trigger:focus-visible{outline:2px solid va
 									className: "mws-sec",
 									role: "group",
 									"aria-label": sectionLabel(sec),
-									children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
+									children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
 										type: "button",
 										className: "mws-sec-head",
+										title: compact ? sectionLabel(sec) : void 0,
 										"aria-expanded": !closed,
 										onClick: () => {
 											toggleSection(sec.key);
 										},
-										children: [
+										children: compact ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+											className: "mws-sec-mark",
+											children: closed ? news > 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)(Badge, {
+												n: news,
+												t
+											}) : sec.mates.length : null
+										}) : /* @__PURE__ */ (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [
 											/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 												className: "mws-sec-name",
 												children: sectionLabel(sec)
@@ -3279,7 +3261,7 @@ html body .mws-settings .dcu-settings-trigger:focus-visible{outline:2px solid va
 												n: news,
 												t
 											})
-										]
+										] })
 									}), !closed && rows]
 								}, sec.key);
 							}) : results.map((row) => /* @__PURE__ */ (0, react_jsx_runtime.jsx)(ResultItem, {
@@ -3289,27 +3271,52 @@ html body .mws-settings .dcu-settings-trigger:focus-visible{outline:2px solid va
 								onOpen: () => {
 									open(row.target);
 								}
-							}, row.key)), needle !== "" && remote !== null && results.length === 0 && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+							}, row.key)),
+							searching && remote !== null && results.length === 0 && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
 								className: "mws-empty",
 								children: t("v2.noResults")
-							})]
-						}),
-						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("footer", {
-							className: "mws-foot",
-							children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+							}),
+							!searching && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
 								type: "button",
-								className: "mws-flat",
-								"aria-current": highlighted === "files" ? "page" : void 0,
+								className: "mws-row mws-add",
+								title: compact ? t("v2.newMate") : void 0,
 								onClick: () => {
-									open({ kind: "files" });
+									open({ kind: "new-mate" });
 								},
-								children: t("v2.files")
+								children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+									className: "mws-avw",
+									children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+										className: "mws-add-box",
+										children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(Plus, {
+											size: 16,
+											strokeWidth: 1.5
+										})
+									})
+								}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+									className: "mws-main",
+									children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+										className: "mws-title",
+										children: t("v2.newMate")
+									})
+								})]
 							})
+						]
+					}),
+					/* @__PURE__ */ (0, react_jsx_runtime.jsx)("footer", {
+						className: "mws-foot",
+						children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+							type: "button",
+							className: "mws-flat",
+							"aria-current": highlighted === "files" ? "page" : void 0,
+							onClick: () => {
+								open({ kind: "files" });
+							},
+							children: t("v2.files")
 						})
-					] }),
+					}),
 					/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
 						className: "mws-settings",
-						children: renderSlot("sidebar.settings", { wide: !compact })
+						children: renderSlot("sidebar.settings", { wide: true })
 					})
 				]
 			});

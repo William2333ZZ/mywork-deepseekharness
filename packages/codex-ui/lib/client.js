@@ -2325,8 +2325,8 @@ window.__ModuleLoader__.load({
 		* with 新同事. At the bottom 文件 and 设置 as plain text rows. Rows carry no actions: opening a row is the only thing it
 		* does.
 		*
-		* Collapsing is clipping, not another layout: the same tree in dsh's 56px rail, where the avatar column (left 12,
-		* centre 28) is all that shows. Every avatar, the mark, the section breaks (a short rule where the label was), 新同事,
+		* Collapsing is clipping, not another layout: the same tree in dsh's 56px rail, where the avatar column (left 14,
+		* 28 wide, centre 28) is all that shows. Every avatar, the mark, the section breaks (a short rule where the label was), 新同事,
 		* 文件 and 设置 stay exactly where they were; only the words go.
 		*
 		* Data comes from dsh-mywork-tasks (/mywork-tasks/api/mates, /activity, /search); navigation into that plugin's pages
@@ -2385,12 +2385,12 @@ window.__ModuleLoader__.load({
  * Brutalist structure, aesthetic execution (the tasks page shares these tokens): pure black, white text at 100 / 65 /
  * 50 %, rules white at 10 / 5 %; --warn only for a pending question (等你答). The one other colour is the unread badge
  * (white on #e5484d, as in IM). No fills, no decoration: a row is the teammate's avatar
- * (32, flat, its own colour and shape), its name (15) and one line (13 at 65 %); the selected row a 5 % ground, radius
+ * (28, flat, its own colour and shape), its name (13) and one line (12 at 65 %); the selected row a 5 % ground, radius
  * 8. Line icons only where they act, at 50 %,
  * 100 % on hover. Spacing 8 / 16 / 24 (4 inline). Shadows only on the bell's elevated dropdown. Motion: colour /
  * opacity 150 ms; a working teammate breathes (opacity 1 ↔ .5, 2.4 s; reduced motion holds .65); nothing else moves.
  */
-.mws{--bg:#000;--elevated:#111;--fg:#fff;--fg-2:rgba(255,255,255,.65);--fg-3:rgba(255,255,255,.5);--rule:rgba(255,255,255,.1);--rule-soft:rgba(255,255,255,.05);--warn:#f0a35e;--danger:#f87171;--av-mark-bg:#2a2a2a;--av-mark-fg:#fff;--shadow:0 8px 24px rgba(0,0,0,.5);--fast:150ms ease;--font:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Hiragino Sans GB","Microsoft YaHei UI",sans-serif;position:relative;width:100%;height:100%;min-width:0;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;background:var(--bg);color:var(--fg);border-right:1px solid var(--rule);font:15px/20px var(--font);letter-spacing:0;-webkit-font-smoothing:antialiased}
+.mws{--bg:#000;--elevated:#111;--fg:#fff;--fg-2:rgba(255,255,255,.65);--fg-3:rgba(255,255,255,.5);--rule:rgba(255,255,255,.1);--rule-soft:rgba(255,255,255,.05);--warn:#f0a35e;--danger:#f87171;--av-mark-bg:#2a2a2a;--av-mark-fg:#fff;--shadow:0 8px 24px rgba(0,0,0,.5);--fast:150ms ease;--font:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Hiragino Sans GB","Microsoft YaHei UI",sans-serif;position:relative;width:100%;height:100%;min-width:0;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;background:var(--bg);color:var(--fg);border-right:1px solid var(--rule);font:13px/18px var(--font);letter-spacing:0;-webkit-font-smoothing:antialiased}
 html[data-mywork-theme="light"] .mws{--bg:#fff;--elevated:#fff;--fg:#000;--fg-2:rgba(0,0,0,.65);--fg-3:rgba(0,0,0,.55);--rule:rgba(0,0,0,.1);--rule-soft:rgba(0,0,0,.05);--warn:#b5480a;--danger:#c0392b;--av-mark-bg:#111;--av-mark-fg:#fff;--shadow:0 8px 24px rgba(0,0,0,.08)}
 .mws *{box-sizing:border-box}
 .mws button{font-family:inherit;transition:color var(--fast),background-color var(--fast),border-color var(--fast),opacity var(--fast)}
@@ -2406,35 +2406,36 @@ html body .mws input:focus{outline:none}
 .mws-mark{display:inline-grid;place-items:center;flex:none;color:var(--fg)}
 .mws-mark svg{display:block}
 /*
- * One geometry for both states. dsh's collapsed rail is 56px, so the avatar column is left 12 / 32 wide / centre 28
- * everywhere: list 4 + row 8 to the avatar, the mark in a 32 box on the same column, labels and 文件 / 设置 starting at
- * 12. Collapsed, nothing moves; the words are hidden and the rail clips the rest.
+ * One geometry for both states. dsh's collapsed rail is 56px, so the avatar column is left 14 / 28 wide / centre 28
+ * everywhere: list 4 + row 10 to the avatar, the mark in a 28 box on the same column, labels and 文件 / 设置 starting at
+ * 14. Collapsed, nothing moves; the words are hidden and the rail clips the rest.
+ * Density as in a desktop IM list (Feishu / WeChat run 14 / 12 at 64): name 13, line 12, time 11, avatar 28, row 52.
  */
 /* Header: the mark · search · bell · + · collapse (collapsed: the mark alone; it expands, the panel icon on hover). */
-.mws-head{position:relative;display:flex;align-items:center;gap:4px;flex:none;height:64px;padding:0 8px 0 12px}
-.mws-brand{appearance:none;display:grid;place-items:center;flex:none;width:32px;height:32px;padding:0;border:0;border-radius:8px;background:transparent;color:var(--fg)}
+.mws-head{position:relative;display:flex;align-items:center;gap:4px;flex:none;height:52px;padding:0 8px 0 14px}
+.mws-brand{appearance:none;display:grid;place-items:center;flex:none;width:28px;height:28px;padding:0;border:0;border-radius:8px;background:transparent;color:var(--fg)}
 .mws-brand>*{grid-area:1/1;transition:opacity var(--fast)}
 .mws-brand .alt{display:grid;place-items:center;opacity:0}
 button.mws-brand{cursor:pointer}
 button.mws-brand:hover .mws-mark,button.mws-brand:focus-visible .mws-mark{opacity:0}
 button.mws-brand:hover .alt,button.mws-brand:focus-visible .alt{opacity:1}
-.mws-search{flex:1;min-width:0;height:32px;margin:0 4px 0 8px;border:1px solid var(--rule);border-radius:8px;transition:border-color var(--fast)}
+.mws-search{flex:1;min-width:0;height:28px;margin:0 4px 0 8px;border:1px solid var(--rule);border-radius:8px;transition:border-color var(--fast)}
 .mws-search:focus-within{border-color:var(--fg-3)}
-.mws-search input{display:block;width:100%;height:100%;margin:0;padding:0 8px;border:0;background:transparent;color:var(--fg);font:inherit;font-size:13px;outline:none}
+.mws-search input{display:block;width:100%;height:100%;margin:0;padding:0 8px;border:0;background:transparent;color:var(--fg);font:inherit;font-size:12px;outline:none}
 .mws-search input::placeholder{color:var(--fg-3)}
-.mws-icon{appearance:none;position:relative;display:inline-grid;place-items:center;flex:none;width:28px;height:32px;padding:0;border:0;border-radius:8px;background:transparent;color:var(--fg-3);cursor:pointer}
+.mws-icon{appearance:none;position:relative;display:inline-grid;place-items:center;flex:none;width:28px;height:28px;padding:0;border:0;border-radius:8px;background:transparent;color:var(--fg-3);cursor:pointer}
 .mws-icon:hover,.mws-icon[aria-expanded=true]{color:var(--fg)}
 .mws-icon svg{display:block}
 /* The bell's dot: white while someone works or something needs you, --warn when a question waits on you. */
-.mws-dot{position:absolute;top:7px;right:5px;width:6px;height:6px;border-radius:50%;background:var(--fg);pointer-events:none}
+.mws-dot{position:absolute;top:5px;right:5px;width:6px;height:6px;border-radius:50%;background:var(--fg);pointer-events:none}
 .mws-dot[data-needs=true]{background:var(--warn)}
 /* The bell's panel: an elevated layer under the header, over the list. */
-.mws-drop{position:absolute;top:56px;left:8px;right:8px;z-index:20;max-height:min(420px,calc(100vh - 120px));overflow:auto;padding:8px;border:1px solid var(--rule);border-radius:8px;background:var(--elevated);box-shadow:var(--shadow)}
+.mws-drop{position:absolute;top:46px;left:8px;right:8px;z-index:20;max-height:min(420px,calc(100vh - 120px));overflow:auto;padding:8px;border:1px solid var(--rule);border-radius:8px;background:var(--elevated);box-shadow:var(--shadow)}
 .mws-drop h3{margin:8px 8px 4px;color:var(--fg-3);font-size:12px;line-height:16px;font-weight:400}
 .mws-list{flex:1;min-height:0;overflow-x:hidden;overflow-y:auto;padding:0 4px 16px;scrollbar-width:thin;scrollbar-color:var(--rule) transparent}
 /* Section labels: 12 at 50 %, sentence case, the chevron after the words (open: down; folded: right, with the count). */
-.mws-sec+.mws-sec{margin-top:16px}
-.mws-sec-head{appearance:none;display:flex;align-items:center;gap:4px;width:100%;height:32px;padding:0 8px;border:0;border-radius:8px;background:transparent;color:var(--fg-3);font:inherit;font-size:12px;line-height:16px;font-weight:400;text-align:left;cursor:pointer}
+.mws-sec+.mws-sec{margin-top:8px}
+.mws-sec-head{appearance:none;display:flex;align-items:center;gap:4px;width:100%;height:28px;padding:0 10px;border:0;border-radius:8px;background:transparent;color:var(--fg-3);font:inherit;font-size:12px;line-height:16px;font-weight:400;text-align:left;cursor:pointer}
 .mws-sec-head:hover{color:var(--fg)}
 .mws-sec-head svg{flex:none}
 .mws-sec-head[aria-expanded=false] svg{transform:rotate(-90deg)}
@@ -2442,39 +2443,39 @@ button.mws-brand:hover .alt,button.mws-brand:focus-visible .alt{opacity:1}
 .mws-sec-count{flex:none;margin-left:4px;font-variant-numeric:tabular-nums}
 .mws-sec-head .mws-badge{margin-left:8px}
 /* Collapsed, the label's place holds a 16px rule on the avatar column; folded, the count (or the badge sum) instead. */
-.mws-sec-mark{display:grid;place-items:center;width:32px;height:16px;font-variant-numeric:tabular-nums}
+.mws-sec-mark{display:grid;place-items:center;width:28px;height:16px;font-variant-numeric:tabular-nums}
 .mws-sec-mark:empty::before{content:'';width:16px;height:1px;background:var(--rule)}
 .mws-sec-mark .mws-badge{margin:0}
-/* Rows: the avatar (32, the unread badge on its top-right), then the name 15 and the time 12 at 50 % on one line and one
- * line of 13 at 65 % under it. */
-.mws-row{appearance:none;display:grid;grid-template-columns:32px minmax(0,1fr);column-gap:8px;align-items:center;width:100%;min-width:0;padding:12px 12px 12px 8px;border:0;border-radius:8px;background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
-.mws-main{display:grid;gap:4px;min-width:0}
-.mws-avw{position:relative;isolation:isolate;display:block;width:32px;height:32px;line-height:0}
+/* Rows: the avatar (28, the unread badge on its top-right), then the name 13 and the time 11 at 50 % on one line and one
+ * line of 12 at 65 % under it. */
+.mws-row{appearance:none;display:grid;grid-template-columns:28px minmax(0,1fr);column-gap:10px;align-items:center;width:100%;min-width:0;padding:8px 8px 8px 10px;border:0;border-radius:8px;background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
+.mws-main{display:grid;gap:2px;min-width:0}
+.mws-avw{position:relative;isolation:isolate;display:block;width:28px;height:28px;line-height:0}
 .mws-av{display:inline-block;flex:none;line-height:0;user-select:none}
 .mws-av svg{display:block;overflow:visible}
-.mws-av-none{display:block;width:32px;height:32px}
+.mws-av-none{display:block;width:28px;height:28px}
 .mws-row:hover,.mws-row[aria-current=page]{background:var(--rule-soft)}
 .mws-line{display:flex;align-items:baseline;min-width:0}
-.mws-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px;line-height:20px;font-weight:400}
-.mws-time{flex:none;margin-left:8px;color:var(--fg-3);font-size:12px;line-height:16px;font-variant-numeric:tabular-nums;white-space:nowrap}
-.mws-sub{display:block;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--fg-2);font-size:13px;line-height:20px}
+.mws-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;line-height:18px;font-weight:400}
+.mws-time{flex:none;margin-left:8px;color:var(--fg-3);font-size:11px;line-height:16px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.mws-sub{display:block;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--fg-2);font-size:12px;line-height:16px}
 .mws-sub[data-tone=warn]{color:var(--warn)}
 .mws-sub[data-tone=danger]{color:var(--danger)}
 /* The unread badge (IM): a pill, white 11 / 600 tabular on red; on an avatar 16 high at its top-right, ringed in the ground. */
 .mws-badge{flex:none;display:inline-block;min-width:18px;height:18px;margin-left:8px;padding:0 6px;border-radius:9px;background:#e5484d;color:#fff;font-size:11px;line-height:18px;font-weight:600;font-variant-numeric:tabular-nums;text-align:center;white-space:nowrap}
-.mws-badge.on{position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;margin:0;padding:0 4px;border-radius:8px;font-size:10px;line-height:16px;box-shadow:0 0 0 2px var(--bg)}
-/* 新同事 closes the list: a 32 outlined square with + on the avatar column, the words at 50 %. */
-.mws-add{margin-top:8px;color:var(--fg-3)}
+.mws-badge.on{position:absolute;top:-6px;right:-6px;min-width:16px;height:16px;margin:0;padding:0 4px;border-radius:8px;font-size:10px;line-height:16px;box-shadow:0 0 0 2px var(--bg)}
+/* 新同事 closes the list: a 28 outlined square with + on the avatar column, the words at 50 %. */
+.mws-add{margin-top:4px;color:var(--fg-3)}
 .mws-add:hover{color:var(--fg)}
-.mws-add-box{display:grid;place-items:center;width:32px;height:32px;border:1px solid var(--rule);border-radius:8px}
-.mws-empty{padding:16px 8px;color:var(--fg-3);font-size:13px;line-height:20px}
-/* Footer: 文件 and 设置 as plain text rows, the words at 12 (two characters of 15 sit on the avatar column). */
-.mws-foot{flex:none;padding:8px 4px 0;border-top:1px solid var(--rule)}
-.mws-flat{appearance:none;display:flex;align-items:center;width:100%;height:40px;padding:0 8px;border:0;border-radius:8px;background:transparent;color:var(--fg);font:inherit;font-size:15px;line-height:20px;text-align:left;white-space:nowrap;cursor:pointer}
+.mws-add-box{display:grid;place-items:center;width:28px;height:28px;border:1px solid var(--rule);border-radius:8px}
+.mws-empty{padding:16px 10px;color:var(--fg-3);font-size:12px;line-height:16px}
+/* Footer: 文件 and 设置 as plain text rows, the words at 14 (two characters of 13 sit on the avatar column). */
+.mws-foot{flex:none;padding:4px 4px 0;border-top:1px solid var(--rule)}
+.mws-flat{appearance:none;display:flex;align-items:center;width:100%;height:32px;padding:0 10px;border:0;border-radius:8px;background:transparent;color:var(--fg);font:inherit;font-size:13px;line-height:18px;text-align:left;white-space:nowrap;cursor:pointer}
 .mws-flat:hover,.mws-flat[aria-current=page]{background:var(--rule-soft)}
 /* The settings entry is dsh's own trigger; it wears the 文件 row. */
-.mws-settings{flex:none;padding:0 4px 16px}
-.mws-settings .dcu-settings-trigger{height:40px;min-height:40px;padding:0 8px;border-radius:8px;color:var(--fg);font:400 15px/20px var(--font);white-space:nowrap;transition:background-color var(--fast),color var(--fast)}
+.mws-settings{flex:none;padding:0 4px 12px}
+.mws-settings .dcu-settings-trigger{height:32px;min-height:32px;padding:0 10px;border-radius:8px;color:var(--fg);font:400 13px/18px var(--font);white-space:nowrap;transition:background-color var(--fast),color var(--fast)}
 .mws-settings .dcu-settings-trigger:hover,.mws-settings .dcu-settings-trigger[aria-expanded=true]{background:var(--rule-soft);color:var(--fg)}
 .mws-settings .dcu-settings-trigger:active{transform:none}
 html body .mws-settings .dcu-settings-trigger:focus-visible{outline:2px solid var(--fg-3);outline-offset:-2px;background:transparent}
@@ -2819,7 +2820,7 @@ html body .mws-settings .dcu-settings-trigger:focus-visible{outline:2px solid va
 					className: "mws-avw",
 					children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(MateAvatar, {
 						mate,
-						size: 32
+						size: 28
 					}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)(Badge, {
 						n: unread,
 						on: true,
@@ -2859,7 +2860,7 @@ html body .mws-settings .dcu-settings-trigger:focus-visible{outline:2px solid va
 				onClick: onOpen,
 				children: [row.mate !== void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)(MateAvatar, {
 					mate: row.mate,
-					size: 32
+					size: 28
 				}) : /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 					className: "mws-av-none",
 					"aria-hidden": "true"
@@ -3181,7 +3182,7 @@ html body .mws-settings .dcu-settings-trigger:focus-visible{outline:2px solid va
 										},
 										children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(MateAvatar, {
 											mate,
-											size: 32
+											size: 28
 										}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
 											className: "mws-main",
 											children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {

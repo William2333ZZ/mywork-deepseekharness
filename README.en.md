@@ -59,7 +59,7 @@ The product logic follows [Rakazo](https://github.com/elie222/rakazo) (persisten
 | Default teammate | MyWork is always there, can't be deleted, takes anything. |
 | Its own computer | A private folder per teammate as working directory and write boundary; the local real Chrome when it needs the web. |
 | Memory | Stable preferences go into `AGENTS.md` in its folder and are read every turn; you can also say "remember …". |
-| Settings | Right panel: name, title, job, pin, notifications, delete. |
+| Profile | Click the name: a profile card (avatar, name, title, type, edited in place), the job, routines, what it remembers, pin and notifications, delete. |
 
 ### 2. Conversation
 
@@ -93,7 +93,7 @@ The product logic follows [Rakazo](https://github.com/elie222/rakazo) (persisten
 | Quiet | Watch routines with no change post nothing and only log the run; reports always arrive. |
 | Reminders | Things only you can do just remind you; no teammate work. |
 | Daily / weekly reports | Written from all teammates' conversations, deliveries and verifications of the period. |
-| Manage | Right panel: edit the sentence and schedule, run now, pause, delete, the last 10 runs (each jumps to its result). |
+| Manage | Profile › Routines: edit the sentence and schedule, run now, pause, delete, the last 10 runs (each jumps to its result); finished one-offs fold away. |
 
 ### 5. Sidebar and navigation
 
@@ -103,7 +103,7 @@ The product logic follows [Rakazo](https://github.com/elie222/rakazo) (persisten
 | Middle | Teammates only, in sections: pinned, then types, then other. Pinned first (MyWork by default), then by most recent conversation; state never reorders. Each row: avatar (red unread count at its top-right), name, time, latest line (the step while working, the question while waiting); the list ends with "New teammate". |
 | Bottom | Files · Settings |
 | Collapsed | The same layout with the words hidden: the mark, every avatar and its count, the sections, new teammate, files and settings stay exactly where they were |
-| Right panel | Click the name or the monitor button: computer (live picture with take-over while it browses, otherwise its folder), routines, settings; or the file you're reading. |
+| Right panel | Two tabs, Profile and Computer. Profile: who it is, its job, routines and memory. Computer: the live picture while it browses (take over), and its folder (tables it keeps + recent files). |
 | One jump rule | Anything that shows a result jumps to that message in that teammate's conversation and highlights it. |
 
 ### 6. Phone

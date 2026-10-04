@@ -63,22 +63,22 @@ const EMPTY_ACTIVITY: Activity = { needs: [], working: [], recent: [] }
 
 const stylesheet = `
 /*
- * Brutalist structure, aesthetic execution (the tasks page shares these tokens): pure black, white text at 100 / 65 /
- * 50 %, rules white at 10 / 5 %; --warn only for a pending question (等你答). The one other colour is the unread badge
- * (white on #e5484d, as in IM). No fills, no decoration: a row is the teammate's avatar
+ * The palette (dsh-mywork-shell's --mw-*, shared with the tasks page; 炭 · 香槟 by default, 墨 · 雾紫 to switch to, each dark
+ * and light): the column sits on --mw-side, a step below the thread; text fg at 100 / 68 / 54 %, rules fg at 9 / 5 %;
+ * the accent marks the open row (a tint) and a working teammate's line; --warn only for a pending question (等你答);
+ * the unread badge white on --badge, as in IM. No fills, no decoration: a row is the teammate's avatar
  * (28, flat, its own colour and shape), its name (13) and one line (12 at 65 %); the selected row a 5 % ground, radius
  * 8. Line icons only where they act, at 50 %,
  * 100 % on hover. Spacing 8 / 16 / 24 (4 inline). Shadows only on the bell's elevated dropdown. Motion: colour /
  * opacity 150 ms; a working teammate breathes (opacity 1 ↔ .5, 2.4 s; reduced motion holds .65); nothing else moves.
  */
-.mws{--bg:#000;--elevated:#111;--fg:#fff;--fg-2:rgba(255,255,255,.65);--fg-3:rgba(255,255,255,.5);--rule:rgba(255,255,255,.1);--rule-soft:rgba(255,255,255,.05);--warn:#f0a35e;--danger:#f87171;--av-mark-bg:#2a2a2a;--av-mark-fg:#fff;--shadow:0 8px 24px rgba(0,0,0,.5);--fast:150ms ease;--font:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Hiragino Sans GB","Microsoft YaHei UI",sans-serif;position:relative;width:100%;height:100%;min-width:0;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;background:var(--bg);color:var(--fg);border-right:1px solid var(--rule);font:13px/18px var(--font);letter-spacing:0;-webkit-font-smoothing:antialiased}
-html[data-mywork-theme="light"] .mws{--bg:#fff;--elevated:#fff;--fg:#000;--fg-2:rgba(0,0,0,.65);--fg-3:rgba(0,0,0,.55);--rule:rgba(0,0,0,.1);--rule-soft:rgba(0,0,0,.05);--warn:#b5480a;--danger:#c0392b;--av-mark-bg:#111;--av-mark-fg:#fff;--shadow:0 8px 24px rgba(0,0,0,.08)}
+.mws{--bg:var(--mw-side,#0e0c0a);--elevated:var(--mw-elevated,#1f1c1a);--fg:var(--mw-fg,#efebe2);--fg-2:var(--mw-fg-2,rgba(239,235,226,0.68));--fg-3:var(--mw-fg-3,rgba(239,235,226,0.54));--rule:var(--mw-rule,rgba(239,235,226,0.09));--rule-soft:var(--mw-rule-soft,rgba(239,235,226,0.05));--warn:var(--mw-attn,#e2c797);--danger:var(--mw-danger,#df7f78);--accent:var(--mw-accent,#d8c198);--accent-text:var(--mw-accent-text,#dec79f);--sel:var(--mw-sel,rgba(216,193,152,0.1));--badge:var(--mw-badge,#c74b47);--av-mark-bg:var(--mw-mark-bg,#292622);--av-mark-fg:var(--mw-mark-fg,#fff);--shadow:var(--mw-shadow,0 8px 24px rgba(0,0,0,.5));--fast:150ms ease;--font:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Hiragino Sans GB","Microsoft YaHei UI",sans-serif;position:relative;width:100%;height:100%;min-width:0;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;background:var(--bg);color:var(--fg);border-right:1px solid var(--rule);font:13px/18px var(--font);letter-spacing:0;-webkit-font-smoothing:antialiased}
 .mws *{box-sizing:border-box}
 .mws button{font-family:inherit;transition:color var(--fast),background-color var(--fast),border-color var(--fast),opacity var(--fast)}
 /* (html body .mws: the shell theme rings every :focus-visible in its brand colour; ours is white at 50 %.) */
-html body .mws :focus-visible{outline:2px solid var(--fg-3);outline-offset:-2px}
+html body .mws :focus-visible{outline:2px solid color-mix(in srgb,var(--accent) 70%,transparent);outline-offset:-2px}
 html body .mws input:focus{outline:none}
-.mws ::selection{background:rgba(255,255,255,.25);color:var(--fg)}
+.mws ::selection{background:color-mix(in srgb,var(--accent) 30%,transparent);color:var(--fg)}
 @media (prefers-reduced-motion:reduce){.mws *{transition:none!important;animation:none!important}}
 .mws-breathe{animation:mws-breathe 2.4s ease-in-out infinite}
 @keyframes mws-breathe{0%,100%{opacity:1}50%{opacity:.5}}
@@ -108,7 +108,7 @@ button.mws-brand:hover .alt,button.mws-brand:focus-visible .alt{opacity:1}
 .mws-icon:hover,.mws-icon[aria-expanded=true]{color:var(--fg)}
 .mws-icon svg{display:block}
 /* The bell's dot: white while someone works or something needs you, --warn when a question waits on you. */
-.mws-dot{position:absolute;top:5px;right:5px;width:6px;height:6px;border-radius:50%;background:var(--fg);pointer-events:none}
+.mws-dot{position:absolute;top:5px;right:5px;width:6px;height:6px;border-radius:50%;background:var(--accent-text);pointer-events:none}
 .mws-dot[data-needs=true]{background:var(--warn)}
 /* The bell's panel: an elevated layer under the header, over the list. */
 .mws-drop{position:absolute;top:46px;left:8px;right:8px;z-index:20;max-height:min(420px,calc(100vh - 120px));overflow:auto;padding:8px;border:1px solid var(--rule);border-radius:8px;background:var(--elevated);box-shadow:var(--shadow)}
@@ -135,15 +135,17 @@ button.mws-brand:hover .alt,button.mws-brand:focus-visible .alt{opacity:1}
 .mws-av{display:inline-block;flex:none;line-height:0;user-select:none}
 .mws-av svg{display:block;overflow:visible}
 .mws-av-none{display:block;width:28px;height:28px}
-.mws-row:hover,.mws-row[aria-current=page]{background:var(--rule-soft)}
+.mws-row:hover{background:var(--rule-soft)}
+.mws-row[aria-current=page]{background:var(--sel)}
 .mws-line{display:flex;align-items:baseline;min-width:0}
 .mws-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;line-height:18px;font-weight:400}
 .mws-time{flex:none;margin-left:8px;color:var(--fg-3);font-size:11px;line-height:16px;font-variant-numeric:tabular-nums;white-space:nowrap}
 .mws-sub{display:block;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--fg-2);font-size:12px;line-height:16px}
 .mws-sub[data-tone=warn]{color:var(--warn)}
+.mws-sub.mws-breathe{color:var(--accent-text)}
 .mws-sub[data-tone=danger]{color:var(--danger)}
 /* The unread badge (IM): a pill, white 11 / 600 tabular on red; on an avatar 16 high at its top-right, ringed in the ground. */
-.mws-badge{flex:none;display:inline-block;min-width:18px;height:18px;margin-left:8px;padding:0 6px;border-radius:9px;background:#e5484d;color:#fff;font-size:11px;line-height:18px;font-weight:600;font-variant-numeric:tabular-nums;text-align:center;white-space:nowrap}
+.mws-badge{flex:none;display:inline-block;min-width:18px;height:18px;margin-left:8px;padding:0 6px;border-radius:9px;background:var(--badge);color:#fff;font-size:11px;line-height:18px;font-weight:600;font-variant-numeric:tabular-nums;text-align:center;white-space:nowrap}
 .mws-badge.on{position:absolute;top:-6px;right:-6px;min-width:16px;height:16px;margin:0;padding:0 4px;border-radius:8px;font-size:10px;line-height:16px;box-shadow:0 0 0 2px var(--bg)}
 /* 新同事 closes the list: a 28 outlined square with + on the avatar column, the words at 50 %. */
 .mws-add{margin-top:4px;color:var(--fg-3)}
@@ -153,7 +155,8 @@ button.mws-brand:hover .alt,button.mws-brand:focus-visible .alt{opacity:1}
 /* Footer: 文件 and 设置 as plain text rows, the words at 14 (two characters of 13 sit on the avatar column). */
 .mws-foot{flex:none;padding:4px 4px 0;border-top:1px solid var(--rule)}
 .mws-flat{appearance:none;display:flex;align-items:center;width:100%;height:32px;padding:0 10px;border:0;border-radius:8px;background:transparent;color:var(--fg);font:inherit;font-size:13px;line-height:18px;text-align:left;white-space:nowrap;cursor:pointer}
-.mws-flat:hover,.mws-flat[aria-current=page]{background:var(--rule-soft)}
+.mws-flat:hover{background:var(--rule-soft)}
+.mws-flat[aria-current=page]{background:var(--sel)}
 /* The settings entry is dsh's own trigger; it wears the 文件 row. */
 .mws-settings{flex:none;padding:0 4px 12px}
 .mws-settings .dcu-settings-trigger{height:32px;min-height:32px;padding:0 10px;border-radius:8px;color:var(--fg);font:400 13px/18px var(--font);white-space:nowrap;transition:background-color var(--fast),color var(--fast)}
@@ -169,6 +172,7 @@ html body .mws-settings .dcu-settings-trigger:focus-visible{outline:2px solid va
 .mws.compact .mws-row{padding-right:0}
 .mws.compact .mws-row:hover,.mws.compact .mws-row[aria-current=page]{background:transparent}
 .mws.compact .mws-row:hover .mws-avw::before,.mws.compact .mws-row[aria-current=page] .mws-avw::before{content:'';position:absolute;z-index:-1;inset:-4px;border-radius:8px;background:var(--rule-soft)}
+.mws.compact .mws-row[aria-current=page] .mws-avw::before{background:var(--sel)}
 .mws.compact .mws-flat,.mws.compact .mws-settings .dcu-settings-trigger{padding-right:0}
 `
 
@@ -290,11 +294,14 @@ export function MateAvatar({ mate, size = 32 }: { mate: Mate; size?: number }): 
     </span>
   }
   const look = lookOf(mate)
-  const [fill, eye] = AV_COLORS[look.color] ?? AV_COLORS.slate
+  const key = AV_COLORS[look.color] !== undefined ? look.color : 'slate'
+  const [hex, eye] = AV_COLORS[key]
+  // The palette's muted colour for this key (dsh-mywork-shell's --mw-av-*), the stock one without it.
+  const fill = `var(--mw-av-${key},${hex})`
   const d = AV_SHAPES[look.shape] ?? AV_SHAPES.circle
   return <span className={cls} aria-hidden="true">
     <svg viewBox="0 0 100 100" width={size} height={size}>
-      {look.shape === 'hex' ? <path d={d} fill={fill} stroke={fill} strokeWidth="8" strokeLinejoin="round" /> : <path d={d} fill={fill} />}
+      {look.shape === 'hex' ? <path d={d} style={{ fill, stroke: fill }} strokeWidth="8" strokeLinejoin="round" /> : <path d={d} style={{ fill }} />}
       <g fill={eye}><ellipse cx="37.3" cy="46.5" rx="4.4" ry="3.1" /><ellipse cx="62.7" cy="46.5" rx="4.4" ry="3.1" /></g>
     </svg>
   </span>

@@ -104,6 +104,7 @@ The product logic follows [Rakazo](https://github.com/elie222/rakazo) (persisten
 | Bottom | Files · Settings |
 | Collapsed | The same layout with the words hidden: the mark, every avatar and its count, the sections, new teammate, files and settings stay exactly where they were |
 | Right panel | Two tabs, Profile and Computer. Profile: who it is, its job, routines and memory. Computer: the live picture while it browses (take over), and its folder (tables it keeps + recent files). |
+| Appearance | Settings › Scenarios & members › Appearance: two palettes, Charcoal · Champagne (the default: warm charcoal and ivory, champagne only for what concerns you — your messages, what waits on you, what you can press, links) and Ink · Mist; each has a dark and a light scheme that follow the color scheme (system / light / dark). Every text role meets WCAG AA. |
 | One jump rule | Anything that shows a result jumps to that message in that teammate's conversation and highlights it. |
 
 ### 6. Phone

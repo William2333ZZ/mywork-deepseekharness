@@ -681,24 +681,23 @@ const en = {
 
 const STYLE = `
 /*
- * Tokens (brutalist structure, aesthetic execution — blakecrosley.com/zh-Hans/blog/beauty-brutalism-design): pure black;
- * white text at 100 / 65 / 50 %; rules white at 10 / 5 %. No colour but --warn (only a pending question: 等你答),
- * --danger (failures) and each teammate's avatar. The conversation follows IM
- * conventions: bubbles (#1a1a1a the teammate's, white at 12 % yours), message cards (#0d0d0d, a 1px rule). Type: 12 meta
+ * Tokens come from the palette (dsh-mywork-shell's --mw-*: 炭 · 香槟 by default, 墨 · 雾紫 to switch to, each dark and
+ * light with dsh's scheme; the fallbacks are 炭 · 香槟 dark). Text fg at 100 / 68 / 54 %, rules fg at 9 / 5 %. One accent
+ * for what concerns you and what you can press (your bubble's tint, send, primary buttons, links, switches, the open tab);
+ * --warn only for a pending question (等你答), --danger for failures; the avatars in the palette's muted colours. The
+ * conversation follows IM conventions: bubbles (--bubble the teammate's, --bubble-me yours), message cards (--card, a 1px rule). Type: 12 meta
  * · 13 small · 15 messages · 16 body · 20 section · 28 reading title; weights 400 / 500 / 600; CJK 1.7–1.8, headings
  * 1.3–1.4, no negative tracking. Spacing 8 / 16 / 24 / 32 / 48 / 64 (4 inline and between grouped bubbles). Shadows
  * only on --elevated floating layers (menus, toasts, the slide-over); the thread header is the one blur. Motion: colour
  * / opacity 150 ms ease; new content enters over 200 ms (opacity + 8 px rise); a working teammate breathes; nothing else
- * moves. A light twin mirrors it when dsh is light.
+ * moves.
  */
-.mwt{--bg:#000;--elevated:#111;--fg:#fff;--fg-2:rgba(255,255,255,.65);--fg-3:rgba(255,255,255,.5);--rule:rgba(255,255,255,.1);--rule-soft:rgba(255,255,255,.05);--warn:#f0a35e;--danger:#f87171;--bar:rgba(0,0,0,.8);--bubble:#1a1a1a;--bubble-focus:#222;--bubble-me:rgba(255,255,255,.12);--card:#0d0d0d;--av-mark-bg:#2a2a2a;--av-mark-fg:#fff;--shadow:0 8px 24px rgba(0,0,0,.5);--font:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Hiragino Sans GB","Microsoft YaHei UI",sans-serif;--font-mono:ui-monospace,"SF Mono",Menlo,monospace;--fast:150ms ease;--enter:200ms cubic-bezier(.4,0,.2,1);color-scheme:dark;height:100%;overflow:auto;background:var(--bg);color:var(--fg);font:16px/1.8 var(--font);letter-spacing:0;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
-html[data-mywork-theme="light"] .mwt{--bg:#fff;--elevated:#fff;--fg:#000;--fg-2:rgba(0,0,0,.65);--fg-3:rgba(0,0,0,.55);--rule:rgba(0,0,0,.1);--rule-soft:rgba(0,0,0,.05);--warn:#b5480a;--danger:#c0392b;--bar:rgba(255,255,255,.8);--bubble:#f0f0f0;--bubble-focus:#e8e8e8;--bubble-me:rgba(0,0,0,.08);--card:#fafafa;--av-mark-bg:#111;--av-mark-fg:#fff;--shadow:0 8px 24px rgba(0,0,0,.08);color-scheme:light}
+.mwt{--bg:var(--mw-bg,#12100e);--side:var(--mw-side,#0e0c0a);--elevated:var(--mw-elevated,#1f1c1a);--fg:var(--mw-fg,#efebe2);--fg-2:var(--mw-fg-2,rgba(239,235,226,0.68));--fg-3:var(--mw-fg-3,rgba(239,235,226,0.54));--rule:var(--mw-rule,rgba(239,235,226,0.09));--rule-soft:var(--mw-rule-soft,rgba(239,235,226,0.05));--warn:var(--mw-attn,#e2c797);--danger:var(--mw-danger,#df7f78);--bar:var(--mw-bar,rgba(18,16,14,0.84));--bubble:var(--mw-bubble,#211f1c);--bubble-focus:var(--mw-bubble-focus,#272522);--bubble-me:var(--mw-me,#3b342a);--me-fg:var(--mw-me-fg,#f2eee6);--card:var(--mw-card,#191714);--accent:var(--mw-accent,#d8c198);--accent-fg:var(--mw-accent-fg,#191511);--accent-text:var(--mw-accent-text,#dec79f);--sel:var(--mw-sel,rgba(216,193,152,0.1));--av-mark-bg:var(--mw-mark-bg,#292622);--av-mark-fg:var(--mw-mark-fg,#fff);--shadow:var(--mw-shadow,0 8px 24px rgba(0,0,0,.5));--font:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Hiragino Sans GB","Microsoft YaHei UI",sans-serif;--font-mono:ui-monospace,"SF Mono",Menlo,monospace;--fast:150ms ease;--enter:200ms cubic-bezier(.4,0,.2,1);color-scheme:var(--mw-scheme,dark);height:100%;overflow:auto;background:var(--bg);color:var(--fg);font:16px/1.8 var(--font);letter-spacing:0;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 .mwt *{box-sizing:border-box}
 /* (html body .mwt: the shell theme rings every :focus-visible in its brand colour; ours is white at 50 %.) */
-html body .mwt :focus-visible{outline:2px solid var(--fg-3);outline-offset:2px}
+html body .mwt :focus-visible{outline:2px solid color-mix(in srgb,var(--accent) 70%,transparent);outline-offset:2px}
 html body .mwt textarea:focus,html body .mwt input:focus{outline:none}
-.mwt ::selection{background:rgba(255,255,255,.25);color:var(--fg)}
-html[data-mywork-theme="light"] .mwt ::selection{background:rgba(0,0,0,.15)}
+.mwt ::selection{background:color-mix(in srgb,var(--accent) 30%,transparent);color:var(--fg)}
 .mwt button{font-family:inherit;transition:color var(--fast),background-color var(--fast),border-color var(--fast),opacity var(--fast)}
 @media (prefers-reduced-motion:reduce){.mwt *{transition:none!important;animation:none!important}}
 /* Working breathes: opacity 1 ↔ .5 over 2.4 s; reduced motion holds .65. */
@@ -717,8 +716,8 @@ html[data-mywork-theme="light"] .mwt ::selection{background:rgba(0,0,0,.15)}
 /* Buttons. The one recipe: words with a 1px rule (primary: a white rule). Icon buttons: line icons at 50 %, 100 % on hover. */
 .mwt-btn{appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:32px;padding:0 16px;border:1px solid var(--rule);border-radius:8px;background:transparent;color:var(--fg);font:inherit;font-size:13px;line-height:20px;font-weight:400;cursor:pointer;white-space:nowrap}
 .mwt-btn:hover{border-color:var(--fg-3)}
-.mwt-btn.primary{border-color:var(--fg)}
-.mwt-btn.primary:hover{opacity:.65}
+.mwt-btn.primary{border-color:var(--accent);background:var(--accent);color:var(--accent-fg)}
+.mwt-btn.primary:hover{border-color:var(--accent);opacity:.85}
 .mwt-btn.plain{border-color:transparent;padding:0;color:var(--fg-3)}
 .mwt-btn.plain:hover{color:var(--fg)}
 .mwt-btn.danger,.mwt-btn.plain.danger{color:var(--danger)}
@@ -774,8 +773,8 @@ html[data-mywork-theme="light"] .mwt ::selection{background:rgba(0,0,0,.15)}
 .mwt-note{align-self:center;max-width:100%;padding:0 16px;color:var(--fg-3);font-size:12px;line-height:16px;text-align:center;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 button.mwt-note{appearance:none;border:0;background:transparent;font:inherit;font-size:12px;line-height:16px;cursor:pointer}
 button.mwt-note:hover{color:var(--fg)}
-.mwt-newline{display:flex;align-items:center;gap:16px;color:var(--fg-3);font-size:12px;line-height:16px;white-space:nowrap}
-.mwt-newline::before,.mwt-newline::after{content:"";flex:1;height:1px;background:var(--rule)}
+.mwt-newline{display:flex;align-items:center;gap:16px;color:var(--accent-text);font-size:12px;line-height:16px;white-space:nowrap}
+.mwt-newline::before,.mwt-newline::after{content:"";flex:1;height:1px;background:color-mix(in srgb,var(--accent-text) 35%,transparent)}
 .mwt-older{appearance:none;align-self:center;padding:4px 8px;border:0;background:transparent;color:var(--fg-3);font:inherit;font-size:12px;line-height:16px;cursor:pointer}
 .mwt-older:hover{color:var(--fg)}
 .mwt-older[disabled]{opacity:.5;cursor:default}
@@ -784,10 +783,10 @@ button.mwt-note:hover{color:var(--fg)}
 .mwt-grp-av{flex:none;width:32px;height:32px}
 .mwt-grp-col{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0;max-width:calc(100% - 40px)}
 .mwt-grp.me .mwt-grp-col{align-items:flex-end;max-width:70%}
-/* Bubbles: the teammate's #1a1a1a, yours white at 12 %; 15 / 1.7; radius 12, 4 on the corner by the avatar for a group's first. */
+/* Bubbles: the teammate's --bubble, yours --bubble-me; 15 / 1.7; radius 12, 4 on the corner by the avatar for a group's first. */
 .mwt-bub{min-width:0;max-width:600px;padding:12px 16px;border-radius:12px;background:var(--bubble);color:var(--fg);font-size:15px;line-height:1.7;word-break:break-word}
 .mwt-grp.mate .mwt-bub.first{border-top-left-radius:4px}
-.mwt-grp.me .mwt-bub{max-width:100%;background:var(--bubble-me);white-space:pre-wrap}
+.mwt-grp.me .mwt-bub{max-width:100%;background:var(--bubble-me);color:var(--me-fg);white-space:pre-wrap}
 .mwt-grp.me .mwt-bub.first{border-top-right-radius:4px}
 .mwt-bub.danger{color:var(--danger)}
 .mwt-bub .mwt-md{font-size:15px;line-height:1.7}
@@ -797,7 +796,7 @@ button.mwt-note:hover{color:var(--fg)}
 .mwt-bub .mwt-md table{margin:0 0 8px}
 .mwt-bub .mwt-md th,.mwt-bub .mwt-md td{white-space:nowrap}
 /*
- * A deliverable is a message card (a Feishu bot card): 1px rule, #0d0d0d, radius 12, 440 wide at most. The file title
+ * A deliverable is a message card (a Feishu bot card): 1px rule, --card, radius 12, 440 wide at most. The file title
  * 15 / 600 (two lines), the key figures as a two-column field grid (label 12 at 50 % over value 15 tabular), a footer:
  * the time at 50 % and 「打开」 at the right. The whole card opens it.
  */
@@ -816,7 +815,7 @@ button.mwt-card:hover{border-color:var(--fg-3)}
 .mwt-card-f{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:40px;padding:12px 16px;border-top:1px solid var(--rule-soft);color:var(--fg-3);font-size:12px;line-height:16px;font-variant-numeric:tabular-nums}
 .mwt-card-f .go{flex:none;margin-left:auto;color:var(--fg);transition:opacity var(--fast)}
 button.mwt-card:hover .mwt-card-f .go{text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--fg-3)}
-.mwt-card-f .mwt-tbtn{color:var(--fg)}
+.mwt-card-f .mwt-tbtn{color:var(--accent-text);text-decoration-color:color-mix(in srgb,var(--accent-text) 45%,transparent)}
 .mwt-card-opts{display:grid;gap:8px;padding:16px}
 .mwt-card-opts .mwt-choice{max-width:none}
 .mwt-card .detail{margin:8px 16px 0;max-height:240px;overflow:auto;color:var(--fg-2);font:13px/1.6 var(--font-mono);white-space:pre-wrap;word-break:break-word}
@@ -860,7 +859,7 @@ button.mwt-phase-head:hover .verb,button.mwt-phase-head:hover .obj{color:var(--f
 .mwt-hello .ttl{color:var(--fg-2);font-size:13px;line-height:20px}
 .mwt-hello .duty{max-width:480px;margin:8px 0 0;color:var(--fg-2);font-size:15px;line-height:1.7;word-break:break-word}
 .mwt-hello .mwt-choices{width:100%;margin-top:24px}
-/* The composer: an IM input bar — a rule across the column, a rounded #1a1a1a field, send a 32px white circle. */
+/* The composer: an IM input bar — a rule across the column, a rounded --bubble field, send a 32px circle in the accent. */
 .mwt-dock{position:sticky;bottom:0;z-index:3;margin-top:auto;padding:16px 0 24px;border-top:1px solid var(--rule);background:var(--bg)}
 .mwt-say{display:flex;align-items:flex-end;gap:8px}
 .mwt-say-in{flex:1;min-width:0;display:flex;min-height:40px;padding:8px 16px;border-radius:20px;background:var(--bubble);transition:background-color var(--fast)}
@@ -868,7 +867,7 @@ button.mwt-phase-head:hover .verb,button.mwt-phase-head:hover .obj{color:var(--f
 .mwt-say textarea{flex:1 1 0;min-width:0;display:block;min-height:24px;max-height:200px;margin:0;padding:0;resize:none;border:0;outline:0;background:transparent;color:var(--fg);font:inherit;font-size:15px;line-height:24px}
 .mwt-say textarea::placeholder{color:var(--fg-3)}
 .mwt-send,.mwt-stop{appearance:none;display:inline-grid;place-items:center;flex:none;width:32px;height:32px;margin-bottom:4px;padding:0;border:0;border-radius:999px;cursor:pointer}
-.mwt-send{background:var(--fg);color:var(--bg)}
+.mwt-send{background:var(--accent);color:var(--accent-fg)}
 .mwt-send:hover{opacity:.85}
 .mwt-send[disabled]{opacity:.3;cursor:default}
 .mwt-stop{border:1px solid var(--fg);background:transparent;color:var(--fg)}
@@ -876,13 +875,13 @@ button.mwt-phase-head:hover .verb,button.mwt-phase-head:hover .obj{color:var(--f
 .mwt-stop i{display:block;width:10px;height:10px;border-radius:2px;background:currentColor}
 .mwt-send svg{display:block}
 .mwt-say-err{display:block;padding:8px 0 0;color:var(--danger);font-size:12px;line-height:16px}
-/* Menus: an elevated layer (#111, a 1px rule, the shadow). */
+/* Menus: an elevated layer (--elevated, a 1px rule, the shadow). */
 .mwt-menu{position:relative}
 .mwt-menu-pop{position:absolute;right:0;top:40px;z-index:6;display:grid;min-width:160px;padding:8px 0;border:1px solid var(--rule);border-radius:8px;background:var(--elevated);box-shadow:var(--shadow)}
 .mwt-menu-pop button{appearance:none;display:flex;align-items:center;height:32px;padding:0 16px;border:0;background:transparent;color:var(--fg);font:inherit;font-size:13px;line-height:20px;text-align:left;cursor:pointer}
 .mwt-menu-pop button:hover{background:var(--rule-soft)}
-/* Right panel: #000 with a left rule beside the thread; below the split width an elevated slide-over (fades, no slide). */
-.mwt-aside{display:flex;flex-direction:column;min-height:0;background:var(--bg)}
+/* Right panel: --side (a step below the thread) with a left rule beside it; below the split width an elevated slide-over (fades, no slide). */
+.mwt-aside{display:flex;flex-direction:column;min-height:0;background:var(--side)}
 .mwt-aside.col{position:sticky;top:0;align-self:start;border-left:1px solid var(--rule);overflow:hidden}
 .mwt-aside-head{display:flex;align-items:center;gap:8px;flex:none;height:48px;padding:0 8px 0 24px;border-bottom:1px solid var(--rule)}
 .mwt-aside-head .title{flex:1;min-width:0;color:var(--fg-3);font-size:13px;line-height:20px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -890,7 +889,7 @@ button.mwt-phase-head:hover .verb,button.mwt-phase-head:hover .obj{color:var(--f
 .mwt-ptabs{display:flex;align-self:stretch;gap:24px;flex:1;min-width:0}
 .mwt-ptabs button{appearance:none;position:relative;padding:0;border:0;background:transparent;color:var(--fg-3);font:inherit;font-size:13px;line-height:20px;cursor:pointer}
 .mwt-ptabs button:hover,.mwt-ptabs button[aria-selected=true]{color:var(--fg)}
-.mwt-ptabs button[aria-selected=true]::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:1px;background:var(--fg)}
+.mwt-ptabs button[aria-selected=true]::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--accent)}
 .mwt-aside-body{flex:1;min-height:0;overflow:auto;padding:20px 24px 24px}
 .mwt-aside-dock{position:sticky;top:0;height:0;z-index:6}
 .mwt-aside-clip{position:absolute;top:0;right:0;display:flex;justify-content:flex-end;width:min(${ASIDE_W + 24}px,100%);overflow:hidden;pointer-events:none}
@@ -1002,8 +1001,8 @@ textarea.mwt-input{resize:vertical;min-height:80px;line-height:1.75}
 .mwt-switch-row{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:36px;font-size:13px;line-height:18px}
 .mwt-switch{appearance:none;position:relative;flex:none;width:30px;height:18px;padding:0;border:1px solid var(--rule);border-radius:999px;background:transparent;cursor:pointer;transition:background-color var(--fast),border-color var(--fast)}
 .mwt-switch::after{content:"";position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:var(--fg-3);transition:left var(--fast),background-color var(--fast)}
-.mwt-switch[aria-checked=true]{border-color:var(--fg);background:var(--fg)}
-.mwt-switch[aria-checked=true]::after{left:14px;background:var(--bg)}
+.mwt-switch[aria-checked=true]{border-color:var(--accent);background:var(--accent)}
+.mwt-switch[aria-checked=true]::after{left:14px;background:var(--accent-fg)}
 /* Controls in the panel run a size down: buttons 28 / 12, fields 13. */
 .mwt-aside .mwt-btn{height:28px;padding:0 12px;font-size:12px;line-height:16px}
 .mwt-aside .mwt-btn.plain{padding:0}
@@ -1063,8 +1062,8 @@ textarea.mwt-input{resize:vertical;min-height:80px;line-height:1.75}
 .mwt-tbl .num{text-align:right;white-space:nowrap}
 .mwt-tbl .num>.c{margin-left:auto}
 .mwt-tbl .nil{color:var(--fg);opacity:.3}
-.mwt .mwt-tbl a{color:var(--fg);text-decoration:underline;text-decoration-color:var(--fg-3);text-underline-offset:3px}
-.mwt .mwt-tbl a:hover{text-decoration-color:var(--fg)}
+.mwt .mwt-tbl a{color:var(--accent-text);text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--accent-text) 45%,transparent);text-underline-offset:3px}
+.mwt .mwt-tbl a:hover{text-decoration-color:var(--accent-text)}
 .mwt-code{margin:0;padding:0 0 0 16px;border-left:1px solid var(--rule);overflow:auto;color:var(--fg-2);font:13px/1.6 var(--font-mono);white-space:pre;tab-size:2}
 .mwt-read-end{display:flex;align-items:center;gap:16px;margin:48px 0 0;padding-top:16px;border-top:1px solid var(--rule);color:var(--fg-3);font-size:12px;line-height:16px}
 /*
@@ -1094,8 +1093,8 @@ textarea.mwt-input{resize:vertical;min-height:80px;line-height:1.75}
 .mwt-md blockquote{margin:0 0 16px;padding:0 0 0 16px;border-left:1px solid var(--rule);color:var(--fg-2)}
 .mwt-md hr{margin:32px 0;border:0;border-top:1px solid var(--rule)}
 /* (.mwt .mwt-md a: the shell theme colours every link underline; ours stays white at 50 %.) */
-.mwt .mwt-md a,.mwt .mwt-card-h a{color:var(--fg);text-decoration:underline;text-decoration-color:var(--fg-3);text-underline-offset:3px}
-.mwt .mwt-md a:hover,.mwt .mwt-card-h a:hover{text-decoration-color:var(--fg)}
+.mwt .mwt-md a,.mwt .mwt-card-h a{color:var(--accent-text);text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--accent-text) 45%,transparent);text-underline-offset:3px}
+.mwt .mwt-md a:hover,.mwt .mwt-card-h a:hover{text-decoration-color:var(--accent-text)}
 .mwt-md strong{font-weight:600}
 /* Toasts: an elevated layer. */
 .mwt-toasts{position:fixed;right:16px;bottom:16px;z-index:10050;display:grid;gap:8px;width:min(360px,calc(100vw - 32px));padding:0!important;height:auto!important;overflow:visible!important;background:transparent!important}
@@ -1375,11 +1374,14 @@ function Avatar({ mate, size, working, look }) {
           h('path', { d: 'M4.5 18.5V7l5.5 6.5L15.5 7M10.5 17l3 3 6-6', stroke: 'var(--av-mark-fg)', strokeWidth: 3, strokeLinecap: 'round', strokeLinejoin: 'round' }))))
   }
   const l = look || lookOf(m)
-  const [fill, eye] = AV_COLORS[l.color] || AV_COLORS.slate
+  const key = AV_COLORS[l.color] ? l.color : 'slate'
+  const [hex, eye] = AV_COLORS[key]
+  // The palette's muted colour for this key (shell's --mw-av-*), the stock one without it.
+  const fill = 'var(--mw-av-' + key + ',' + hex + ')'
   const d = AV_SHAPES[l.shape] || AV_SHAPES.circle
   return h('span', { className: cls, 'aria-hidden': 'true' },
     h('svg', { viewBox: '0 0 100 100', width: s, height: s },
-      h('path', l.shape === 'hex' ? { d, fill, stroke: fill, strokeWidth: 8, strokeLinejoin: 'round' } : { d, fill }),
+      h('path', l.shape === 'hex' ? { d, style: { fill, stroke: fill }, strokeWidth: 8, strokeLinejoin: 'round' } : { d, style: { fill } }),
       h('g', { fill: eye }, h('ellipse', { cx: 37.3, cy: 46.5, rx: 4.4, ry: 3.1 }), h('ellipse', { cx: 62.7, cy: 46.5, rx: 4.4, ry: 3.1 }))))
 }
 /** IM time: 15:43 today, 昨天 21:00, 10/1 09:00 (2025/10/1 09:00 another year). */
@@ -2518,7 +2520,7 @@ function makeComponents(ctx, t) {
     return h('div', { className: 'mwt-avpick' + (bare ? ' bare' : '') },
       bare ? null : h('div', { className: 'pv' }, h(Avatar, { mate: {}, size: 48, look })),
       h('div', { className: 'opts' },
-        h('div', { className: 'row', role: 'radiogroup', 'aria-label': t('avColor') }, AV_COLOR_KEYS.map((c) => h('button', { key: c, type: 'button', role: 'radio', className: 'sw', 'aria-checked': look.color === c, 'aria-label': t('c_' + c), title: t('c_' + c), style: { background: AV_COLORS[c][0] }, onClick: () => onChange({ ...look, color: c }) }))),
+        h('div', { className: 'row', role: 'radiogroup', 'aria-label': t('avColor') }, AV_COLOR_KEYS.map((c) => h('button', { key: c, type: 'button', role: 'radio', className: 'sw', 'aria-checked': look.color === c, 'aria-label': t('c_' + c), title: t('c_' + c), style: { background: 'var(--mw-av-' + c + ',' + AV_COLORS[c][0] + ')' }, onClick: () => onChange({ ...look, color: c }) }))),
         h('div', { className: 'row', role: 'radiogroup', 'aria-label': t('avShape') }, AV_SHAPE_KEYS.map((s) => h('button', { key: s, type: 'button', role: 'radio', className: 'shp', 'aria-checked': look.shape === s, 'aria-label': t('s_' + s), title: t('s_' + s), onClick: () => onChange({ ...look, shape: s }) }, h(Avatar, { mate: {}, size: 24, look: { color: look.color, shape: s } }))))))
   }
 

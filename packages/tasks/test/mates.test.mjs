@@ -12,7 +12,7 @@
  */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createMyWork, mateComposition } from '../src/index.js'
@@ -915,4 +915,17 @@ test('any file in a teammate folder opens by a signed link; tampered or escaping
   assert.equal((await h.call('GET', '/mates/link', { id: 'mywork', path: '../../mates.json' })).status, 400)
   const img = await h.ok('GET', '/mates/link', { id: 'mywork', path: 'chart.png' })
   assert.equal(img.mime, 'image/png')
+})
+
+test('a teammate folder lists the tables it keeps however many newer files there are, and the newest 30 of the rest', async () => {
+  const h = harness()
+  const dir = join(h.dir, 'mywork', 'mates', 'mywork')
+  mkdirSync(dir, { recursive: true })
+  const old = new Date(Date.now() - 3 * 86400000)
+  writeFileSync(join(dir, '信源表.csv'), '类型,名称\nGitHub,Trending\n')
+  utimesSync(join(dir, '信源表.csv'), old, old)
+  for (let i = 0; i < 40; i++) writeFileSync(join(dir, `raw-${i}.html`), '<p>' + i + '</p>')
+  const { items } = await h.ok('GET', '/mates/folder', { id: 'mywork' })
+  assert.ok(items.some((f) => f.name === '信源表.csv'), 'the table older than 40 fresh files is still listed')
+  assert.equal(items.filter((f) => /\.html$/.test(f.name)).length, 30)
 })

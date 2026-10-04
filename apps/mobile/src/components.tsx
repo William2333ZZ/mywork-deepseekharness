@@ -188,6 +188,16 @@ export function UnreadBadge({ n }: { n: number }) {
   return <View style={styles.badge} pointerEvents="none"><Text style={styles.badgeText}>{n > 99 ? '99+' : String(n)}</Text></View>
 }
 
+/** A switch drawn like the web's: off, a hairline pill with a muted knob; on, the accent pill with a dark knob. */
+export function Toggle({ value, onChange, label }: { value: boolean; onChange: (v: boolean) => void; label: string }) {
+  return (
+    <Pressable onPress={() => onChange(!value)} accessibilityRole="switch" accessibilityLabel={label} accessibilityState={{ checked: value }} hitSlop={10}
+      style={[styles.toggle, value && styles.toggleOn]}>
+      <View style={[styles.knob, value && styles.knobOn]} />
+    </Pressable>
+  )
+}
+
 /** 头像: 8 colour swatches and 4 shapes drawn in the chosen colour (the web's picker; the look is saved as { color, shape }). */
 export function AvatarPicker({ look, onChange }: { look: Look; onChange: (next: Look) => void }) {
   return (
@@ -501,6 +511,10 @@ const styles = themed(() => ({
   mrowSub: { fontSize: 13, lineHeight: 20, color: color.muted },
   badge: { position: 'absolute', top: -4, right: -6, minWidth: 20, height: 20, paddingHorizontal: 5, borderRadius: 10, borderWidth: 2, borderColor: color.bg, backgroundColor: color.badge, alignItems: 'center', justifyContent: 'center' },
   badgeText: { fontSize: 11, lineHeight: 14, fontWeight: '600', color: '#ffffff', fontVariant: ['tabular-nums'] },
+  toggle: { width: 44, height: 26, borderRadius: 13, borderWidth: 1, borderColor: color.border, backgroundColor: color.input, padding: 3, justifyContent: 'center' },
+  toggleOn: { backgroundColor: color.primary, borderColor: color.primary },
+  knob: { width: 18, height: 18, borderRadius: 9, backgroundColor: color.meta },
+  knobOn: { backgroundColor: color.onPrimary, alignSelf: 'flex-end' },
   pick: { gap: 12 },
   pickRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   swatch: { width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: 'transparent' },

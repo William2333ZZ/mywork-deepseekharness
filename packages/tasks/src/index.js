@@ -480,7 +480,10 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     }
     walk(m.dir, '', 0)
     items.sort((a, b) => ts(b.modifiedAt) - ts(a.modifiedAt))
-    return { dir: m.dir, items: items.slice(0, 30) }
+    // The tables it keeps (信源表, 情报库) always, however many fresh files a day's scraping leaves; the rest, the newest 30.
+    const table = (f) => /\.(csv|tsv)$/i.test(f.name)
+    const keep = new Set([...items.filter(table).slice(0, 50), ...items.slice(0, 30)])
+    return { dir: m.dir, items: items.filter((f) => keep.has(f)) }
   }
 
   /** One text file from a teammate's folder, read-only (tables and notes open in the reading view). Never leaves the folder. */

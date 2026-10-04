@@ -11,11 +11,11 @@
  * With `routineId` the routine's sheet opens on arrival (「已安排」 lines and search results land here).
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, Switch, Text, View } from 'react-native'
+import { KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { ApiError, fmtDate, fmtWhen, type FolderItem, type Look, type Mate, type Routine, type RoutineRun } from '../api'
 import { useConn, useNav, useStore } from '../store'
-import { Avatar, AvatarPicker, Btn, Empty, Field, Ghost, IconBtn, ListBox, Row, Screen, Section, Sheet, SheetItem, TopBar, TypePicker, type IconName } from '../components'
+import { Avatar, AvatarPicker, Btn, Empty, Field, Ghost, IconBtn, ListBox, Row, Screen, Section, Sheet, SheetItem, Toggle, TopBar, TypePicker, type IconName } from '../components'
 import { color, radius, size, space, themed } from '../theme'
 import { cleanType, fileKindOf, glyphOf, openKindOf, time, typesOf } from '../thread'
 
@@ -239,7 +239,7 @@ function SwitchRow({ label, value, onChange }: { label: string; value: boolean; 
   return (
     <View style={styles.switchRow}>
       <Text style={styles.switchLabel}>{label}</Text>
-      <Switch value={value} onValueChange={onChange} trackColor={{ false: color.input, true: color.primary }} thumbColor={value ? color.onPrimary : color.meta} ios_backgroundColor={color.input} />
+      <Toggle value={value} onChange={onChange} label={label} />
     </View>
   )
 }

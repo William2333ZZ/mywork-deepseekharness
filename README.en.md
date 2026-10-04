@@ -55,6 +55,7 @@ The product logic follows [Rakazo](https://github.com/elie222/rakazo) (persisten
 | Feature | What it does |
 | --- | --- |
 | Create in one sentence | "+" at the top left; describe its job, the name is optional. It names and introduces itself and says what it needs from you; a sentence with a time also creates the routine. |
+| Let MyWork create it | Tell MyWork about an ongoing job ("every Monday, look at …"). It first checks whether a teammate already does it; if not, it asks whether to find the job its own teammate, and on "new teammate" it creates one, which can do the first round right away. A teammate card stays in the conversation and opens it; the job is that teammate's from then on. |
 | Identity | Name, title, job description (its standing instructions), a coloured avatar that moves while it works. |
 | Default teammate | MyWork is always there, can't be deleted, takes anything. |
 | Its own computer | A private folder per teammate as working directory and write boundary; the local real Chrome when it needs the web. |

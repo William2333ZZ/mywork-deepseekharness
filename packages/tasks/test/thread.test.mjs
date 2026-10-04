@@ -301,3 +301,13 @@ test('openKindOf: every folder file opens — text read in place, images shown, 
   for (const n of ['report.html', 'old.HTM', 'paper.pdf']) assert.equal(openKindOf(n), 'page')
   for (const n of ['plan.docx', 'sheet.xlsx', 'deck.pptx', 'archive.zip', 'Makefile', '', 'x.svg']) assert.equal(openKindOf(n), 'download')
 })
+
+test('MyWork created a teammate: a newMate entry where it happened; the first job it handed over opens with a marked line', () => {
+  const r = run({ mateId: 'mywork', activity: [{ kind: 'mate', action: 'created', at: at(5), mateId: 'mate-x', name: '技术雷达' }, { kind: 'text', at: at(8), text: '建好了。' }] })
+  const th = threadOf(r)
+  assert.deepEqual(kinds(th), ['user', 'newMate', 'text'])
+  assert.deepEqual([th[1].mateId, th[1].name], ['mate-x', '技术雷达'])
+  const first = threadOf(run({ input: '先出一份今天的', via: 'mywork' }))
+  assert.equal(first[0].via, 'mywork')
+  assert.equal(threadOf(run())[0].via, undefined)
+})

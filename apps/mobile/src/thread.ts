@@ -110,7 +110,9 @@ export function verifyWords(v: VerifyState): string {
 export type AskStatus = 'pending' | 'answered' | 'superseded' | 'expired'
 export type ThreadEntry =
   | { kind: 'marker'; key: string; at: string; text: string; routineId?: string }
-  | { kind: 'user'; key: string; at: string; text: string }
+  | { kind: 'user'; key: string; at: string; text: string; via?: string }
+  /** MyWork created a teammate here: a card that opens it (its current name comes from the list). */
+  | { kind: 'newMate'; key: string; at: string; mateId: string; name: string }
   /** One segment's output as ONE bubble: the reply text ('' when none), then every deliverable (d = ds[0]). */
   | { kind: 'deliver'; key: string; at: string; d: Deliverable; ds: Deliverable[]; text: string; verify: VerifyState }
   | { kind: 'text'; key: string; at: string; text: string }
@@ -155,7 +157,7 @@ export function runEntries(run: Run): ThreadEntry[] {
 
   const out: ThreadEntry[] = []
   if (r.trigger === 'routine') out.push({ kind: 'marker', key: k('m'), at: r.createdAt, text: [r.routineTitle || '例行', fmtTime(r.createdAt)].filter(Boolean).join(' · '), routineId: r.routineId })
-  else if (r.trigger !== 'system' && String(r.input || '').trim()) out.push({ kind: 'user', key: k('u'), at: r.createdAt, text: String(r.input) })
+  else if (r.trigger !== 'system' && String(r.input || '').trim()) out.push({ kind: 'user', key: k('u'), at: r.createdAt, text: String(r.input), ...(r.via ? { via: r.via } : {}) })
 
   // Segments: the opening, then one per steer line.
   type Seg = { start: number; entries: Activity[] }
@@ -193,6 +195,7 @@ export function runEntries(run: Run): ThreadEntry[] {
       if (e.kind === 'routine' && (!e.action || e.action === 'created')) body.push({ kind: 'scheduled', key: k('r' + (e.routineId || seq++)), at: e.at, routineId: e.routineId, text: ['已安排', [e.scheduleLabel, e.title].filter(Boolean).join(' ')].filter(Boolean).join(' · ') })
       else if (e.kind === 'remind') body.push({ kind: 'remind', key: k('n' + seq++), at: e.at, routineId: e.routineId, title: String(e.title || e.text || ''), text: String(e.text || ''), acked: !!(e.acked || e.ackedAt) })
       else if (e.kind === 'user' && e.auto) body.push({ kind: 'auto', key: k('x' + seq++), at: e.at })
+      else if (e.kind === 'mate' && e.action === 'created' && e.mateId) body.push({ kind: 'newMate', key: k('n' + e.mateId), at: e.at, mateId: e.mateId, name: String(e.name || '') })
     }
     const cut = Math.max(mine.length ? time(mine[mine.length - 1].createdAt) : -Infinity, asks.length ? time(asks[asks.length - 1].at) : -Infinity)
     const texts = seg.entries.filter((e): e is Text => e.kind === 'text' && !!String(e.text || '').trim())

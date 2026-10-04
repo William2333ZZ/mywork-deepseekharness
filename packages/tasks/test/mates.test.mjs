@@ -336,6 +336,83 @@ test('ask rules: at most two per run, never in routine or intro runs, never outs
   h.cleanup()
 })
 
+test('MyWork finds a long-running job its own teammate: it checks the roster, creates it, the intro runs, then the first job MyWork handed over', async () => {
+  const h = harness()
+  const got = {}
+  h.scripts.push((t) => {
+    got.before = t.tool('mywork_mates')
+    got.made = t.tool('mywork_mate_create', { description: '每天早上 8 点整理 AI 行业的新闻，挑 5 条最值得看的', name: '技术雷达', group: 'AI 行业', first: '先出一份今天的' })
+    t.say('建好了：技术雷达，在左边的同事列表里，以后 AI 新闻直接找它。')
+  })
+  h.scripts.push((t) => {
+    assert.doesNotMatch(t.texts[0], /mywork_mate_update/) // MyWork named it
+    t.tool('mywork_routine_create', { input: '每天早上 8 点整理 AI 行业的新闻，挑 5 条最值得看的' })
+    t.say('我是技术雷达，每天早上 8 点交简报，已经安排好了。')
+  })
+  h.scripts.push((t) => { assert.match(t.texts[0], /先出一份今天的/); t.tool('deliver', { title: '今天的 AI 简报', markdown: '结论在前。' }); t.say('第一份在这。') })
+  const { runId } = await h.ok('POST', '/mates/say', { id: 'mywork', text: '我想每天早上看 AI 行业的新东西' })
+  await h.until(() => h.mw.mates.items.length === 2 && h.mw.store.items.every((r) => r.status === 'done') && h.mw.store.items.length === 3)
+  assert.deepEqual(got.before, { items: [] })
+  const mate = h.mw.mates.items.find((m) => !m.isDefault)
+  assert.deepEqual(got.made, { created: true, id: mate.id, name: '技术雷达', group: 'AI 行业', first: '先出一份今天的' })
+  const v = h.mw.mateView(mate.id)
+  assert.deepEqual([v.name, v.group, v.routineCount], ['技术雷达', 'AI 行业', 1])
+  // MyWork's thread keeps a card of the teammate it created.
+  const card = h.run(runId).activity.find((a) => a.kind === 'mate')
+  assert.deepEqual([card.action, card.mateId, card.name], ['created', mate.id, '技术雷达'])
+  // The teammate's thread: the hidden intro, then the first job, marked as handed over by MyWork.
+  const { runs } = await h.ok('GET', '/mates/thread', { id: mate.id })
+  assert.deepEqual(runs.map((r) => [r.trigger, r.input, r.via]), [['system', '', ''], ['user', '先出一份今天的', 'mywork']])
+  assert.equal(runs[1].deliverables[0].title, '今天的 AI 简报')
+  const mine = await h.ok('GET', '/mates/thread', { id: 'mywork' })
+  assert.ok(mine.runs.every((r) => r.via === ''))
+  // MyWork's preset carries the rule; another teammate's does not.
+  assert.match(readFileSync(join(h.dir, '.agent-presets', 'mate-mywork', 'agent.cordis.yml'), 'utf8'), /mywork_mate_create/)
+  assert.doesNotMatch(readFileSync(join(h.dir, '.agent-presets', 'mate-' + mate.id, 'agent.cordis.yml'), 'utf8'), /mywork_mate_create/)
+  // Now the roster shows it, with its routine.
+  const listed = h.mw.tools.find((t) => t.name === 'mywork_mates').execute({}, { agent: { session: { id: 'mywork-mate-mywork' } } })
+  assert.deepEqual(listed.items.map((m) => [m.name, m.group, m.routines.length]), [['技术雷达', 'AI 行业', 1]])
+  // Only MyWork creates teammates: not another teammate, not a session that is no teammate's.
+  for (const name of ['mywork_mate_create', 'mywork_mates']) {
+    const tool = h.mw.tools.find((t) => t.name === name)
+    assert.throws(() => tool.execute({ description: 'x' }, { agent: { session: { id: 'mywork-mate-' + mate.id } } }), /只有 MyWork 能用/)
+    assert.throws(() => tool.execute({ description: 'x' }, { agent: { session: { id: 'user-session' } } }), /只在 MyWork 同事的会话里可用/)
+  }
+  h.cleanup()
+})
+
+test('a preset written by an older version is rewritten at start, so a new working rule reaches a teammate that already has a session', async () => {
+  const h = harness()
+  h.scripts.push((t) => t.say('好的。'))
+  const { runId } = await h.ok('POST', '/mates/say', { id: 'mywork', text: '在吗' })
+  await h.until(() => h.run(runId).status === 'done')
+  const file = join(h.dir, '.agent-presets', 'mate-mywork', 'agent.cordis.yml')
+  writeFileSync(file, '# an older version\n')
+  const again = harness({ home: h.dir })
+  await again.until(() => /mywork_mate_create/.test(readFileSync(file, 'utf8')))
+  h.cleanup()
+})
+
+test('MyWork may not create a teammate from a routine run; without a first job the teammate only introduces itself', async () => {
+  const h = harness()
+  const got = {}
+  const { routine } = await h.ok('POST', '/routines/create', { mateId: 'mywork', input: '每天 9 点给我一份简报' })
+  h.scripts.push((t) => { got.refused = t.tool('mywork_mate_create', { description: '盯邮件' }).error; t.say('简报\n变化：有') })
+  const ran = await h.ok('POST', '/routines/run', { id: routine.id })
+  await h.until(() => h.run(ran.runId).status === 'done')
+  assert.match(got.refused, /例行运行时不能新建同事/)
+  assert.equal(h.mw.mates.items.length, 1)
+  h.scripts.push((t) => { got.made = t.tool('mywork_mate_create', { description: '帮我盯邮件，重要的告诉我' }); t.say('建好了。') })
+  h.scripts.push((t) => { t.tool('mywork_mate_update', { name: '邮差' }); t.say('我是邮差。') })
+  await h.ok('POST', '/mates/say', { id: 'mywork', text: '新建一个同事帮我盯邮件' })
+  await h.until(() => h.mw.mates.items.length === 2 && h.mw.store.items.every((r) => r.status === 'done'))
+  assert.equal(got.made.name, ''); assert.equal(got.made.first, '')
+  const mate = h.mw.mates.items.find((m) => !m.isDefault)
+  assert.deepEqual(h.runsOf(mate.id).map((r) => r.trigger), ['system'])
+  assert.equal(h.mw.mateView(mate.id).name, '邮差')
+  h.cleanup()
+})
+
 test('stop cancels the active run (inbox kept): a queued message still runs afterwards', async () => {
   const h = harness()
   const never = gate()

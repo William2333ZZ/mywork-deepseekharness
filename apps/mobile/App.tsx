@@ -28,7 +28,7 @@ function Router() {
   if (!ready) return <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: color.bg }}><ActivityIndicator color={color.fg2} /></View>
   if (!conn || failed) return <Pair />
   switch (route.name) {
-    case 'mate': return <Thread id={route.id} runId={route.runId} />
+    case 'mate': return <Thread key={route.id} id={route.id} runId={route.runId} />
     case 'mateInfo': return <MateInfo key={route.id + ':' + (route.routineId || '')} id={route.id} routineId={route.routineId} />
     case 'activity': return <Activity />
     case 'newMate': return <NewMate />

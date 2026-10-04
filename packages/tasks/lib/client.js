@@ -92,9 +92,10 @@ module.exports = { render, inline, esc }
  *
  * Entry kinds, in the order they appear:
  *   routine   { title, routineId }             a routine run opens with a centred line 「<routineTitle> · HH:MM」 (at = createdAt)
- *   user      { text }                         run.input first — unless the run's trigger is 'system' (the hidden intro) or
+ *   user      { text, via }                    run.input first — unless the run's trigger is 'system' (the hidden intro) or
  *                                              'routine' — then every activity entry of kind 'user' (a message that steered
- *                                              the run while it worked)
+ *                                              the run while it worked); via 'mywork' on the opening line of a first job
+ *                                              MyWork handed over when it created the teammate (run.via)
  *   deliver   { d, ds, text, verify }          ONE per segment that delivered: its reply `text` (activity text after the
  *                                              segment's last deliverable/question, joined; '' when none), all its
  *                                              deliverables `ds` (d = ds[0]); at = the later of the last file / reply;
@@ -104,6 +105,8 @@ module.exports = { render, inline, esc }
  *                                              a question the run stopped on; status pending | answered | superseded |
  *                                              expired; answerable = the newest pending question of a waiting run
  *   scheduled { routineId, title, scheduleLabel }  activity { kind:'routine', action:'created' }: 「已安排 · 每天 19:00 写日报」
+ *   newMate   { mateId, name }                 activity { kind:'mate', action:'created' }: MyWork created a teammate (a card
+ *                                              that opens it; the caller reads its current name from the roster)
  *   remind    { routineId, title, acked }      a reminder card (activity { kind:'remind' }, or a whole synthetic remind run)
  *   auto      {}                               the 24 h resume (the user line with auto: true): one muted line
  *   thinking  { step }                         one line while the run works (status running, not queued); the caller adds the time
@@ -182,7 +185,7 @@ function threadOf(run, deliverables) {
   if (trigger === 'routine') out.push({ kind: 'routine', key: 'rt', at: str(r.createdAt), title: str(r.routineTitle), routineId: str(r.routineId) })
 
   // Split the activity into segments, each opened by a user line (an answer or the 24 h resume continues its segment).
-  const segs = [{ at: str(r.createdAt), text: str(r.input), bubble: trigger === 'user' && !!str(r.input).trim(), entries: [] }]
+  const segs = [{ at: str(r.createdAt), text: str(r.input), bubble: trigger === 'user' && !!str(r.input).trim(), via: str(r.via), entries: [] }]
   for (const e of activity) {
     if (!e || typeof e !== 'object') continue
     if (e.kind === 'user' && !e.askId && !e.auto) { segs.push({ at: str(e.at), text: str(e.text), bubble: true, entries: [] }); continue }
@@ -194,7 +197,7 @@ function threadOf(run, deliverables) {
     const last = i === segs.length - 1
     const start = time(seg.at)
     const end = last ? Infinity : time(segs[i + 1].at)
-    if (seg.bubble) out.push({ kind: 'user', key: 'u' + i, at: seg.at, text: seg.text })
+    if (seg.bubble) out.push({ kind: 'user', key: 'u' + i, at: seg.at, text: seg.text, ...(seg.via ? { via: seg.via } : {}) })
     const body = []
     // Deliverables of this segment: the first also takes anything stamped before its own line (clock skew, trimmed history).
     const mine = docs.filter((d) => { const c = time(d.createdAt); return (i === 0 || c >= start) && c < end })
@@ -213,6 +216,7 @@ function threadOf(run, deliverables) {
       if (e.kind === 'user' && e.auto) body.push({ kind: 'auto', key: 'r' + seq++, at: str(e.at) })
       else if (e.kind === 'routine' && (e.action === 'created' || !e.action)) body.push({ kind: 'scheduled', key: 's' + (e.routineId || seq++), at: str(e.at), routineId: str(e.routineId || e.id), title: str(e.title), scheduleLabel: str(e.scheduleLabel) })
       else if (e.kind === 'remind') body.push({ kind: 'remind', key: 'm' + seq++, at: str(e.at), routineId: str(e.routineId || e.id), title: str(e.title || e.text), acked: !!(e.acked || e.ackedAt) })
+      else if (e.kind === 'mate' && e.action === 'created' && str(e.mateId)) body.push({ kind: 'newMate', key: 'n' + e.mateId, at: str(e.at), mateId: str(e.mateId), name: str(e.name) })
     }
     // Text before the segment's last deliverable or question is narration (过程); what comes after it is the reply.
     const cut = Math.max(mine.length ? time(mine[mine.length - 1].createdAt) : -Infinity, asks.length ? time(asks[asks.length - 1].at) : -Infinity)
@@ -617,7 +621,7 @@ const zh = {
   sayTo: '给 {name} 发消息', answerPh: '回答', send: '发送', more: '更多', stop: '停止', settings: '设置', close: '关闭', back: '返回',
   working: '在干活', workingAria: '{name} 正在工作', file: '文件', loadEarlier: '加载更早', process: '过程', phases: '步', times: '次', toolFailed: '失败', none2: '无',
   ratingGood: '有用', ratingBad: '没用', failedTitle: '失败', stopped: '已停止', queued: '排队',
-  scheduled: '已安排', remindCard: '提醒', gotIt: '知道了', acked: '已知道',
+  scheduled: '已安排', viaMywork: 'MyWork 转交', mateGone: '已删除', remindCard: '提醒', gotIt: '知道了', acked: '已知道',
   answeredLine: '已回答：{a}', answerBelow: '在下面的输入框回答', askClosed: '不再等待', askAuto: '24 小时没有回答，按合理假设继续',
   allowOnce: '允许一次', deny: '拒绝', takeoverGo: '去 Chrome 里处理', takeoverDone: '我做完了',
   computer: '电脑', routines: '例行', noFiles: '还没有文件。', folderEmpty: '文件夹还是空的。它写的表、抓的网页、做的文件都放在这里。', noRoutines: '还没有例行。',
@@ -650,7 +654,7 @@ const en = {
   sayTo: 'Message {name}', answerPh: 'Answer', send: 'Send', more: 'More', stop: 'Stop', settings: 'Settings', close: 'Close', back: 'Back',
   working: 'Working', workingAria: '{name} is working', file: 'File', loadEarlier: 'Load earlier', process: 'Process', phases: 'steps', times: 'calls', toolFailed: 'failed', none2: 'none',
   ratingGood: 'Useful', ratingBad: 'Not useful', failedTitle: 'Failed', stopped: 'Stopped', queued: 'Queued',
-  scheduled: 'Scheduled', remindCard: 'Reminder', gotIt: 'Got it', acked: 'Seen',
+  scheduled: 'Scheduled', viaMywork: 'Handed over by MyWork', mateGone: 'deleted', remindCard: 'Reminder', gotIt: 'Got it', acked: 'Seen',
   answeredLine: 'Answered: {a}', answerBelow: 'Answer in the box below', askClosed: 'No longer waiting', askAuto: 'No answer in 24 hours, continued on reasonable assumptions',
   allowOnce: 'Allow once', deny: 'Deny', takeoverGo: 'Handle it in Chrome', takeoverDone: 'Done',
   computer: 'Computer', routines: 'Routines', noFiles: 'No files yet.', folderEmpty: 'The folder is empty. Its tables, saved pages and files land here.', noRoutines: 'No routines yet.',
@@ -810,7 +814,7 @@ button.mwt-card:hover{border-color:var(--fg-3)}
 .mwt-card-b{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;padding:16px}
 .mwt-card-b .k{display:block;color:var(--fg-3);font-size:12px;line-height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mwt-card-b .v{display:block;margin-top:4px;color:var(--fg);font-size:15px;line-height:20px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mwt-card-d{margin:0;padding:8px 16px 16px;color:var(--fg-2);font-size:13px;line-height:1.7;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
+.mwt-card-d{margin:8px 16px 16px;padding:0;color:var(--fg-2);font-size:13px;line-height:1.7;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
 .mwt-card-h+.mwt-card-f{margin-top:16px}
 .mwt-card-f{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:40px;padding:12px 16px;border-top:1px solid var(--rule-soft);color:var(--fg-3);font-size:12px;line-height:16px;font-variant-numeric:tabular-nums}
 .mwt-card-f .go{flex:none;margin-left:auto;color:var(--fg);transition:opacity var(--fast)}
@@ -820,6 +824,11 @@ button.mwt-card:hover .mwt-card-f .go{text-decoration:underline;text-underline-o
 .mwt-card-opts .mwt-choice{max-width:none}
 .mwt-card .detail{margin:8px 16px 0;max-height:240px;overflow:auto;color:var(--fg-2);font:13px/1.6 var(--font-mono);white-space:pre-wrap;word-break:break-word}
 .mwt-card-err{padding:0 16px 16px;color:var(--danger);font-size:13px;line-height:20px}
+.mwt-card-who{display:flex;align-items:center;gap:12px;padding:16px 16px 0;min-width:0}
+.mwt-card-who>span:last-child{display:flex;flex-direction:column;min-width:0}
+.mwt-card-who .n{font-size:15px;line-height:20px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mwt-card-who .s{margin-top:2px;color:var(--fg-3);font-size:12px;line-height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mwt-via{color:var(--fg-3);font-size:12px;line-height:16px}
 /* 过程: a 12px link under the teammate's group, shown on hover of the group (always on touch); open, the phases under it. */
 .mwt-proc{align-self:stretch;display:flex;flex-direction:column;align-items:flex-start;opacity:0;transition:opacity var(--fast)}
 .mwt-grp:hover .mwt-proc,.mwt-grp:focus-within .mwt-proc,.mwt-proc:has([aria-expanded=true]){opacity:1}
@@ -1551,6 +1560,15 @@ function makeComponents(ctx, t) {
         when ? h('span', null, when) : null,
         h('span', { className: 'go' }, t('open'))))
   }
+  /** A teammate MyWork just created, as a card in MyWork's thread: its look, name, title or type, its job; opens it. */
+  function MateCard({ m, onOpen }) {
+    return h('button', { type: 'button', className: 'mwt-card', onClick: onOpen },
+      h('span', { className: 'mwt-card-who' },
+        h(Avatar, { mate: m, size: 36 }),
+        h('span', null, h('span', { className: 'n' }, m.name), h('span', { className: 's' }, m.title || m.group || t('newMate')))),
+      m.description ? h('span', { className: 'mwt-card-d' }, m.description) : null,
+      h('span', { className: 'mwt-card-f' }, h('span', null, t('newMate')), h('span', { className: 'go' }, t('open'))))
+  }
   /** Escape leaves the reading view (not from a field, the right panel or a menu). */
   function useEscapeBack(onBack) {
     const back = React.useRef(onBack); back.current = onBack
@@ -2152,13 +2170,18 @@ function makeComponents(ctx, t) {
       const add = (side, e, make, extra) => out.push({ side, at: e.at || '', key: e.key, make, ...(extra || {}) })
       const bubble = (cls, arrive, child) => (first) => h('div', { className: 'mwt-bub' + (cls ? ' ' + cls : '') + (first ? ' first' : '') + (arrive ? ' mwt-arrive' : '') }, child)
       for (const e of list) {
-        if (fold && e.kind !== 'user' && e.kind !== 'routine' && e.kind !== 'deliver') continue
+        if (fold && e.kind !== 'user' && e.kind !== 'routine' && e.kind !== 'deliver' && e.kind !== 'newMate') continue
         const arrive = (e.kind === 'text' || e.kind === 'deliver') && arriving(run.id + ':' + e.key)
         if (e.kind === 'routine') add('note', e, () => h('div', { className: 'mwt-note' }, [t('routineWord'), e.title].filter(Boolean).join(' · ')))
         else if (e.kind === 'scheduled') add('note', e, () => h('button', { type: 'button', className: 'mwt-note', onClick: () => showAside(true, { mode: 'mate', section: 'routines', routineId: e.routineId }) }, t('scheduled') + ' · ' + [e.scheduleLabel, e.title].filter(Boolean).join(' ')))
         else if (e.kind === 'stopped') add('note', e, () => h('div', { className: 'mwt-note' }, t('stopped')))
         else if (e.kind === 'auto') add('note', e, () => h('div', { className: 'mwt-note' }, t('askAuto')))
-        else if (e.kind === 'user') add('me', e, bubble('', false, e.text))
+        else if (e.kind === 'user') add('me', e, e.via === 'mywork' ? (first) => h(React.Fragment, null, h('div', { className: 'mwt-via' }, t('viaMywork')), bubble('', false, e.text)(first)) : bubble('', false, e.text))
+        else if (e.kind === 'newMate') {
+          const m = mates.find((x) => x.id === e.mateId)
+          if (m) add('mate', e, () => h(MateCard, { m, onOpen: () => openMate(m.id) }), { card: true })
+          else add('note', e, () => h('div', { className: 'mwt-note' }, t('newMate') + ' · ' + (e.name ? e.name + ' · ' : '') + t('mateGone')))
+        }
         else if (e.kind === 'text') add('mate', e, bubble('', arrive, h(Markdown, { text: e.text })))
         else if (e.kind === 'deliver') {
           if (!fold && plainOf(e.text)) add('mate', { ...e, key: e.key + ':t' }, bubble('', arrive, h(Markdown, { text: e.text })))

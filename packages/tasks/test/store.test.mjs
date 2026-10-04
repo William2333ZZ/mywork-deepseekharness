@@ -45,6 +45,7 @@ test('scenario registry resolves and validates', () => {
   off(); assert.equal(r.get('trade'), null)
   assert.equal(stepNameFor('oracle_fetch', { oracle_fetch: '取数' }), '取数')
   assert.equal(stepNameFor('browser_navigate'), '查阅'); assert.equal(stepNameFor('deliver'), '交付'); assert.equal(stepNameFor('weird_tool'), '工具 weird_tool')
+  assert.equal(stepNameFor('mcp__playwright-mcp__browser_navigate'), '查阅'); assert.equal(stepNameFor('mcp__x__weird_tool'), '工具 weird_tool'); assert.equal(stepNameFor('mywork_mate_create'), '新建同事')
   assert.match(GENERAL.compose('要一份清单', { date: '2026-09-29', cwd: '/w' }), /要一份清单[\s\S]*deliver[\s\S]*2026-09-29/)
   const rr = createScenarioRegistry(); rr.register(GENERAL); rr.register({ id: 'trade', label: '交易', compose: () => 'p', match: (x) => /黄金|美债/.test(x) })
   assert.equal(rr.route('黄金未来一个月').id, 'trade'); assert.equal(rr.route('写个周报').id, 'general')

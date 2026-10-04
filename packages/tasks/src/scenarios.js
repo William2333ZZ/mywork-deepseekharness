@@ -29,6 +29,8 @@ export const GENERIC_STEPS = [
   [/^mywork_routine/, '看例行'],
   [/^mywork_remember$/, '记住'],
   [/^mywork_mate_update$/, '起名'],
+  [/^mywork_mate_create$/, '新建同事'],
+  [/^mywork_mates$/, '看同事'],
   [/^(browser|open_url|quick_links|web_|deepseek_search|fetch|search|http)/i, '查阅'],
   [/^(read|grep|glob|list|ls|cat|view|find)/i, '读取'],
   [/^(write|edit|create|apply_patch|patch|save|mkdir|move|copy)/i, '整理'],
@@ -43,7 +45,10 @@ export function stepNameFor(tool, map) {
   const name = String(tool || '')
   if (map && Object.prototype.hasOwnProperty.call(map, name)) return String(map[name])
   for (const [re, label] of GENERIC_STEPS) if (re.test(name)) return label
-  return '工具 ' + name
+  // An MCP connector's tool (mcp__<server>__<tool>) reads by its own name: mcp__playwright__browser_navigate → 查阅.
+  const bare = name.replace(/^mcp__.+?__/, '')
+  if (bare !== name) { for (const [re, label] of GENERIC_STEPS) if (re.test(bare)) return label }
+  return '工具 ' + bare
 }
 
 /**

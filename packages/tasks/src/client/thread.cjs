@@ -7,9 +7,10 @@
  *
  * Entry kinds, in the order they appear:
  *   routine   { title, routineId }             a routine run opens with a centred line 「<routineTitle> · HH:MM」 (at = createdAt)
- *   user      { text }                         run.input first — unless the run's trigger is 'system' (the hidden intro) or
+ *   user      { text, via }                    run.input first — unless the run's trigger is 'system' (the hidden intro) or
  *                                              'routine' — then every activity entry of kind 'user' (a message that steered
- *                                              the run while it worked)
+ *                                              the run while it worked); via 'mywork' on the opening line of a first job
+ *                                              MyWork handed over when it created the teammate (run.via)
  *   deliver   { d, ds, text, verify }          ONE per segment that delivered: its reply `text` (activity text after the
  *                                              segment's last deliverable/question, joined; '' when none), all its
  *                                              deliverables `ds` (d = ds[0]); at = the later of the last file / reply;
@@ -19,6 +20,8 @@
  *                                              a question the run stopped on; status pending | answered | superseded |
  *                                              expired; answerable = the newest pending question of a waiting run
  *   scheduled { routineId, title, scheduleLabel }  activity { kind:'routine', action:'created' }: 「已安排 · 每天 19:00 写日报」
+ *   newMate   { mateId, name }                 activity { kind:'mate', action:'created' }: MyWork created a teammate (a card
+ *                                              that opens it; the caller reads its current name from the roster)
  *   remind    { routineId, title, acked }      a reminder card (activity { kind:'remind' }, or a whole synthetic remind run)
  *   auto      {}                               the 24 h resume (the user line with auto: true): one muted line
  *   thinking  { step }                         one line while the run works (status running, not queued); the caller adds the time
@@ -97,7 +100,7 @@ function threadOf(run, deliverables) {
   if (trigger === 'routine') out.push({ kind: 'routine', key: 'rt', at: str(r.createdAt), title: str(r.routineTitle), routineId: str(r.routineId) })
 
   // Split the activity into segments, each opened by a user line (an answer or the 24 h resume continues its segment).
-  const segs = [{ at: str(r.createdAt), text: str(r.input), bubble: trigger === 'user' && !!str(r.input).trim(), entries: [] }]
+  const segs = [{ at: str(r.createdAt), text: str(r.input), bubble: trigger === 'user' && !!str(r.input).trim(), via: str(r.via), entries: [] }]
   for (const e of activity) {
     if (!e || typeof e !== 'object') continue
     if (e.kind === 'user' && !e.askId && !e.auto) { segs.push({ at: str(e.at), text: str(e.text), bubble: true, entries: [] }); continue }
@@ -109,7 +112,7 @@ function threadOf(run, deliverables) {
     const last = i === segs.length - 1
     const start = time(seg.at)
     const end = last ? Infinity : time(segs[i + 1].at)
-    if (seg.bubble) out.push({ kind: 'user', key: 'u' + i, at: seg.at, text: seg.text })
+    if (seg.bubble) out.push({ kind: 'user', key: 'u' + i, at: seg.at, text: seg.text, ...(seg.via ? { via: seg.via } : {}) })
     const body = []
     // Deliverables of this segment: the first also takes anything stamped before its own line (clock skew, trimmed history).
     const mine = docs.filter((d) => { const c = time(d.createdAt); return (i === 0 || c >= start) && c < end })
@@ -128,6 +131,7 @@ function threadOf(run, deliverables) {
       if (e.kind === 'user' && e.auto) body.push({ kind: 'auto', key: 'r' + seq++, at: str(e.at) })
       else if (e.kind === 'routine' && (e.action === 'created' || !e.action)) body.push({ kind: 'scheduled', key: 's' + (e.routineId || seq++), at: str(e.at), routineId: str(e.routineId || e.id), title: str(e.title), scheduleLabel: str(e.scheduleLabel) })
       else if (e.kind === 'remind') body.push({ kind: 'remind', key: 'm' + seq++, at: str(e.at), routineId: str(e.routineId || e.id), title: str(e.title || e.text), acked: !!(e.acked || e.ackedAt) })
+      else if (e.kind === 'mate' && e.action === 'created' && str(e.mateId)) body.push({ kind: 'newMate', key: 'n' + e.mateId, at: str(e.at), mateId: str(e.mateId), name: str(e.name) })
     }
     // Text before the segment's last deliverable or question is narration (过程); what comes after it is the reply.
     const cut = Math.max(mine.length ? time(mine[mine.length - 1].createdAt) : -Infinity, asks.length ? time(asks[asks.length - 1].at) : -Infinity)

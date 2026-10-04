@@ -39,6 +39,8 @@ export type Activity =
   | { at: string; kind: 'verify'; text: string }
   | { at: string; kind: 'routine'; action: 'created' | string; routineId: string; title: string; scheduleLabel?: string }
   | { at: string; kind: 'remind'; routineId: string; title: string; text?: string; acked?: boolean; ackedAt?: string }
+  /** MyWork created a teammate in this run (mywork_mate_create). */
+  | { at: string; kind: 'mate'; action: 'created' | string; mateId: string; name?: string }
   | AskActivity
 export type MateState = 'idle' | 'working' | 'waiting'
 /** A teammate (§9.1): one endless conversation, its own folder, its own routines. `group` names its section on the list ('' = 其他). */
@@ -64,6 +66,8 @@ export type Run = {
   id: string; mateId: string; trigger: RunTrigger; routineId?: string; routineTitle?: string; status: 'running' | 'waiting' | 'done'
   input: string; activity: Activity[]; deliverables: Deliverable[]; verification: Verification | null; ask: Ask | null
   error: string; quiet?: boolean; step: string; createdAt: string; startedAt?: string; finishedAt?: string
+  /** 'mywork': the first job MyWork handed over when it created this teammate. */
+  via?: string
   /** True while the background verifier works on this run's files (status is already 'done' then). */
   verifying?: boolean
   /** Migrated old tasks may carry only a summary. */

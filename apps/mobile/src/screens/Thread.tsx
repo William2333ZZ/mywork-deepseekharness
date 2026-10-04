@@ -224,7 +224,7 @@ function MateThread({ id, runId }: { id: string; runId?: string }) {
             fresh={fresh}
             pending={pending}
             onRunLayout={onRunLayout}
-            ctx={{ busyAnswer, acking, onAnswer: answer, onAck: ack, onOpenFile: (d) => nav.push({ name: 'file', id: d.id }), onRoutine: openRoutine }}
+            ctx={{ busyAnswer, acking, mates: store.mates || [], onAnswer: answer, onAck: ack, onOpenFile: (d) => nav.push({ name: 'file', id: d.id }), onRoutine: openRoutine, onMate: (mid) => nav.push({ name: 'mate', id: mid }) }}
           />
           {!page.loaded ? <Text style={styles.loading}>…</Text> : null}
         </ScrollView>
@@ -270,9 +270,9 @@ function useArrivals(runs: Run[], ready: boolean): (key: string) => boolean {
 
 /** What the messages call back into the screen. */
 type LineCtx = {
-  busyAnswer: boolean; acking: string
+  busyAnswer: boolean; acking: string; mates: Mate[]
   onAnswer: (run: Run, askId: string, value: string) => void; onAck: (routineId: string, at: string) => void
-  onOpenFile: (d: Deliverable) => void; onRoutine: (routineId?: string) => void
+  onOpenFile: (d: Deliverable) => void; onRoutine: (routineId?: string) => void; onMate: (mateId: string) => void
 }
 /** One message as IM: its side (yours, the teammate's, a centred note, the working line), its time, how it draws. */
 type Item = { key: string; side: 'me' | 'mate' | 'note' | 'status'; at: string; card?: boolean; arrive?: boolean; make: (first: boolean) => React.ReactNode }
@@ -289,7 +289,14 @@ function itemsOf(run: Run, mate: Mate | null, ctx: LineCtx, fresh: (key: string)
       case 'marker': out.push({ key: e.key, side: 'note', at: e.at, make: () => <CenterLine text={e.text} onPress={e.routineId ? () => ctx.onRoutine(e.routineId) : undefined} /> }); break
       case 'scheduled': out.push({ key: e.key, side: 'note', at: e.at, make: () => <CenterLine text={e.text} onPress={() => ctx.onRoutine(e.routineId)} /> }); break
       case 'auto': out.push({ key: e.key, side: 'note', at: e.at, make: () => <CenterLine text="24 小时没有回答，按合理假设继续" /> }); break
-      case 'user': out.push({ key: e.key, side: 'me', at: e.at, make: (first) => <MeBubble text={e.text} first={first} /> }); break
+      case 'user': out.push({ key: e.key, side: 'me', at: e.at, make: (first) => (e.via === 'mywork' ? <><Text style={styles.via}>MyWork 转交</Text><MeBubble text={e.text} first={first} /></> : <MeBubble text={e.text} first={first} />) }); break
+      case 'newMate': {
+        const m = ctx.mates.find((x) => x.id === e.mateId)
+        out.push(m
+          ? { key: e.key, side: 'mate', at: e.at, card: true, make: () => <MateCard m={m} onOpen={() => ctx.onMate(m.id)} /> }
+          : { key: e.key, side: 'note', at: e.at, make: () => <CenterLine text={['新同事', e.name, '已删除'].filter(Boolean).join(' · ')} /> })
+        break
+      }
       case 'text': out.push({ key: e.key, side: 'mate', at: e.at, arrive, make: (first) => <MateBubble first={first}><Prose markdown={e.text} tight /></MateBubble> }); break
       case 'deliver':
         if (plainOf(e.text)) out.push({ key: e.key + ':t', side: 'mate', at: e.at, arrive, make: (first) => <MateBubble first={first}><Prose markdown={e.text} tight /></MateBubble> })
@@ -405,6 +412,26 @@ function DocCard({ d, onOpen }: { d: Deliverable; onOpen: (d: Deliverable) => vo
       {deck ? <Text style={styles.cardD} numberOfLines={3}>{deck}</Text> : null}
       <View style={styles.cardFoot}>
         <Text style={styles.cardTime}>{imTime(d.createdAt)}</Text>
+        <Text style={styles.cardGo}>打开</Text>
+      </View>
+    </Pressable>
+  )
+}
+
+/** A teammate MyWork just created, as a message card in MyWork's thread: its look, name, title or type, its job; opens it. */
+function MateCard({ m, onOpen }: { m: Mate; onOpen: () => void }) {
+  return (
+    <Pressable onPress={onOpen} accessibilityRole="button" accessibilityLabel={'打开 ' + m.name} style={({ pressed }) => [styles.card, pressed && { opacity: 0.85 }]}>
+      <View style={styles.cardWho}>
+        <Avatar id={m.id || m.name} look={m.avatar} isDefault={m.isDefault} dim={36} />
+        <View style={styles.cardWhoText}>
+          <Text style={styles.cardH} numberOfLines={1}>{m.name}</Text>
+          <Text style={styles.cardTime} numberOfLines={1}>{m.title || m.group || '新同事'}</Text>
+        </View>
+      </View>
+      {m.description ? <Text style={styles.cardD} numberOfLines={3}>{m.description}</Text> : null}
+      <View style={styles.cardFoot}>
+        <Text style={styles.cardTime}>新同事</Text>
         <Text style={styles.cardGo}>打开</Text>
       </View>
     </Pressable>
@@ -612,6 +639,9 @@ const styles = themed(() => ({
   cardFoot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginHorizontal: -14, paddingHorizontal: 14, paddingVertical: 10, borderTopWidth: 1, borderTopColor: color.borderSoft },
   cardTime: { flexShrink: 1, fontSize: 12, lineHeight: 16, color: color.meta, fontVariant: ['tabular-nums'] },
   cardGo: { fontSize: 13, lineHeight: 18, fontWeight: '500', color: color.accentText },
+  cardWho: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  cardWhoText: { flex: 1, minWidth: 0 },
+  via: { fontSize: 12, lineHeight: 16, color: color.meta },
   // 找你卡: the needs-you rule on top
   ask: { borderTopWidth: 2, borderTopColor: color.warn, paddingBottom: 12 },
   askDetail: { maxHeight: 240, borderRadius: radius.md, backgroundColor: color.input },

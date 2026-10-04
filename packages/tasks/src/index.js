@@ -6,7 +6,8 @@
  *   • stores: mates.json, tasks.json (runs), deliverables.json, routines.json, seen.json under $DSH_HOME/mywork
  *   • engine (engine.js): one session per teammate, runs from its session events, background verification
  *   • tools (host-level, refused outside teammate sessions): deliver, mywork_ask, mywork_routine_create,
- *     mywork_routines, mywork_routine_cancel, mywork_remember, mywork_mate_update
+ *     mywork_routines, mywork_routine_cancel, mywork_remember, mywork_mate_update; MyWork only: mywork_mates,
+ *     mywork_mate_create (it finds a long-running job its own teammate, with the user's yes)
  *   • HTTP under /mywork-tasks/api: the §9.8 contract (see README)
  *   • events: ctx.emit('mywork/task', { kind, run, mate, deliverable?, routine? }) — kinds queued | started | step | text |
  *     deliverable | verifying | verified | waiting | done | remind | routine | mate
@@ -55,10 +56,13 @@ export function personaPrefix(mate) {
     '- 你的工作目录是你自己的文件夹（你的电脑），产出的文件放在这里。',
     '- 做出一份成果（报告、清单、比较、方案、表格、文档）时，用 deliver 交付：title 一句话，markdown 先结论后依据；正文里有数字、清单或表格时必须同时给 summary（2 到 6 行 { label, value }，value 只放数字和最短的限定词）。交付后用一两句话回话，不要把正文再贴一遍。回答问题就直接说，不用交付。',
     '- 默认按合理假设把事做完，假设写进结果。只在四种情况用 mywork_ask 停下来问：缺关键信息且没法合理假设 / 必须由用户拍板 / 动作有后果（发消息、付费、删除、对外提交）/ 需要密码、验证码或扫码。每一轮最多问 2 次，一次只问一件事，问完立刻结束这一轮；用户的回答以「回答：」开头送回来。',
+    '- 网站要登录时，用 mywork_ask（askKind takeover）请用户在电脑上的浏览器里自己登录，登录状态会留在浏览器里；不要让用户把密码、cookie、token 或验证码发给你。',
     '- 用户说带时间的事（每天 / 每周 / 工作日 / 几点 / 多久之后 / 提醒我），用 mywork_routine_create 安排成你的例行，一件事只安排一次；mywork_routines 查看，mywork_routine_cancel 取消。不要用 schedule_create、reminder_* 或 automation_* 这些别的定时工具。例行到点时你会收到「这是例行任务…」开头的消息，照要求做完回话；那时不要提问，也不要再建例行。',
     '- 用户告诉你的长期偏好或事实（称呼、口味、固定的格式、常用的账号名），用 mywork_remember 记一行；它写进你文件夹里的 AGENTS.md，以后每一轮都会读到。一次性的事不要记。',
     '- 用户在你干活时插话，是在改这件事的要求，接着做，按最新的话为准。',
   ]
+  // MyWork (the default teammate) is the one who finds a long-running job its own teammate.
+  if (mate.isDefault) lines.push('- 你是用户的总助理：长期、反复、要专门盯着的事（每周看几家公司在招什么、每天盯某类消息、定期跟进一个项目或主题）应该交给一位专门的同事，不要都揽成你自己的例行。用户交来这类事时，先用 mywork_mates 看有没有同事已经在做，有就告诉用户去找它；没有就用 mywork_ask（askKind choice，选项「新建同事」「你来做就行」）问一句要不要给它找一位专门的同事。用户选「新建同事」，用 mywork_mate_create 建好（能马上出第一份的，把第一件事写进 first），告诉用户它叫什么、在左边的同事列表里，这件事以后由它做，你不再做；选「你来做就行」，再安排成你的例行。这条优先于「带时间的事安排成例行」那一条。晨报、日报、周报、提醒这类本来就归你的事照常自己做；一次性的事你自己做；用户直接要你新建同事时不用再问。')
   // Persona text is interpolated ({{model}}, {{cwd}}): a brace pair in what the user wrote must not become a variable.
   return lines.join('\n').replace(/\{\{/g, '{ {').replace(/\}\}/g, '} }')
 }
@@ -148,7 +152,7 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     return {
       id: t.id, mateId: t.mateId, trigger: t.trigger, routineId: t.routineId || '', routineTitle: t.routineTitle || (t.routineId && routines.get(t.routineId) ? routines.get(t.routineId).title : ''),
       status: t.status === 'queued' ? 'running' : t.status, queued: t.status === 'queued',
-      input: t.trigger === 'system' ? '' : t.input, title: t.title || '', summary: t.summary || '',
+      input: t.trigger === 'system' ? '' : t.input, title: t.title || '', summary: t.summary || '', via: t.source === 'mywork' ? 'mywork' : '',
       activity: (Array.isArray(t.activity) ? t.activity : []).map(({ requestId: _r, ...a }) => a),
       deliverables: list.map((d) => ({ ...deliverableSummary(d), excerpt: excerptOf(d.markdown) })),
       verification: t.verification || null, verifying: !!t.verifying,
@@ -324,6 +328,17 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
   })
   // Restart repair runs now, before any route or pump can hand a new message over; the wake-up nudge comes later.
   engine.repair()
+  // A teammate's preset is written when its session is created and when its identity changes; a new MyWork version may
+  // also change the working rules, so every preset out of date with this version is rewritten (its session re-linked).
+  queueMicrotask(async () => {
+    for (const m of mates.items) {
+      if (!m.sessionId) continue
+      try {
+        const file = join(presetRoot, 'mate-' + m.id, 'agent.cordis.yml')
+        if (!existsSync(file) || readFileSync(file, 'utf8') !== mateComposition(await standardText(), m)) refreshPreset(m, false)
+      } catch (e) { log(`preset ${m.id} not checked: ${e && e.message}`) }
+    }
+  })
   // MyWork ships with a daily morning brief. Created once and remembered in defaults.json, so a deleted brief stays deleted.
   queueMicrotask(() => {
     try {
@@ -679,9 +694,26 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     return { mates: foundMates.slice(0, 20), messages: messages.slice(0, 20), files: fileHits, routines: routineHits }
   }
 
+  /**
+   * MyWork finds a long-running job its own teammate (mywork_mate_create): the teammate is created as from 「+ 新同事」
+   * (it names itself if MyWork gave no name, and sets up its timed duty in the intro), and the first piece of work, if
+   * any, is queued behind the intro as a line handed over by MyWork (run.source 'mywork', shown 「MyWork 转交」).
+   */
+  function handOver(b) {
+    const mate = createMate({ description: b.description, name: b.name, title: b.title, group: b.group })
+    const first = String(b.first || '').trim()
+    if (first) {
+      const run = store.create({ mateId: mate.id, trigger: 'user', input: first, source: 'mywork' })
+      emit('queued', run)
+      engine.pump()
+    }
+    return { mate: mateViewById(mate.id), first }
+  }
+
   // ── tools ──
   const callerOf = (exec) => engine.caller(exec && exec.agent && exec.agent.session ? String(exec.agent.session.id) : '')
   const mateOnly = (exec, tool) => { const c = callerOf(exec); if (!c) throw new Error(`${tool} 只在 MyWork 同事的会话里可用。`); return c }
+  const myworkOnly = (exec, tool) => { const c = mateOnly(exec, tool); if (!c.mate.isDefault) throw new Error(`${tool} 只有 MyWork 能用。`); return c }
   const tools = [
     {
       name: 'deliver',
@@ -790,6 +822,39 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
         return { name: v.name, title: v.title }
       },
       render: (_a, v) => [{ type: 'text', text: `好了：${v.name}${v.title ? ' · ' + v.title : ''}` }],
+    },
+    {
+      name: 'mywork_mates',
+      description: '列出用户现在的同事（只有 MyWork 能用）：名字、头衔、职责、类型、例行、在不在干活。新建同事前先看一眼，别建一个重复的。',
+      parameters: {},
+      execute(_args, exec) {
+        myworkOnly(exec, 'mywork_mates')
+        return {
+          items: listMates().filter((m) => !m.isDefault).map((m) => ({
+            id: m.id, name: m.name, title: m.title, duty: clip(m.description, 160), group: m.group, state: m.state,
+            routines: routines.forMate(m.id).filter((r) => r.enabled).map((r) => `${r.title}（${describeSchedule(r.schedule)}）`),
+          })),
+        }
+      },
+    },
+    {
+      name: 'mywork_mate_create',
+      description: '给一件长期、反复的事新建一位专门的同事（只有 MyWork 能用）。只在用户同意后调用：用户选了「新建同事」，或直接要你新建。它会出现在用户左边的同事列表里，先自我介绍；职责里带时间的，它会自己安排成例行。之后这件事由它做，你不再做。',
+      parameters: {
+        description: { type: 'string', required: true, description: '它的职责，一两句话，像用户自己写的：做什么、给谁看、什么格式；定时的事把时间写进去，例如「每天早上 8 点整理 AI 行业的新闻，挑 5 条最值得看的，每条一句话说为什么」' },
+        name: { type: 'string', description: '名字，2 到 4 个汉字，贴合职责；用户说过就用用户的，不给就让它自己起' },
+        title: { type: 'string', description: '可选，一行头衔' },
+        group: { type: 'string', description: '可选，类型（左边列表的分组），≤12 字；有合适的已有类型就用已有的' },
+        first: { type: 'string', description: '可选，要它马上先做的第一件事，一句话，例如「先出一份今天的」；不给就等到点再做' },
+      },
+      execute(args, exec) {
+        const c = myworkOnly(exec, 'mywork_mate_create')
+        if (c.run && c.run.trigger !== 'user') throw new Error('例行运行时不能新建同事。')
+        const { mate, first } = handOver({ description: args.description, name: args.name, title: args.title, group: args.group, first: args.first })
+        if (c.run) store.activity(c.run.id, { kind: 'mate', action: 'created', mateId: mate.id, name: mate.named ? mate.name : '' })
+        return { created: true, id: mate.id, name: mate.named ? mate.name : '', group: mate.group, first }
+      },
+      render: (_a, v) => [{ type: 'text', text: `已新建同事${v.name ? '「' + v.name + '」' : '（它会先给自己起名）'}，它正在自我介绍${v.first ? '，接着马上做「' + v.first + '」' : ''}。用一两句话告诉用户：它负责什么、在左边的同事列表里，以后这件事直接找它。不要再自己做这件事。` }],
     },
   ]
 

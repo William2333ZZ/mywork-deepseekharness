@@ -44,9 +44,9 @@ export function IconBtn({ name, onPress, label, size: s = 22, tone }: { name: Ic
   )
 }
 
-/** The brand mark (design/v2/brand/mark.svg): an M whose last stroke turns into a check. Cream on transparent. */
+/** The brand mark (design/v2/brand/mark.svg): an M whose last stroke turns into a check, in the text colour (white on dark, ink on light): the brand stays black and white. */
 export const MARK_PATH = 'M4.5 18.5V7l5.5 6.5L15.5 7M10.5 17l3 3 6-6'
-export function Mark({ dim = 22, live, tint = color.primary }: { dim?: number; live?: boolean; tint?: string }) {
+export function Mark({ dim = 22, live, tint = color.fg }: { dim?: number; live?: boolean; tint?: string }) {
   const pulse = useRef(new Animated.Value(1)).current
   useEffect(() => {
     if (!live) { pulse.setValue(1); return }
@@ -493,7 +493,7 @@ const styles = themed(() => ({
 
 const mdBase = () => ({
   body: { fontSize: size.body, lineHeight: 28, color: color.fg },
-  text: { color: color.fg },
+  // No colour on the text leaf: it inherits its parent's (body, a link's accent, strong).
   paragraph: { marginTop: 0, marginBottom: 16 },
   heading1: { fontFamily: font.display, fontSize: 24, lineHeight: 32, fontWeight: '400' as const, color: color.fg, marginTop: 24, marginBottom: 8 },
   heading2: { fontFamily: font.display, fontSize: 20, lineHeight: 28, fontWeight: '400' as const, color: color.fg, marginTop: 24, marginBottom: 8 },

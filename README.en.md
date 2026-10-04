@@ -114,6 +114,7 @@ The product logic follows [Rakazo](https://github.com/elie222/rakazo) (persisten
 | Native app | `apps/mobile`, Expo / React Native; Android builds today, iOS from the same code. |
 | Connection | On the computer, Settings › MyWork › Phone, allow phone connections and scan. The phone talks only to this computer's LAN gateway; pairing survives restarts; turning the switch off disconnects. |
 | Features | Teammates, activity, conversations (bubbles, file cards, question cards, stop), full-screen file reading and sharing, teammate page (routines, settings), new teammate, files. |
+| Appearance | The computer's palettes (Charcoal · Champagne / Ink · Mist), dark or light with the phone, or fixed in the phone's Settings; avatars in the look picked on the computer. |
 
 ### 7. Notifications
 

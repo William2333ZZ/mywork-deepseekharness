@@ -14,7 +14,8 @@ import { homedir, hostname, networkInterfaces } from 'node:os'
 import { join } from 'node:path'
 import qrcode from 'qrcode-generator'
 import * as installer from './installer.js'
-import { startLanGateway } from './lan-gateway.js'
+import { sameSecret, startLanGateway } from './lan-gateway.js'
+import { newKeyPair, startRelayClient } from './relay-client.js'
 import { configSchema, defineRawTool, rejectUntrusted } from './harness.js'
 import { repairImWorkspacesFile } from './im-guard.js'
 
@@ -27,6 +28,9 @@ export const inject = []
  *                 on shared/remote deployments where the browser must not run pnpm.
  */
 export const Config = configSchema({ allowInstall: true })
+
+/** The relay a phone outside the Wi-Fi goes through (apps/relay, deployed on Cloudflare's free plan); lan.json's relayUrl or MYWORK_RELAY_URL override it. */
+export const DEFAULT_RELAY_URL = ''
 
 export function apply(ctx, config = {}) {
   // IM accounts (dsh-im-connect) whose workspace is not registered would fail every message:
@@ -93,11 +97,45 @@ export function apply(ctx, config = {}) {
     const lanAddresses = () => Object.values(networkInterfaces()).flat().filter((i) => i && i.family === 'IPv4' && !i.internal && privateV4(i.address)).map((i) => i.address)
     const gatewayPort = () => Number(readLan().port) || wctx.webServer.port + 1
     let gateway = null
-    const openGateway = () => { if (gateway) return; phoneToken(); gateway = startLanGateway({ targetPort: wctx.webServer.port, listenPort: gatewayPort(), log: (m) => console.log('[dsh-mywork-kit] ' + m), launchToken, phoneToken }) }
-    const closeGateway = () => { if (!gateway) return; try { gateway.close() } catch { /* already closed */ } gateway = null }
+    const openGateway = () => { if (gateway) return; phoneToken(); gateway = startLanGateway({ targetPort: wctx.webServer.port, listenPort: gatewayPort(), log: (m) => console.log('[dsh-mywork-kit] ' + m), launchToken, phoneToken }); openRelay() }
+    const closeGateway = () => { closeRelay(); if (!gateway) return; try { gateway.close() } catch { /* already closed */ } gateway = null }
     const launchToken = () => {
       try { const c = ctx.get('connection'); const u = new URL(c.authenticatedUrl(`http://127.0.0.1:${wctx.webServer.port}`)); return u.searchParams.get('token') || '' } catch { return '' }
     }
+    // ---- 在外面也能连: the encrypted relay (relay-client.js) ----
+    // Off until switched on, and only while the gateway is: the computer dials the relay, and the QR carries, after
+    // `#` (never sent to any server), the relay address, this pairing's id and the computer's public key. A phone then
+    // goes straight to the gateway on the same Wi-Fi and through the relay anywhere else. The relay address is
+    // lan.json's relayUrl, else MYWORK_RELAY_URL, else DEFAULT_RELAY_URL; MYWORK_RELAY_PUBLIC_URL overrides the address
+    // the phone dials (an emulator reaches the computer's localhost at 10.0.2.2).
+    const relayUrl = () => String(readLan().relayUrl || process.env.MYWORK_RELAY_URL || DEFAULT_RELAY_URL).trim()
+    const relayPublicUrl = () => String(process.env.MYWORK_RELAY_PUBLIC_URL || relayUrl()).trim()
+    const relayKeys = () => {
+      const l = readLan()
+      if (typeof l.relayId === 'string' && l.relayId.length >= 16 && l.relayPk && l.relaySk) return { id: l.relayId, pk: l.relayPk, sk: l.relaySk }
+      const k = newKeyPair()
+      const n = writeLan({ relayId: randomBytes(18).toString('base64url'), relayPk: k.publicKey, relaySk: k.secretKey })
+      return { id: n.relayId, pk: n.relayPk, sk: n.relaySk }
+    }
+    // Through the relay a phone reaches MyWork's API and signed file links, nothing else of dsh.
+    const relayAllowed = (p) => /^\/mywork-tasks\/(api\/|files\/raw\?)/.test(p)
+    const forwardToGateway = async (method, path, body) => {
+      const r = await fetch(`http://127.0.0.1:${gatewayPort()}${path}`, { method, redirect: 'manual', headers: { authorization: 'Bearer ' + phoneToken(), ...(body !== undefined ? { 'content-type': 'application/json' } : {}) }, body })
+      return { status: r.status, contentType: r.headers.get('content-type') || '', body: Buffer.from(await r.arrayBuffer()) }
+    }
+    let relay = null
+    function openRelay() {
+      if (relay || !gateway || !readLan().relay || !relayUrl()) return
+      const k = relayKeys()
+      relay = startRelayClient({ relayUrl: relayUrl(), id: k.id, secretKey: k.sk, authorize: (t) => sameSecret(t, phoneToken()), forward: forwardToGateway, allowed: relayAllowed, log: (m) => console.log('[dsh-mywork-kit] ' + m) })
+    }
+    function closeRelay() { if (!relay) return; relay.close(); relay = null }
+    const relayFragment = () => {
+      if (!readLan().relay || !relayPublicUrl()) return ''
+      const k = relayKeys()
+      return `#r=${encodeURIComponent(relayPublicUrl())}&i=${k.id}&k=${k.pk}`
+    }
+
     if (readLan().enabled) openGateway()
     ctx.effect(() => () => closeGateway(), 'dsh-mywork-kit: phone gateway')
     route('/phone', async (req, res) => {
@@ -107,11 +145,25 @@ export function apply(ctx, config = {}) {
       const lan = (exposed ? lanAddresses() : []).map((address) => {
         const base = `http://${address}:${gatewayPort()}`
         if (!token) return { address, base }
-        const url = `${base}/?token=${encodeURIComponent(token)}`
+        const url = `${base}/?token=${encodeURIComponent(token)}${relayFragment()}`
         const qr = qrcode(0, 'M'); qr.addData(url); qr.make()
         return { address, base, url, svg: qr.createSvgTag({ cellSize: 4, margin: 0, scalable: true }) }
       })
-      json(res, { exposed, wanted: !!readLan().enabled, lan, hostname: hostname(), port: gatewayPort(), here })
+      const rs = relay ? relay.status() : null
+      const relayState = { wanted: !!readLan().relay, url: relayUrl(), connected: !!(rs && rs.connected), phones: rs ? rs.phones : 0, error: rs ? rs.error : '' }
+      json(res, { exposed, wanted: !!readLan().enabled, lan, hostname: hostname(), port: gatewayPort(), here, relay: relayState })
+    })
+    route('/phone/relay', async (req, res) => {
+      if (req.method !== 'POST') return json(res, { error: 'POST only' }, 405)
+      if (!loopback(req)) return json(res, { error: 'this switch is limited to loopback requests' }, 403)
+      const body = await readBody(req).catch(() => ({}))
+      const enabled = body.enabled !== false
+      const patch = { relay: enabled }
+      if (typeof body.url === 'string') patch.relayUrl = body.url.trim()
+      writeLan(patch)
+      closeRelay()
+      if (enabled) openRelay()
+      json(res, { wanted: enabled, url: relayUrl() })
     })
     route('/phone/enable', async (req, res) => {
       if (req.method !== 'POST') return json(res, { error: 'POST only' }, 405)

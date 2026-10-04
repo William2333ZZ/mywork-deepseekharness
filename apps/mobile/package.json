@@ -17,13 +17,15 @@
     "expo-build-properties": "~0.14.8",
     "expo-camera": "~16.1.11",
     "expo-clipboard": "~7.1.5",
+    "expo-crypto": "~14.1.5",
     "expo-secure-store": "~14.2.4",
     "expo-status-bar": "~2.2.3",
     "react": "19.0.0",
     "react-native": "0.79.6",
     "react-native-markdown-display": "^7.0.2",
     "react-native-safe-area-context": "5.4.0",
-    "react-native-svg": "15.11.2"
+    "react-native-svg": "15.11.2",
+    "tweetnacl": "^1.0.3"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

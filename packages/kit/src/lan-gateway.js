@@ -26,7 +26,7 @@ import http from 'node:http'
 import net from 'node:net'
 import { timingSafeEqual } from 'node:crypto'
 
-const sameSecret = (a, b) => { const x = Buffer.from(String(a || '')); const y = Buffer.from(String(b || '')); return x.length > 0 && x.length === y.length && timingSafeEqual(x, y) }
+export const sameSecret = (a, b) => { const x = Buffer.from(String(a || '')); const y = Buffer.from(String(b || '')); return x.length > 0 && x.length === y.length && timingSafeEqual(x, y) }
 
 const originHost = (origin) => { try { return new URL(origin).host } catch { return null } }
 

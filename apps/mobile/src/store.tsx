@@ -12,6 +12,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { AppState, BackHandler } from 'react-native'
 import { Api, clearConnection, loadConnection, login, parsePairText, saveConnection, type ActivityPayload, type Connection, type Mate } from './api'
+import type { Relay } from './relay'
 
 /**
  * The screens (TEAMMATES.md §9.6): the teammates list · a teammate's conversation (runId: scroll to that run and
@@ -35,7 +36,8 @@ type Nav = {
   /** Go to a teammate's conversation (at a run): back to it when it is already in the stack, pushed otherwise. */
   openMate: (id: string, runId?: string) => void
 }
-type Conn = { conn: Connection | null; api: Api | null; ready: boolean; failed: boolean; pair: (text: string) => Promise<string | null>; forget: () => Promise<void>; retry: () => Promise<void> }
+/** `via`: how the computer is reached now — its LAN gateway (same Wi-Fi) or the encrypted relay (anywhere). */
+type Conn = { conn: Connection | null; api: Api | null; via: 'lan' | 'relay'; ready: boolean; failed: boolean; pair: (text: string) => Promise<string | null>; forget: () => Promise<void>; retry: () => Promise<void> }
 type Store = {
   mates: Mate[] | null; activity: ActivityPayload | null; tick: number; loading: boolean; error: string
   refresh: () => Promise<void>
@@ -80,24 +82,27 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const [conn, setConn] = useState<Connection | null>(null)
   const [ready, setReady] = useState(false)
   const [failed, setFailed] = useState(false)
-  const api = useMemo(() => (conn ? new Api(conn.base, conn.token) : null), [conn])
+  // The open encrypted line when the computer is reached through the relay; null on its Wi-Fi.
+  const [line, setLine] = useState<Relay | null>(null)
+  const swapLine = useCallback((next: Relay | null) => setLine((old) => { if (old && old !== next) old.close(); return next }), [])
+  const api = useMemo(() => (conn ? new Api(conn.base, conn.token, line) : null), [conn, line])
   const tryLogin = useCallback(async (c: Connection | null) => {
-    if (!c) { setConn(null); setFailed(false); setReady(true); return }
-    const { ok } = await login(c)
-    setConn(c); setFailed(!ok); setReady(true)
-  }, [])
+    if (!c) { swapLine(null); setConn(null); setFailed(false); setReady(true); return }
+    const { ok, relay } = await login(c)
+    swapLine(relay); setConn(c); setFailed(!ok); setReady(true)
+  }, [swapLine])
   useEffect(() => { loadConnection().then(tryLogin) }, [tryLogin])
   const pair = useCallback(async (text: string) => {
     const p = parsePairText(text)
     if (!p) return '看不出这是一个地址。'
-    const c: Connection = { base: p.base, token: p.token, pairedAt: new Date().toISOString() }
-    const { ok, reason } = await login(c)
-    if (!ok) return `连不上这台电脑（${reason}）。手机和电脑要在同一个 Wi‑Fi，电脑上的「允许手机连接」要打开。`
-    await saveConnection(c); setConn(c); setFailed(false); setReady(true)
+    const c: Connection = { base: p.base, token: p.token, pairedAt: new Date().toISOString(), ...(p.relay ? { relay: p.relay } : {}) }
+    const { ok, reason, relay } = await login(c)
+    if (!ok) return `连不上这台电脑（${reason}）。` + (c.relay ? '电脑上的 MyWork 要开着，「允许手机连接」和「在外面也能连」要打开。' : '手机和电脑要在同一个 Wi‑Fi，电脑上的「允许手机连接」要打开。')
+    await saveConnection(c); swapLine(relay); setConn(c); setFailed(false); setReady(true)
     setStack([{ name: 'home' }])
     return null
-  }, [])
-  const forget = useCallback(async () => { await clearConnection(); fetched.current = null; setConn(null); setFailed(false); setMates(null); setActivity(null); setStack([{ name: 'home' }]) }, [])
+  }, [swapLine])
+  const forget = useCallback(async () => { await clearConnection(); fetched.current = null; swapLine(null); setConn(null); setFailed(false); setMates(null); setActivity(null); setStack([{ name: 'home' }]) }, [swapLine])
   const retry = useCallback(async () => { await tryLogin(conn) }, [conn, tryLogin])
 
   // ---- data ----
@@ -138,15 +143,16 @@ export function Providers({ children }: { children: React.ReactNode }) {
     if (!api || failed) return
     live.current = true
     loop().catch(() => {})
-    const sub = AppState.addEventListener('change', (s) => { if (s === 'active') loop().catch(() => {}) })
+    // Back in the foreground: on the relay, check the Wi-Fi again first (home again → straight to the gateway).
+    const sub = AppState.addEventListener('change', (s) => { if (s !== 'active') return; if (api.via === 'relay' && conn) tryLogin(conn).catch(() => {}); else loop().catch(() => {}) })
     return () => { live.current = false; gen.current++; if (timer.current) clearTimeout(timer.current); sub.remove() }
-  }, [api, failed, loop])
+  }, [api, failed, loop, conn, tryLogin])
   /** Poll now and restart the cadence: after a send the mate works, so the next poll comes in 5s, not 30s. */
   const refresh = useCallback(async () => { if (live.current) await loop(); else await fetchNow() }, [loop, fetchNow])
   const putMate = useCallback((m: Mate) => setMates((list) => { const l = list || []; return l.some((x) => x.id === m.id) ? l.map((x) => (x.id === m.id ? { ...x, ...m } : x)) : [...l, m] }), [])
   const dropMate = useCallback((id: string) => setMates((list) => (list ? list.filter((x) => x.id !== id) : list)), [])
 
   const store = useMemo<Store>(() => ({ mates, activity, tick, loading, error, refresh, putMate, dropMate }), [mates, activity, tick, loading, error, refresh, putMate, dropMate])
-  const connValue = useMemo<Conn>(() => ({ conn, api, ready, failed, pair, forget, retry }), [conn, api, ready, failed, pair, forget, retry])
+  const connValue = useMemo<Conn>(() => ({ conn, api, via: api ? api.via : 'lan', ready, failed, pair, forget, retry }), [conn, api, ready, failed, pair, forget, retry])
   return <NavCtx.Provider value={nav}><ConnCtx.Provider value={connValue}><StoreCtx.Provider value={store}>{children}</StoreCtx.Provider></ConnCtx.Provider></NavCtx.Provider>
 }

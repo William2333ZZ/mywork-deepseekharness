@@ -150,6 +150,13 @@ const zh = {
   phoneRestart: '重启 MyWork 后生效。',
   phoneHere: '这个页面要在电脑上看。',
   phoneNoLan: '这台电脑没有连上局域网。',
+  phoneOnRelay: '扫这个码配对。手机和电脑在同一个 Wi‑Fi 时直连；在外面时走加密中继。',
+  relayTitle: '在外面也能连（加密中继）',
+  relayOff: '关着：手机只能在这个 Wi‑Fi 下连。打开后，手机在 4G 或别的网络下也能连回这台电脑；中继只转发加密过的数据，看不到内容。',
+  relayUp: '已连上中继 · {n} 台手机在线',
+  relayConnecting: '正在连中继…',
+  relayNoUrl: '还没有中继地址。',
+  relayRescan: '打开后要重新扫一次码：码里多了中继的信息。',
 }
 const en = {
   nav: 'MyWork',
@@ -183,6 +190,13 @@ const en = {
   phoneRestart: 'Takes effect after MyWork restarts.',
   phoneHere: 'Open this page on the computer.',
   phoneNoLan: 'This computer is not on a local network.',
+  phoneOnRelay: 'Scan this to pair. On the same Wi‑Fi the phone connects directly; elsewhere through the encrypted relay.',
+  relayTitle: 'Reach it from anywhere (encrypted relay)',
+  relayOff: 'Off: phones connect on this Wi‑Fi only. On, a phone on 4G or another network reaches this computer too; the relay only passes encrypted data and cannot read it.',
+  relayUp: 'Connected to the relay · {n} phone(s) online',
+  relayConnecting: 'Connecting to the relay…',
+  relayNoUrl: 'No relay address yet.',
+  relayRescan: 'After turning it on, scan the code again: it now carries the relay.',
 }
 
 const CSS = `
@@ -193,6 +207,15 @@ const CSS = `
 .mwk-qr svg{display:block;width:100%;height:100%}
 .mwk-url{font-family:ui-monospace,Menlo,monospace;font-size:12px;opacity:.7;word-break:break-all;user-select:all}
 .mwk-phone button{justify-self:start}
+.mwk-relay{display:grid;gap:6px;padding-top:14px;border-top:0.5px solid var(--dsw-alias-border-l2)}
+.mwk-relay-head{display:flex;align-items:center;justify-content:space-between;gap:16px;font-size:14px}
+.mwk-relay .mwk-sub{margin:0;font-size:12px;line-height:1.6;color:var(--dsw-alias-label-secondary)}
+.mwk-relay .mwk-sub[data-up=true]{color:var(--dsw-alias-brand-text,var(--dsw-alias-label-primary))}
+.mwk-switch{appearance:none;position:relative;flex:none;width:34px;height:20px;padding:0;border:1px solid var(--dsw-alias-border-l3);border-radius:999px;background:transparent;cursor:pointer}
+.mwk-switch::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--dsw-alias-label-tertiary);transition:left .15s}
+.mwk-switch[aria-checked=true]{border-color:var(--dsw-alias-brand-primary);background:var(--dsw-alias-brand-primary)}
+.mwk-switch[aria-checked=true]::after{left:16px;background:var(--dsw-alias-label-primary-foreground)}
+.mwk-switch[disabled]{opacity:.4;cursor:default}
 .mwk-tabs{display:flex;gap:2px;border-bottom:0.5px solid var(--dsw-alias-border-l2);margin:0 0 16px;overflow-x:auto}
 .mwk-tab{border:0;background:transparent;color:var(--dsw-alias-label-secondary);padding:8px 12px;font:inherit;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-0.5px;white-space:nowrap}
 .mwk-tab:hover{color:var(--dsw-alias-label-primary)}
@@ -376,16 +399,27 @@ exports.apply = function apply(ctx) {
     const [st, setSt] = React.useState(null)
     const [busy, setBusy] = React.useState(false)
     const load = React.useCallback(async () => { const r = await api('/phone'); if (r.ok) setSt(r.data) }, [])
-    React.useEffect(() => { load() }, [load])
+    // While the tab is open the relay's state is read again every 5 s (it connects in the background).
+    React.useEffect(() => { load(); const id = setInterval(load, 5000); return () => clearInterval(id) }, [load])
     const flip = async (enabled) => { if (busy) return; setBusy(true); try { await api('/phone/enable', { enabled }); await load() } finally { setBusy(false) } }
+    const flipRelay = async (enabled) => { if (busy) return; setBusy(true); try { await api('/phone/relay', { enabled }); await load() } finally { setBusy(false) } }
+    const relay = st && st.relay ? st.relay : { wanted: false, url: '', connected: false, phones: 0, error: '' }
+    const relayBlock = () => h('div', { className: 'mwk-relay' },
+      h('div', { className: 'mwk-relay-head' },
+        h('span', null, t('relayTitle')),
+        h('button', { type: 'button', role: 'switch', className: 'mwk-switch', 'aria-checked': relay.wanted, 'aria-label': t('relayTitle'), disabled: busy || !relay.url, onClick: () => flipRelay(!relay.wanted) })),
+      h('p', { className: 'mwk-sub', 'data-up': relay.wanted && relay.connected ? 'true' : undefined },
+        !relay.url ? t('relayNoUrl') : !relay.wanted ? t('relayOff') : relay.connected ? t('relayUp').replace('{n}', String(relay.phones || 0)) : (relay.error || t('relayConnecting'))),
+      relay.wanted ? h('p', { className: 'mwk-sub' }, t('relayRescan')) : null)
     if (!st) return h('div', null, t('loading'))
     if (!st.here) return h('div', { className: 'mwk-phone' }, h('p', null, t('phoneHere')))
     const first = st.lan && st.lan[0]
     if (st.exposed && first) {
       return h('div', { className: 'mwk-phone' },
-        h('p', null, t('phoneOn')),
+        h('p', null, relay.wanted ? t('phoneOnRelay') : t('phoneOn')),
         h('div', { className: 'mwk-qr', dangerouslySetInnerHTML: { __html: first.svg } }),
         h('div', { className: 'mwk-url' }, first.url),
+        relayBlock(),
         h('button', { type: 'button', className: 'mwk-btn', disabled: busy, onClick: () => flip(false) }, t('phoneDeny')))
     }
     if (st.exposed && !first) return h('div', { className: 'mwk-phone' }, h('p', null, t('phoneNoLan')), h('button', { type: 'button', className: 'mwk-btn', disabled: busy, onClick: () => flip(false) }, t('phoneDeny')))

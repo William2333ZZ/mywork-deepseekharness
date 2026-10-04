@@ -1,0 +1,13 @@
+# MyWork relay: one Durable Object per paired computer, on Cloudflare's free plan (SQLite-backed Durable Objects).
+name = "mywork-relay"
+main = "src/index.js"
+compatibility_date = "2025-09-01"
+workers_dev = true
+
+[[durable_objects.bindings]]
+name = "RELAY"
+class_name = "Relay"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Relay"]

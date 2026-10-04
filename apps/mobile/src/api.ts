@@ -8,8 +8,10 @@
  * (base URL + token) is kept in the secure store.
  */
 import * as SecureStore from 'expo-secure-store'
+import { Relay, type RelayInfo } from './relay'
 
-export type Connection = { base: string; token: string; pairedAt: string }
+/** The paired computer: its LAN gateway (base + phone token) and, when it offered one, the encrypted relay to reach it from anywhere. */
+export type Connection = { base: string; token: string; pairedAt: string; relay?: RelayInfo }
 
 /** A file a teammate handed over (§9.1 文件): it hangs off the run that made it; verification lands on it in the background. */
 export type Deliverable = {
@@ -91,33 +93,79 @@ export async function loadConnection(): Promise<Connection | null> {
 export async function saveConnection(c: Connection): Promise<void> { await SecureStore.setItemAsync(KEY, JSON.stringify(c)) }
 export async function clearConnection(): Promise<void> { try { await SecureStore.deleteItemAsync(KEY) } catch { /* nothing to clear */ } }
 
-/** The QR on the computer carries `http://<ip>:<port>/?token=…`; a pasted address without a token is accepted too. */
-export function parsePairText(text: string): { base: string; token: string } | null {
+/**
+ * The QR on the computer carries `http://<ip>:<port>/?token=…`, and with 「在外面也能连」 on, after `#`, `r=<relay>&i=<pairing
+ * id>&k=<computer's public key>` (the fragment never travels anywhere: the app reads it). A pasted address without a
+ * token is accepted too.
+ */
+export function parsePairText(text: string): { base: string; token: string; relay?: RelayInfo } | null {
   const t = text.trim()
   if (!t) return null
+  const hash = t.indexOf('#')
+  const main = hash >= 0 ? t.slice(0, hash) : t
+  const frag: Record<string, string> = {}
+  if (hash >= 0) for (const kv of t.slice(hash + 1).split('&')) { const i = kv.indexOf('='); if (i > 0) { try { frag[kv.slice(0, i)] = decodeURIComponent(kv.slice(i + 1)) } catch { /* a bad escape: skip */ } } }
   try {
-    const u = new URL(/^https?:\/\//.test(t) ? t : 'http://' + t)
+    const u = new URL(/^https?:\/\//.test(main) ? main : 'http://' + main)
     if (!u.hostname) return null
-    return { base: `${u.protocol}//${u.host}`, token: u.searchParams.get('token') || '' }
+    const relay = frag.r && frag.i && frag.k ? { url: frag.r, id: frag.i, pk: frag.k } : undefined
+    return { base: `${u.protocol}//${u.host}`, token: u.searchParams.get('token') || '', ...(relay ? { relay } : {}) }
   } catch { return null }
 }
 
 export class ApiError extends Error { constructor(public status: number, message: string) { super(message) } }
 
 const PREFIX = '/mywork-tasks/api'
+/** How long the same-Wi-Fi check waits before the relay is tried. */
+const DIRECT_PROBE_MS = 3000
 
-/** Prove the pairing with one API call. `reason` says what went wrong. */
-export async function login(c: Connection): Promise<{ ok: boolean; reason: string }> {
-  if (!c.token) return { ok: false, reason: '地址里没有令牌' }
+/**
+ * Reach the paired computer and prove the pairing with one API call: the LAN gateway first (on the same Wi-Fi, a few
+ * seconds at most), else the encrypted relay when the pairing has one. `relay` is the open line on that path; `reason`
+ * says what went wrong.
+ */
+export async function login(c: Connection): Promise<{ ok: boolean; reason: string; relay: Relay | null }> {
+  if (!c.token) return { ok: false, reason: '地址里没有令牌', relay: null }
+  let reason = ''
   try {
-    const r = await fetch(`${c.base}${PREFIX}/mates`, { credentials: 'omit', headers: { authorization: `Bearer ${c.token}` } })
-    return r.ok ? { ok: true, reason: '' } : { ok: false, reason: r.status === 401 ? '令牌不对或已过期，重新扫码' : `HTTP ${r.status}` }
-  } catch (e) { return { ok: false, reason: e instanceof Error ? e.message : String(e) } }
+    const ctl = new AbortController()
+    const t = setTimeout(() => ctl.abort(), c.relay ? DIRECT_PROBE_MS : 15000)
+    const r = await fetch(`${c.base}${PREFIX}/mates`, { credentials: 'omit', headers: { authorization: `Bearer ${c.token}` }, signal: ctl.signal })
+    clearTimeout(t)
+    if (r.ok) return { ok: true, reason: '', relay: null }
+    if (r.status === 401) return { ok: false, reason: '令牌不对或已过期，重新扫码', relay: null }
+    reason = `HTTP ${r.status}`
+  } catch (e) { reason = e instanceof Error && e.name !== 'AbortError' ? e.message : '不在同一个 Wi‑Fi' }
+  if (!c.relay) return { ok: false, reason, relay: null }
+  const relay = new Relay(c.relay, c.token)
+  try {
+    const r = await relay.request('GET', PREFIX + '/mates')
+    if (r.status >= 200 && r.status < 300) return { ok: true, reason: '', relay }
+    relay.close()
+    return { ok: false, reason: r.status === 401 ? '令牌不对或已过期，重新扫码' : `中继：HTTP ${r.status}`, relay: null }
+  } catch (e) { relay.close(); return { ok: false, reason: e instanceof Error ? e.message : String(e), relay: null } }
 }
 
 export class Api {
-  constructor(public base: string, private token: string) {}
+  /** `relay`: the open encrypted line when the computer is reached through the relay (off its Wi-Fi), else null. */
+  constructor(public base: string, private token: string, private relay: Relay | null = null) {}
+  /** How this phone reaches the computer now. */
+  get via(): 'lan' | 'relay' { return this.relay ? 'relay' : 'lan' }
+  /** A file's bytes through the relay (signed links do not open in a browser from there): base64 and its type. */
+  async raw(path: string): Promise<{ contentType: string; b64: string }> {
+    if (!this.relay) throw new Error('只在中继上用')
+    const r = await this.relay.request('GET', path)
+    if (r.status < 200 || r.status >= 300) throw new ApiError(r.status, r.text || `HTTP ${r.status}`)
+    return { contentType: r.contentType, b64: r.b64 }
+  }
   private async req<T>(path: string, body?: unknown): Promise<T> {
+    if (this.relay) {
+      const r = await this.relay.request(body === undefined ? 'GET' : 'POST', PREFIX + path, body === undefined ? undefined : JSON.stringify(body))
+      let data: any = {}
+      try { data = r.text ? JSON.parse(r.text) : {} } catch { /* not JSON */ }
+      if (r.status < 200 || r.status >= 300) throw new ApiError(r.status, (data && data.error) || `HTTP ${r.status}`)
+      return data as T
+    }
     const auth = { authorization: `Bearer ${this.token}` }
     const r = await fetch(this.base + PREFIX + path, body === undefined
       ? { credentials: 'omit', headers: auth }

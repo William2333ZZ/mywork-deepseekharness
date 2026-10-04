@@ -13,6 +13,7 @@ import { color, font, radius, size, space, themed } from '../theme'
 import { fileKindOf, openKindOf, tableOf } from '../thread'
 
 const MAX_ROWS = 500
+export const OFF_WIFI = '在外面时还不能交给浏览器打开（浏览器进不了加密通道）。回到电脑的 Wi‑Fi 下再打开，或者在电脑上看。'
 const errText = (e: unknown) => (e instanceof ApiError || e instanceof Error ? e.message : String(e))
 const fmtSize = (n: number) => (n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : n >= 1024 ? Math.round(n / 1024) + ' KB' : n + ' B')
 
@@ -31,8 +32,9 @@ export default function FolderFile({ mateId, path }: { mateId: string; path: str
     let on = true
     if (kind === 'text') api.folderFile(mateId, path).then((d) => { if (on) { setData(d); setErr('') } }).catch((e) => { if (on) setErr(errText(e)) })
     else if (kind === 'image' && conn && !image) {
-      api.fileLink(mateId, path).then((l) => {
-        const uri = conn.base + l.url
+      api.fileLink(mateId, path).then(async (l) => {
+        // On the relay the bytes come through the encrypted line; on the Wi-Fi the signed link loads directly.
+        const uri = api.via === 'relay' ? await api.raw(l.url).then((r) => `data:${r.contentType.split(';')[0] || 'image/png'};base64,${r.b64}`) : conn.base + l.url
         Image.getSize(uri, (w, h) => { if (on) setImage({ uri, ratio: w && h ? w / h : 1 }) }, () => { if (on) setErr('图片没加载出来') })
       }).catch((e) => { if (on) setErr(errText(e)) })
     }
@@ -41,6 +43,7 @@ export default function FolderFile({ mateId, path }: { mateId: string; path: str
 
   const openInBrowser = async () => {
     if (!api || !conn) return
+    if (api.via === 'relay') { setErr(OFF_WIFI); return }
     try { const l = await api.fileLink(mateId, path); await Linking.openURL(conn.base + l.url) } catch (e) { setErr(errText(e)) }
   }
   const tk = fileKindOf(name)

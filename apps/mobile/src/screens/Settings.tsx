@@ -23,14 +23,14 @@ function Choice({ title, sub, on, onPress }: { title: string; sub?: string; on: 
 
 export default function Settings() {
   const nav = useNav()
-  const { conn, forget } = useConn()
+  const { conn, forget, via } = useConn()
   const theme = useTheme()
   return (
     <Screen>
       <TopBar left={<IconBtn name="chevron-back-outline" label="返回" onPress={nav.pop} />} title="设置" />
       <ScrollView contentContainerStyle={styles.wrap}>
         <ListBox>
-          <Row title="连接" sub={conn ? conn.base : ''} />
+          <Row title="连接" sub={conn ? (via === 'relay' ? '加密中继 · 在外面也能用' : '局域网 · ' + conn.base) : ''} state={conn && conn.relay ? (via === 'relay' ? '外网' : '同一 Wi‑Fi') : undefined} />
           <Row title="重新配对" onPress={() => { forget() }} chevron />
           <Row title="关于" sub="MyWork 手机端 0.1" />
         </ListBox>

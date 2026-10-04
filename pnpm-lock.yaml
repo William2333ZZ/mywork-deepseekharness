@@ -134,6 +134,9 @@ importers:
       qrcode-generator:
         specifier: 1.4.4
         version: 1.4.4
+      tweetnacl:
+        specifier: ^1.0.3
+        version: 1.0.3
 
   packages/mcp:
     dependencies:
@@ -2558,6 +2561,9 @@ packages:
     engines: {node: '>=18.0.0'}
     hasBin: true
 
+  tweetnacl@1.0.3:
+    resolution: {integrity: sha512-6rt+RN7aOi1nGMyC4Xa5DdYiukl2UWCbcJft7YhxReBGQD7OAM8Pbxw6YMo4r2diNEA8FEmu32YOn9rhaiE5yw==}
+
   typescript@6.0.3:
     resolution: {integrity: sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw==}
     engines: {node: '>=14.17'}
@@ -4931,6 +4937,8 @@ snapshots:
     optionalDependencies:
       fsevents: 2.3.3
     optional: true
+
+  tweetnacl@1.0.3: {}
 
   typescript@6.0.3: {}
 

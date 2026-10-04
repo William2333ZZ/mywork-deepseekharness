@@ -18,6 +18,7 @@ import { useConn, useNav, useStore } from '../store'
 import { Avatar, AvatarPicker, Btn, Empty, Field, Ghost, IconBtn, ListBox, Row, Screen, Section, Sheet, SheetItem, Toggle, TopBar, TypePicker, type IconName } from '../components'
 import { color, radius, size, space, themed } from '../theme'
 import { cleanType, fileKindOf, glyphOf, openKindOf, time, typesOf } from '../thread'
+import { OFF_WIFI } from './FolderFile'
 
 const RUNS = 10
 const RECENT = 6
@@ -93,6 +94,7 @@ export default function MateInfo({ id, routineId }: { id: string; routineId?: st
     if (kind === 'text' || kind === 'image') { nav.push({ name: 'folderFile', mateId: id, path: f.path }); return }
     if (!api || !conn) return
     setErr('')
+    if (api.via === 'relay') { setErr(OFF_WIFI); return }
     try { const l = await api.fileLink(id, f.path); await Linking.openURL(conn.base + l.url + (kind === 'download' ? '&dl=1' : '')) } catch (e) { setErr(errText(e)) }
   }
 

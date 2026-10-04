@@ -1,0 +1,11 @@
+{
+  "name": "mywork-relay",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MyWork's end-to-end encrypted relay: lets a paired phone reach its computer from any network.",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --ip 0.0.0.0 --port 8787",
+    "deploy": "wrangler deploy"
+  }
+}

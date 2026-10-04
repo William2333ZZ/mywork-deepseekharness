@@ -9,7 +9,7 @@ import { AccessibilityInfo, Animated, Dimensions, Easing, Modal, Pressable, Scro
 import { SafeAreaView } from 'react-native-safe-area-context'
 import Markdown from 'react-native-markdown-display'
 import { Ionicons } from '@expo/vector-icons'
-import Svg, { Circle, Ellipse, Path } from 'react-native-svg'
+import Svg, { Circle, Ellipse, G, Path } from 'react-native-svg'
 import { color, font, radius, size, space, themed, type AvKey } from './theme'
 import type { Look } from './api'
 
@@ -146,7 +146,8 @@ export function Avatar({ id, look, isDefault, dim = 36, working }: { id: string;
   if (isDefault) body = (
     <Svg width={dim} height={dim} viewBox="0 0 100 100">
       <Circle cx="50" cy="50" r="46" fill={color.markBg} />
-      <Svg x="22" y="22" width="56" height="56" viewBox="0 0 24 24" fill="none"><Path d={MARK_PATH} stroke={color.markFg} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" /></Svg>
+      {/* The web nests a 24-unit svg at (22, 22), 56 wide; react-native-svg ignores x / y on a nested Svg, so the same box is a transform here. */}
+      <G transform={`translate(22 22) scale(${56 / 24})`}><Path d={MARK_PATH} fill="none" stroke={color.markFg} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" /></G>
     </Svg>
   )
   else {

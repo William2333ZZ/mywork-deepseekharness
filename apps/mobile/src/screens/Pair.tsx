@@ -8,7 +8,7 @@ import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'ex
 import * as Clipboard from 'expo-clipboard'
 import { useConn } from '../store'
 import { Screen, Mark, Title, Body, Meta, Btn, Field, IconBtn } from '../components'
-import { color, space } from '../theme'
+import { color, space, themed } from '../theme'
 
 type Mode = 'idle' | 'scan' | 'manual'
 
@@ -106,7 +106,7 @@ export default function Pair() {
   )
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   wrap: { flexGrow: 1, paddingHorizontal: space.xl, paddingTop: space.lg, paddingBottom: space.xxl },
   status: { marginTop: space.xxl, gap: space.md },
   lead: { marginTop: space.xxxl, marginBottom: space.xl },
@@ -117,4 +117,4 @@ const styles = StyleSheet.create({
   manual: { marginTop: space.xl, gap: space.md },
   cam: { flex: 1, backgroundColor: '#000' },
   camBar: { height: 52, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8 },
-})
+}))

@@ -9,13 +9,13 @@
  * back until that run is loaded, scrolls to it and lights it up briefly.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type LayoutChangeEvent } from 'react-native'
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View, type LayoutChangeEvent } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { fmtDay, fmtDuration, fmtTime, fmtWhen, isToday, type Deliverable, type Mate, type Run } from '../api'
 import { useConn, useNav, useStore } from '../store'
 import { Arrive, Avatar, Btn, Bubble, CenterLine, Composer, DateLine, Empty, Folded, Ghost, IconBtn, Prose, Reply, ReplyBubble, ResultRows, Screen, Sheet, SheetItem, Thinking, VerifyLine, type IconName } from '../components'
-import { color, font, radius, size, space } from '../theme'
+import { color, font, radius, size, space, themed } from '../theme'
 import { describe, elapsedOf, glyphOf, mergeRuns, pendingAsk, phasesOf, runEntries, time, verifyWords, type ThreadEntry, type VerifyState } from '../thread'
 
 const PAGE = 20
@@ -183,7 +183,7 @@ function MateThread({ id, runId }: { id: string; runId?: string }) {
       <View style={styles.head}>
         <IconBtn name="chevron-back-outline" label="返回" onPress={nav.pop} />
         <Pressable onPress={() => nav.push({ name: 'mateInfo', id })} accessibilityRole="button" style={({ pressed }) => [styles.who, pressed && { opacity: 0.7 }]}>
-          {mate ? <Avatar id={mate.id || mate.name} char={glyphOf(mate)} isDefault={mate.isDefault} working={mate.state === 'working'} dim={32} /> : null}
+          {mate ? <Avatar id={mate.id || mate.name} look={mate.avatar} char={glyphOf(mate)} isDefault={mate.isDefault} working={mate.state === 'working'} dim={32} /> : null}
           <View style={styles.whoText}>
             <Text style={styles.name} numberOfLines={1}>{name}</Text>
             {mate && mate.title ? <Text style={styles.ttl} numberOfLines={1}>{mate.title}</Text> : null}
@@ -308,7 +308,7 @@ function Entry({ e, run, mate, newest, busyAnswer, acking, onAnswer, onAck, onRa
     case 'auto': return <Text style={styles.muted}>24 小时没有回答，已按合理假设继续</Text>
     case 'working': return (
       <View style={styles.working} accessibilityRole="text" accessibilityLabel={`${mate ? mate.name : ''} 在干活`}>
-        {mate ? <Avatar id={mate.id || mate.name} isDefault={mate.isDefault} working dim={26} /> : null}
+        {mate ? <Avatar id={mate.id || mate.name} look={mate.avatar} isDefault={mate.isDefault} working dim={26} /> : null}
         <Thinking text={['在干活', e.step, elapsedOf(run)].filter(Boolean).join(' · ')} tail="" small />
       </View>
     )
@@ -363,7 +363,7 @@ function examplesOf(mate: Mate): string[] {
 function Hello({ mate, onPick }: { mate: Mate; onPick: (text: string) => void }) {
   return (
     <View style={styles.hello}>
-      <Avatar id={mate.id || mate.name} isDefault={mate.isDefault} dim={64} />
+      <Avatar id={mate.id || mate.name} look={mate.avatar} isDefault={mate.isDefault} dim={64} />
       <Text style={styles.helloName}>{mate.name}</Text>
       {mate.description || mate.title ? <Text style={styles.helloDuty}>{mate.description || mate.title}</Text> : null}
       <View style={styles.pills}>
@@ -493,7 +493,7 @@ function Process({ run }: { run: Run }) {
   )
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   head: { height: 56, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, gap: 4 },
   who: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 8, height: 48, paddingHorizontal: 4 },
   whoText: { flexShrink: 1, minWidth: 0 },
@@ -555,4 +555,4 @@ const styles = StyleSheet.create({
   callVerb: { color: color.fg2, fontWeight: '500' },
   callFail: { fontSize: 12, lineHeight: 16, color: color.danger },
   note: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, paddingVertical: 4 },
-})
+}))

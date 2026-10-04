@@ -6,17 +6,17 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "mywork",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0b0c0e"
+      "backgroundColor": "#12100e"
     },
     "android": {
       "package": "com.mywork.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0b0c0e"
+        "backgroundColor": "#12100e"
       },
       "permissions": [
         "android.permission.CAMERA",
@@ -57,6 +57,6 @@
       }
     },
     "owner": "hhdz",
-    "backgroundColor": "#0b0c0e"
+    "backgroundColor": "#12100e"
   }
 }

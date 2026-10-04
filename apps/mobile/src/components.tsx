@@ -10,7 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import Markdown from 'react-native-markdown-display'
 import { Ionicons } from '@expo/vector-icons'
 import Svg, { Circle, Ellipse, Path } from 'react-native-svg'
-import { color, font, radius, size, space } from './theme'
+import { color, font, radius, size, space, themed, type AvKey } from './theme'
 
 export type IconName = React.ComponentProps<typeof Ionicons>['name']
 
@@ -75,16 +75,17 @@ export function ListBox({ children, style }: { children: React.ReactNode; style?
 }
 /** Colour carries a decision only: danger (a failure), warn (needs you); everything else is the white scale. */
 export type Tone = 'live' | 'danger' | 'warn' | 'meta'
-const toneColor: Record<Tone, string> = { live: color.fg2, danger: color.danger, warn: color.warn, meta: color.meta }
+/** A tone's colour in the palette in force (read at render). */
+const toneColor = (t: Tone): string => ({ live: color.fg2, danger: color.danger, warn: color.warn, meta: color.meta })[t]
 export function Row({ glyph, tone = 'meta', title, sub, state, stateTone, onPress, chevron }: { glyph?: IconName; tone?: Tone; title: string; sub?: string; state?: string; stateTone?: Tone; onPress?: () => void; chevron?: boolean }) {
   return (
     <Pressable onPress={onPress} disabled={!onPress} style={({ pressed }) => [styles.row, pressed && { backgroundColor: color.pressed }]}>
-      {glyph ? <View style={styles.rowGlyph}><Ionicons name={glyph} size={18} color={toneColor[tone]} /></View> : null}
+      {glyph ? <View style={styles.rowGlyph}><Ionicons name={glyph} size={18} color={toneColor(tone)} /></View> : null}
       <View style={styles.rowMain}>
         <Text style={styles.rowTitle} numberOfLines={1}>{title}</Text>
         {sub ? <Text style={styles.rowSub} numberOfLines={1}>{sub}</Text> : null}
       </View>
-      {state ? <Text style={[styles.rowState, stateTone ? { color: toneColor[stateTone] } : null]} numberOfLines={1}>{state}</Text> : null}
+      {state ? <Text style={[styles.rowState, stateTone ? { color: toneColor(stateTone) } : null]} numberOfLines={1}>{state}</Text> : null}
       {chevron ? <Ionicons name="chevron-forward" size={16} color={color.meta} /> : null}
     </Pressable>
   )
@@ -98,7 +99,7 @@ export function Row({ glyph, tone = 'meta', title, sub, state, stateTone, onPres
 export function ThreadRow({ glyph, tone = 'meta', title, time, unread, preview, onPress, current }: { glyph?: IconName | React.ReactNode; tone?: Tone; title: string; time?: string; unread?: boolean; preview?: string; onPress: () => void; current?: boolean }) {
   return (
     <Pressable onPress={onPress} accessibilityRole="button" style={({ pressed }) => [styles.trow, (pressed || current) && { backgroundColor: color.pressed }]}>
-      <View style={styles.trowGlyph}>{typeof glyph === 'string' ? <Ionicons name={glyph as IconName} size={20} color={toneColor[tone]} /> : glyph}</View>
+      <View style={styles.trowGlyph}>{typeof glyph === 'string' ? <Ionicons name={glyph as IconName} size={20} color={toneColor(tone)} /> : glyph}</View>
       <View style={styles.trowMain}>
         <View style={styles.trowLine}>
           <Text style={[styles.trowTitle, unread && { fontWeight: '600' }]} numberOfLines={1}>{title}</Text>
@@ -111,43 +112,26 @@ export function ThreadRow({ glyph, tone = 'meta', title, time, unread, preview, 
   )
 }
 
-/** Rakazo's bot palette (same as the web client): light → dark, eye colour. The light one is the identity colour. */
-const AVATAR_COLORS: [string, string, string][] = [['#A97EFE', '#7C3AED', '#FFFFFF'], ['#00C972', '#059669', '#FFFFFF'], ['#FF781C', '#EA580C', '#FFFFFF'], ['#1CC3B0', '#0284C7', '#FFFFFF'], ['#2A92FE', '#1D4ED8', '#FFFFFF'], ['#FFAF38', '#D97706', '#141414'], ['#A27952', '#78350F', '#FFFFFF'], ['#FF3E51', '#BE123C', '#FFFFFF'], ['#FF5EB1', '#BE185D', '#FFFFFF'], ['#94A3B8', '#475569', '#FFFFFF']]
+/** The web's avatar colour keys, in its order; the palette in force supplies each one's muted fill (color.av). */
+const AV_KEYS: AvKey[] = ['slate', 'blue', 'teal', 'green', 'amber', 'orange', 'rose', 'violet']
 /** Rakazo's shippedHash (FNV-1a), the web's avatarHash. */
 export function avatarHash(v: string): number { let x = 2166136261; for (let i = 0; i < v.length; i++) x = Math.imul(x ^ v.charCodeAt(i), 16777619); return x >>> 0 }
-/** The web's three shapes in a 100 box: blob, squircle, pebble. */
-const AVATAR_SHAPES = ['M50 4a46 46 0 1 1 0 92a46 46 0 1 1 0-92Z', 'M34 4h32c20 0 30 10 30 30v32c0 20-10 30-30 30H34C14 96 4 86 4 66V34C4 14 14 4 34 4Z', 'M50 8c28 0 46 14 46 40s-18 44-46 44S4 74 4 48 22 8 50 8Z']
-/** A colour with its saturation and lightness lowered by 15 % (HSL): the same identity, receding behind the content. */
-export function calmHex(hex: string): string {
-  const n = parseInt(hex.slice(1), 16)
-  const r = ((n >> 16) & 255) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255
-  const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min
-  let hue = 0
-  if (d) hue = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4
-  hue = (hue * 60 + 360) % 360
-  const l0 = (max + min) / 2
-  const s0 = d ? d / (1 - Math.abs(2 * l0 - 1)) : 0
-  const sat = s0 * 0.85, l = l0 * 0.85
-  const c = (1 - Math.abs(2 * l - 1)) * sat, x = c * (1 - Math.abs(((hue / 60) % 2) - 1)), m = l - c / 2
-  const [r1, g1, b1] = hue < 60 ? [c, x, 0] : hue < 120 ? [x, c, 0] : hue < 180 ? [0, c, x] : hue < 240 ? [0, x, c] : hue < 300 ? [x, 0, c] : [c, 0, x]
-  const to = (v: number) => Math.round((v + m) * 255).toString(16).padStart(2, '0')
-  return '#' + to(r1) + to(g1) + to(b1)
-}
-const AVATAR_CALM = AVATAR_COLORS.map(([light]) => calmHex(light))
-/** The avatar's look: one flat fill (the calm version of the identity colour unless `full`), the eye colour, the shape. */
-export function avatarLook(id: string, full?: boolean) {
+/** The web's four shapes in a 100 box; the hexagon is drawn with a round-joined stroke of its own colour, so its corners are soft. */
+const AV_SHAPES: Record<string, string> = { circle: 'M50 4a46 46 0 1 1 0 92a46 46 0 1 1 0-92Z', squircle: 'M34 4h32c20 0 30 10 30 30v32c0 20-10 30-30 30H34C14 96 4 86 4 66V34C4 14 14 4 34 4Z', pebble: 'M50 8c28 0 46 14 46 40s-18 44-46 44S4 74 4 48 22 8 50 8Z', hex: 'M50 8L86.4 29V71L50 92L13.6 71V29Z' }
+const AV_SHAPE_KEYS = Object.keys(AV_SHAPES)
+/** The teammate's look, the web's lookOf: its own pick (from the computer), else derived from its id, per field. */
+export function avatarLook(id: string, pick?: { color?: string; shape?: string } | null) {
   const hash = avatarHash(String(id || 'mate'))
-  const i = hash % AVATAR_COLORS.length
-  const [light, , eye] = AVATAR_COLORS[i]
-  const shape = AVATAR_SHAPES[(Math.imul(hash ^ (hash >>> 16), 73244475) >>> 0) % AVATAR_SHAPES.length]
-  return { fill: full ? light : AVATAR_CALM[i], eye, shape }
+  const key: AvKey = pick && AV_KEYS.includes(pick.color as AvKey) ? pick.color as AvKey : AV_KEYS[hash % AV_KEYS.length]
+  const shape = pick && pick.shape && AV_SHAPES[pick.shape] ? pick.shape : AV_SHAPE_KEYS[(Math.imul(hash ^ (hash >>> 16), 73244475) >>> 0) % AV_SHAPE_KEYS.length]
+  return { fill: color.av[key], eye: key === 'amber' ? '#141414' : '#ffffff', shape, d: AV_SHAPES[shape] }
 }
 
 /**
- * A teammate's avatar, the web's MateAvatar: a flat shape in the calmer version of its colour (picked from its id) with
- * two eyes; MyWork is the cream mark on the card colour. `working` pulses it at scale 1.04 (no glow).
+ * A teammate's avatar, the web's MateAvatar: a flat shape in its colour and shape (its own pick, else from its id), in
+ * the palette's muted tone, with two eyes; MyWork is its black-and-white mark. `working` pulses it at scale 1.04.
  */
-export function Avatar({ id, isDefault, dim = 36, working }: { id: string; char?: string; isDefault?: boolean; dim?: number; working?: boolean }) {
+export function Avatar({ id, look, isDefault, dim = 36, working }: { id: string; look?: { color?: string; shape?: string } | null; char?: string; isDefault?: boolean; dim?: number; working?: boolean }) {
   const pulse = useRef(new Animated.Value(1)).current
   useEffect(() => {
     if (!working) { pulse.setValue(1); return }
@@ -160,15 +144,15 @@ export function Avatar({ id, isDefault, dim = 36, working }: { id: string; char?
   let body: React.ReactNode
   if (isDefault) body = (
     <Svg width={dim} height={dim} viewBox="0 0 100 100">
-      <Circle cx="50" cy="50" r="46" fill={color.card} />
-      <Svg x="20" y="20" width="60" height="60" viewBox="0 0 24 24" fill="none"><Path d={MARK_PATH} stroke={color.primary} strokeWidth={3.2} strokeLinecap="round" strokeLinejoin="round" /></Svg>
+      <Circle cx="50" cy="50" r="46" fill={color.markBg} />
+      <Svg x="22" y="22" width="56" height="56" viewBox="0 0 24 24" fill="none"><Path d={MARK_PATH} stroke={color.markFg} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" /></Svg>
     </Svg>
   )
   else {
-    const { fill, eye, shape } = avatarLook(id)
+    const { fill, eye, shape, d } = avatarLook(id, look)
     body = (
       <Svg width={dim} height={dim} viewBox="0 0 100 100">
-        <Path d={shape} fill={fill} />
+        {shape === 'hex' ? <Path d={d} fill={fill} stroke={fill} strokeWidth={8} strokeLinejoin="round" /> : <Path d={d} fill={fill} />}
         <Ellipse cx="37.3" cy="46.5" rx="4.4" ry="3.1" fill={eye} /><Ellipse cx="62.7" cy="46.5" rx="4.4" ry="3.1" fill={eye} />
       </Svg>
     )
@@ -180,17 +164,17 @@ export function Avatar({ id, isDefault, dim = 36, working }: { id: string; char?
  * The teammates list's one row (§9.4): avatar (ring while it works) · name (600 when unread) · time · unread dot · one
  * line underneath (最近一句 / 在干活 · 步骤 / 等你答 · 问题). Rows carry no actions; opening the row is all it does.
  */
-export function MateRow({ id, char, isDefault, working, waiting, name, time, unread, sub, onPress }: { id: string; char: string; isDefault?: boolean; working?: boolean; waiting?: boolean; name: string; time?: string; unread?: boolean; sub?: string; onPress: () => void }) {
+export function MateRow({ id, look, char, isDefault, working, waiting, name, time, unread, sub, onPress }: { id: string; look?: { color?: string; shape?: string } | null; char: string; isDefault?: boolean; working?: boolean; waiting?: boolean; name: string; time?: string; unread?: boolean; sub?: string; onPress: () => void }) {
   return (
     <Pressable onPress={onPress} accessibilityRole="button" style={({ pressed }) => [styles.mrow, pressed && { backgroundColor: color.pressed }]}>
-      <Avatar id={id} char={char} isDefault={isDefault} working={working} dim={38} />
+      <Avatar id={id} look={look} char={char} isDefault={isDefault} working={working} dim={38} />
       <View style={styles.trowMain}>
         <View style={styles.trowLine}>
           <Text style={[styles.mrowName, unread && { fontWeight: '600', color: color.fg }]} numberOfLines={1}>{name}</Text>
           {time ? <Text style={styles.trowTime}>{time}</Text> : null}
           {unread ? <View style={styles.trowDot} /> : null}
         </View>
-        {sub ? <Text style={[styles.mrowSub, waiting && { color: color.warn }]} numberOfLines={1}>{sub}</Text> : null}
+        {sub ? <Text style={[styles.mrowSub, working && { color: color.accentText }, waiting && { color: color.warn }]} numberOfLines={1}>{sub}</Text> : null}
       </View>
     </Pressable>
   )
@@ -426,7 +410,7 @@ export function Folded({ text, lines = 2, style }: { text: string; lines?: numbe
   return <Pressable onPress={() => setOpen(!open)}><Text style={[styles.meta, { color: color.muted, lineHeight: 20, fontSize: 13 }, style]} numberOfLines={open ? undefined : lines}>{text}</Text></Pressable>
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   screen: { flex: 1, backgroundColor: color.bg },
   bar: { height: 52, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8 },
   barSide: { width: 88, flexDirection: 'row', alignItems: 'center', gap: 4 },
@@ -480,7 +464,7 @@ const styles = StyleSheet.create({
   ghostText: { fontSize: 13, fontWeight: '500' },
   bubbleWrap: { flexDirection: 'row', justifyContent: 'flex-end' },
   bubble: { maxWidth: '70%', paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, backgroundColor: color.bubble },
-  bubbleText: { fontSize: 15, lineHeight: 24, color: color.fg },
+  bubbleText: { fontSize: 15, lineHeight: 24, color: color.bubbleFg },
   replyWrap: { flexDirection: 'row', justifyContent: 'flex-start' },
   reply: { maxWidth: '88%', paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, backgroundColor: color.card, gap: 8 },
   composer: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, borderWidth: 1, borderColor: color.border, borderRadius: 24, backgroundColor: color.input, paddingVertical: 4, paddingLeft: 16, paddingRight: 4 },
@@ -505,9 +489,9 @@ const styles = StyleSheet.create({
   sheetTitle: { fontSize: size.ui, color: color.muted, paddingHorizontal: 8, paddingVertical: 8 },
   sheetItem: { flexDirection: 'row', alignItems: 'center', gap: 16, height: 48, paddingHorizontal: 8, borderRadius: radius.lg },
   sheetItemText: { fontSize: size.body, color: color.fg },
-})
+}))
 
-const mdBase = {
+const mdBase = () => ({
   body: { fontSize: size.body, lineHeight: 28, color: color.fg },
   text: { color: color.fg },
   paragraph: { marginTop: 0, marginBottom: 16 },
@@ -530,14 +514,14 @@ const mdBase = {
   td: { padding: 8, fontSize: 13, color: color.fg },
   tr: { borderBottomWidth: 1, borderColor: color.borderSoft, flexDirection: 'row' as const },
   hr: { backgroundColor: color.border, marginVertical: 16 },
-  link: { color: color.fg, textDecorationLine: 'underline' as const },
-}
-const mdStyles = StyleSheet.create(mdBase)
+  link: { color: color.accentText, textDecorationLine: 'underline' as const },
+})
+const mdStyles = themed(() => (mdBase()))
 /** Inside a bubble: CJK reading at 15 / 1.75, headings no bigger than the text (15 / 600), no trailing gap. */
-const heading = { fontFamily: undefined, fontSize: 15, lineHeight: 26, fontWeight: '600' as const, color: color.fg, marginTop: 8, marginBottom: 4 }
-const mdTight = StyleSheet.create({ ...mdBase, body: { fontSize: 15, lineHeight: 26, color: color.fg, marginBottom: -8 }, paragraph: { marginTop: 0, marginBottom: 8 }, heading1: heading, heading2: heading, heading3: heading, heading4: heading, heading5: heading, heading6: heading, bullet_list: { marginBottom: 8 }, ordered_list: { marginBottom: 8 } })
-const mdWide = StyleSheet.create({
+const heading = () => ({ fontFamily: undefined, fontSize: 15, lineHeight: 26, fontWeight: '600' as const, color: color.fg, marginTop: 8, marginBottom: 4 })
+const mdTight = themed(() => ({ ...mdBase(), body: { fontSize: 15, lineHeight: 26, color: color.fg, marginBottom: -8 }, paragraph: { marginTop: 0, marginBottom: 8 }, heading1: heading(), heading2: heading(), heading3: heading(), heading4: heading(), heading5: heading(), heading6: heading(), bullet_list: { marginBottom: 8 }, ordered_list: { marginBottom: 8 } }))
+const mdWide = themed(() => ({
   table: { borderWidth: 1, borderColor: color.border, borderRadius: radius.md, overflow: 'hidden' },
   th: { width: 140, padding: 8, backgroundColor: color.card },
   td: { width: 140, padding: 8 },
-})
+}))

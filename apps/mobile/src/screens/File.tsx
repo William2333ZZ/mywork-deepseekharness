@@ -3,11 +3,11 @@
  * and 「在对话里看」 — the conversation of the teammate that made it, scrolled to the run (§9.3 跳转一条规则).
  */
 import { useEffect, useState } from 'react'
-import { ScrollView, Share, StyleSheet, Text, View } from 'react-native'
+import { ScrollView, Share, Text, View } from 'react-native'
 import { fmtDate, type Deliverable, type Run } from '../api'
 import { useConn, useNav, useStore } from '../store'
 import { Btn, Empty, IconBtn, Meta, Prose, ResultRows, Screen, Title, TopBar, VerifyLine, type Tone } from '../components'
-import { color, radius, space } from '../theme'
+import { color, radius, space, themed } from '../theme'
 import { verifyOf, verifyWords } from '../thread'
 
 export default function File({ id }: { id: string }) {
@@ -62,7 +62,7 @@ export default function File({ id }: { id: string }) {
   )
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   wrap: { paddingHorizontal: space.lg, paddingBottom: space.xxl },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   meta: { marginTop: space.sm, marginBottom: space.lg },
@@ -70,4 +70,4 @@ const styles = StyleSheet.create({
   sum: { marginBottom: space.xl },
   wait: { fontSize: 13, color: color.meta },
   doc: { marginBottom: space.sm },
-})
+}))

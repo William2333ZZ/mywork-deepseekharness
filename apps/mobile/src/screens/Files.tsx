@@ -3,11 +3,11 @@
  * a row opens the file. Rows carry no actions. `mateId` starts with that teammate's chip selected.
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { FlatList, Pressable, ScrollView, StyleSheet, Text } from 'react-native'
+import { FlatList, Pressable, ScrollView, Text } from 'react-native'
 import { fmtWhen, type Deliverable } from '../api'
 import { useConn, useNav, useStore } from '../store'
 import { Field, IconBtn, Screen, ThreadRow, TopBar } from '../components'
-import { color, radius, size, space } from '../theme'
+import { color, radius, size, space, themed } from '../theme'
 import { orderMates, time } from '../thread'
 
 const SEARCH_DEBOUNCE_MS = 250
@@ -67,7 +67,7 @@ function Chip({ label, on, onPress }: { label: string; on: boolean; onPress: () 
   )
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   search: { marginHorizontal: space.lg, marginTop: space.xs, marginBottom: space.sm },
   chipsBar: { flexGrow: 0 },
   chips: { paddingHorizontal: space.lg, gap: space.sm, paddingBottom: space.sm },
@@ -76,4 +76,4 @@ const styles = StyleSheet.create({
   chipText: { fontSize: size.meta, color: color.fg2 },
   list: { paddingHorizontal: 8, paddingBottom: space.xl },
   empty: { fontSize: size.meta, lineHeight: 20, color: color.muted, paddingHorizontal: 8, paddingVertical: 16 },
-})
+}))

@@ -9,11 +9,11 @@
  * With `routineId` the routine's sheet opens on arrival (「已安排」 lines and search results land here).
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native'
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Switch, Text, View } from 'react-native'
 import { ApiError, fmtDate, fmtWhen, type Deliverable, type Mate, type Routine, type RoutineRun } from '../api'
 import { useConn, useNav, useStore } from '../store'
 import { Avatar, Btn, Empty, Field, Ghost, IconBtn, ListBox, Meta, Row, Screen, Section, Sheet, SheetItem, ThreadRow, Title, TopBar } from '../components'
-import { color, size, space } from '../theme'
+import { color, size, space, themed } from '../theme'
 import { glyphOf, time } from '../thread'
 
 const FILES = 8
@@ -78,7 +78,7 @@ export default function MateInfo({ id, routineId }: { id: string; routineId?: st
       <TopBar left={<IconBtn name="chevron-back-outline" label="返回" onPress={nav.pop} />} />
       <ScrollView contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled">
         <View style={styles.who}>
-          <Avatar id={mate.id || mate.name} char={glyphOf(mate)} isDefault={mate.isDefault} working={mate.state === 'working'} dim={52} />
+          <Avatar id={mate.id || mate.name} look={mate.avatar} char={glyphOf(mate)} isDefault={mate.isDefault} working={mate.state === 'working'} dim={52} />
           <View style={{ flex: 1, minWidth: 0 }}>
             <Title>{mate.name}</Title>
             {mate.title ? <Meta>{mate.title}</Meta> : null}
@@ -258,7 +258,7 @@ function RoutineSheet({ routine: r, onClose, onChanged, onOpenRun }: { routine: 
 
 const runWord = (x: RoutineRun) => (x.error ? '失败' : x.fired ? '提醒' : x.quiet || x.changed === false ? '没有变化' : x.report ? '已出报告' : x.changed === true ? '有变化' : '完成')
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   wrap: { paddingHorizontal: space.lg, paddingBottom: space.xxl },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   who: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingTop: space.xs },
@@ -276,4 +276,4 @@ const styles = StyleSheet.create({
   chipText: { fontSize: 13, lineHeight: 20, color: color.fg2 },
   sheetActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: space.sm },
   wait: { fontSize: 13, color: color.meta },
-})
+}))

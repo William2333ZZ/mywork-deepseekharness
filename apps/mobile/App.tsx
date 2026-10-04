@@ -3,13 +3,14 @@
  *
  * Screens (design/v2/TEAMMATES.md §9.6, MOBILE.md §10): pair · home (the teammates list) · a teammate's conversation ·
  * the teammate's page (例行 · 设置 · 文件) · the bell's activity · new teammate · files · one file · settings.
- * One stack, one screen at a time; the app starts on the list and everything else is pushed on top of it.
+ * One stack, one screen at a time; the app starts on the list and everything else is pushed on top of it. Colours
+ * follow the desktop's palettes (炭 · 香槟 / 墨 · 雾紫, picked in 设置) in the phone's light or dark scheme.
  */
 import React from 'react'
 import { ActivityIndicator, StatusBar, View } from 'react-native'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { Providers, useConn, useNav } from './src/store'
-import { color } from './src/theme'
+import { color, ThemeProvider, useTheme } from './src/theme'
 import Pair from './src/screens/Pair'
 import Home from './src/screens/Home'
 import Thread from './src/screens/Thread'
@@ -37,11 +38,21 @@ function Router() {
   }
 }
 
+/** The screens under the theme: a palette or scheme change remounts them (`version`), so each draws with the new colours. */
+function Themed() {
+  const { scheme, version } = useTheme()
+  return (
+    <View style={{ flex: 1, backgroundColor: color.bg }}>
+      <StatusBar barStyle={scheme === 'light' ? 'dark-content' : 'light-content'} backgroundColor={color.bg} />
+      <Providers><Router key={version} /></Providers>
+    </View>
+  )
+}
+
 export default function App() {
   return (
     <SafeAreaProvider>
-      <StatusBar barStyle="light-content" backgroundColor={color.bg} />
-      <Providers><Router /></Providers>
+      <ThemeProvider><Themed /></ThemeProvider>
     </SafeAreaProvider>
   )
 }

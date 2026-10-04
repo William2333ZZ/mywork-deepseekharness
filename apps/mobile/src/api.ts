@@ -42,6 +42,8 @@ export type MateState = 'idle' | 'working' | 'waiting'
 /** A teammate (§9.1): one endless conversation, its own folder, its own routines. `group` names its section on the list ('' = 其他). */
 export type Mate = {
   id: string; name: string; title: string; description: string; glyph: string; pinned: boolean; isDefault: boolean; notify: boolean; group: string
+  /** The look picked on the computer (8 colours × 4 shapes); null: derived from the id, as on the web. */
+  avatar?: { color?: string; shape?: string } | null
   createdAt: string; lastAt: string; preview: string; unread: boolean; state: MateState; step: string; since: string; ask: Ask | null; routineCount: number
 }
 export type RunTrigger = 'user' | 'routine' | 'system'

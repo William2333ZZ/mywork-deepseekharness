@@ -2,11 +2,11 @@
  * The bell (TEAMMATES.md §9.4): three groups from GET /activity — 需要你 (questions, failures, reminders) · 在干活 ·
  * 刚完成. A row opens that teammate's conversation at that run. Rows carry no actions.
  */
-import { ScrollView, StyleSheet, Text, View } from 'react-native'
+import { ScrollView, Text, View } from 'react-native'
 import { fmtWhen, type ActivityItem } from '../api'
 import { useNav, useStore } from '../store'
 import { IconBtn, ListBox, Row, Screen, Section, TopBar, type Tone } from '../components'
-import { color, size, space } from '../theme'
+import { color, size, space, themed } from '../theme'
 
 /** Colour only where it carries a decision: a failure's time in danger; the sections (需要你 · 在干活 · 刚完成) say the rest. */
 const stateTone = (k: ActivityItem['kind']): Tone | undefined => (k === 'failed' ? 'danger' : undefined)
@@ -41,7 +41,7 @@ export default function Activity() {
   )
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   wrap: { paddingHorizontal: space.lg, paddingBottom: space.xxl },
   empty: { fontSize: size.ui, color: color.muted, paddingVertical: space.xl, textAlign: 'center' },
-})
+}))

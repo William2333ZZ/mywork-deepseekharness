@@ -4,10 +4,10 @@
  * says how it understood the job, and sets up the routine when the sentence carries a time.
  */
 import { useState } from 'react'
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native'
 import { useConn, useNav, useStore } from '../store'
 import { Btn, Field, IconBtn, Screen, Title, TopBar } from '../components'
-import { color, radius, size, space } from '../theme'
+import { color, radius, size, space, themed } from '../theme'
 
 /** What people usually hand a teammate: one tap fills 「它负责什么」 (edit it from there). */
 const EXAMPLES = ['每天早上 8 点按信源整理 AI 技术动态，只报和我有关的', '帮我管日程，记在一张表里，每天 8:30 给我今日安排', '盯竞品的定价页和更新日志，有变化就告诉我']
@@ -56,7 +56,7 @@ export default function NewMate() {
   )
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   wrap: { paddingHorizontal: space.lg, paddingBottom: space.xxl, gap: space.sm },
   label: { fontSize: size.small, lineHeight: 16, fontWeight: '500', color: color.meta, marginTop: space.lg },
   examples: { alignItems: 'flex-start', gap: space.sm },
@@ -64,4 +64,4 @@ const styles = StyleSheet.create({
   exampleText: { fontSize: 13, lineHeight: 20, color: color.fg2 },
   err: { fontSize: size.meta, lineHeight: 20, color: color.danger, marginTop: space.sm },
   go: { alignSelf: 'flex-end', marginTop: space.lg },
-})
+}))

@@ -8,14 +8,14 @@
  * (open the file), routines (open the mate's page with that routine). Rows carry no actions.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native'
+import { FlatList, Pressable, RefreshControl, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import * as SecureStore from 'expo-secure-store'
 import { fmtWhen, type Mate, type SearchResult } from '../api'
 import { useConn, useNav, useStore } from '../store'
 import { Field, Mark, MateRow, Screen, ThreadRow, type IconName } from '../components'
-import { color, size, space } from '../theme'
+import { color, size, space, themed } from '../theme'
 import { glyphOf, orderMates, secondLine, sectionMates } from '../thread'
 
 const SEARCH_DEBOUNCE_MS = 250
@@ -137,7 +137,7 @@ export default function Home() {
           if (item.kind === 'section') return <SectionHead label={item.label} closed={item.closed} count={item.count} news={item.news} onPress={() => toggleSection(item.secKey)} />
           if (item.kind === 'mate') {
             const m = item.mate
-            return <MateRow id={m.id || m.name} char={glyphOf(m)} isDefault={m.isDefault} working={m.state === 'working'} waiting={m.state === 'waiting'} name={m.name} time={fmtWhen(m.lastAt)} unread={m.unread} sub={secondLine(m)} onPress={() => nav.push({ name: 'mate', id: m.id })} />
+            return <MateRow id={m.id || m.name} look={m.avatar} char={glyphOf(m)} isDefault={m.isDefault} working={m.state === 'working'} waiting={m.state === 'waiting'} name={m.name} time={fmtWhen(m.lastAt)} unread={m.unread} sub={secondLine(m)} onPress={() => nav.push({ name: 'mate', id: m.id })} />
           }
           return <ThreadRow glyph={item.glyph} title={item.title} time={fmtWhen(item.at)} preview={item.sub} onPress={item.open} />
         }}
@@ -170,7 +170,7 @@ function Circle({ icon, label, onPress, accent, on }: { icon: IconName; label: s
   )
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: space.lg, paddingTop: space.sm, paddingBottom: space.sm },
   actions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   circle: { width: 40, height: 40, borderRadius: 20, backgroundColor: color.input, alignItems: 'center', justifyContent: 'center' },
@@ -186,4 +186,4 @@ const styles = StyleSheet.create({
   secCount: { fontSize: 12, lineHeight: 16, color: color.meta, fontVariant: ['tabular-nums'] },
   secDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: color.primary },
   foot: { paddingHorizontal: 4, paddingTop: 4, borderTopWidth: 1, borderTopColor: color.border },
-})
+}))

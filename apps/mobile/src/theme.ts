@@ -12,7 +12,7 @@
  */
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { Appearance, Platform, StyleSheet, useColorScheme } from 'react-native'
-import * as SecureStore from 'expo-secure-store'
+import { kvGet, kvSet } from './kv'
 
 export type PaletteId = 'champagne' | 'mist'
 export type SchemeMode = 'system' | 'light' | 'dark'
@@ -79,7 +79,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const system = useColorScheme()
   const [prefs, setPrefs] = useState<Prefs>({ palette: 'champagne', mode: 'system' })
   useEffect(() => {
-    SecureStore.getItemAsync(PREF_KEY).then((raw) => {
+    kvGet(PREF_KEY).then((raw) => {
       if (!raw) return
       try {
         const p = JSON.parse(raw) as Partial<Prefs>
@@ -90,7 +90,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const scheme: 'light' | 'dark' = prefs.mode === 'system' ? (system === 'light' ? 'light' : 'dark') : prefs.mode
   // Applied during render, so this very render (and every child) already reads the new colours.
   applyTheme(prefs.palette, scheme)
-  const save = useCallback((next: Prefs) => { setPrefs(next); SecureStore.setItemAsync(PREF_KEY, JSON.stringify(next)).catch(() => {}) }, [])
+  const save = useCallback((next: Prefs) => { setPrefs(next); kvSet(PREF_KEY, JSON.stringify(next)).catch(() => {}) }, [])
   const value = useMemo(() => ({
     palette: prefs.palette, mode: prefs.mode, scheme, version,
     setPalette: (palette: PaletteId) => save({ ...prefs, palette }),

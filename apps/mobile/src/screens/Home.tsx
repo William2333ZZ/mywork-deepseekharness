@@ -11,7 +11,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FlatList, Pressable, RefreshControl, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
-import * as SecureStore from 'expo-secure-store'
+import { kvGet, kvSet } from '../kv'
 import { fmtWhen, type Mate, type SearchResult } from '../api'
 import { useConn, useNav, useStore } from '../store'
 import { Field, Mark, MateRow, Screen, ThreadRow, type IconName } from '../components'
@@ -36,7 +36,7 @@ function useFolded(): [Record<string, boolean>, (key: string) => void] {
   useEffect(() => {
     if (foldedCache) return
     let on = true
-    SecureStore.getItemAsync(SECTIONS_KEY).then((raw) => {
+    kvGet(SECTIONS_KEY).then((raw) => {
       if (foldedCache) return // a header was tapped meanwhile: that choice wins
       const v: unknown = raw ? JSON.parse(raw) : {}
       foldedCache = v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, boolean>) : {}
@@ -49,7 +49,7 @@ function useFolded(): [Record<string, boolean>, (key: string) => void] {
     if (next[key]) delete next[key]; else next[key] = true
     foldedCache = next
     setFolded(next)
-    SecureStore.setItemAsync(SECTIONS_KEY, JSON.stringify(next)).catch(() => { /* folded for this run only */ })
+    kvSet(SECTIONS_KEY, JSON.stringify(next)).catch(() => { /* folded for this run only */ })
   }, [folded])
   return [folded, toggle]
 }

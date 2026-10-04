@@ -7,7 +7,7 @@
  * JSON API the web pages use, under /mywork-tasks/api (the teammate contract, TEAMMATES.md §9.8). The pairing
  * (base URL + token) is kept in the secure store.
  */
-import * as SecureStore from 'expo-secure-store'
+import { kvDel, kvGet, kvSet } from './kv'
 import { Relay, textToB64, type RelayInfo } from './relay'
 
 /** The paired computer: its LAN gateway (base + phone token) and, when it offered one, the encrypted relay to reach it from anywhere. */
@@ -92,10 +92,10 @@ export type SearchResult = { mates: Mate[]; messages: SearchMessage[]; files: De
 const KEY = 'mywork.connection'
 
 export async function loadConnection(): Promise<Connection | null> {
-  try { const raw = await SecureStore.getItemAsync(KEY); return raw ? (JSON.parse(raw) as Connection) : null } catch { return null }
+  try { const raw = await kvGet(KEY); return raw ? (JSON.parse(raw) as Connection) : null } catch { return null }
 }
-export async function saveConnection(c: Connection): Promise<void> { await SecureStore.setItemAsync(KEY, JSON.stringify(c)) }
-export async function clearConnection(): Promise<void> { try { await SecureStore.deleteItemAsync(KEY) } catch { /* nothing to clear */ } }
+export async function saveConnection(c: Connection): Promise<void> { await kvSet(KEY, JSON.stringify(c)) }
+export async function clearConnection(): Promise<void> { try { await kvDel(KEY) } catch { /* nothing to clear */ } }
 
 /**
  * The QR on the computer is the relay's address with the pairing after `#`: `https://<relay>/#i=<pairing id>&k=<computer's

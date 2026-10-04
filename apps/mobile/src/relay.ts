@@ -121,7 +121,7 @@ export class Relay {
         if (f.ev === 'computer') {
           if (f.up) return
           // The computer left (or restarted): its end of this line is gone, so the next request says hello again.
-          if (!done) finish(new Error('电脑不在线（MyWork 没开，或「允许手机连接」关了）'))
+          if (!done) finish(new Error('电脑不在线（MyWork 没开、「允许手机连接」关了，或电脑上换过配对码）'))
           else { this.drop(); this.failAll(new Error('电脑断开了')) }
           return
         }

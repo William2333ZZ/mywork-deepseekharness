@@ -6,11 +6,15 @@
  *                                                              a teammate works, 30s otherwise; `tick` counts polls
  *   useNav()   → { route, stack, push(r), pop(), replace(r), reset(r) }
  *
- * Navigation is a plain stack in state (no router dependency): Android back pops it. The stack starts on the
- * teammates list (home); everything else is pushed on top of it, so back always lands on the list.
+ * Navigation is a plain stack in state (no router dependency): Android back pops it, and so does the browser's back in
+ * the web version. The stack starts on the teammates list (home); everything else is pushed on top of it, so back
+ * always lands on the list.
+ *
+ * The web version is paired by its own address: the phone's camera opens the computer's code, https://<relay>/#i=…&k=…&t=…,
+ * and the part after `#` (never sent to any server) is read once, kept in this browser and wiped from the address bar.
  */
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { AppState, BackHandler } from 'react-native'
+import { AppState, BackHandler, Platform } from 'react-native'
 import { Api, clearConnection, loadConnection, login, parsePairText, saveConnection, type ActivityPayload, type Connection, type Mate } from './api'
 import type { Relay } from './relay'
 
@@ -56,6 +60,16 @@ export const useStore = () => { const v = useContext(StoreCtx); if (!v) throw ne
 
 const FAST = 5000
 const SLOW = 30000
+const WEB = Platform.OS === 'web'
+
+/** The web version: the pairing in this page's address (the camera opened the computer's code), taken out of it. */
+function pairingInAddress(): string | null {
+  if (!WEB || typeof window === 'undefined') return null
+  const { href, hash, pathname, search } = window.location
+  if (!/[#&]i=/.test(hash) || !/[#&]k=/.test(hash) || !/[#&]t=/.test(hash)) return null
+  try { window.history.replaceState(null, '', pathname + search) } catch { /* the address keeps it; the pairing still works */ }
+  return href
+}
 
 export function Providers({ children }: { children: React.ReactNode }) {
   // ---- navigation ----
@@ -77,6 +91,21 @@ export function Providers({ children }: { children: React.ReactNode }) {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => { if (stack.length > 1) { setStack((s) => s.slice(0, -1)); return true } return false })
     return () => sub.remove()
   }, [stack.length])
+  // The browser's back: one history entry stands for "a screen above the list"; going back pops a screen, and the entry
+  // comes back while more are left. Back on the list leaves the page as usual.
+  const guard = useRef(false)
+  const ignore = useRef(false)
+  useEffect(() => {
+    if (!WEB) return
+    if (stack.length > 1 && !guard.current) { window.history.pushState({ mywork: 1 }, ''); guard.current = true }
+    else if (stack.length === 1 && guard.current) { guard.current = false; ignore.current = true; window.history.back() }
+  }, [stack.length])
+  useEffect(() => {
+    if (!WEB) return undefined
+    const onPop = () => { if (ignore.current) { ignore.current = false; return } guard.current = false; setStack((s) => (s.length > 1 ? s.slice(0, -1) : s)) }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
 
   // ---- connection ----
   const [conn, setConn] = useState<Connection | null>(null)
@@ -91,7 +120,17 @@ export function Providers({ children }: { children: React.ReactNode }) {
     const { ok, relay } = await login(c)
     swapLine(relay); setConn(c); setFailed(!ok); setReady(true)
   }, [swapLine])
-  useEffect(() => { loadConnection().then(tryLogin) }, [tryLogin])
+  useEffect(() => {
+    const text = pairingInAddress()
+    const p = text ? parsePairText(text) : null
+    if (p && p.relay) {
+      // Kept even when the computer does not answer yet: the pairing screen then offers 重试.
+      const c: Connection = { base: p.base, token: p.token, pairedAt: new Date().toISOString(), relay: p.relay }
+      saveConnection(c).catch(() => {}).then(() => tryLogin(c))
+      return
+    }
+    loadConnection().then(tryLogin)
+  }, [tryLogin])
   const pair = useCallback(async (text: string) => {
     const p = parsePairText(text)
     if (!p) return '看不出这是一个地址。'

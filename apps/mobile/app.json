@@ -57,6 +57,16 @@
       }
     },
     "owner": "hhdz",
-    "backgroundColor": "#12100e"
+    "backgroundColor": "#12100e",
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/icon.png",
+      "name": "MyWork",
+      "shortName": "MyWork",
+      "lang": "zh-CN",
+      "backgroundColor": "#12100e",
+      "themeColor": "#12100e"
+    }
   }
 }

@@ -113,7 +113,8 @@ The product logic follows [Rakazo](https://github.com/elie222/rakazo) (persisten
 | Feature | What it does |
 | --- | --- |
 | Native app | `apps/mobile`, Expo / React Native; Android builds today, iOS from the same code. |
-| Connection | On the computer, Settings › Scenarios & members › Phone, allow phone connections and scan the code with the app. On Wi‑Fi or mobile data alike, the phone reaches this computer through the cloud relay (apps/relay, Cloudflare free plan), which only passes end-to-end encrypted data; the two don't need to share a network. Pairing survives restarts; turning the switch off disconnects. |
+| Web version | The same code as a web page on the relay's address: on HarmonyOS NEXT, an iPhone or any phone, scan the computer's code with the built-in camera and the browser opens already paired; it can be added to the home screen. The pairing sits after `#` in the address, is read once and wiped from the address bar, and is kept only in that browser; "open in another app" downloads the file there. |
+| Connection | On the computer, Settings › Scenarios & members › Phone, allow phone connections and scan the code with the phone's camera (web version) or the app. On Wi‑Fi or mobile data alike, the phone reaches this computer through the cloud relay (apps/relay, Cloudflare free plan), which only passes end-to-end encrypted data; the two don't need to share a network. Pairing survives restarts; turning the switch off disconnects; "New pairing code" voids the old one and paired phones scan again. |
 | Features | Teammates, activity, conversations (bubbles, file cards, question cards, stop), full-screen file reading and sharing, teammate page (profile; folder — tables, notes and images open in place, web pages / PDFs go to another app), new teammate, files. |
 | Appearance | The computer's palettes (Charcoal · Champagne / Ink · Mist), dark or light with the phone, or fixed in the phone's Settings; avatars in the look picked on the computer. |
 
@@ -136,7 +137,7 @@ bash scripts/dev-env.sh
 
 The script installs dsh into `.dsh-dev-home/` inside the repo and starts it, leaving `~/.dsh` alone. Open the printed address, add your API key in Settings › Model, then click "+" to create your first teammate.
 
-Phone: in `apps/mobile`, build an APK with `npx eas-cli build --platform android --profile preview`, or run `npx expo run:android`.
+Phone: in `apps/mobile`, build an APK with `npx eas-cli build --platform android --profile preview`, or run `npx expo run:android`. The web version ships with the relay: `cd apps/relay && npm run deploy` (`build-web.sh` builds the page, then `wrangler deploy`).
 
 ## How it's built
 
@@ -159,6 +160,7 @@ Design: [design/v2/TEAMMATES.md](design/v2/TEAMMATES.md) §9 (teammate model and
 - Everything lives in `$DSH_HOME` (`.dsh-dev-home/home` in development): teammates in `mywork/mates.json`, each teammate's folder in `mywork/mates/<id>/`, runs, deliveries, routines and read state in `mywork/*.json`, session logs in `sessions/`.
 - The API key and logins are there too; copy the directory to move machines (it holds the key in plain text).
 - The web app listens on this machine only. Phone access must be switched on at the computer; the phone gateway also listens on this machine only and is reached from outside only through the relay, accepts only the pairing token, and dsh's login token never leaves the computer. The relay passes encrypted data only: the computer's X25519 public key travels only after `#` on the pairing code, the relay lacks its secret key and can neither read nor impersonate it, and only MyWork's API and signed file links are reachable through it.
+- The relay is shared by every computer: each has its own signing key and claims its room on first connect, after which only that key gets in, so someone who saw a pairing code cannot knock the computer off; a room takes at most 8 phones, and phones and addresses are rate-limited. The web version loads only from the relay's own address, and its content security policy lets it talk only to that relay and run only its own scripts.
 
 ## Status and known limits
 

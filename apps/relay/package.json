@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev --ip 0.0.0.0 --port 8787",
-    "deploy": "wrangler deploy"
+    "deploy": "bash build-web.sh && wrangler deploy",
+    "build:web": "bash build-web.sh"
   }
 }

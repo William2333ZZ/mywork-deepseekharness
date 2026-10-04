@@ -102,8 +102,8 @@ const CSS = `
 .mwk-qr{width:208px;height:208px;padding:12px;box-sizing:border-box;background:#fff;border:1px solid color-mix(in srgb,currentColor 12%,transparent);border-radius:12px}
 .mwk-qr svg{display:block;width:100%;height:100%}
 .mwk-phone button{justify-self:start}
-.mwk-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
-.mwk-row p{font-size:12px;color:var(--dsw-alias-label-secondary)}
+.mwk-acts{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.mwk-acts p{font-size:12px;color:var(--dsw-alias-label-secondary)}
 .mwk-state{margin:0;font-size:12px;line-height:1.6;color:var(--dsw-alias-label-secondary)}
 .mwk-state[data-up=true]{color:var(--dsw-alias-brand-text,var(--dsw-alias-label-primary))}
 .mwk-tabs{display:flex;gap:2px;border-bottom:0.5px solid var(--dsw-alias-border-l2);margin:0 0 16px;overflow-x:auto}
@@ -304,10 +304,10 @@ exports.apply = function apply(ctx) {
       st.pairing ? h('div', { className: 'mwk-qr', dangerouslySetInnerHTML: { __html: st.pairing.svg } }) : null,
       h('p', { className: 'mwk-state', 'data-up': r.connected ? 'true' : undefined }, !r.url ? t('relayNoUrl') : r.connected ? t('relayUp').replace('{n}', String(r.phones || 0)) : (r.error || t('relayConnecting'))),
       asking
-        ? h('div', { className: 'mwk-row' }, h('p', null, t('phoneResetAsk')),
+        ? h('div', { className: 'mwk-acts' }, h('p', null, t('phoneResetAsk')),
           h('button', { type: 'button', className: 'mwk-btn', disabled: busy, onClick: reset }, t('phoneResetYes')),
           h('button', { type: 'button', className: 'mwk-btn', disabled: busy, onClick: () => setAsking(false) }, t('phoneResetNo')))
-        : h('div', { className: 'mwk-row' },
+        : h('div', { className: 'mwk-acts' },
           h('button', { type: 'button', className: 'mwk-btn', disabled: busy, onClick: () => flip(false) }, t('phoneDeny')),
           h('button', { type: 'button', className: 'mwk-btn', disabled: busy, onClick: () => setAsking(true) }, t('phoneReset'))))
   }

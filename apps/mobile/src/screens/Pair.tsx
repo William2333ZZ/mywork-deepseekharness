@@ -1,16 +1,19 @@
 /**
  * S0 连接 — 整屏一件事：扫电脑上的码（云端中继的地址，配对信息在 # 后面），或手动输入配对码。
  * 曾配对但连不上时，顶部一行「连不上 …」+ 重试 / 换一台电脑；下面照旧可以重新扫码。
+ * 网页版没有扫码键：用手机自带的相机扫电脑上的码，浏览器打开的就是这个页面，配对信息就在地址里（store.tsx）。
  */
 import { useRef, useState } from 'react'
-import { ScrollView, StyleSheet, View } from 'react-native'
-import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera'
+import { Platform, ScrollView, StyleSheet, View } from 'react-native'
+import type { BarcodeScanningResult } from 'expo-camera'
+import { CameraView, useCameraPermissions } from '../camera'
 import * as Clipboard from 'expo-clipboard'
 import { useConn } from '../store'
 import { Screen, Mark, Title, Body, Meta, Btn, Field, IconBtn } from '../components'
 import { color, space, themed } from '../theme'
 
 type Mode = 'idle' | 'scan' | 'manual'
+const WEB = Platform.OS === 'web'
 
 export default function Pair() {
   const { conn, failed, pair, retry, forget } = useConn()
@@ -83,10 +86,19 @@ export default function Pair() {
             </View>
           </View>
         ) : null}
-        <Title style={styles.lead}>在电脑上打开 设置 › 场景与成员 › 手机，扫这个码</Title>
-        <View style={styles.actions}>
-          <Btn label="扫码" kind="primary" onPress={openScan} disabled={busy} style={styles.big} />
-        </View>
+        {WEB ? (
+          <>
+            <Title style={styles.lead}>用手机自带的相机，扫电脑上的码</Title>
+            <Body>码在电脑上 MyWork 的 设置 › 场景与成员 › 手机。扫完，浏览器打开的就是这里，自动连上。</Body>
+          </>
+        ) : (
+          <>
+            <Title style={styles.lead}>在电脑上打开 设置 › 场景与成员 › 手机，扫这个码</Title>
+            <View style={styles.actions}>
+              <Btn label="扫码" kind="primary" onPress={openScan} disabled={busy} style={styles.big} />
+            </View>
+          </>
+        )}
         {busy ? <Meta style={styles.line}>连接中…</Meta> : err ? <Meta style={styles.lineErr}>{err}</Meta> : null}
         {mode === 'manual' ? (
           <View style={styles.manual}>

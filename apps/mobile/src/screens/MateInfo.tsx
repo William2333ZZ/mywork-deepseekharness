@@ -280,9 +280,9 @@ function LookSheet({ mate, onClose, onSave }: { mate: Mate; onClose: () => void;
   const changed = look.color !== start.color || look.shape !== start.shape
   return (
     <Sheet open onClose={onClose} title="头像">
-      <View style={[styles.sheetBox, { flexDirection: 'row', alignItems: 'flex-start', gap: space.lg }]}>
+      <View style={[styles.sheetBox, { alignItems: 'flex-start' }]}>
         <Avatar id={mate.id} look={look} dim={56} />
-        <View style={{ flex: 1 }}><AvatarPicker look={look} onChange={setLook} /></View>
+        <AvatarPicker look={look} onChange={setLook} />
       </View>
       <View style={[styles.sheetBox, { paddingTop: space.md }]}>
         <Btn label="保存" kind="primary" onPress={() => onSave(look)} disabled={!changed} style={{ alignSelf: 'flex-end' }} />

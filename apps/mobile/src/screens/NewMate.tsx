@@ -58,7 +58,7 @@ export default function NewMate() {
           <Text style={styles.label}>头像</Text>
           <View style={styles.look}>
             <Avatar id="new" look={look} dim={56} />
-            <View style={{ flex: 1 }}><AvatarPicker look={look} onChange={setLook} /></View>
+            <AvatarPicker look={look} onChange={setLook} />
           </View>
           {err ? <Text style={styles.err}>{err}</Text> : null}
           <Btn label="创建" kind="primary" onPress={() => { create() }} disabled={!can} style={styles.go} />
@@ -76,5 +76,6 @@ const styles = themed(() => ({
   exampleText: { fontSize: 13, lineHeight: 20, color: color.fg2 },
   err: { fontSize: size.meta, lineHeight: 20, color: color.danger, marginTop: space.sm },
   go: { alignSelf: 'flex-end', marginTop: space.lg },
-  look: { flexDirection: 'row', alignItems: 'flex-start', gap: space.lg },
+  // the preview above the picker, so the eight colours sit on one line
+  look: { alignItems: 'flex-start', gap: space.md },
 }))

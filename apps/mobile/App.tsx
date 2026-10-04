@@ -19,6 +19,7 @@ import Activity from './src/screens/Activity'
 import NewMate from './src/screens/NewMate'
 import Files from './src/screens/Files'
 import File from './src/screens/File'
+import FolderFile from './src/screens/FolderFile'
 import Settings from './src/screens/Settings'
 
 function Router() {
@@ -33,6 +34,7 @@ function Router() {
     case 'newMate': return <NewMate />
     case 'files': return <Files mateId={route.mateId} />
     case 'file': return <File key={route.id} id={route.id} />
+    case 'folderFile': return <FolderFile key={route.mateId + ':' + route.path} mateId={route.mateId} path={route.path} />
     case 'settings': return <Settings />
     default: return <Home />
   }

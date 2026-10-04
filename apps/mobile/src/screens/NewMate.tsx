@@ -1,12 +1,14 @@
 /**
- * 新同事 (TEAMMATES.md §9.5): 「它负责什么」 (required; three examples under it fill it) + 名字 (optional) →
- * POST /mates/create, then its conversation replaces this screen. The server queues the teammate's hidden intro run: it names itself when the name is empty,
+ * 新同事 (TEAMMATES.md §9.5), in the web form's order: 「它负责什么」 (required; three examples under it fill it), 「类型」
+ * (required: the most used type to start, or a new one; it is the list's section), 名字 (optional), 「头像」 (8 colours × 4
+ * shapes, a random pick to start) → POST /mates/create, then its conversation replaces this screen. The server queues the teammate's hidden intro run: it names itself when the name is empty,
  * says how it understood the job, and sets up the routine when the sentence carries a time.
  */
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native'
 import { useConn, useNav, useStore } from '../store'
-import { Btn, Field, IconBtn, Screen, Title, TopBar } from '../components'
+import { Avatar, AvatarPicker, Btn, Field, IconBtn, Screen, Title, TopBar, TypePicker, randomLook } from '../components'
+import { cleanType, typesOf } from '../thread'
 import { color, radius, size, space, themed } from '../theme'
 
 /** What people usually hand a teammate: one tap fills 「它负责什么」 (edit it from there). */
@@ -18,14 +20,17 @@ export default function NewMate() {
   const store = useStore()
   const [description, setDescription] = useState('')
   const [name, setName] = useState('')
+  const types = useMemo(() => typesOf(store.mates), [store.mates])
+  const [type, setType] = useState(types.top)
+  const [look, setLook] = useState(randomLook)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
-  const can = !!description.trim() && !busy && !!api
+  const can = !!description.trim() && !!cleanType(type) && !busy && !!api
   const create = async () => {
     if (!can || !api) return
     setBusy(true); setErr('')
     try {
-      const d = await api.mateCreate(description.trim(), name.trim() || undefined)
+      const d = await api.mateCreate(description.trim(), { name: name.trim() || undefined, group: cleanType(type), avatar: look })
       store.putMate(d.mate)
       nav.replace({ name: 'mate', id: d.mate.id })
       store.refresh().catch(() => {})
@@ -46,8 +51,15 @@ export default function NewMate() {
               </Pressable>
             ))}
           </View>
+          <Text style={styles.label}>类型</Text>
+          <TypePicker value={type} types={types.list} required onChange={setType} />
           <Text style={styles.label}>名字</Text>
           <Field value={name} onChange={setName} placeholder="可以不填" />
+          <Text style={styles.label}>头像</Text>
+          <View style={styles.look}>
+            <Avatar id="new" look={look} dim={56} />
+            <View style={{ flex: 1 }}><AvatarPicker look={look} onChange={setLook} /></View>
+          </View>
           {err ? <Text style={styles.err}>{err}</Text> : null}
           <Btn label="创建" kind="primary" onPress={() => { create() }} disabled={!can} style={styles.go} />
         </ScrollView>
@@ -64,4 +76,5 @@ const styles = themed(() => ({
   exampleText: { fontSize: 13, lineHeight: 20, color: color.fg2 },
   err: { fontSize: size.meta, lineHeight: 20, color: color.danger, marginTop: space.sm },
   go: { alignSelf: 'flex-end', marginTop: space.lg },
+  look: { flexDirection: 'row', alignItems: 'flex-start', gap: space.lg },
 }))

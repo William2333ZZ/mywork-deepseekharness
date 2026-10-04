@@ -26,6 +26,8 @@ export type Route =
   | { name: 'newMate' }
   | { name: 'files'; mateId?: string }
   | { name: 'file'; id: string }
+  /** A file of a teammate's folder: a table, a note or an image, read here (other kinds open in the phone's browser). */
+  | { name: 'folderFile'; mateId: string; path: string }
   | { name: 'settings' }
 
 type Nav = {

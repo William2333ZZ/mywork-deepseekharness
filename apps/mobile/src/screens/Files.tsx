@@ -11,7 +11,6 @@ import { color, radius, size, space, themed } from '../theme'
 import { orderMates, time } from '../thread'
 
 const SEARCH_DEBOUNCE_MS = 250
-const verdict = (d: Deliverable) => (d.verification ? (d.verification.passed === true ? '已核验' : d.verification.passed === false ? '核验发现问题' : '未能核验') : '')
 
 export default function Files({ mateId }: { mateId?: string }) {
   const nav = useNav()
@@ -51,7 +50,7 @@ export default function Files({ mateId }: { mateId?: string }) {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
         renderItem={({ item: d }) => (
-          <ThreadRow glyph={d.kind === 'report' ? 'newspaper-outline' : 'document-text-outline'} title={d.title} time={fmtWhen(d.createdAt)} preview={[mate ? '' : nameOf(d.mateId), verdict(d)].filter(Boolean).join(' · ')} onPress={() => nav.push({ name: 'file', id: d.id })} />
+          <ThreadRow glyph={d.kind === 'report' ? 'newspaper-outline' : 'document-text-outline'} title={d.title} time={fmtWhen(d.createdAt)} preview={[mate ? '' : nameOf(d.mateId)].filter(Boolean).join(' · ')} onPress={() => nav.push({ name: 'file', id: d.id })} />
         )}
         ListEmptyComponent={<Text style={styles.empty}>{items ? (needle ? '没有匹配的' : '还没有文件') : '…'}</Text>}
       />

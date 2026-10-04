@@ -1,10 +1,12 @@
 /**
- * A teammate's conversation (TEAMMATES.md §9.2 / §9.5 / §9.6). Header: back · avatar + name, its title on a 12px line
- * under it — tapping it opens the teammate's page · ··· (停止). 32 between runs, 8 inside one; a reply that arrives while
- * you watch enters over 200ms. The line is the runs from GET /mates/thread, oldest first, 「加载更早」 on top;
- * each run drawn by runEntries(): a routine's centred marker or your bubble, lines said while it worked, 文件 with the
- * live verification line and 有用 / 没用, 找你卡, 「已安排」, 提醒卡 with 知道了, the reply as plain text, 在干活 while it
- * works, a failure line, and its 过程 folded. Dock 「给 <name> 发消息」 (「回答」 while it waits) → POST /mates/say: idle
+ * A teammate's conversation (TEAMMATES.md §9.2 / §9.5 / §9.6), as IM — the web's thread. Header: back · avatar + name,
+ * its title on a 12px line under it — tapping it opens the teammate's page · ··· (停止). The line is the runs from
+ * GET /mates/thread, oldest first, 「加载更早」 on top; each run's entries (runEntries) become messages: yours on the right
+ * in your bubble colour, the teammate's on the left under its avatar (one avatar per group: one side's messages within
+ * five minutes), its deliveries as message cards (title, the key figures in two columns, time · 打开), questions and
+ * reminders as cards; routine markers, 「已安排」 and 已停止 centred; a centred time before anything that comes more than
+ * five minutes after the last message; 「以下是新的」 before the first new run; 在干活 as the avatar breathing beside a
+ * line; 过程 folded under the run's last teammate group. A reply that arrives while you watch enters over 200ms. Dock 「给 <name> 发消息」 (「回答」 while it waits) → POST /mates/say: idle
  * starts a run, working steers it, waiting answers the question. Opening it posts /seen. With `runId` the screen pages
  * back until that run is loaded, scrolls to it and lights it up briefly.
  */
@@ -12,11 +14,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View, type LayoutChangeEvent } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
-import { fmtDay, fmtDuration, fmtTime, fmtWhen, isToday, type Deliverable, type Mate, type Run } from '../api'
+import { fmtDuration, fmtTime, type Deliverable, type Mate, type Run } from '../api'
 import { useConn, useNav, useStore } from '../store'
-import { Arrive, Avatar, Btn, Bubble, CenterLine, Composer, DateLine, Empty, Folded, Ghost, IconBtn, Prose, Reply, ReplyBubble, ResultRows, Screen, Sheet, SheetItem, Thinking, VerifyLine, type IconName } from '../components'
+import { Arrive, Avatar, CenterLine, Composer, Empty, Folded, Ghost, IconBtn, Prose, Screen, Sheet, SheetItem, Thinking } from '../components'
 import { color, font, radius, size, space, themed } from '../theme'
-import { describe, elapsedOf, glyphOf, mergeRuns, pendingAsk, phasesOf, runEntries, time, verifyWords, type ThreadEntry, type VerifyState } from '../thread'
+import { describe, elapsedOf, fieldsOf, firstNewRun, firstSentence, glyphOf, imTime, mergeRuns, pendingAsk, phasesOf, plainOf, runEntries, time, type ThreadEntry } from '../thread'
 
 const PAGE = 20
 const SEEK_PAGES = 10
@@ -33,7 +35,10 @@ const isLive = (r: Run) => !!r.status && r.status !== 'done' && r.status !== 'wa
 /** Re-render once a second while a run works, so 耗时 moves. */
 function useTick(on: boolean) { const [, set] = useState(0); useEffect(() => { if (!on) return; const t = setInterval(() => set((n) => n + 1), 1000); return () => clearInterval(t) }, [on]) }
 
-const dayWord = (iso: string) => { if (isToday(iso)) return '今天'; const y = new Date(); y.setDate(y.getDate() - 1); const d = new Date(iso); return d.toDateString() === y.toDateString() ? '昨天' : fmtDay(iso) }
+/** When this phone last had each teammate's conversation open (for 「以下是新的」), kept for the app's life. */
+const lastOpened = new Map<string, number>()
+/** One side's messages within this long make a group (one avatar); a longer pause gets a centred time. */
+const GAP = 5 * 60000
 
 /** What stays of the loaded runs when the newest page arrives: only those older than the page's window, or in it. */
 function newestWindow(loaded: Run[], d: { runs?: Run[]; nextBefore: string | null }): Run[] {
@@ -87,6 +92,10 @@ function MateThread({ id, runId }: { id: string; runId?: string }) {
 
   const runs = useMemo(() => page.runs.filter((r) => !(r.quiet && r.trigger === 'routine')), [page.runs])
   const fresh = useArrivals(runs, page.loaded)
+  // 「以下是新的」: captured on opening, before this visit marks the teammate seen; the time is kept for the next visit.
+  const [visit] = useState(() => ({ unread: !!mate && (mate.unread || (mate.unreadCount || 0) > 0), seenAt: lastOpened.get(id) || 0, attentionAt: (mate && mate.attentionAt) || '' }))
+  useEffect(() => { lastOpened.set(id, Date.now()); return () => { lastOpened.set(id, Date.now()) } }, [id])
+  const firstNew = useMemo(() => firstNewRun(runs, visit), [runs, visit])
   const newestId = runs.length ? runs[runs.length - 1].id : ''
   const active = runs.some((r) => r.status === 'running') || (!!mate && mate.state === 'working')
   useTick(active)
@@ -104,8 +113,17 @@ function MateThread({ id, runId }: { id: string; runId?: string }) {
     if (runs.some((r) => r.id === target)) return
     if (page.nextBefore && seeking.current < SEEK_PAGES) { seeking.current++; loadOlder() } else { setTarget(''); following.current = true; setTimeout(() => scroller.current?.scrollToEnd({ animated: false }), 60) } // not there: the end
   }, [target, page.loaded, page.busy, page.nextBefore, runs, loadOlder])
+  // Opening with something new: the divider in view instead of the end.
+  const toNew = useRef('')
+  useEffect(() => {
+    if (!firstNew || runId || toNew.current === 'done') return
+    following.current = false
+    const y = ys.current[firstNew]
+    if (y !== undefined) { toNew.current = 'done'; setTimeout(() => scroller.current?.scrollTo({ y: Math.max(0, y - 48), animated: false }), 30) } else toNew.current = firstNew
+  }, [firstNew, runId])
   const onRunLayout = (rid: string) => (e: LayoutChangeEvent) => {
     ys.current[rid] = e.nativeEvent.layout.y
+    if (rid === toNew.current) { toNew.current = 'done'; const y = Math.max(0, e.nativeEvent.layout.y - 48); setTimeout(() => scroller.current?.scrollTo({ y, animated: false }), 30) }
     if (rid === target) {
       const y = Math.max(0, e.nativeEvent.layout.y - 12)
       setTimeout(() => scroller.current?.scrollTo({ y, animated: false }), 30)
@@ -154,13 +172,6 @@ function MateThread({ id, runId }: { id: string; runId?: string }) {
     setAcking(routineId + at)
     try { await api.routineAck(routineId, at); await loadNewest() } catch (e) { setErr(errText(e)) } finally { setAcking('') }
   }
-  const rate = async (d: Deliverable, r: number) => {
-    if (!api) return
-    try {
-      const x = await api.rate(d.id, d.rating === r ? null : r)
-      setPage((p) => ({ ...p, runs: p.runs.map((run) => (run.deliverables || []).some((y) => y.id === d.id) ? { ...run, deliverables: run.deliverables.map((y) => (y.id === d.id ? { ...y, ...x.deliverable } : y)) } : run) }))
-    } catch (e) { setErr(errText(e)) }
-  }
   const stop = async () => {
     setSheet(false)
     if (!api) return
@@ -177,7 +188,6 @@ function MateThread({ id, runId }: { id: string; runId?: string }) {
     )
   }
 
-  let prevDay = ''
   return (
     <Screen>
       <View style={styles.head}>
@@ -206,30 +216,16 @@ function MateThread({ id, runId }: { id: string; runId?: string }) {
         >
           {page.loaded && !runs.length && !pending && mate ? <Hello mate={mate} onPick={fill} /> : null}
           <View style={styles.older}>{page.nextBefore ? <Ghost icon="chevron-up-outline" label="加载更早" onPress={() => { loadOlder() }} disabled={page.busy} /> : null}</View>
-          {runs.map((run) => {
-            const day = new Date(run.createdAt).toDateString()
-            const sep = day !== prevDay && (prevDay !== '' || !isToday(run.createdAt)) ? <DateLine text={dayWord(run.createdAt)} /> : null
-            prevDay = day
-            return (
-              <View key={run.id} onLayout={onRunLayout(run.id)} style={[styles.run, lit === run.id && styles.lit]}>
-                {sep}
-                <RunView
-                  run={run}
-                  mate={mate}
-                  newest={run.id === newestId}
-                  fresh={fresh}
-                  busyAnswer={busyAnswer}
-                  acking={acking}
-                  onAnswer={(askId, v) => { answer(run, askId, v) }}
-                  onAck={(rid, at) => { ack(rid, at) }}
-                  onRate={rate}
-                  onOpenFile={(d) => nav.push({ name: 'file', id: d.id })}
-                  onRoutine={openRoutine}
-                />
-              </View>
-            )
-          })}
-          {pending ? <View style={styles.run}><Bubble text={pending} /></View> : null}
+          <Line
+            runs={runs}
+            mate={mate}
+            firstNew={firstNew}
+            lit={lit}
+            fresh={fresh}
+            pending={pending}
+            onRunLayout={onRunLayout}
+            ctx={{ busyAnswer, acking, onAnswer: answer, onAck: ack, onOpenFile: (d) => nav.push({ name: 'file', id: d.id }), onRoutine: openRoutine }}
+          />
           {!page.loaded ? <Text style={styles.loading}>…</Text> : null}
         </ScrollView>
         <View style={[styles.dock, { paddingBottom: insets.bottom + space.sm }]}>
@@ -272,82 +268,146 @@ function useArrivals(runs: Run[], ready: boolean): (key: string) => boolean {
   return (key: string) => (w.until.get(key) || 0) > Date.now()
 }
 
-/** One run: its entries, the 过程 fold, then the 在干活 or failure line. */
-function RunView({ run, mate, newest, fresh, busyAnswer, acking, onAnswer, onAck, onRate, onOpenFile, onRoutine }: {
-  run: Run; mate: Mate | null; newest: boolean; fresh: (key: string) => boolean; busyAnswer: boolean; acking: string
-  onAnswer: (askId: string, value: string) => void; onAck: (routineId: string, at: string) => void
-  onRate: (d: Deliverable, r: number) => void; onOpenFile: (d: Deliverable) => void; onRoutine: (routineId?: string) => void
+/** What the messages call back into the screen. */
+type LineCtx = {
+  busyAnswer: boolean; acking: string
+  onAnswer: (run: Run, askId: string, value: string) => void; onAck: (routineId: string, at: string) => void
+  onOpenFile: (d: Deliverable) => void; onRoutine: (routineId?: string) => void
+}
+/** One message as IM: its side (yours, the teammate's, a centred note, the working line), its time, how it draws. */
+type Item = { key: string; side: 'me' | 'mate' | 'note' | 'status'; at: string; card?: boolean; arrive?: boolean; make: (first: boolean) => React.ReactNode }
+
+/**
+ * One run's entries as messages, in time order: yours and the teammate's text as bubbles, its files, questions and
+ * reminders as cards, routine markers / 已安排 / 已停止 / the 24 h resume as centred notes, 在干活 as the status line.
+ */
+function itemsOf(run: Run, mate: Mate | null, ctx: LineCtx, fresh: (key: string) => boolean): Item[] {
+  const out: Item[] = []
+  for (const e of runEntries(run)) {
+    const arrive = (e.kind === 'text' || e.kind === 'deliver') && fresh(e.key)
+    switch (e.kind) {
+      case 'marker': out.push({ key: e.key, side: 'note', at: e.at, make: () => <CenterLine text={e.text} onPress={e.routineId ? () => ctx.onRoutine(e.routineId) : undefined} /> }); break
+      case 'scheduled': out.push({ key: e.key, side: 'note', at: e.at, make: () => <CenterLine text={e.text} onPress={() => ctx.onRoutine(e.routineId)} /> }); break
+      case 'auto': out.push({ key: e.key, side: 'note', at: e.at, make: () => <CenterLine text="24 小时没有回答，按合理假设继续" /> }); break
+      case 'user': out.push({ key: e.key, side: 'me', at: e.at, make: (first) => <MeBubble text={e.text} first={first} /> }); break
+      case 'text': out.push({ key: e.key, side: 'mate', at: e.at, arrive, make: (first) => <MateBubble first={first}><Prose markdown={e.text} tight /></MateBubble> }); break
+      case 'deliver':
+        if (plainOf(e.text)) out.push({ key: e.key + ':t', side: 'mate', at: e.at, arrive, make: (first) => <MateBubble first={first}><Prose markdown={e.text} tight /></MateBubble> })
+        for (const d of e.ds) out.push({ key: e.key + ':' + d.id, side: 'mate', at: e.at, card: true, arrive, make: () => <DocCard d={d} onOpen={ctx.onOpenFile} /> })
+        break
+      case 'ask': out.push({ key: e.key, side: 'mate', at: e.at, card: true, make: () => <AskCard ask={e} busy={ctx.busyAnswer} onAnswer={(v) => ctx.onAnswer(run, e.id, v)} /> }); break
+      case 'remind': out.push({ key: e.key, side: 'mate', at: e.at, card: true, make: () => <RemindCard title={e.title} text={e.text} at={e.at} acked={e.acked} busy={ctx.acking === e.routineId + e.at} onAck={() => ctx.onAck(e.routineId, e.at)} onOpen={() => ctx.onRoutine(e.routineId)} /> }); break
+      case 'working': out.push({ key: e.key, side: 'status', at: '', make: () => <Working mate={mate} text={['在干活', e.step, elapsedOf(run)].filter(Boolean).join(' · ')} /> }); break
+      case 'failed': out.push(e.cancelled
+        ? { key: e.key, side: 'note', at: e.at, make: () => <CenterLine text="已停止" /> }
+        : { key: e.key, side: 'mate', at: e.at, make: (first) => <MateBubble first={first}><Text style={styles.failed}>失败 · {e.reason}</Text></MateBubble> })
+        break
+    }
+  }
+  return out
+}
+
+/** The whole line: runs in order, each run's messages in groups, centred times, 「以下是新的」, then what you just sent. */
+function Line({ runs, mate, firstNew, lit, fresh, pending, onRunLayout, ctx }: {
+  runs: Run[]; mate: Mate | null; firstNew: string; lit: string; fresh: (key: string) => boolean; pending: string
+  onRunLayout: (rid: string) => (e: LayoutChangeEvent) => void; ctx: LineCtx
 }) {
-  const entries = useMemo(() => runEntries(run), [run])
-  const body = entries.filter((e) => e.kind !== 'working' && e.kind !== 'failed')
-  const end = entries.find((e) => e.kind === 'working' || e.kind === 'failed')
-  const props = { run, mate, newest, busyAnswer, acking, onAnswer, onAck, onRate, onOpenFile, onRoutine }
+  let lastAt = 0
+  type Grp = { side: 'me' | 'mate'; key: string; items: Item[]; last: number; proc?: boolean }
+  const runNode = (run: Run | null, items: Item[], key: string) => {
+    const blocks: ({ node: React.ReactNode } | { grp: Grp })[] = []
+    let grp: Grp | null = null
+    for (const it of items) {
+      const at = time(it.at)
+      if (at && (!lastAt || at - lastAt > GAP)) { blocks.push({ node: <TimeNote key={'t:' + it.key} text={imTime(it.at)} /> }); grp = null }
+      if (at) lastAt = Math.max(lastAt, at)
+      if (it.side === 'note' || it.side === 'status') { blocks.push({ node: <View key={it.key}>{it.make(false)}</View> }); grp = null; continue }
+      if (!grp || grp.side !== it.side || (at && grp.last && at - grp.last > GAP)) { grp = { side: it.side, key: it.key, items: [], last: at }; blocks.push({ grp }) }
+      grp.items.push(it)
+      if (at) grp.last = at
+    }
+    // 过程 sits under the run's last teammate group.
+    if (run) { const g = blocks.filter((b): b is { grp: Grp } => 'grp' in b && b.grp.side === 'mate').pop(); if (g) g.grp.proc = true }
+    return (
+      <View key={key} onLayout={run ? onRunLayout(run.id) : undefined} style={[styles.run, run && lit === run.id && styles.lit]}>
+        {blocks.map((b) => ('grp' in b
+          ? <Group key={'g:' + b.grp.key} side={b.grp.side} mate={mate} items={b.grp.items} run={b.grp.proc ? run : null} />
+          : b.node))}
+      </View>
+    )
+  }
+  const out: React.ReactNode[] = []
+  for (const run of runs) {
+    if (run.id === firstNew) out.push(<NewLine key={'new:' + run.id} />)
+    out.push(runNode(run, itemsOf(run, mate, ctx, fresh), run.id))
+  }
+  if (pending) out.push(runNode(null, [{ key: 'pending', side: 'me', at: new Date().toISOString(), make: (first) => <MeBubble text={pending} first={first} /> }], 'pending'))
+  return <>{out}</>
+}
+
+/** One side's messages: the teammate's under its avatar (on the group's first message only), yours on the right. */
+function Group({ side, mate, items, run }: { side: 'me' | 'mate'; mate: Mate | null; items: Item[]; run: Run | null }) {
   return (
-    <View style={styles.line}>
-      {body.map((e) => <Arrive key={e.key} on={fresh(e.key)}><Entry e={e} {...props} /></Arrive>)}
-      <Process run={run} />
-      {end ? <Entry e={end} {...props} /> : null}
+    <View style={[styles.grp, side === 'me' && styles.grpMe]}>
+      {side === 'mate' ? <View style={styles.grpAv}>{mate ? <Avatar id={mate.id || mate.name} look={mate.avatar} isDefault={mate.isDefault} dim={32} /> : null}</View> : null}
+      <View style={[styles.grpCol, side === 'me' && styles.grpColMe]}>
+        {items.map((it, i) => <Arrive key={it.key} on={!!it.arrive}>{it.make(i === 0 && !it.card)}</Arrive>)}
+        {run ? <Process run={run} /> : null}
+      </View>
     </View>
   )
 }
 
-function Entry({ e, run, mate, newest, busyAnswer, acking, onAnswer, onAck, onRate, onOpenFile, onRoutine }: {
-  e: ThreadEntry; run: Run; mate: Mate | null; newest: boolean; busyAnswer: boolean; acking: string
-  onAnswer: (askId: string, value: string) => void; onAck: (routineId: string, at: string) => void
-  onRate: (d: Deliverable, r: number) => void; onOpenFile: (d: Deliverable) => void; onRoutine: (routineId?: string) => void
-}) {
-  switch (e.kind) {
-    // The routine's marker attaches to its run (8 below it, the run's 32 above).
-    case 'marker': return <CenterLine text={e.text} onPress={e.routineId ? () => onRoutine(e.routineId) : undefined} />
-    case 'scheduled': return <CenterLine text={e.text} onPress={() => onRoutine(e.routineId)} />
-    case 'user': return <Bubble text={e.text} />
-    case 'text': return <Reply markdown={e.text} />
-    case 'deliver': return <Delivery ds={e.ds} text={e.text} verify={e.verify} warn={newest && e.verify.kind === 'issues'} onRate={onRate} onOpen={onOpenFile} />
-    case 'ask': return <AskCard ask={e} busy={busyAnswer} onAnswer={(v) => onAnswer(e.id, v)} />
-    case 'remind': return <RemindCard title={e.title} text={e.text} at={e.at} acked={e.acked} busy={acking === e.routineId + e.at} onAck={() => onAck(e.routineId, e.at)} onOpen={() => onRoutine(e.routineId)} />
-    case 'auto': return <Text style={styles.muted}>24 小时没有回答，已按合理假设继续</Text>
-    case 'working': return (
-      <View style={styles.working} accessibilityRole="text" accessibilityLabel={`${mate ? mate.name : ''} 在干活`}>
-        {mate ? <Avatar id={mate.id || mate.name} look={mate.avatar} isDefault={mate.isDefault} working dim={26} /> : null}
-        <Thinking text={['在干活', e.step, elapsedOf(run)].filter(Boolean).join(' · ')} tail="" small />
-      </View>
-    )
-    case 'failed': return e.cancelled ? <CenterLine text="已停止" /> : <Text style={styles.failed}>失败 · {e.reason}</Text>
-    default: return null
-  }
+/** Your message: your bubble colour, the corner by the edge squared on a group's first. */
+function MeBubble({ text, first }: { text: string; first: boolean }) {
+  return <View style={[styles.bub, styles.bubMe, first && styles.bubMeFirst]}><Text style={styles.bubMeText} selectable>{text}</Text></View>
+}
+/** The teammate's message: the bubble ground, the corner by its avatar squared on a group's first. */
+function MateBubble({ first, children }: { first: boolean; children: React.ReactNode }) {
+  return <View style={[styles.bub, styles.bubMate, first && styles.bubMateFirst]}>{children}</View>
+}
+/** A centred time between messages more than five minutes apart. */
+function TimeNote({ text }: { text: string }) { return <Text style={styles.time}>{text}</Text> }
+/** 「以下是新的」 in the accent between two hairlines. */
+function NewLine() {
+  return <View style={styles.newLine} accessibilityRole="text"><View style={styles.newRule} /><Text style={styles.newText}>以下是新的</Text><View style={styles.newRule} /></View>
+}
+/** 在干活: the teammate's avatar breathing beside one line (the step and how long). */
+function Working({ mate, text }: { mate: Mate | null; text: string }) {
+  return (
+    <View style={styles.working} accessibilityRole="text" accessibilityLabel={`${mate ? mate.name : ''} 在干活`}>
+      <View style={styles.grpAv}>{mate ? <Avatar id={mate.id || mate.name} look={mate.avatar} isDefault={mate.isDefault} working dim={32} /> : null}</View>
+      <Thinking text={text} tail="" small />
+    </View>
+  )
 }
 
-const fileIcon = (d: Deliverable): IconName => (d.kind === 'sheet' || d.kind === 'table' ? 'grid-outline' : d.kind === 'report' ? 'document-text-outline' : 'document-outline')
-/** The document's first paragraph, as plain words. */
-const plainWords = (md: string) => String(md || '').replace(/```[\s\S]*?```/g, ' ').replace(/[#>*_`|~\[\]]+/g, ' ').replace(/\(https?:[^)]*\)/g, '').replace(/\s+/g, ' ').trim()
-
 /**
- * One segment's output as ONE grey bubble (web DeliverBubble), never carrying the document: the reply (or, when none
- * follows, the first document's excerpt), every file's summary rows, then the files as plain rows under a hairline — no
- * card inside the card (tapping a row opens the File screen). Verification + rating under it, one line per file.
+ * A delivery as an IM message card (the web's DocCard): the file's title (two lines), its key figures in two columns
+ * (or, without any, its first sentence), and a footer with the time and 打开. The whole card opens the file.
  */
-function Delivery({ ds, text, verify, warn, onRate, onOpen }: { ds: Deliverable[]; text: string; verify: VerifyState; warn: boolean; onRate: (d: Deliverable, r: number) => void; onOpen: (d: Deliverable) => void }) {
-  const first = ds[0]
-  const excerpt = !text && first && first.excerpt ? plainWords(first.excerpt) : ''
+function DocCard({ d, onOpen }: { d: Deliverable; onOpen: (d: Deliverable) => void }) {
+  const fields = fieldsOf(d)
+  const deck = fields.length ? '' : firstSentence(d.excerpt || '')
   return (
-    <View style={styles.delivery}>
-      <ReplyBubble>
-        {text ? <Prose markdown={text} tight /> : excerpt ? <Text style={styles.excerpt} numberOfLines={3}>{excerpt}</Text> : null}
-        {ds.map((d, i) => (Array.isArray(d.summary) && d.summary.length ? <ResultRows key={'s' + i} rows={d.summary} /> : null))}
-        <View style={styles.files}>
-          {ds.map((d, i) => (
-            <Pressable key={'f' + (d.id || i)} onPress={() => onOpen(d)} accessibilityRole="button" accessibilityLabel={'打开 ' + d.title} hitSlop={4} style={({ pressed }) => [styles.fileRow, pressed && { opacity: 0.7 }]}>
-              <Ionicons name={fileIcon(d)} size={20} color={color.muted} />
-              <Text style={styles.fileTitle} numberOfLines={1}>{d.title || d.id}</Text>
-              <Text style={styles.fileMeta} numberOfLines={1}>{fmtWhen(d.createdAt)}</Text>
-            </Pressable>
+    <Pressable onPress={() => onOpen(d)} accessibilityRole="button" accessibilityLabel={'打开 ' + (d.title || '')} style={({ pressed }) => [styles.card, pressed && { opacity: 0.85 }]}>
+      <Text style={styles.cardH} numberOfLines={2}>{d.title || d.id}</Text>
+      {fields.length ? (
+        <View style={styles.cardB}>
+          {fields.map((f, i) => (
+            <View key={i} style={styles.cardF}>
+              <Text style={styles.cardK} numberOfLines={1}>{f.label}</Text>
+              <Text style={styles.cardV} numberOfLines={1}>{f.value}</Text>
+            </View>
           ))}
         </View>
-      </ReplyBubble>
-      <View style={styles.after}>
-        {ds.map((d, i) => <VerifyLine key={d.id || i} words={verifyWords(verify)} warn={warn} notes={verify.kind !== 'verifying' ? verify.notes : ''} rating={d.rating} onRate={(r) => onRate(d, r)} />)}
+      ) : null}
+      {deck ? <Text style={styles.cardD} numberOfLines={3}>{deck}</Text> : null}
+      <View style={styles.cardFoot}>
+        <Text style={styles.cardTime}>{imTime(d.createdAt)}</Text>
+        <Text style={styles.cardGo}>打开</Text>
       </View>
-    </View>
+    </Pressable>
   )
 }
 
@@ -377,38 +437,46 @@ function Hello({ mate, onPick }: { mate: Mate; onPick: (text: string) => void })
   )
 }
 
-/** 提醒卡: only you can do it; the teammate does not work. Title · time, the sentence, one 知道了. */
+/** 提醒卡: a reminder firing, as a message card: its title · time and sentence (tap: the routine), a footer with 知道了 → 「已知道」. */
 function RemindCard({ title, text, at, acked, busy, onAck, onOpen }: { title: string; text: string; at: string; acked: boolean; busy: boolean; onAck: () => void; onOpen: () => void }) {
   return (
-    <View style={styles.remind}>
-      <Pressable onPress={onOpen} style={styles.remindMain}>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={styles.remindTitle} numberOfLines={1}>{[title, fmtTime(at)].filter(Boolean).join(' · ')}</Text>
-          {text && text !== title ? <Text style={styles.remindSub} numberOfLines={2}>{text}</Text> : null}
-        </View>
+    <View style={styles.card}>
+      <Pressable onPress={onOpen} accessibilityRole="button">
+        <Text style={styles.cardH} numberOfLines={2}>{[title || '提醒', fmtTime(at)].filter(Boolean).join(' · ')}</Text>
+        {text && text !== title ? <Text style={styles.cardD} numberOfLines={3}>{text}</Text> : null}
       </Pressable>
-      {acked ? <Text style={styles.remindDone}>已知道</Text> : <Btn label="知道了" onPress={onAck} disabled={busy} />}
+      <View style={styles.cardFoot}>
+        <Text style={styles.cardTime}>{acked ? '已知道' : '提醒'}</Text>
+        {acked ? null : <Pressable onPress={onAck} disabled={busy} accessibilityRole="button" hitSlop={8}><Text style={[styles.cardGo, busy && { opacity: 0.5 }]}>知道了</Text></Pressable>}
+      </View>
     </View>
   )
 }
 
 /**
- * 找你卡 (§9.2): the question a run stopped on, at its place. Pending: the question, the detail in a monospace block, then
- * the answer controls — choice → stacked outline buttons, approval → 允许一次 / 拒绝, takeover → 「需要你在电脑上操作」 +
- * 我做完了, text → the dock answers it. Answered collapses to 「已回答：X」; superseded / expired read 「不再等待」.
+ * 找你卡 (§9.2): the question a run stopped on, as a message card with a 2px rule in the needs-you colour on top: the
+ * question, the detail in a monospace block, then the controls — choice → the options as full-width outline buttons,
+ * approval → 允许一次 / 拒绝, takeover → 「需要你在电脑上操作」 + 我做完了, text → a footer pointing at the composer. Settled,
+ * the card loses the rule and its footer reads 「已回答：X」 (or 不再等待).
  */
 function AskCard({ ask, busy, onAnswer }: { ask: Extract<ThreadEntry, { kind: 'ask' }>; busy: boolean; onAnswer: (answer: string) => void }) {
-  if (ask.status === 'answered') return <Text style={styles.askDone}>已回答：{ask.answer}</Text>
-  if (ask.status === 'superseded' || ask.status === 'expired') return <Text style={styles.muted}>不再等待 · {ask.question}</Text>
+  if (ask.status !== 'pending') {
+    return (
+      <View style={styles.card}>
+        <Text style={styles.cardH}>{ask.question}</Text>
+        <View style={styles.cardFoot}><Text style={styles.cardTime} numberOfLines={2}>{ask.status === 'answered' ? '已回答：' + ask.answer : '不再等待'}</Text></View>
+      </View>
+    )
+  }
   const off = !ask.answerable || busy
   return (
-    <View style={styles.ask}>
-      <Text style={styles.askQ}>{ask.question}</Text>
+    <View style={[styles.card, styles.ask]}>
+      <Text style={styles.cardH}>{ask.question}</Text>
       {ask.detail ? <ScrollView style={styles.askDetail} nestedScrollEnabled><Text style={styles.askDetailText} selectable>{ask.detail}</Text></ScrollView> : null}
       {ask.askKind === 'choice' ? ask.options.map((o, i) => <Outline key={i} label={o} onPress={() => onAnswer(o)} disabled={off} />)
         : ask.askKind === 'approval' ? <><Outline label="允许一次" filled onPress={() => onAnswer('允许一次')} disabled={off} /><Outline label="拒绝" onPress={() => onAnswer('拒绝')} disabled={off} /></>
         : ask.askKind === 'takeover' ? <><Text style={styles.askNote}>需要你在电脑上操作</Text><Outline label="我做完了" onPress={() => onAnswer('我做完了')} disabled={off} /></>
-        : null}
+        : <View style={styles.cardFoot}><Text style={styles.cardTime}>在下面的输入框回答</Text></View>}
     </View>
   )
 }
@@ -436,7 +504,8 @@ function Process({ run }: { run: Run }) {
     return () => { on = false }
   }, [open, lite, full, api, run.id])
   const src = lite ? full : run
-  const rows = useMemo(() => (src ? phasesOf(src) : []), [src])
+  // Verification is off (and not shown): its rows leave the fold too.
+  const rows = useMemo(() => (src ? phasesOf(src).filter((r) => r.kind !== 'verify') : []), [src])
   const phaseCount = src ? rows.filter((r) => r.kind === 'phase').length : (run.process && run.process.groups) || 0
   if (!phaseCount) return null
   const live = run.status === 'running'
@@ -483,7 +552,7 @@ function Process({ run }: { run: Run }) {
             }
             return (
               <View key={i} style={styles.note}>
-                <View style={{ flex: 1 }}><Folded text={r.kind === 'verify' ? '核验 · ' + r.text : r.text} /></View>
+                <View style={{ flex: 1 }}><Folded text={r.text} /></View>
               </View>
             )
           })}
@@ -500,15 +569,13 @@ const styles = themed(() => ({
   name: { fontSize: 16, lineHeight: 20, fontWeight: '600', color: color.fg },
   ttl: { fontSize: 12, lineHeight: 16, color: color.muted },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  // 32 between runs, 8 inside one
-  body: { flexGrow: 1, paddingHorizontal: space.lg, paddingBottom: space.lg, gap: space.xxl },
+  // runs follow each other at 16; inside a run, 8 between messages
+  body: { flexGrow: 1, paddingHorizontal: space.md, paddingBottom: space.lg, gap: space.lg },
   older: { alignItems: 'center', minHeight: 8 },
   run: { gap: space.sm, borderRadius: radius.lg },
   lit: { backgroundColor: color.card, marginHorizontal: -8, paddingHorizontal: 8, paddingVertical: 8 },
-  line: { gap: space.sm },
   loading: { alignSelf: 'center', marginVertical: space.xl, fontSize: 13, color: color.meta },
   dock: { paddingHorizontal: space.lg, paddingTop: space.sm, gap: space.sm, backgroundColor: color.bg },
-  working: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   hello: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.lg, paddingVertical: space.xxl, gap: 8 },
   helloName: { fontSize: 16, lineHeight: 24, fontWeight: '600', color: color.fg, marginTop: 8 },
   helloDuty: { fontSize: 13, lineHeight: 20, color: color.muted, textAlign: 'center', maxWidth: 300 },
@@ -516,31 +583,42 @@ const styles = themed(() => ({
   pill: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 24, borderWidth: 1, borderColor: color.border, backgroundColor: color.card },
   pillText: { fontSize: 15, lineHeight: 24, color: color.fg2 },
   err: { fontSize: size.meta, lineHeight: 20, color: color.danger, paddingHorizontal: 8 },
-  muted: { fontSize: size.meta, lineHeight: 20, color: color.muted },
-  failed: { fontSize: size.meta, lineHeight: 20, color: color.danger },
-  // 文件: the reply bubble's file rows (no card in the card)
-  delivery: { gap: 4 },
-  excerpt: { fontSize: 15, lineHeight: 26, color: color.fg },
-  files: { borderTopWidth: 1, borderTopColor: color.border, paddingTop: 8, marginTop: 4, gap: 8 },
-  fileRow: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 24 },
-  fileTitle: { flexShrink: 1, fontSize: 14, lineHeight: 20, fontWeight: '500', color: color.fg },
-  fileMeta: { flexShrink: 0, fontSize: 12, lineHeight: 16, color: color.muted, fontVariant: ['tabular-nums'] },
-  after: { paddingLeft: 8 },
-  // 提醒卡
-  remind: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 48, paddingLeft: 16, paddingRight: 8, borderWidth: 1, borderColor: color.border, borderRadius: radius.lg, backgroundColor: color.card },
-  remindMain: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8 },
-  remindTitle: { fontSize: 15, lineHeight: 24, color: color.fg, fontVariant: ['tabular-nums'] },
-  remindSub: { fontSize: 13, lineHeight: 20, color: color.muted },
-  remindDone: { fontSize: size.meta, color: color.meta, paddingHorizontal: 8 },
-  // 找你卡
-  ask: { gap: 8, padding: 16, borderRadius: 20, backgroundColor: color.card, maxWidth: '92%' },
-  askQ: { fontSize: 15, lineHeight: 26, color: color.fg },
-  askDetail: { maxHeight: 240, borderRadius: radius.md, backgroundColor: color.input, marginBottom: 4 },
-  askDetailText: { fontFamily: font.mono, fontSize: 12, lineHeight: 20, color: color.fg2, padding: 16 },
-  askNote: { fontSize: 15, lineHeight: 24, color: color.muted },
-  askDone: { fontSize: size.meta, lineHeight: 20, color: color.meta },
-  outline: { minHeight: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16, paddingVertical: 8, borderWidth: 1, borderColor: color.border, borderRadius: 24, backgroundColor: color.input },
-  outlineFilled: { backgroundColor: color.bubble },
+  failed: { fontSize: 15, lineHeight: 24, color: color.danger },
+  // IM: a group is the avatar (32) and a column of messages; yours sit right, at most 80 % wide
+  grp: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  grpMe: { justifyContent: 'flex-end' },
+  grpAv: { width: 32, height: 32 },
+  grpCol: { flexShrink: 1, minWidth: 0, maxWidth: '86%', alignItems: 'flex-start', gap: 4 },
+  grpColMe: { maxWidth: '80%', alignItems: 'flex-end' },
+  bub: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 18, maxWidth: '100%' },
+  bubMate: { backgroundColor: color.input },
+  bubMateFirst: { borderTopLeftRadius: 4 },
+  bubMe: { backgroundColor: color.bubble },
+  bubMeFirst: { borderTopRightRadius: 4 },
+  bubMeText: { fontSize: 15, lineHeight: 24, color: color.bubbleFg },
+  time: { alignSelf: 'center', fontSize: 12, lineHeight: 16, color: color.meta, fontVariant: ['tabular-nums'], paddingVertical: 4 },
+  newLine: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 4 },
+  newRule: { flex: 1, height: 1, backgroundColor: color.sel },
+  newText: { fontSize: 12, lineHeight: 16, color: color.accentText },
+  working: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  // message cards (a delivery, a question, a reminder): a ruled card, the title 15 / 600, a footer under a soft line
+  card: { width: 300, maxWidth: '100%', borderWidth: 1, borderColor: color.border, borderRadius: 14, backgroundColor: color.card, paddingHorizontal: 14, paddingTop: 12, gap: 8 },
+  cardH: { fontSize: 15, lineHeight: 22, fontWeight: '600', color: color.fg },
+  cardB: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 8 },
+  cardF: { width: '50%', paddingRight: 8 },
+  cardK: { fontSize: 12, lineHeight: 16, color: color.meta },
+  cardV: { fontSize: 15, lineHeight: 22, color: color.fg, fontVariant: ['tabular-nums'] },
+  cardD: { fontSize: 13, lineHeight: 20, color: color.fg2 },
+  cardFoot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginHorizontal: -14, paddingHorizontal: 14, paddingVertical: 10, borderTopWidth: 1, borderTopColor: color.borderSoft },
+  cardTime: { flexShrink: 1, fontSize: 12, lineHeight: 16, color: color.meta, fontVariant: ['tabular-nums'] },
+  cardGo: { fontSize: 13, lineHeight: 18, fontWeight: '500', color: color.accentText },
+  // 找你卡: the needs-you rule on top
+  ask: { borderTopWidth: 2, borderTopColor: color.warn, paddingBottom: 12 },
+  askDetail: { maxHeight: 240, borderRadius: radius.md, backgroundColor: color.input },
+  askDetailText: { fontFamily: font.mono, fontSize: 12, lineHeight: 20, color: color.fg2, padding: 12 },
+  askNote: { fontSize: 14, lineHeight: 22, color: color.muted },
+  outline: { minHeight: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16, paddingVertical: 8, borderWidth: 1, borderColor: color.border, borderRadius: 22, backgroundColor: color.input },
+  outlineFilled: { backgroundColor: color.primary, borderColor: color.primary },
   outlineText: { fontSize: 15, fontWeight: '500', color: color.fg, textAlign: 'center' },
   // 过程: one 12px line at 40 %, then the chevron
   procHead: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 24, alignSelf: 'flex-start', paddingLeft: 8 },

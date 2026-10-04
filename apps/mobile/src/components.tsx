@@ -11,6 +11,7 @@ import Markdown from 'react-native-markdown-display'
 import { Ionicons } from '@expo/vector-icons'
 import Svg, { Circle, Ellipse, Path } from 'react-native-svg'
 import { color, font, radius, size, space, themed, type AvKey } from './theme'
+import type { Look } from './api'
 
 export type IconName = React.ComponentProps<typeof Ionicons>['name']
 
@@ -19,11 +20,11 @@ export function Screen({ children, style }: { children: React.ReactNode; style?:
 }
 
 /** Top bar: left control, a title that may be a button, right control. 52px, no border. */
-export function TopBar({ left, title, right, onTitle }: { left?: React.ReactNode; title?: string; right?: React.ReactNode; onTitle?: () => void }) {
+export function TopBar({ left, title, right, onTitle }: { left?: React.ReactNode; title?: string | React.ReactElement; right?: React.ReactNode; onTitle?: () => void }) {
   return (
     <View style={styles.bar}>
       <View style={styles.barSide}>{left}</View>
-      {title ? (
+      {title && typeof title !== 'string' ? <View style={{ flex: 1, alignItems: 'center' }}>{title}</View> : title ? (
         onTitle ? (
           <Pressable onPress={onTitle} style={styles.barTitleBtn} hitSlop={8}>
             <Text style={styles.barTitle} numberOfLines={1}>{title}</Text>
@@ -113,12 +114,12 @@ export function ThreadRow({ glyph, tone = 'meta', title, time, unread, preview, 
 }
 
 /** The web's avatar colour keys, in its order; the palette in force supplies each one's muted fill (color.av). */
-const AV_KEYS: AvKey[] = ['slate', 'blue', 'teal', 'green', 'amber', 'orange', 'rose', 'violet']
+export const AV_KEYS: AvKey[] = ['slate', 'blue', 'teal', 'green', 'amber', 'orange', 'rose', 'violet']
 /** Rakazo's shippedHash (FNV-1a), the web's avatarHash. */
 export function avatarHash(v: string): number { let x = 2166136261; for (let i = 0; i < v.length; i++) x = Math.imul(x ^ v.charCodeAt(i), 16777619); return x >>> 0 }
 /** The web's four shapes in a 100 box; the hexagon is drawn with a round-joined stroke of its own colour, so its corners are soft. */
 const AV_SHAPES: Record<string, string> = { circle: 'M50 4a46 46 0 1 1 0 92a46 46 0 1 1 0-92Z', squircle: 'M34 4h32c20 0 30 10 30 30v32c0 20-10 30-30 30H34C14 96 4 86 4 66V34C4 14 14 4 34 4Z', pebble: 'M50 8c28 0 46 14 46 40s-18 44-46 44S4 74 4 48 22 8 50 8Z', hex: 'M50 8L86.4 29V71L50 92L13.6 71V29Z' }
-const AV_SHAPE_KEYS = Object.keys(AV_SHAPES)
+export const AV_SHAPE_KEYS = Object.keys(AV_SHAPES)
 /** The teammate's look, the web's lookOf: its own pick (from the computer), else derived from its id, per field. */
 export function avatarLook(id: string, pick?: { color?: string; shape?: string } | null) {
   const hash = avatarHash(String(id || 'mate'))
@@ -161,22 +162,78 @@ export function Avatar({ id, look, isDefault, dim = 36, working }: { id: string;
 }
 
 /**
- * The teammates list's one row (§9.4): avatar (ring while it works) · name (600 when unread) · time · unread dot · one
- * line underneath (最近一句 / 在干活 · 步骤 / 等你答 · 问题). Rows carry no actions; opening the row is all it does.
+ * The teammates list's one row (§9.4), as in IM: the avatar (it breathes while working) with the unread count on its
+ * top-right — a red badge, 99+ — then the name and the time, and one line under them (在干活 in the accent, 等你答 in
+ * warn, else the latest sentence). Rows carry no actions; opening the row is the only thing it does.
  */
-export function MateRow({ id, look, char, isDefault, working, waiting, name, time, unread, sub, onPress }: { id: string; look?: { color?: string; shape?: string } | null; char: string; isDefault?: boolean; working?: boolean; waiting?: boolean; name: string; time?: string; unread?: boolean; sub?: string; onPress: () => void }) {
+export function MateRow({ id, look, char, isDefault, working, waiting, name, time, unread = 0, sub, onPress }: { id: string; look?: { color?: string; shape?: string } | null; char: string; isDefault?: boolean; working?: boolean; waiting?: boolean; name: string; time?: string; unread?: number; sub?: string; onPress: () => void }) {
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" style={({ pressed }) => [styles.mrow, pressed && { backgroundColor: color.pressed }]}>
-      <Avatar id={id} look={look} char={char} isDefault={isDefault} working={working} dim={38} />
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={unread > 0 ? `${name}，${unread} 条未读` : name} style={({ pressed }) => [styles.mrow, pressed && { backgroundColor: color.pressed }]}>
+      <View>
+        <Avatar id={id} look={look} char={char} isDefault={isDefault} working={working} dim={44} />
+        {unread > 0 ? <UnreadBadge n={unread} /> : null}
+      </View>
       <View style={styles.trowMain}>
         <View style={styles.trowLine}>
-          <Text style={[styles.mrowName, unread && { fontWeight: '600', color: color.fg }]} numberOfLines={1}>{name}</Text>
+          <Text style={styles.mrowName} numberOfLines={1}>{name}</Text>
           {time ? <Text style={styles.trowTime}>{time}</Text> : null}
-          {unread ? <View style={styles.trowDot} /> : null}
         </View>
         {sub ? <Text style={[styles.mrowSub, working && { color: color.accentText }, waiting && { color: color.warn }]} numberOfLines={1}>{sub}</Text> : null}
       </View>
     </Pressable>
+  )
+}
+/** The IM unread count: white on the badge red, ringed in the page colour, at an avatar's top-right; 99+ above 99. */
+export function UnreadBadge({ n }: { n: number }) {
+  return <View style={styles.badge} pointerEvents="none"><Text style={styles.badgeText}>{n > 99 ? '99+' : String(n)}</Text></View>
+}
+
+/** 头像: 8 colour swatches and 4 shapes drawn in the chosen colour (the web's picker; the look is saved as { color, shape }). */
+export function AvatarPicker({ look, onChange }: { look: Look; onChange: (next: Look) => void }) {
+  return (
+    <View style={styles.pick}>
+      <View style={styles.pickRow} accessibilityRole="radiogroup" accessibilityLabel="颜色">
+        {AV_KEYS.map((k) => (
+          <Pressable key={k} onPress={() => onChange({ ...look, color: k })} accessibilityRole="radio" accessibilityState={{ checked: look.color === k }} hitSlop={4}
+            style={[styles.swatch, { backgroundColor: color.av[k] }, look.color === k && styles.swatchOn]} />
+        ))}
+      </View>
+      <View style={styles.pickRow} accessibilityRole="radiogroup" accessibilityLabel="形状">
+        {AV_SHAPE_KEYS.map((sh) => (
+          <Pressable key={sh} onPress={() => onChange({ ...look, shape: sh })} accessibilityRole="radio" accessibilityState={{ checked: look.shape === sh }}
+            style={[styles.shape, look.shape === sh && styles.shapeOn]}>
+            <Avatar id="look" look={{ color: look.color, shape: sh }} dim={28} />
+          </Pressable>
+        ))}
+      </View>
+    </View>
+  )
+}
+/** A look to start from: a random colour and shape (the form's first pick). */
+export const randomLook = (): Look => ({ color: AV_KEYS[Math.floor(Math.random() * AV_KEYS.length)], shape: AV_SHAPE_KEYS[Math.floor(Math.random() * AV_SHAPE_KEYS.length)] })
+
+/**
+ * 类型: the types in use as chips (in the order they were formed), 「其他」 when not `required`, and 「新建类型」, which
+ * turns into a field (12 characters). `value` is the type ('' = 其他).
+ */
+export function TypePicker({ value, types, required, onChange }: { value: string; types: string[]; required?: boolean; onChange: (v: string) => void }) {
+  const known = !value || types.includes(value)
+  const [fresh, setFresh] = useState(!known || (!!required && !types.length))
+  const [draft, setDraft] = useState(known ? '' : value)
+  const chip = (label: string, on: boolean, onPress: () => void) => (
+    <Pressable key={label} onPress={onPress} accessibilityRole="radio" accessibilityState={{ checked: on }} style={({ pressed }) => [styles.chip, on && styles.chipOn, pressed && { opacity: 0.7 }]}>
+      <Text style={[styles.chipText, on && styles.chipTextOn]} numberOfLines={1}>{label}</Text>
+    </Pressable>
+  )
+  return (
+    <View style={{ gap: 8 }}>
+      <View style={styles.chips}>
+        {types.map((g) => chip(g, !fresh && value === g, () => { setFresh(false); onChange(g) }))}
+        {required ? null : chip('其他', !fresh && !value, () => { setFresh(false); onChange('') })}
+        {chip('+ 新建类型', fresh, () => { setFresh(true); onChange(draft.replace(/\s+/g, ' ').trim().slice(0, 12)) })}
+      </View>
+      {fresh ? <Field value={draft} onChange={(v) => { setDraft(v); onChange(v.replace(/\s+/g, ' ').trim().slice(0, 12)) }} placeholder="类型名，例如：行业研究" autoFocus={types.length > 0} /> : null}
+    </View>
   )
 }
 
@@ -442,6 +499,19 @@ const styles = themed(() => ({
   trowSub: { fontSize: size.meta, lineHeight: 20, color: color.muted },
   mrow: { flexDirection: 'row', alignItems: 'center', gap: 16, minHeight: 56, paddingVertical: 8, paddingHorizontal: 16, borderRadius: radius.lg },
   mrowSub: { fontSize: 13, lineHeight: 20, color: color.muted },
+  badge: { position: 'absolute', top: -4, right: -6, minWidth: 20, height: 20, paddingHorizontal: 5, borderRadius: 10, borderWidth: 2, borderColor: color.bg, backgroundColor: color.badge, alignItems: 'center', justifyContent: 'center' },
+  badgeText: { fontSize: 11, lineHeight: 14, fontWeight: '600', color: '#ffffff', fontVariant: ['tabular-nums'] },
+  pick: { gap: 12 },
+  pickRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  swatch: { width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: 'transparent' },
+  swatchOn: { borderColor: color.fg },
+  shape: { width: 44, height: 44, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, alignItems: 'center', justifyContent: 'center' },
+  shapeOn: { borderColor: color.fg },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: { height: 32, paddingHorizontal: 12, borderRadius: radius.pill, borderWidth: 1, borderColor: color.border, justifyContent: 'center' },
+  chipOn: { borderColor: color.primary, backgroundColor: color.sel },
+  chipText: { fontSize: 13, color: color.fg2 },
+  chipTextOn: { color: color.fg },
   mrowName: { flex: 1, minWidth: 0, fontSize: 15, lineHeight: 20, fontWeight: '500', color: color.fg },
   center: { flexDirection: 'row', alignSelf: 'center', alignItems: 'center', gap: 4, paddingVertical: 4, paddingHorizontal: 8, borderRadius: 8, maxWidth: '90%' },
   centerText: { fontSize: 12, lineHeight: 16, color: color.meta, textAlign: 'center', fontVariant: ['tabular-nums'] },

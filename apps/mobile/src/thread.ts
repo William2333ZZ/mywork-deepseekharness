@@ -319,3 +319,139 @@ function parseArgs(raw?: string): Record<string, unknown> {
   }
   return out
 }
+
+// ---- types (the list's sections), the web's typesOf -----------------------------------------------------------------
+
+/** A type name as the server keeps it: one short line (spaces folded, 12 characters). */
+export const cleanType = (v: string) => String(v || '').replace(/\s+/g, ' ').trim().slice(0, 12)
+/** The types in use, in the order they were formed (their earliest member), and the most used one (the form's default). */
+export function typesOf(mates: Mate[] | null): { list: string[]; top: string } {
+  const born = new Map<string, number>()
+  const count = new Map<string, number>()
+  for (const m of mates || []) {
+    const g = cleanType(m.group || '')
+    if (!g) continue
+    const at = time(m.createdAt) || 0
+    born.set(g, Math.min(born.get(g) ?? Infinity, at))
+    count.set(g, (count.get(g) || 0) + 1)
+  }
+  const list = [...born.keys()].sort((a, b) => (born.get(a)! - born.get(b)!) || a.localeCompare(b, 'zh-CN'))
+  const top = list.slice().sort((a, b) => (count.get(b)! - count.get(a)!) || list.indexOf(a) - list.indexOf(b))[0] || ''
+  return { list, top }
+}
+
+// ---- the conversation as IM ----------------------------------------------------------------------------------------
+
+/** IM time: 15:43 today, 昨天 21:00, 10/1 09:00 (2025/10/1 09:00 another year). */
+export function imTime(iso?: string): string {
+  const d = new Date(String(iso || ''))
+  if (!iso || !Number.isFinite(d.getTime())) return ''
+  const now = new Date()
+  const y = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1)
+  const same = (a: Date, b: Date) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
+  if (same(d, now)) return fmtTime(iso)
+  if (same(d, y)) return '昨天 ' + fmtTime(iso)
+  return (d.getFullYear() === now.getFullYear() ? '' : d.getFullYear() + '/') + (d.getMonth() + 1) + '/' + d.getDate() + ' ' + fmtTime(iso)
+}
+/** Markdown as one line of plain words: fences, list and heading marks, table pipes and inline marks gone. */
+export function plainOf(text: string): string {
+  return String(text || '').replace(/```[\s\S]*?```/g, ' ').replace(/^\s*(#{1,6}|[-*+]|\d+[.、]|>)\s*/gm, '').replace(/\|/g, ' ')
+    .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/[*_`~]+/g, '').replace(/\s+/g, ' ').trim()
+}
+/** The first sentence of some text, as plain words ('' when none). */
+export function firstSentence(text: string): string {
+  const plain = plainOf(text)
+  const m = plain.match(/^.+?[。！？!?](?=\s|$|[^。！？!?])|^.+?\.(?=\s|$)/)
+  return (m ? m[0] : plain).slice(0, 120)
+}
+/** A deliverable card's fields: its summary rows (label, value), six at most, each value whole on one line (24 characters). */
+export function fieldsOf(d: Deliverable): { label: string; value: string }[] {
+  const out: { label: string; value: string }[] = []
+  const rows = d && Array.isArray(d.summary) ? d.summary : []
+  for (const r of rows) {
+    const label = String((r && r.label) || '').trim()
+    const raw = String(r && r.value !== undefined && r.value !== null ? r.value : '').trim()
+    if (!label || !raw) continue
+    out.push({ label, value: raw.length > 24 ? raw.slice(0, 23) + '…' : raw })
+    if (out.length >= 6) break
+  }
+  return out
+}
+/** When a run last asked for attention (the server's attentionOf): finished, a question pending. */
+export function attentionMs(r: Run): number {
+  let best = 0
+  if (r.status === 'done') best = Math.max(best, time(r.finishedAt))
+  if (r.status === 'waiting') for (const e of Array.isArray(r.activity) ? r.activity : []) if (e && e.kind === 'ask') best = Math.max(best, time(e.at))
+  return best
+}
+/**
+ * 「以下是新的」: when the teammate was unread on opening, the first run that asked for attention after this phone last had
+ * it open (else the run carrying its attention time, else the last run). '' when nothing is new.
+ */
+export function firstNewRun(runs: Run[], visit: { unread: boolean; seenAt: number; attentionAt: string }): string {
+  if (!visit.unread || !runs.length) return ''
+  if (visit.seenAt) { const r = runs.find((x) => attentionMs(x) > visit.seenAt); return r ? r.id : '' }
+  const at = time(visit.attentionAt)
+  const r = at ? runs.find((x) => attentionMs(x) >= at - 1000) : null
+  return (r || runs[runs.length - 1]).id
+}
+
+// ---- a teammate's folder files ---------------------------------------------------------------------------------------
+
+/** What the reading screen does with a folder file, by extension (the server reads these five): table | markdown | text | json | ''. */
+export function fileKindOf(name: string): 'table' | 'markdown' | 'text' | 'json' | '' {
+  const m = String(name || '').toLowerCase().match(/\.([a-z0-9]+)$/)
+  const ext = m ? m[1] : ''
+  return ext === 'csv' || ext === 'tsv' ? 'table' : ext === 'md' ? 'markdown' : ext === 'txt' ? 'text' : ext === 'json' ? 'json' : ''
+}
+/** How a folder file opens: 'text' read here · 'image' shown here · 'page' (HTML / PDF) and 'download' in the phone's browser. */
+export function openKindOf(name: string): 'text' | 'image' | 'page' | 'download' {
+  if (fileKindOf(name)) return 'text'
+  const m = String(name || '').toLowerCase().match(/\.([a-z0-9]+)$/)
+  const ext = m ? m[1] : ''
+  return /^(png|jpe?g|gif|webp)$/.test(ext) ? 'image' : /^(html?|pdf)$/.test(ext) ? 'page' : 'download'
+}
+/**
+ * CSV (or, with a tab, TSV) as rows of cells, RFC 4180 (the web's parseDelimited): quoted fields may hold the delimiter,
+ * line breaks and doubled quotes; a leading BOM goes; blank lines are not rows.
+ */
+export function parseDelimited(text: string, delimiter = ','): string[][] {
+  const s = String(text || '').replace(/^﻿/, '')
+  const rows: string[][] = []
+  let row: string[] = []
+  let cell = ''
+  let quoted = false
+  let start = true
+  let any = false
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i]
+    if (quoted) {
+      if (c !== '"') { cell += c; continue }
+      if (s[i + 1] === '"') { cell += '"'; i++; continue }
+      quoted = false
+      continue
+    }
+    if (c === '"' && start) { quoted = true; start = false; any = true; continue }
+    if (c === delimiter) { row.push(cell); cell = ''; start = true; any = true; continue }
+    if (c === '\n' || c === '\r') {
+      if (c === '\r' && s[i + 1] === '\n') i++
+      if (any) { row.push(cell); rows.push(row) }
+      row = []; cell = ''; start = true; any = false
+      continue
+    }
+    cell += c; start = false; any = true
+  }
+  if (any) { row.push(cell); rows.push(row) }
+  return rows
+}
+const NUMERIC = /^[+\-−]?[¥$€£]?\s?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?\s?[%‰]?$|^[+\-−]?\.\d+%?$/
+/** A table file: the first row is the header, rows padded to the widest, numeric[j] when column j holds only numbers. */
+export function tableOf(text: string, delimiter = ','): { header: string[]; rows: string[][]; numeric: boolean[] } {
+  const all = parseDelimited(text, delimiter)
+  const width = all.reduce((n, r) => Math.max(n, r.length), 0)
+  const pad = (r: string[]) => Array.from({ length: width }, (_, j) => (r[j] === undefined ? '' : r[j]))
+  const header = pad(all[0] || [])
+  const rows = all.slice(1).map(pad)
+  const numeric = header.map((_, j) => { const vals = rows.map((r) => r[j].trim()).filter(Boolean); return vals.length > 0 && vals.every((v) => NUMERIC.test(v)) })
+  return { header, rows, numeric }
+}

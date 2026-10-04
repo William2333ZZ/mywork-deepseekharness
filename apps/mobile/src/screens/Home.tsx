@@ -23,8 +23,10 @@ const SEARCH_DEBOUNCE_MS = 250
 type Hit =
   | { key: string; kind: 'mate'; mate: Mate }
   | { key: string; kind: 'message' | 'file' | 'routine'; glyph: IconName; title: string; sub: string; at: string; open: () => void }
-/** A section header of the list (not in search results): folded, it keeps the count and a dot for news inside. */
-type SectionRow = { key: string; kind: 'section'; secKey: string; label: string; closed: boolean; count: number; news: boolean }
+/** A section header of the list (not in search results): folded, it keeps the count and the sum of its unread badges. */
+type SectionRow = { key: string; kind: 'section'; secKey: string; label: string; closed: boolean; count: number; news: number }
+/** The row's badge (the web's unreadOf): results since it was last opened, at least 1 while it waits on your answer. */
+const unreadOf = (m: Mate) => { const c = Math.max(0, Math.floor(Number(m.unreadCount) || 0)); const n = m.unread || c > 0 ? Math.max(1, c) : 0; return m.state === 'waiting' ? Math.max(1, n) : n }
 
 /** Folded section keys ('pinned' | 'g:<name>' | 'other'), kept for the app's life and in the secure store (the app's only store). */
 const SECTIONS_KEY = 'mywork.sections'
@@ -100,7 +102,7 @@ export default function Home() {
     for (const sec of sections) {
       const closed = !!folded[sec.key]
       const label = sec.kind === 'pinned' ? '置顶' : sec.kind === 'other' ? '其他' : sec.name
-      out.push({ key: 's:' + sec.key, kind: 'section', secKey: sec.key, label, closed, count: sec.mates.length, news: closed && sec.mates.some((m) => m.unread || m.state === 'waiting') })
+      out.push({ key: 's:' + sec.key, kind: 'section', secKey: sec.key, label, closed, count: sec.mates.length, news: closed ? sec.mates.reduce((n, m) => n + unreadOf(m), 0) : 0 })
       if (!closed) for (const m of sec.mates) out.push({ key: 'm:' + m.id, kind: 'mate', mate: m })
     }
     return out
@@ -137,7 +139,7 @@ export default function Home() {
           if (item.kind === 'section') return <SectionHead label={item.label} closed={item.closed} count={item.count} news={item.news} onPress={() => toggleSection(item.secKey)} />
           if (item.kind === 'mate') {
             const m = item.mate
-            return <MateRow id={m.id || m.name} look={m.avatar} char={glyphOf(m)} isDefault={m.isDefault} working={m.state === 'working'} waiting={m.state === 'waiting'} name={m.name} time={fmtWhen(m.lastAt)} unread={m.unread} sub={secondLine(m)} onPress={() => nav.push({ name: 'mate', id: m.id })} />
+            return <MateRow id={m.id || m.name} look={m.avatar} char={glyphOf(m)} isDefault={m.isDefault} working={m.state === 'working'} waiting={m.state === 'waiting'} name={m.name} time={fmtWhen(m.lastAt)} unread={unreadOf(m)} sub={secondLine(m)} onPress={() => nav.push({ name: 'mate', id: m.id })} />
           }
           return <ThreadRow glyph={item.glyph} title={item.title} time={fmtWhen(item.at)} preview={item.sub} onPress={item.open} />
         }}
@@ -151,13 +153,13 @@ export default function Home() {
 }
 
 /** 11–12px muted, sentence case; the chevron turns when the section is open. */
-function SectionHead({ label, closed, count, news, onPress }: { label: string; closed: boolean; count: number; news: boolean; onPress: () => void }) {
+function SectionHead({ label, closed, count, news, onPress }: { label: string; closed: boolean; count: number; news: number; onPress: () => void }) {
   return (
     <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ expanded: !closed }} hitSlop={4} style={({ pressed }) => [styles.sec, pressed && { opacity: 0.7 }]}>
       <Ionicons name="chevron-forward" size={12} color={color.meta} style={{ transform: [{ rotate: closed ? '0deg' : '90deg' }] }} />
       <Text style={styles.secLabel} numberOfLines={1}>{label}</Text>
       {closed ? <Text style={styles.secCount}>{count}</Text> : null}
-      {news ? <View style={styles.secDot} /> : null}
+      {news > 0 ? <View style={styles.secBadge}><Text style={styles.secBadgeText}>{news > 99 ? '99+' : news}</Text></View> : null}
     </Pressable>
   )
 }
@@ -184,6 +186,7 @@ const styles = themed(() => ({
   sec: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 32, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 },
   secLabel: { flexShrink: 1, fontSize: 12, lineHeight: 16, fontWeight: '500', color: color.meta },
   secCount: { fontSize: 12, lineHeight: 16, color: color.meta, fontVariant: ['tabular-nums'] },
-  secDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: color.primary },
+  secBadge: { minWidth: 18, height: 18, paddingHorizontal: 5, borderRadius: 9, backgroundColor: color.badge, alignItems: 'center', justifyContent: 'center', marginLeft: 4 },
+  secBadgeText: { fontSize: 11, lineHeight: 14, fontWeight: '600', color: '#ffffff', fontVariant: ['tabular-nums'] },
   foot: { paddingHorizontal: 4, paddingTop: 4, borderTopWidth: 1, borderTopColor: color.border },
 }))

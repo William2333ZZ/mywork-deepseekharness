@@ -45,7 +45,17 @@ export type Mate = {
   /** The look picked on the computer (8 colours × 4 shapes); null: derived from the id, as on the web. */
   avatar?: { color?: string; shape?: string } | null
   createdAt: string; lastAt: string; preview: string; unread: boolean; state: MateState; step: string; since: string; ask: Ask | null; routineCount: number
+  /** Results since this teammate was last opened (the IM badge); `attentionAt`: when it last asked for attention. */
+  unreadCount?: number; attentionAt?: string
 }
+/** A teammate's look: one of 8 colours × 4 shapes (the web's picker). */
+export type Look = { color: string; shape: string }
+/** GET /mates/folder: the newest files in a teammate's folder (what it wrote with fs / bash), 30 at most. */
+export type FolderItem = { name: string; path: string; size: number; modifiedAt: string }
+/** GET /mates/file: one text file (csv / tsv / md / txt / json) of a teammate's folder, 512 KB at most. */
+export type FolderFile = { path: string; name: string; size: number; modifiedAt: string; truncated: boolean; text: string }
+/** GET /mates/link: a signed link to any file of a teammate's folder (10 minutes; HTML served sandboxed). */
+export type FileLink = { url: string; name: string; size: number; modifiedAt: string; mime: string; expiresAt: string }
 export type RunTrigger = 'user' | 'routine' | 'system'
 /** One round of work inside a teammate's conversation (§9.8). Runs ascend by createdAt; quiet routine runs are left out. */
 export type Run = {
@@ -118,9 +128,16 @@ export class Api {
   }
   // ---- teammates ----
   mates() { return this.req<{ items: Mate[] }>('/mates') }
-  mateCreate(description: string, name?: string, title?: string) { return this.req<{ mate: Mate }>('/mates/create', { description, ...(name ? { name } : {}), ...(title ? { title } : {}) }) }
+  /** `group` names its type (the list's section); `avatar` its look. */
+  mateCreate(description: string, opts: { name?: string; group?: string; avatar?: Look } = {}) { return this.req<{ mate: Mate }>('/mates/create', { description, ...(opts.name ? { name: opts.name } : {}), ...(opts.group ? { group: opts.group } : {}), ...(opts.avatar ? { avatar: opts.avatar } : {}) }) }
   /** `group`: up to 12 characters, '' clears it (the teammate goes back to 其他). */
-  mateUpdate(id: string, patch: Partial<Pick<Mate, 'name' | 'title' | 'description' | 'pinned' | 'notify' | 'group'>>) { return this.req<{ mate: Mate }>('/mates/update', { id, ...patch }) }
+  mateUpdate(id: string, patch: Partial<Pick<Mate, 'name' | 'title' | 'description' | 'pinned' | 'notify' | 'group'>> & { avatar?: Look }) { return this.req<{ mate: Mate }>('/mates/update', { id, ...patch }) }
+  // ---- a teammate's folder ----
+  folder(id: string) { return this.req<{ dir: string; items: FolderItem[] }>('/mates/folder?id=' + encodeURIComponent(id)) }
+  /** A text file of the folder (tables, notes); 400 for other kinds, 404 when gone. */
+  folderFile(id: string, path: string) { return this.req<FolderFile>('/mates/file?id=' + encodeURIComponent(id) + '&path=' + encodeURIComponent(path)) }
+  /** A signed link to any file of the folder; open `base + url` (the gateway passes it through without a token). */
+  fileLink(id: string, path: string) { return this.req<FileLink>('/mates/link?id=' + encodeURIComponent(id) + '&path=' + encodeURIComponent(path)) }
   /** The default mate refuses (400). */
   mateRemove(id: string) { return this.req<{ removed: boolean }>('/mates/remove', { id }) }
   /** A page of the conversation, runs ascending; `before` is the previous page's nextBefore. */

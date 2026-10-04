@@ -112,7 +112,7 @@ The product logic follows [Rakazo](https://github.com/elie222/rakazo) (persisten
 | Feature | What it does |
 | --- | --- |
 | Native app | `apps/mobile`, Expo / React Native; Android builds today, iOS from the same code. |
-| Connection | On the computer, Settings › MyWork › Phone, allow phone connections and scan. The phone talks only to this computer's LAN gateway; pairing survives restarts; turning the switch off disconnects. |
+| Connection | On the computer, Settings › Scenarios & members › Phone, allow phone connections and scan. On the same Wi‑Fi the phone talks to this computer's LAN gateway; with "Reach it from anywhere (encrypted relay)" on, it goes through the relay elsewhere (apps/relay, Cloudflare free plan), which only passes end-to-end encrypted data. Pairing survives restarts; turning the switch off disconnects. |
 | Features | Teammates, activity, conversations (bubbles, file cards, question cards, stop), full-screen file reading and sharing, teammate page (routines, settings), new teammate, files. |
 | Appearance | The computer's palettes (Charcoal · Champagne / Ink · Mist), dark or light with the phone, or fixed in the phone's Settings; avatars in the look picked on the computer. |
 
@@ -156,14 +156,14 @@ Design: [design/v2/TEAMMATES.md](design/v2/TEAMMATES.md) §9 (teammate model and
 
 - Everything lives in `$DSH_HOME` (`.dsh-dev-home/home` in development): teammates in `mywork/mates.json`, each teammate's folder in `mywork/mates/<id>/`, runs, deliveries, routines and read state in `mywork/*.json`, session logs in `sessions/`.
 - The API key and logins are there too; copy the directory to move machines (it holds the key in plain text).
-- The web app listens on this machine only. Phone access must be switched on at the computer; the gateway accepts only the pairing token, and dsh's login token never leaves the computer.
+- The web app listens on this machine only. Phone access must be switched on at the computer; the gateway accepts only the pairing token, and dsh's login token never leaves the computer. The relay (off by default) passes encrypted data only: the computer's X25519 public key travels only after `#` on the pairing code, the relay lacks its secret key and can neither read nor impersonate it, and only MyWork's API and signed file links are reachable through it.
 
 ## Status and known limits
 
 - Preview on dsh 0.1.6-alpha.2; newer dsh breaks the sidebar, so the version is pinned.
 - A teammate does one thing at a time; hand parallel work to another teammate.
 - Teammates share one local Chrome; simultaneous browsing shares tabs.
-- The phone works on the same Wi‑Fi only; no push relay, so IM covers you when you're away.
+- Away from the Wi‑Fi the phone needs the relay switched on; the default relay is on `workers.dev`, which mobile networks in mainland China may block — bind your own domain to it if so. Through the relay, web pages / PDFs cannot yet be handed to the phone's browser. No push notifications; IM covers you when you're away.
 - The desktop installers in Releases are still the first version, MyWork Kit.
 
 ## License

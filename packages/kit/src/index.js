@@ -30,7 +30,7 @@ export const inject = []
 export const Config = configSchema({ allowInstall: true })
 
 /** The relay a phone outside the Wi-Fi goes through (apps/relay, deployed on Cloudflare's free plan); lan.json's relayUrl or MYWORK_RELAY_URL override it. */
-export const DEFAULT_RELAY_URL = ''
+export const DEFAULT_RELAY_URL = 'https://mywork-relay.a313295747.workers.dev'
 
 export function apply(ctx, config = {}) {
   // IM accounts (dsh-im-connect) whose workspace is not registered would fail every message:

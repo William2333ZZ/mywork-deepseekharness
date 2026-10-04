@@ -1,5 +1,6 @@
 /**
- * dsh-mywork-kit — the LAN gateway behind 设置 → MyWork → 手机.
+ * dsh-mywork-kit — the phone gateway behind 设置 → MyWork → 手机. MyWork now runs it on loopback only and phones reach it
+ * through the encrypted relay (relay-client.js); listening on the LAN, as below, stays possible for other hosts.
  *
  * dsh serves the web GUI on loopback only and its CLI refuses `--host 0.0.0.0` on purpose (the GUI is
  * shell access to this machine). MyWork does not override that. Instead, when the user turns the
@@ -32,11 +33,12 @@ const originHost = (origin) => { try { return new URL(origin).host } catch { ret
 
 /**
  * Start the gateway. Returns the server; `close()` stops it.
- * @param {{ targetPort: number, listenPort: number, log?: (m: string) => void, launchToken?: () => string, phoneToken?: () => string }} opts
+ * @param {{ host?: string, targetPort: number, listenPort: number, log?: (m: string) => void, launchToken?: () => string, phoneToken?: () => string }} opts
+ *   host — where it listens: every interface by default; MyWork itself now passes 127.0.0.1 (phones come through the relay)
  *   launchToken — dsh's current launch token (loopback only; used for the gateway's own session and the query swap)
  *   phoneToken — the persistent token the QR carries; the only secret a phone may present
  */
-export function startLanGateway({ targetPort, listenPort, log = () => {}, launchToken = () => '', phoneToken = () => '' }) {
+export function startLanGateway({ host = '0.0.0.0', targetPort, listenPort, log = () => {}, launchToken = () => '', phoneToken = () => '' }) {
   const targetHost = '127.0.0.1'
   const targetAuthority = `${targetHost}:${targetPort}`
   const targetOrigin = `http://${targetAuthority}`
@@ -123,6 +125,6 @@ export function startLanGateway({ targetPort, listenPort, log = () => {}, launch
   })
 
   server.on('error', (e) => log(`gateway listen error: ${e && e.message}`))
-  server.listen(listenPort, '0.0.0.0', () => log(`phone gateway listening on 0.0.0.0:${listenPort} → ${targetAuthority}`))
+  server.listen(listenPort, host, () => log(`phone gateway listening on ${host}:${listenPort} → ${targetAuthority}`))
   return server
 }

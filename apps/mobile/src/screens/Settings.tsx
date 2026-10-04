@@ -30,7 +30,7 @@ export default function Settings() {
       <TopBar left={<IconBtn name="chevron-back-outline" label="返回" onPress={nav.pop} />} title="设置" />
       <ScrollView contentContainerStyle={styles.wrap}>
         <ListBox>
-          <Row title="连接" sub={conn ? (via === 'relay' ? '加密中继 · 在外面也能用' : '局域网 · ' + conn.base) : ''} state={conn && conn.relay ? (via === 'relay' ? '外网' : '同一 Wi‑Fi') : undefined} />
+          <Row title="连接" sub={conn ? (via === 'relay' ? '云端中继 · 端到端加密，任何网络都能连' : '旧的局域网配对 · 重新扫一次电脑上的码') : ''} />
           <Row title="重新配对" onPress={() => { forget() }} chevron />
           <Row title="关于" sub="MyWork 手机端 0.1" />
         </ListBox>

@@ -1,5 +1,5 @@
 /**
- * S0 连接 — 整屏一件事：扫电脑上的码，或手动输入地址。
+ * S0 连接 — 整屏一件事：扫电脑上的码（云端中继的地址，配对信息在 # 后面），或手动输入配对码。
  * 曾配对但连不上时，顶部一行「连不上 …」+ 重试 / 换一台电脑；下面照旧可以重新扫码。
  */
 import { useRef, useState } from 'react'
@@ -76,21 +76,21 @@ export default function Pair() {
         <Mark dim={28} />
         {failed && conn ? (
           <View style={styles.status}>
-            <Body>连不上 {conn.base}</Body>
+            <Body>连不上这台电脑</Body>
             <View style={styles.actions}>
               <Btn label="重试" onPress={doRetry} disabled={busy} />
               <Btn label="换一台电脑" onPress={() => { forget() }} disabled={busy} />
             </View>
           </View>
         ) : null}
-        <Title style={styles.lead}>在电脑上打开 设置 › MyWork › 手机，扫这个码</Title>
+        <Title style={styles.lead}>在电脑上打开 设置 › 场景与成员 › 手机，扫这个码</Title>
         <View style={styles.actions}>
           <Btn label="扫码" kind="primary" onPress={openScan} disabled={busy} style={styles.big} />
         </View>
         {busy ? <Meta style={styles.line}>连接中…</Meta> : err ? <Meta style={styles.lineErr}>{err}</Meta> : null}
         {mode === 'manual' ? (
           <View style={styles.manual}>
-            <Field value={addr} onChange={setAddr} placeholder="电脑上显示的地址" mono autoFocus onSubmit={() => connect(addr)} />
+            <Field value={addr} onChange={setAddr} placeholder="配对码里的地址" mono autoFocus onSubmit={() => connect(addr)} />
             <View style={styles.actions}>
               <Btn label="粘贴" onPress={paste} disabled={busy} />
               <Btn label="连接" kind="primary" onPress={() => connect(addr)} disabled={busy || !addr.trim()} />
@@ -98,7 +98,7 @@ export default function Pair() {
           </View>
         ) : (
           <View style={styles.actions}>
-            <Btn label="手动输入地址" onPress={() => setMode('manual')} disabled={busy} />
+            <Btn label="手动输入配对码" onPress={() => setMode('manual')} disabled={busy} />
           </View>
         )}
       </ScrollView>

@@ -1,11 +1,12 @@
 /**
  * One file of a teammate's folder, read on the phone (the web's FileView / LinkView): a table (.csv / .tsv) as a grid
  * that scrolls sideways — the header row, numbers right-aligned, 500 rows at most here —, a note (.md) as reading text,
- * .txt / .json as monospaced text, an image shown whole. The meta line says how big it is and when it changed; 「在浏览器里打开」
- * hands the file to the phone's browser by a signed link (10 minutes). Re-read on every poll, so a teammate's edits show up.
+ * .txt / .json as monospaced text, an image shown whole. The meta line says how big it is and when it changed; 「用其他应用打开」
+ * hands the file to another app (openFile.ts). Re-read on every poll, so a teammate's edits show up.
  */
 import { useEffect, useMemo, useState } from 'react'
-import { Image, Linking, ScrollView, Text, View } from 'react-native'
+import { Image, ScrollView, Text, View } from 'react-native'
+import { openElsewhere } from '../openFile'
 import { ApiError, fmtDate, type FolderFile as FileData } from '../api'
 import { useConn, useNav, useStore } from '../store'
 import { Empty, IconBtn, Prose, Screen, TopBar } from '../components'
@@ -13,7 +14,6 @@ import { color, font, radius, size, space, themed } from '../theme'
 import { fileKindOf, openKindOf, tableOf } from '../thread'
 
 const MAX_ROWS = 500
-export const OFF_WIFI = '在外面时还不能交给浏览器打开（浏览器进不了加密通道）。回到电脑的 Wi‑Fi 下再打开，或者在电脑上看。'
 const errText = (e: unknown) => (e instanceof ApiError || e instanceof Error ? e.message : String(e))
 const fmtSize = (n: number) => (n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : n >= 1024 ? Math.round(n / 1024) + ' KB' : n + ' B')
 
@@ -33,7 +33,7 @@ export default function FolderFile({ mateId, path }: { mateId: string; path: str
     if (kind === 'text') api.folderFile(mateId, path).then((d) => { if (on) { setData(d); setErr('') } }).catch((e) => { if (on) setErr(errText(e)) })
     else if (kind === 'image' && conn && !image) {
       api.fileLink(mateId, path).then(async (l) => {
-        // On the relay the bytes come through the encrypted line; on the Wi-Fi the signed link loads directly.
+        // Through the relay the bytes come down the encrypted line; an older LAN pairing loads the signed link directly.
         const uri = api.via === 'relay' ? await api.raw(l.url).then((r) => `data:${r.contentType.split(';')[0] || 'image/png'};base64,${r.b64}`) : conn.base + l.url
         Image.getSize(uri, (w, h) => { if (on) setImage({ uri, ratio: w && h ? w / h : 1 }) }, () => { if (on) setErr('图片没加载出来') })
       }).catch((e) => { if (on) setErr(errText(e)) })
@@ -41,18 +41,20 @@ export default function FolderFile({ mateId, path }: { mateId: string; path: str
     return () => { on = false }
   }, [api, conn, mateId, path, kind, store.tick])
 
-  const openInBrowser = async () => {
-    if (!api || !conn) return
-    if (api.via === 'relay') { setErr(OFF_WIFI); return }
-    try { const l = await api.fileLink(mateId, path); await Linking.openURL(conn.base + l.url) } catch (e) { setErr(errText(e)) }
+  const [opening, setOpening] = useState(false)
+  const openOutside = async () => {
+    if (!api || !conn || opening) return
+    setOpening(true); setErr('')
+    try { await openElsewhere(api, conn.base, mateId, path, kind === 'download') } catch (e) { setErr(errText(e)) } finally { setOpening(false) }
   }
+
   const tk = fileKindOf(name)
   const table = useMemo(() => (data && tk === 'table' ? tableOf(data.text, /\.tsv$/i.test(name) ? '\t' : ',') : null), [data, tk, name])
   const meta = [table ? `${table.rows.length} 行` : '', data ? fmtSize(data.size) : '', data ? fmtDate(data.modifiedAt) : '', data && data.truncated ? '只显示前 512 KB' : '', table && table.rows.length > MAX_ROWS ? `这里只显示前 ${MAX_ROWS} 行` : ''].filter(Boolean).join(' · ')
 
   return (
     <Screen>
-      <TopBar left={<IconBtn name="chevron-back-outline" label="返回" onPress={nav.pop} />} title={name} right={<IconBtn name="open-outline" label="在浏览器里打开" onPress={() => { openInBrowser() }} />} />
+      <TopBar left={<IconBtn name="chevron-back-outline" label="返回" onPress={nav.pop} />} title={name} right={<IconBtn name="open-outline" label="用其他应用打开" onPress={() => { openOutside() }} />} />
       <ScrollView contentContainerStyle={styles.wrap}>
         {meta ? <Text style={styles.meta}>{meta}</Text> : null}
         {err ? <Text style={styles.err}>{err}</Text> : null}

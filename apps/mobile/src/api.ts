@@ -8,7 +8,7 @@
  * (base URL + token) is kept in the secure store.
  */
 import * as SecureStore from 'expo-secure-store'
-import { Relay, type RelayInfo } from './relay'
+import { Relay, textToB64, type RelayInfo } from './relay'
 
 /** The paired computer: its LAN gateway (base + phone token) and, when it offered one, the encrypted relay to reach it from anywhere. */
 export type Connection = { base: string; token: string; pairedAt: string; relay?: RelayInfo }
@@ -94,9 +94,9 @@ export async function saveConnection(c: Connection): Promise<void> { await Secur
 export async function clearConnection(): Promise<void> { try { await SecureStore.deleteItemAsync(KEY) } catch { /* nothing to clear */ } }
 
 /**
- * The QR on the computer carries `http://<ip>:<port>/?token=…`, and with 「在外面也能连」 on, after `#`, `r=<relay>&i=<pairing
- * id>&k=<computer's public key>` (the fragment never travels anywhere: the app reads it). A pasted address without a
- * token is accepted too.
+ * The QR on the computer is the relay's address with the pairing after `#`: `https://<relay>/#i=<pairing id>&k=<computer's
+ * public key>&t=<phone token>` (the fragment never travels anywhere: the app reads it). Older codes, `http://<lan ip>:<port>
+ * /?token=…` (optionally with `#r=<relay>&i=&k=`), still parse.
  */
 export function parsePairText(text: string): { base: string; token: string; relay?: RelayInfo } | null {
   const t = text.trim()
@@ -108,35 +108,30 @@ export function parsePairText(text: string): { base: string; token: string; rela
   try {
     const u = new URL(/^https?:\/\//.test(main) ? main : 'http://' + main)
     if (!u.hostname) return null
+    const origin = `${u.protocol}//${u.host}`
+    if (frag.i && frag.k && frag.t) return { base: origin, token: frag.t, relay: { url: origin, id: frag.i, pk: frag.k } }
     const relay = frag.r && frag.i && frag.k ? { url: frag.r, id: frag.i, pk: frag.k } : undefined
-    return { base: `${u.protocol}//${u.host}`, token: u.searchParams.get('token') || '', ...(relay ? { relay } : {}) }
+    return { base: origin, token: u.searchParams.get('token') || '', ...(relay ? { relay } : {}) }
   } catch { return null }
 }
 
 export class ApiError extends Error { constructor(public status: number, message: string) { super(message) } }
 
 const PREFIX = '/mywork-tasks/api'
-/** How long the same-Wi-Fi check waits before the relay is tried. */
-const DIRECT_PROBE_MS = 3000
 
 /**
- * Reach the paired computer and prove the pairing with one API call: the LAN gateway first (on the same Wi-Fi, a few
- * seconds at most), else the encrypted relay when the pairing has one. `relay` is the open line on that path; `reason`
- * says what went wrong.
+ * Reach the paired computer and prove the pairing with one API call: through the encrypted relay (every pairing made
+ * since the relay; any network), or, for an older Wi-Fi-only pairing, its LAN gateway. `relay` is the open line;
+ * `reason` says what went wrong.
  */
 export async function login(c: Connection): Promise<{ ok: boolean; reason: string; relay: Relay | null }> {
-  if (!c.token) return { ok: false, reason: '地址里没有令牌', relay: null }
-  let reason = ''
-  try {
-    const ctl = new AbortController()
-    const t = setTimeout(() => ctl.abort(), c.relay ? DIRECT_PROBE_MS : 15000)
-    const r = await fetch(`${c.base}${PREFIX}/mates`, { credentials: 'omit', headers: { authorization: `Bearer ${c.token}` }, signal: ctl.signal })
-    clearTimeout(t)
-    if (r.ok) return { ok: true, reason: '', relay: null }
-    if (r.status === 401) return { ok: false, reason: '令牌不对或已过期，重新扫码', relay: null }
-    reason = `HTTP ${r.status}`
-  } catch (e) { reason = e instanceof Error && e.name !== 'AbortError' ? e.message : '不在同一个 Wi‑Fi' }
-  if (!c.relay) return { ok: false, reason, relay: null }
+  if (!c.token) return { ok: false, reason: '配对码里没有令牌', relay: null }
+  if (!c.relay) {
+    try {
+      const r = await fetch(`${c.base}${PREFIX}/mates`, { credentials: 'omit', headers: { authorization: `Bearer ${c.token}` } })
+      return r.ok ? { ok: true, reason: '', relay: null } : { ok: false, reason: r.status === 401 ? '令牌不对或已过期，重新扫码' : `HTTP ${r.status}`, relay: null }
+    } catch (e) { return { ok: false, reason: (e instanceof Error ? e.message : String(e)) + '；这是旧的配对码，重新扫一次电脑上的新码', relay: null } }
+  }
   const relay = new Relay(c.relay, c.token)
   try {
     const r = await relay.request('GET', PREFIX + '/mates')
@@ -147,7 +142,7 @@ export async function login(c: Connection): Promise<{ ok: boolean; reason: strin
 }
 
 export class Api {
-  /** `relay`: the open encrypted line when the computer is reached through the relay (off its Wi-Fi), else null. */
+  /** `relay`: the open encrypted line to the computer (every pairing since the relay), else null (an older LAN pairing). */
   constructor(public base: string, private token: string, private relay: Relay | null = null) {}
   /** How this phone reaches the computer now. */
   get via(): 'lan' | 'relay' { return this.relay ? 'relay' : 'lan' }
@@ -156,7 +151,7 @@ export class Api {
     if (!this.relay) throw new Error('只在中继上用')
     const r = await this.relay.request('GET', path)
     if (r.status < 200 || r.status >= 300) throw new ApiError(r.status, r.text || `HTTP ${r.status}`)
-    return { contentType: r.contentType, b64: r.b64 }
+    return { contentType: r.contentType, b64: r.b64 || (r.text ? textToB64(r.text) : '') }
   }
   private async req<T>(path: string, body?: unknown): Promise<T> {
     if (this.relay) {

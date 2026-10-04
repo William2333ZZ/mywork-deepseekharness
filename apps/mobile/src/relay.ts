@@ -1,9 +1,9 @@
 /**
  * MyWork mobile — the phone's end of the encrypted relay (packages/kit/src/relay-client.js is the computer's).
  *
- * Off the computer's Wi-Fi the phone cannot reach its LAN gateway, so it dials the relay named on the pairing QR
- * (after `#`: the relay address, this pairing's id, the computer's public key) and the computer, which dials the same
- * relay, answers there. The relay only moves frames; the two ends encrypt everything (X25519 + XSalsa20-Poly1305 via
+ * The phone reaches its computer only through the relay, from any network: the pairing QR is the relay's address with,
+ * after `#`, this pairing's id, the computer's public key and the phone token; the computer dials the same relay and
+ * answers there. The relay only moves frames; the two ends encrypt everything (X25519 + XSalsa20-Poly1305 via
  * tweetnacl, the same as Paseo):
  *   hello    `h1.<this connection's public key>.<sealed { t: phone token }>` → the computer answers `{ ok }`
  *   request  `d1.<sealed { id, m, p, b }>`  → the answer comes as `d1.<sealed { id, s, ct, enc, part, of, d }>` chunks
@@ -71,6 +71,8 @@ function fromUtf8(u: Uint8Array): string {
   }
   return s
 }
+/** Text as base64 of its UTF-8 bytes (a text answer saved as a file). */
+export const textToB64 = (text: string) => toB64(utf8(text))
 function seal(key: Uint8Array, obj: unknown): string {
   const nonce = nacl.randomBytes(nacl.box.nonceLength)
   const box = nacl.box.after(utf8(JSON.stringify(obj)), nonce, key)
@@ -119,7 +121,7 @@ export class Relay {
         if (f.ev === 'computer') {
           if (f.up) return
           // The computer left (or restarted): its end of this line is gone, so the next request says hello again.
-          if (!done) finish(new Error('电脑不在线（MyWork 没开，或「在外面也能连」关了）'))
+          if (!done) finish(new Error('电脑不在线（MyWork 没开，或「允许手机连接」关了）'))
           else { this.drop(); this.failAll(new Error('电脑断开了')) }
           return
         }

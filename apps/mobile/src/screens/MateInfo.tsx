@@ -6,19 +6,19 @@
  *           opens it), 例行 (a row opens the routine's sheet; finished one-offs fold under 「已结束的 n 个」; 新例行),
  *           它记住的 (the lines of AGENTS.md in its folder; 打开 reads the file), 置顶 · 通知, 删除同事.
  *   文件夹  what it has — 它维护的表 (.csv / .tsv) and 最近的文件 (six, then the rest), each with its kind's icon: tables,
- *           notes and images open here, web pages, PDFs and Office files in the phone's browser; 它交付的文件 opens the
+ *           notes and images open here, web pages, PDFs and Office files in another app; 它交付的文件 opens the
  *           files screen filtered to it.
  * With `routineId` the routine's sheet opens on arrival (「已安排」 lines and search results land here).
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, Text, View } from 'react-native'
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { ApiError, fmtDate, fmtWhen, type FolderItem, type Look, type Mate, type Routine, type RoutineRun } from '../api'
 import { useConn, useNav, useStore } from '../store'
 import { Avatar, AvatarPicker, Btn, Empty, Field, Ghost, IconBtn, ListBox, Row, Screen, Section, Sheet, SheetItem, Toggle, TopBar, TypePicker, type IconName } from '../components'
 import { color, radius, size, space, themed } from '../theme'
 import { cleanType, fileKindOf, glyphOf, openKindOf, time, typesOf } from '../thread'
-import { OFF_WIFI } from './FolderFile'
+import { openElsewhere } from '../openFile'
 
 const RUNS = 10
 const RECENT = 6
@@ -88,14 +88,13 @@ export default function MateInfo({ id, routineId }: { id: string; routineId?: st
     setBusy(true); setErr('')
     try { await api.mateRemove(id); store.dropMate(id); setConfirmRemove(false); nav.reset({ name: 'home' }); store.refresh().catch(() => {}) } catch (e) { setErr(errText(e)); setConfirmRemove(false) } finally { setBusy(false) }
   }
-  /** Tables, notes and images open on the folder-file screen; web pages, PDFs and Office files in the phone's browser by a signed link. */
+  /** Tables, notes and images open on the folder-file screen; web pages, PDFs and Office files in another app (openFile.ts). */
   const openFile = async (f: { name: string; path: string }) => {
     const kind = openKindOf(f.name)
     if (kind === 'text' || kind === 'image') { nav.push({ name: 'folderFile', mateId: id, path: f.path }); return }
     if (!api || !conn) return
     setErr('')
-    if (api.via === 'relay') { setErr(OFF_WIFI); return }
-    try { const l = await api.fileLink(id, f.path); await Linking.openURL(conn.base + l.url + (kind === 'download' ? '&dl=1' : '')) } catch (e) { setErr(errText(e)) }
+    try { await openElsewhere(api, conn.base, id, f.path, kind === 'download') } catch (e) { setErr(errText(e)) }
   }
 
   if (!mate) {

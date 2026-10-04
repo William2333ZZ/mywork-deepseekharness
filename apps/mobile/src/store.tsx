@@ -36,7 +36,7 @@ type Nav = {
   /** Go to a teammate's conversation (at a run): back to it when it is already in the stack, pushed otherwise. */
   openMate: (id: string, runId?: string) => void
 }
-/** `via`: how the computer is reached now — its LAN gateway (same Wi-Fi) or the encrypted relay (anywhere). */
+/** `via`: how the computer is reached — the encrypted relay (every pairing since it), or an older pairing's LAN gateway. */
 type Conn = { conn: Connection | null; api: Api | null; via: 'lan' | 'relay'; ready: boolean; failed: boolean; pair: (text: string) => Promise<string | null>; forget: () => Promise<void>; retry: () => Promise<void> }
 type Store = {
   mates: Mate[] | null; activity: ActivityPayload | null; tick: number; loading: boolean; error: string
@@ -82,7 +82,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const [conn, setConn] = useState<Connection | null>(null)
   const [ready, setReady] = useState(false)
   const [failed, setFailed] = useState(false)
-  // The open encrypted line when the computer is reached through the relay; null on its Wi-Fi.
+  // The open encrypted line to the computer through the relay; null for an older LAN pairing.
   const [line, setLine] = useState<Relay | null>(null)
   const swapLine = useCallback((next: Relay | null) => setLine((old) => { if (old && old !== next) old.close(); return next }), [])
   const api = useMemo(() => (conn ? new Api(conn.base, conn.token, line) : null), [conn, line])
@@ -97,7 +97,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     if (!p) return '看不出这是一个地址。'
     const c: Connection = { base: p.base, token: p.token, pairedAt: new Date().toISOString(), ...(p.relay ? { relay: p.relay } : {}) }
     const { ok, reason, relay } = await login(c)
-    if (!ok) return `连不上这台电脑（${reason}）。` + (c.relay ? '电脑上的 MyWork 要开着，「允许手机连接」和「在外面也能连」要打开。' : '手机和电脑要在同一个 Wi‑Fi，电脑上的「允许手机连接」要打开。')
+    if (!ok) return `连不上这台电脑（${reason}）。电脑上的 MyWork 要开着，设置 › 场景与成员 › 手机 里的「允许手机连接」要打开。`
     await saveConnection(c); swapLine(relay); setConn(c); setFailed(false); setReady(true)
     setStack([{ name: 'home' }])
     return null
@@ -143,10 +143,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
     if (!api || failed) return
     live.current = true
     loop().catch(() => {})
-    // Back in the foreground: on the relay, check the Wi-Fi again first (home again → straight to the gateway).
-    const sub = AppState.addEventListener('change', (s) => { if (s !== 'active') return; if (api.via === 'relay' && conn) tryLogin(conn).catch(() => {}); else loop().catch(() => {}) })
+    // Back in the foreground: poll now (a relay line that dropped meanwhile says hello again on this request).
+    const sub = AppState.addEventListener('change', (s) => { if (s === 'active') loop().catch(() => {}) })
     return () => { live.current = false; gen.current++; if (timer.current) clearTimeout(timer.current); sub.remove() }
-  }, [api, failed, loop, conn, tryLogin])
+  }, [api, failed, loop])
   /** Poll now and restart the cadence: after a send the mate works, so the next poll comes in 5s, not 30s. */
   const refresh = useCallback(async () => { if (live.current) await loop(); else await fetchNow() }, [loop, fetchNow])
   const putMate = useCallback((m: Mate) => setMates((list) => { const l = list || []; return l.some((x) => x.id === m.id) ? l.map((x) => (x.id === m.id ? { ...x, ...m } : x)) : [...l, m] }), [])

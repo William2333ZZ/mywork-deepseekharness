@@ -17,11 +17,17 @@
  */
 const ID = /^[A-Za-z0-9_-]{16,64}$/
 const MAX_FRAME = 1_000_000
+const PAIR_PAGE = `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MyWork 配对码</title>
+<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#12100e;color:#efebe2;font:16px/1.7 -apple-system,"PingFang SC","Hiragino Sans GB",sans-serif}main{max-width:320px;padding:24px}h1{font-size:20px;font-weight:600;margin:0 0 8px}p{margin:0;color:rgba(239,235,226,.68)}</style></head>
+<body><main><h1>这是 MyWork 的配对码</h1><p>请打开 MyWork 手机 App，在「扫码」里扫它。这个页面不会收到配对信息。</p></main></body></html>`
 
 export default {
   async fetch(req, env) {
     const url = new URL(req.url)
-    if (url.pathname === '/' || url.pathname === '/health') return new Response('mywork relay\n', { headers: { 'content-type': 'text/plain' } })
+    if (url.pathname === '/health') return new Response('mywork relay\n', { headers: { 'content-type': 'text/plain' } })
+    // The pairing QR is this address with the pairing after `#` (browsers never send it): a camera app that opens it
+    // lands here and is told to use the MyWork app instead.
+    if (url.pathname === '/') return new Response(PAIR_PAGE, { headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'referrer-policy': 'no-referrer' } })
     if (url.pathname !== '/v1/computer' && url.pathname !== '/v1/phone') return new Response('not found', { status: 404 })
     const id = url.searchParams.get('id') || ''
     if (!ID.test(id)) return new Response('bad id', { status: 400 })

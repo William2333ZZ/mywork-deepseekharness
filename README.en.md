@@ -1,7 +1,7 @@
 <h1 align="center">MyWork</h1>
 
 <p align="center"><b>AI teammates that live on your computer.</b></p>
-<p align="center">Give each ongoing job a teammate: it has a name, one conversation, its own folder and routines, does the work in the background and brings the result back to the same conversation. Your data stays on your computer; your phone connects over the local network.</p>
+<p align="center">Give each ongoing job a teammate: it has a name, one conversation, its own folder and routines, does the work in the background and brings the result back to the same conversation. Your data stays on your computer; your phone reaches it from any network through an encrypted relay.</p>
 
 <p align="center"><a href="README.md">中文</a> · English</p>
 
@@ -44,7 +44,7 @@ MyWork turns AI into **teammates**, not a chat box:
 - **One teammate, one conversation.** It remembers your preferences; "make it shorter" changes the thing it just made.
 - **It works in the background and the result comes back to the conversation**, as a file with checkable key numbers, verified independently by a second session.
 - **It interrupts you only when it must**: missing key information, a decision only you can make, a consequential action (paying, sending, deleting), or a password, code or scan.
-- **Your data stays on your computer.** No account, no cloud; the phone pairs with this computer by QR.
+- **Your data stays on your computer.** No account, and your data never goes to a cloud; the phone pairs with this computer by QR, and the relay in between only passes encrypted data.
 
 The product logic follows [Rakazo](https://github.com/elie222/rakazo) (persistent AI teammates rather than disposable chats). It runs on [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (dsh), built entirely as plugins without modifying dsh.
 
@@ -112,8 +112,8 @@ The product logic follows [Rakazo](https://github.com/elie222/rakazo) (persisten
 | Feature | What it does |
 | --- | --- |
 | Native app | `apps/mobile`, Expo / React Native; Android builds today, iOS from the same code. |
-| Connection | On the computer, Settings › Scenarios & members › Phone, allow phone connections and scan. On the same Wi‑Fi the phone talks to this computer's LAN gateway; with "Reach it from anywhere (encrypted relay)" on, it goes through the relay elsewhere (apps/relay, Cloudflare free plan), which only passes end-to-end encrypted data. Pairing survives restarts; turning the switch off disconnects. |
-| Features | Teammates, activity, conversations (bubbles, file cards, question cards, stop), full-screen file reading and sharing, teammate page (routines, settings), new teammate, files. |
+| Connection | On the computer, Settings › Scenarios & members › Phone, allow phone connections and scan the code with the app. On Wi‑Fi or mobile data alike, the phone reaches this computer through the cloud relay (apps/relay, Cloudflare free plan), which only passes end-to-end encrypted data; the two don't need to share a network. Pairing survives restarts; turning the switch off disconnects. |
+| Features | Teammates, activity, conversations (bubbles, file cards, question cards, stop), full-screen file reading and sharing, teammate page (profile; folder — tables, notes and images open in place, web pages / PDFs go to another app), new teammate, files. |
 | Appearance | The computer's palettes (Charcoal · Champagne / Ink · Mist), dark or light with the phone, or fixed in the phone's Settings; avatars in the look picked on the computer. |
 
 ### 7. Notifications
@@ -144,10 +144,11 @@ Phone: in `apps/mobile`, build an APK with `npx eas-cli build --platform android
 | `packages/tasks` | The teammate engine: one persistent dsh session per teammate, runs, delivery and second-session verification, asking, routine scheduling, memory, files, the API, and the web conversation, right panel and files page |
 | `packages/codex-ui` | Sidebar (teammates, bell, search) and settings shell |
 | `packages/browser` | The local real Chrome, live picture and take-over |
-| `packages/kit` | Bundle and settings entry, phone LAN gateway and pairing |
+| `packages/kit` | Bundle and settings entry, phone pairing and relay client (the gateway listens on this machine only) |
 | `packages/im` | IM notifications |
 | `packages/shell` · `schedule` · `mcp` | Themes and fonts, reminders, MCP connectors |
 | `apps/mobile` | Phone app |
+| `apps/relay` | Encrypted relay (Cloudflare Worker + Durable Object), passes ciphertext only |
 | `apps/desktop` | Desktop shell (Electron) |
 
 Design: [design/v2/TEAMMATES.md](design/v2/TEAMMATES.md) §9 (teammate model and API contract), [design/v2/MOBILE.md](design/v2/MOBILE.md) (phone).
@@ -156,14 +157,14 @@ Design: [design/v2/TEAMMATES.md](design/v2/TEAMMATES.md) §9 (teammate model and
 
 - Everything lives in `$DSH_HOME` (`.dsh-dev-home/home` in development): teammates in `mywork/mates.json`, each teammate's folder in `mywork/mates/<id>/`, runs, deliveries, routines and read state in `mywork/*.json`, session logs in `sessions/`.
 - The API key and logins are there too; copy the directory to move machines (it holds the key in plain text).
-- The web app listens on this machine only. Phone access must be switched on at the computer; the gateway accepts only the pairing token, and dsh's login token never leaves the computer. The relay (off by default) passes encrypted data only: the computer's X25519 public key travels only after `#` on the pairing code, the relay lacks its secret key and can neither read nor impersonate it, and only MyWork's API and signed file links are reachable through it.
+- The web app listens on this machine only. Phone access must be switched on at the computer; the phone gateway also listens on this machine only and is reached from outside only through the relay, accepts only the pairing token, and dsh's login token never leaves the computer. The relay passes encrypted data only: the computer's X25519 public key travels only after `#` on the pairing code, the relay lacks its secret key and can neither read nor impersonate it, and only MyWork's API and signed file links are reachable through it.
 
 ## Status and known limits
 
 - Preview on dsh 0.1.6-alpha.2; newer dsh breaks the sidebar, so the version is pinned.
 - A teammate does one thing at a time; hand parallel work to another teammate.
 - Teammates share one local Chrome; simultaneous browsing shares tabs.
-- Away from the Wi‑Fi the phone needs the relay switched on; the default relay is on `workers.dev`, which mobile networks in mainland China may block — bind your own domain to it if so. Through the relay, web pages / PDFs cannot yet be handed to the phone's browser. No push notifications; IM covers you when you're away.
+- The default relay is on `workers.dev`, which some mobile networks in mainland China block — bind your own domain to it if so (point `MYWORK_RELAY_URL` at it). The phone connection needs the computer online. No push notifications; IM covers you when you're away.
 - The desktop installers in Releases are still the first version, MyWork Kit.
 
 ## License

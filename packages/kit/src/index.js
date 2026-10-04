@@ -15,7 +15,7 @@ import { join } from 'node:path'
 import qrcode from 'qrcode-generator'
 import * as installer from './installer.js'
 import { sameSecret, startLanGateway } from './lan-gateway.js'
-import { newKeyPair, startRelayClient } from './relay-client.js'
+import { newKeyPair, newSignKeyPair, startRelayClient } from './relay-client.js'
 import { configSchema, defineRawTool, rejectUntrusted } from './harness.js'
 import { repairImWorkspacesFile } from './im-guard.js'
 
@@ -101,13 +101,15 @@ export function apply(ctx, config = {}) {
     // overrides the address the phone dials (an emulator reaches the computer's localhost at 10.0.2.2).
     const relayUrl = () => String(readLan().relayUrl || process.env.MYWORK_RELAY_URL || DEFAULT_RELAY_URL).trim().replace(/\/+$/, '')
     const relayPublicUrl = () => String(process.env.MYWORK_RELAY_PUBLIC_URL || relayUrl()).trim().replace(/\/+$/, '')
+    // The pairing (id + X25519 keys) and this computer's signing key, which claims the pairing's room on the shared relay.
     const relayKeys = () => {
-      const l = readLan()
-      if (typeof l.relayId === 'string' && l.relayId.length >= 16 && l.relayPk && l.relaySk) return { id: l.relayId, pk: l.relayPk, sk: l.relaySk }
-      const k = newKeyPair()
-      const n = writeLan({ relayId: randomBytes(18).toString('base64url'), relayPk: k.publicKey, relaySk: k.secretKey })
-      return { id: n.relayId, pk: n.relayPk, sk: n.relaySk }
+      let l = readLan()
+      if (!(typeof l.relaySignSk === 'string' && l.relaySignSk)) { const s = newSignKeyPair(); l = writeLan({ relaySignPk: s.publicKey, relaySignSk: s.secretKey }) }
+      if (!(typeof l.relayId === 'string' && l.relayId.length >= 16 && l.relayPk && l.relaySk)) { const k = newKeyPair(); l = writeLan({ relayId: randomBytes(18).toString('base64url'), relayPk: k.publicKey, relaySk: k.secretKey }) }
+      return { id: l.relayId, pk: l.relayPk, sk: l.relaySk, signSk: l.relaySignSk }
     }
+    /** A new pairing: a new id, key pair and phone token (the signing key stays); every paired phone has to scan again. */
+    const newPairing = () => { const k = newKeyPair(); writeLan({ relayId: randomBytes(18).toString('base64url'), relayPk: k.publicKey, relaySk: k.secretKey, phoneToken: randomBytes(32).toString('base64url') }) }
     // Through the relay a phone reaches MyWork's API and signed file links, nothing else of dsh.
     const relayAllowed = (p) => /^\/mywork-tasks\/(api\/|files\/raw\?)/.test(p)
     const forwardToGateway = async (method, path, body) => {
@@ -120,7 +122,7 @@ export function apply(ctx, config = {}) {
       if (!gateway) { phoneToken(); gateway = startLanGateway({ host: '127.0.0.1', targetPort: wctx.webServer.port, listenPort: gatewayPort(), log: (m) => console.log('[dsh-mywork-kit] ' + m), launchToken, phoneToken }) }
       if (!relay && relayUrl()) {
         const k = relayKeys()
-        relay = startRelayClient({ relayUrl: relayUrl(), id: k.id, secretKey: k.sk, authorize: (t) => sameSecret(t, phoneToken()), forward: forwardToGateway, allowed: relayAllowed, log: (m) => console.log('[dsh-mywork-kit] ' + m) })
+        relay = startRelayClient({ relayUrl: relayUrl(), id: k.id, secretKey: k.sk, signKey: k.signSk, authorize: (t) => sameSecret(t, phoneToken()), forward: forwardToGateway, allowed: relayAllowed, log: (m) => console.log('[dsh-mywork-kit] ' + m) })
       }
     }
     const closePhone = () => {
@@ -154,6 +156,16 @@ export function apply(ctx, config = {}) {
       writeLan({ enabled })
       if (enabled) openPhone(); else closePhone()
       json(res, { wanted: enabled, on: !!gateway })
+    })
+
+    route('/phone/reset', async (req, res) => {
+      if (req.method !== 'POST') return json(res, { error: 'POST only' }, 405)
+      if (!loopback(req)) return json(res, { error: 'limited to loopback requests' }, 403)
+      newPairing()
+      // The relay client dials the new pairing; the gateway reads the phone token on every request.
+      if (relay) { relay.close(); relay = null }
+      if (gateway) openPhone()
+      json(res, { reset: true, on: !!gateway })
     })
 
     route('/status', async (_req, res) => {

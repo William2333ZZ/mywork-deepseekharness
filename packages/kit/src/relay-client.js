@@ -11,7 +11,10 @@
  *   - a phone opens with `h1.<its ephemeral public key>.<sealed { t: phone token }>`; both sides derive the same key
  *     (nacl.box.before) and every later frame is `d1.<sealed JSON>` — XSalsa20-Poly1305 with a random 24-byte nonce;
  *   - the relay cannot read or forge frames: it lacks the computer's secret key, and the phone token inside the
- *     hello is checked here like the gateway's bearer.
+ *     hello is checked here like the gateway's bearer;
+ *   - the relay is shared by many computers, so this one also keeps an Ed25519 signing key and dials with
+ *     `&pk=<public>&ts=<now>&sig=<signature over mywork-relay-v1|computer|<id>|<ts>>`: the first key to claim a pairing
+ *     id owns that room, and nobody who merely saw the pairing code can take it over (refused with 4403 / 4401).
  *
  * A request from the phone, `{ id, m, p, b }`, goes to this computer's own LAN gateway on loopback with the phone
  * token as its bearer — the same path a phone on the Wi-Fi takes — and only for MyWork's API and signed file links.
@@ -32,6 +35,14 @@ const unb64url = (s) => new Uint8Array(Buffer.from(String(s || ''), 'base64url')
 
 /** A new key pair for this computer: the public key as base64url (it goes on the QR), the secret as base64. */
 export function newKeyPair() { const k = nacl.box.keyPair(); return { publicKey: b64url(k.publicKey), secretKey: b64(k.secretKey) } }
+/** A new Ed25519 signing key pair: this computer's identity on the relay (public base64url, secret base64). */
+export function newSignKeyPair() { const k = nacl.sign.keyPair(); return { publicKey: b64url(k.publicKey), secretKey: b64(k.secretKey) } }
+/** The query that proves this computer owns pairing `id` right now: `&pk=…&ts=…&sig=…`. */
+export function signedClaim(id, signSecretB64, ts = Date.now()) {
+  const sk = unb64(signSecretB64)
+  const sig = nacl.sign.detached(new TextEncoder().encode(`mywork-relay-v1|computer|${id}|${ts}`), sk)
+  return `&pk=${b64url(sk.subarray(32))}&ts=${ts}&sig=${b64url(sig)}`
+}
 
 /** JSON sealed with a shared key: base64(nonce ‖ box). */
 export function seal(key, obj) {
@@ -58,14 +69,20 @@ export const relaySocketUrl = (relayUrl, role, id) => String(relayUrl).replace(/
 /**
  * Connect this computer to the relay; reconnects with backoff until close().
  * @param {{
- *   relayUrl: string, id: string, secretKey: string,
+ *   relayUrl: string, id: string, secretKey: string, signKey?: string,
  *   authorize: (token: string) => boolean,
  *   forward: (method: string, path: string, body?: string) => Promise<{ status: number, contentType: string, body: Buffer }>,
- *   allowed?: (path: string) => boolean, log?: (m: string) => void, WebSocketImpl?: typeof WebSocket,
+ *   allowed?: (path: string) => boolean, log?: (m: string) => void, WebSocketImpl?: typeof WebSocket, pingMs?: number,
  * }} opts
+ *
+ * A heartbeat every 25 s ('ping', answered 'pong' by the relay); when nothing has come back for two of them the
+ * connection is taken for dead — a dropped network, or the relay handed this pairing to a newer connection and the
+ * close never completed — and dialled again.
  */
-export function startRelayClient({ relayUrl, id, secretKey, authorize, forward, allowed = () => true, log = () => {}, WebSocketImpl = globalThis.WebSocket }) {
-  const url = relaySocketUrl(relayUrl, 'computer', id)
+export function startRelayClient({ relayUrl, id, secretKey, signKey, authorize, forward, allowed = () => true, log = () => {}, WebSocketImpl = globalThis.WebSocket, pingMs = PING_MS }) {
+  const base = relaySocketUrl(relayUrl, 'computer', id)
+  // A fresh claim on every dial: the relay refuses a timestamp it has seen.
+  const url = () => (signKey ? base + signedClaim(id, signKey) : base)
   /** pid → the shared key once the phone's hello checked out (null until then). */
   const sessions = new Map()
   const state = { connected: false, error: '', since: '' }
@@ -74,6 +91,7 @@ export function startRelayClient({ relayUrl, id, secretKey, authorize, forward, 
   let timer = null
   let ping = null
   let backoff = 1000
+  let lastSeen = 0
 
   const raw = (obj) => { try { if (ws && ws.readyState === 1) ws.send(JSON.stringify(obj)) } catch { /* the socket went; the reconnect resends nothing */ } }
   const to = (pid, key, obj) => raw({ to: pid, c: 'd1.' + seal(key, obj) })
@@ -117,16 +135,41 @@ export function startRelayClient({ relayUrl, id, secretKey, authorize, forward, 
     timer = setTimeout(connect, backoff)
     backoff = Math.min(backoff * 2, 60000)
   }
+  /** This connection is over (closed, or silent too long): forget its phones and dial again. */
+  const down = (code) => {
+    const was = state.connected
+    state.connected = false
+    clearInterval(ping)
+    sessions.clear()
+    if (code === 4000) state.error = '另一处用同一配对连上了中继'
+    // Turned away: another computer owns this pairing id, or the claim did not check out (clock off by > 10 min).
+    if (code === 4403) { state.error = '这个配对码归另一台电脑了，换一个配对码'; backoff = 60000 }
+    if (code === 4401) { state.error = '中继没认这台电脑（电脑时间不准？）'; backoff = 60000 }
+    if (was) log('relay: disconnected')
+    schedule()
+  }
   const connect = () => {
     if (stopped) return
-    try { ws = new WebSocketImpl(url) } catch (e) { state.error = String((e && e.message) || e); schedule(); return }
+    try { ws = new WebSocketImpl(url()) } catch (e) { state.error = String((e && e.message) || e); schedule(); return }
+    const sock = ws
     ws.onopen = () => {
-      state.connected = true; state.error = ''; state.since = new Date().toISOString(); backoff = 1000
+      state.connected = true; state.error = ''; state.since = new Date().toISOString(); backoff = 1000; lastSeen = Date.now()
       log('relay: connected to ' + relayUrl)
       clearInterval(ping)
-      ping = setInterval(() => { try { ws.send('ping') } catch { /* closing */ } }, PING_MS)
+      ping = setInterval(() => {
+        if (Date.now() - lastSeen > pingMs * 2 + Math.min(5000, pingMs)) {
+          // Two heartbeats unanswered: let this socket go without waiting for a close that may never come.
+          log('relay: no answer from the relay; dialling again')
+          sock.onclose = null; sock.onmessage = null; sock.onerror = null
+          try { sock.close() } catch { /* already gone */ }
+          down(0)
+          return
+        }
+        try { sock.send('ping') } catch { /* closing */ }
+      }, pingMs)
     }
     ws.onmessage = (ev) => {
+      lastSeen = Date.now()
       const data = typeof ev.data === 'string' ? ev.data : ''
       if (!data || data === 'pong') return
       let f
@@ -136,15 +179,7 @@ export function startRelayClient({ relayUrl, id, secretKey, authorize, forward, 
       else if (typeof f.from === 'string' && typeof f.c === 'string') onFrame(f.from, f.c)
     }
     ws.onerror = () => { state.error = '连不上中继' }
-    ws.onclose = (ev) => {
-      const was = state.connected
-      state.connected = false
-      clearInterval(ping)
-      sessions.clear()
-      if (ev && ev.code === 4000) state.error = '另一处用同一配对连上了中继'
-      if (was) log('relay: disconnected')
-      schedule()
-    }
+    ws.onclose = (ev) => down(ev && ev.code)
   }
   connect()
   return {

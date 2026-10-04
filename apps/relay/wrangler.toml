@@ -11,3 +11,12 @@ class_name = "Relay"
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["Relay"]
+
+# One address may open at most 60 relay connections a minute (phones reconnect with backoff, computers far less).
+[[ratelimits]]
+name = "CONNECT_LIMIT"
+namespace_id = "1001"
+
+  [ratelimits.simple]
+  limit = 60
+  period = 60

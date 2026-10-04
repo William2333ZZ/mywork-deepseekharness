@@ -49,7 +49,8 @@ const zh = {
   noProfile: '没有找到安装了本 Kit 的 profile。',
   noTabs: '没有可用的设置页。',
   phone: '手机',
-  phoneOn: '用 MyWork 手机 App 扫这个码。手机在任何网络下都能连回这台电脑；中间的中继只转发加密过的数据，看不到内容。',
+  phoneOn: '用手机自带的相机扫这个码，在浏览器里就能用；装了 MyWork App 的，在 App 里扫。手机在任何网络下都能连回这台电脑；中间的中继只转发加密过的数据，看不到内容。',
+  phoneReset: '换一个配对码', phoneResetAsk: '换了以后，已经配对的手机都要重新扫一次。', phoneResetYes: '换', phoneResetNo: '不换',
   phoneOff: '现在只有这台电脑能打开 MyWork。',
   phoneAllow: '允许手机连接',
   phoneDeny: '关闭手机连接',
@@ -83,7 +84,8 @@ const en = {
   noProfile: 'No profile with this kit installed was found.',
   noTabs: 'No settings pages available.',
   phone: 'Phone',
-  phoneOn: 'Scan this with the MyWork phone app. The phone reaches this computer from any network; the relay in between only passes encrypted data and cannot read it.',
+  phoneOn: 'Scan this with the phone\'s own camera to use MyWork in the browser, or with the MyWork app if you have it. The phone reaches this computer from any network; the relay in between only passes encrypted data and cannot read it.',
+  phoneReset: 'New pairing code', phoneResetAsk: 'Every paired phone will have to scan again.', phoneResetYes: 'Replace', phoneResetNo: 'Keep',
   phoneOff: 'Only this computer can open MyWork right now.',
   phoneAllow: 'Allow phones to connect',
   phoneDeny: 'Stop phone connections',
@@ -100,6 +102,8 @@ const CSS = `
 .mwk-qr{width:208px;height:208px;padding:12px;box-sizing:border-box;background:#fff;border:1px solid color-mix(in srgb,currentColor 12%,transparent);border-radius:12px}
 .mwk-qr svg{display:block;width:100%;height:100%}
 .mwk-phone button{justify-self:start}
+.mwk-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.mwk-row p{font-size:12px;color:var(--dsw-alias-label-secondary)}
 .mwk-state{margin:0;font-size:12px;line-height:1.6;color:var(--dsw-alias-label-secondary)}
 .mwk-state[data-up=true]{color:var(--dsw-alias-brand-text,var(--dsw-alias-label-primary))}
 .mwk-tabs{display:flex;gap:2px;border-bottom:0.5px solid var(--dsw-alias-border-l2);margin:0 0 16px;overflow-x:auto}
@@ -288,6 +292,9 @@ exports.apply = function apply(ctx) {
     // While the tab is open the relay's state is read again every 5 s (it connects in the background).
     React.useEffect(() => { load(); const id = setInterval(load, 5000); return () => clearInterval(id) }, [load])
     const flip = async (enabled) => { if (busy) return; setBusy(true); try { await api('/phone/enable', { enabled }); await load() } finally { setBusy(false) } }
+    // 换一个配对码 asks once inline (every paired phone has to scan again), then makes a new pairing.
+    const [asking, setAsking] = React.useState(false)
+    const reset = async () => { if (busy) return; setBusy(true); try { await api('/phone/reset', {}); setAsking(false); await load() } finally { setBusy(false) } }
     if (!st) return h('div', null, t('loading'))
     if (!st.here) return h('div', { className: 'mwk-phone' }, h('p', null, t('phoneHere')))
     if (!st.on) return h('div', { className: 'mwk-phone' }, h('p', null, t('phoneOff')), h('button', { type: 'button', className: 'mwk-btn', disabled: busy, onClick: () => flip(true) }, t('phoneAllow')))
@@ -296,7 +303,13 @@ exports.apply = function apply(ctx) {
       h('p', null, t('phoneOn')),
       st.pairing ? h('div', { className: 'mwk-qr', dangerouslySetInnerHTML: { __html: st.pairing.svg } }) : null,
       h('p', { className: 'mwk-state', 'data-up': r.connected ? 'true' : undefined }, !r.url ? t('relayNoUrl') : r.connected ? t('relayUp').replace('{n}', String(r.phones || 0)) : (r.error || t('relayConnecting'))),
-      h('button', { type: 'button', className: 'mwk-btn', disabled: busy, onClick: () => flip(false) }, t('phoneDeny')))
+      asking
+        ? h('div', { className: 'mwk-row' }, h('p', null, t('phoneResetAsk')),
+          h('button', { type: 'button', className: 'mwk-btn', disabled: busy, onClick: reset }, t('phoneResetYes')),
+          h('button', { type: 'button', className: 'mwk-btn', disabled: busy, onClick: () => setAsking(false) }, t('phoneResetNo')))
+        : h('div', { className: 'mwk-row' },
+          h('button', { type: 'button', className: 'mwk-btn', disabled: busy, onClick: () => flip(false) }, t('phoneDeny')),
+          h('button', { type: 'button', className: 'mwk-btn', disabled: busy, onClick: () => setAsking(true) }, t('phoneReset'))))
   }
   ctx.slots.inject(TAB_SLOT, () => ctx.slots.register({
     name: TAB_SLOT, id: 'phone', order: 30, label: () => t('phone'),

@@ -3,7 +3,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import nacl from 'tweetnacl'
-import { newKeyPair, relaySocketUrl, seal, startRelayClient, unseal } from '../src/relay-client.js'
+import { newKeyPair, newSignKeyPair, relaySocketUrl, seal, signedClaim, startRelayClient, unseal } from '../src/relay-client.js'
 
 class FakeSocket {
   static last = null
@@ -27,10 +27,10 @@ function start(over = {}) {
   const keys = newKeyPair()
   const calls = []
   const client = startRelayClient({
-    relayUrl: 'https://relay.example', id: 'pairing-id-0123456789', secretKey: keys.secretKey,
+    relayUrl: 'https://relay.example', id: 'pairing-id-0123456789', secretKey: keys.secretKey, signKey: over.signKey,
     authorize: (t) => t === 'phone-token', allowed: (p) => p.startsWith('/mywork-tasks/'),
     forward: async (method, path, body) => { calls.push({ method, path, body }); return over.reply ? over.reply(path) : { status: 200, contentType: 'application/json', body: Buffer.from(JSON.stringify({ items: [{ id: 'mywork' }] })) } },
-    WebSocketImpl: FakeSocket,
+    WebSocketImpl: FakeSocket, pingMs: over.pingMs,
   })
   return { keys, calls, client }
 }
@@ -101,4 +101,35 @@ test('only MyWork\'s API and file links pass; a large file comes back in chunks 
   assert.deepEqual(Buffer.from(parts.map((r) => r.d).join(''), 'base64'), big)
   for (const s of ws.sent) assert.ok(s.length < 1_000_000, 'every frame fits under the relay limit')
   client.close()
+})
+
+test('on the shared relay the computer signs its claim on the pairing at every dial; a refused claim says why', async () => {
+  const sign = newSignKeyPair()
+  const { client } = start({ signKey: sign.secretKey })
+  await tick()
+  const first = new URL(FakeSocket.last.url.replace(/^wss:/, 'https:'))
+  const ts = first.searchParams.get('ts')
+  assert.equal(first.searchParams.get('id'), 'pairing-id-0123456789')
+  assert.equal(first.searchParams.get('pk'), sign.publicKey)
+  const msg = new TextEncoder().encode(`mywork-relay-v1|computer|pairing-id-0123456789|${ts}`)
+  assert.ok(nacl.sign.detached.verify(msg, new Uint8Array(Buffer.from(first.searchParams.get('sig'), 'base64url')), new Uint8Array(Buffer.from(sign.publicKey, 'base64url'))))
+  assert.ok(!nacl.sign.detached.verify(new TextEncoder().encode('mywork-relay-v1|computer|another-id-0123456789|' + ts), new Uint8Array(Buffer.from(first.searchParams.get('sig'), 'base64url')), new Uint8Array(Buffer.from(sign.publicKey, 'base64url'))))
+  FakeSocket.last.onclose({ code: 4403 })
+  assert.match(client.status().error, /另一台电脑/)
+  client.close()
+  // Each claim carries its own time, so a copied URL is stale on the next dial.
+  assert.notEqual(signedClaim('pairing-id-0123456789', sign.secretKey, 1), signedClaim('pairing-id-0123456789', sign.secretKey, 2))
+})
+
+test('a relay connection that stops answering heartbeats is dropped and dialled again', async () => {
+  const { client } = start({ pingMs: 10 })
+  try {
+    await tick()
+    const first = FakeSocket.last
+    assert.equal(client.status().connected, true)
+    // Nothing comes back (no pong): after two heartbeats and a grace the client gives up on this socket and redials.
+    await new Promise((r) => setTimeout(r, 1300))
+    assert.ok(first.sent.includes('ping'))
+    assert.notEqual(FakeSocket.last, first)
+  } finally { client.close() }
 })

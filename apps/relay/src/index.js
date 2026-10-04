@@ -14,9 +14,35 @@
  * Control: the computer hears `{ ev: 'open' | 'close', from }` as phones come and go; a phone hears `{ ev: 'computer',
  * up }` when it connects and whenever the computer comes or goes. A text 'ping' is answered 'pong' without waking the
  * object (hibernation keeps idle connections free). A newer computer connection replaces an older one.
+ *
+ * Many computers share one relay, so a room belongs to the computer that first claimed it. A computer dials with its
+ * Ed25519 public key, a timestamp and its signature over `mywork-relay-v1|computer|<id>|<ts>`: the first verified key
+ * owns the room (kept in the object's storage), any other key is turned away (4403), and a timestamp not newer than the
+ * last one or off by more than ten minutes is a replay (4401). Whoever sees a pairing code can still not knock its
+ * computer off the relay. Phones need no key here (they prove themselves to the computer inside the encryption); a
+ * room takes at most 8 phones (4029), a phone at most 60 frames in 10 s, and one address 60 connections a minute.
  */
 const ID = /^[A-Za-z0-9_-]{16,64}$/
 const MAX_FRAME = 1_000_000
+const MAX_PHONES = 8
+const SKEW_MS = 10 * 60 * 1000
+const PHONE_BURST = 60
+const PHONE_WINDOW_MS = 10_000
+
+const fromB64url = (s) => {
+  const t = String(s || '').replace(/-/g, '+').replace(/_/g, '/')
+  const bin = atob(t + '='.repeat((4 - (t.length % 4)) % 4))
+  const out = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i)
+  return out
+}
+/** Whether `sig` is the signature of `msg` by the Ed25519 public key `pk` (both base64url). */
+async function signedBy(pk, msg, sig) {
+  try {
+    const key = await crypto.subtle.importKey('raw', fromB64url(pk), { name: 'Ed25519' }, false, ['verify'])
+    return await crypto.subtle.verify({ name: 'Ed25519' }, key, fromB64url(sig), new TextEncoder().encode(msg))
+  } catch { return false }
+}
 const PAIR_PAGE = `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MyWork 配对码</title>
 <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#12100e;color:#efebe2;font:16px/1.7 -apple-system,"PingFang SC","Hiragino Sans GB",sans-serif}main{max-width:320px;padding:24px}h1{font-size:20px;font-weight:600;margin:0 0 8px}p{margin:0;color:rgba(239,235,226,.68)}</style></head>
 <body><main><h1>这是 MyWork 的配对码</h1><p>请打开 MyWork 手机 App，在「扫码」里扫它。这个页面不会收到配对信息。</p></main></body></html>`
@@ -32,6 +58,10 @@ export default {
     const id = url.searchParams.get('id') || ''
     if (!ID.test(id)) return new Response('bad id', { status: 400 })
     if ((req.headers.get('upgrade') || '').toLowerCase() !== 'websocket') return new Response('websocket only', { status: 426 })
+    if (env.CONNECT_LIMIT) {
+      const { success } = await env.CONNECT_LIMIT.limit({ key: req.headers.get('cf-connecting-ip') || 'unknown' })
+      if (!success) return new Response('too many connections', { status: 429 })
+    }
     return env.RELAY.get(env.RELAY.idFromName(id)).fetch(req)
   },
 }
@@ -40,10 +70,41 @@ export class Relay {
   constructor(ctx) {
     this.ctx = ctx
     this.ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair('ping', 'pong'))
+    this.rate = new Map() // phone pid → { start, n }: frames in the current 10 s window (forgotten on hibernation, which is fine)
+  }
+
+  /** Turn a connection away with a close code the client can read (an HTTP error status never reaches a WebSocket client). */
+  refuse(code, reason) {
+    const [client, server] = Object.values(new WebSocketPair())
+    server.accept()
+    server.close(code, reason)
+    return new Response(null, { status: 101, webSocket: client })
+  }
+
+  /** The computer's claim on this room: 'ok', or the close code to refuse it with. */
+  async claim(url) {
+    const id = url.searchParams.get('id') || ''
+    const pk = url.searchParams.get('pk') || ''
+    const ts = Number(url.searchParams.get('ts'))
+    const sig = url.searchParams.get('sig') || ''
+    if (!pk || !sig || !Number.isFinite(ts)) return 4401
+    if (Math.abs(Date.now() - ts) > SKEW_MS) return 4401
+    if (!(await signedBy(pk, `mywork-relay-v1|computer|${id}|${ts}`, sig))) return 4401
+    const owner = await this.ctx.storage.get('owner')
+    if (owner && owner !== pk) return 4403
+    const last = (await this.ctx.storage.get('ts')) || 0
+    if (ts <= last) return 4401
+    await this.ctx.storage.put(owner ? { ts } : { owner: pk, ts })
+    return 'ok'
   }
 
   async fetch(req) {
-    const role = new URL(req.url).pathname.endsWith('/computer') ? 'computer' : 'phone'
+    const url = new URL(req.url)
+    const role = url.pathname.endsWith('/computer') ? 'computer' : 'phone'
+    if (role === 'computer') {
+      const ok = await this.claim(url)
+      if (ok !== 'ok') return this.refuse(ok, ok === 4403 ? 'this pairing belongs to another computer' : 'signature, clock or replay')
+    } else if (this.ctx.getWebSockets('phone').length >= MAX_PHONES) return this.refuse(4029, 'too many phones')
     const pair = new WebSocketPair()
     const [client, server] = Object.values(pair)
     if (role === 'computer') {
@@ -78,7 +139,12 @@ export class Relay {
       if (p) this.send(p, { c: f.c })
     } else {
       const a = ws.deserializeAttachment()
-      if (a && a.pid) this.toComputer({ from: a.pid, c: f.c })
+      if (!a || !a.pid) return
+      const now = Date.now()
+      const r = this.rate.get(a.pid)
+      if (!r || now - r.start > PHONE_WINDOW_MS) this.rate.set(a.pid, { start: now, n: 1 })
+      else if (++r.n > PHONE_BURST) { try { ws.close(4029, 'too fast') } catch {} return }
+      this.toComputer({ from: a.pid, c: f.c })
     }
   }
 
@@ -86,6 +152,6 @@ export class Relay {
   async webSocketError(ws) { this.gone(ws) }
   gone(ws) {
     if (this.ctx.getTags(ws).includes('computer')) { if (!this.ctx.getWebSockets('computer').some((c) => c !== ws)) this.toPhones({ ev: 'computer', up: false }) }
-    else { const a = ws.deserializeAttachment(); if (a && a.pid) this.toComputer({ ev: 'close', from: a.pid }) }
+    else { const a = ws.deserializeAttachment(); if (a && a.pid) { this.rate.delete(a.pid); this.toComputer({ ev: 'close', from: a.pid }) } }
   }
 }

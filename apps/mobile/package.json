@@ -19,6 +19,7 @@
     "expo-clipboard": "~7.1.5",
     "expo-crypto": "~14.1.5",
     "expo-file-system": "~18.1.11",
+    "expo-intent-launcher": "~12.1.5",
     "expo-secure-store": "~14.2.4",
     "expo-sharing": "~13.1.5",
     "expo-status-bar": "~2.2.3",

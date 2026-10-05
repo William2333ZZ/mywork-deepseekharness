@@ -29,6 +29,7 @@ import {
 } from './store.js'
 import { describeSchedule, parseSchedule, routineLastAt, routinePrompt, RoutineStore, routineView } from './routines.js'
 import { lintFindings, outside, resolvePage, scanWiki, searchWiki } from './wiki.js'
+import { createBenches } from './benches.js'
 
 export const name = 'dsh-mywork-tasks'
 export const inject = ['tools', 'agents', 'sessions', 'workspaceRegistry', 'agentDefaultModel', 'agentPresets', 'permissionPresets']
@@ -82,7 +83,8 @@ export function loadTemplates(root) {
       out.set(t.id, t)
     } catch {}
   }
-  return out
+  // The new-teammate page lists them by `order` (每日论文, 知识库, 实验, 代码研究, 论文).
+  return new Map([...out.entries()].sort((a, b) => (Number(a[1].order) || 99) - (Number(b[1].order) || 99)))
 }
 /** A file handed over in pieces may grow to this size (材料/). */
 const UPLOAD_MAX = 20 * 1024 * 1024
@@ -108,14 +110,14 @@ export function personaPrefix(mate) {
     ...(askFirst.length ? [`- 例外：下面这几类事，做之前先用 mywork_ask（askKind approval）问用户，用户允许了再做——${askFirst.join('；')}。`] : []),
     '- 网站要登录时：用户给过你账号和密码就直接登录；没给过，用 mywork_ask（askKind takeover）请用户在电脑上的浏览器里登录，或者问用户要账号。登录状态会留在浏览器里。',
     '- 用户说带时间的事（每天 / 每周 / 工作日 / 几点 / 多久之后 / 提醒我），用 mywork_routine_create 安排成你的例行（这样用户在 MyWork 里看得见、管得着），一件事只安排一次；mywork_routines 查看，mywork_routine_cancel 取消。例行到点时你会收到「这是例行任务…」开头的消息，照要求做完回话；例行运行时没人在等着回答，不要用 mywork_ask。',
-    '- 你盯的东西（股票、课题、竞品……）记在你文件夹里的 清单.csv：一行一个对象，第一列是对象名，其余列你定，中文表头，只往后加列。用户说出的看法、假设和决定记在 判断.csv，表头固定为 编号,类型,内容,依据,重看条件,状态,日期（编号从 J-01 起；类型是 看法 / 假设 / 决定 / 前提；状态是 有效 / 动摇 / 已改 / 撤回）。用户在右边的资料栏里看这两张表。改用户的判断时写清新的状态和理由；你自己的看法在内容前标「同事的：」。',
+    '- 你盯的东西（论文、模型、课题、开源项目……）记在你文件夹里的 清单.csv：一行一个对象，第一列是对象名，其余列你定，中文表头，只往后加列。用户说出的看法、假设和决定记在 判断.csv，表头固定为 编号,类型,内容,依据,重看条件,状态,日期（编号从 J-01 起；类型是 看法 / 假设 / 决定 / 前提；状态是 有效 / 动摇 / 已改 / 撤回）。用户在右边的资料栏里看这两张表。改用户的判断时写清新的状态和理由；你自己的看法在内容前标「同事的：」。',
     '- 用户纠正你，或说了长期的偏好和口径（称呼、格式、数据只用哪种来源），用 mywork_remember 记一条规矩；它写进你文件夹里的 AGENTS.md，以后每一轮都会读到，用户能在资料栏里改和删。一次性的事不要记。',
     '- 用户在你干活时插话，是在改这件事的要求，接着做，按最新的话为准。',
     ...(mate.proactive === 'ask' ? ['- 主动程度：只在用户问时。只做用户叫你做的事和你的例行，不要额外多查、多备、多做。'] : []),
     ...(mate.proactive === 'more' ? ['- 主动程度：多做一点。和你职责有关、用户多半用得上的事（先查、先备、先整理）可以不等用户开口就做，做完在回话里交代一句。'] : []),
   ]
   // MyWork (the default teammate) is the one who finds a long-running job its own teammate.
-  if (mate.isDefault) lines.push('- 你是用户的总助理：长期、反复、要专门盯着的事（每周看几家公司在招什么、每天盯某类消息、定期跟进一个项目或主题）应该交给一位专门的同事，不要都揽成你自己的例行。用户交来这类事时，先用 mywork_mates 看有没有同事已经在做，有就告诉用户去找它；没有就用 mywork_ask（askKind choice，选项「新建同事」「你来做就行」）问一句要不要给它找一位专门的同事。用户选「新建同事」，用 mywork_mate_create 建好（能马上出第一份的，把第一件事写进 first），告诉用户它叫什么、在左边的同事列表里，这件事以后由它做，你不再做；选「你来做就行」，再安排成你的例行。这条优先于「带时间的事安排成例行」那一条。晨报、日报、周报、提醒这类本来就归你的事照常自己做；一次性的事你自己做；用户直接要你新建同事时不用再问。')
+  if (mate.isDefault) lines.push('- 你是用户的总助理：长期、反复、要专门盯着的事（每天过 arXiv、跑一晚上实验、定期跟进一个课题或几个开源项目、每周看几家实验室发了什么）应该交给一位专门的同事，不要都揽成你自己的例行。用户交来这类事时，先用 mywork_mates 看有没有同事已经在做，有就告诉用户去找它；没有就用 mywork_ask（askKind choice，选项「新建同事」「你来做就行」）问一句要不要给它找一位专门的同事。用户选「新建同事」，用 mywork_mate_create 建好（能马上出第一份的，把第一件事写进 first；有对口模板的从模板建，传 template：每天过 arXiv / 追论文 → papers，整理读过的资料、建知识库 → wiki，夜里跑实验、调参、跑 benchmark → experiments，写代码跑一跑来回答一个问题 → code-research，写论文、改稿、投稿前核引用 → paper），告诉用户它叫什么、在左边的同事列表里，这件事以后由它做，你不再做；选「你来做就行」，再安排成你的例行。这条优先于「带时间的事安排成例行」那一条。晨报、日报、周报、提醒这类本来就归你的事照常自己做；一次性的事你自己做；用户直接要你新建同事时不用再问。')
   // Persona text is interpolated ({{model}}, {{cwd}}): a brace pair in what the user wrote must not become a variable.
   return lines.join('\n').replace(/\{\{/g, '{ {').replace(/\}\}/g, '} }')
 }
@@ -206,7 +208,8 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     return {
       id: t.id, mateId: t.mateId, trigger: t.trigger, routineId: t.routineId || '', routineTitle: t.routineTitle || (t.routineId && routines.get(t.routineId) ? routines.get(t.routineId).title : ''),
       status: t.status === 'queued' ? 'running' : t.status, queued: t.status === 'queued',
-      input: t.trigger === 'system' ? '' : t.input, title: t.title || '', summary: t.summary || '', via: t.source === 'mywork' ? 'mywork' : '',
+      input: t.trigger === 'system' ? '' : t.input, title: t.title || '', summary: t.summary || '', via: t.source === 'mywork' ? 'mywork' : t.fromMate ? 'mate:' + ((mates.get(t.fromMate) || {}).name || '同事') : '',
+      loop: t.loop ? { id: t.loop, n: Number(t.loopRound) || 0 } : null,
       // No absolute paths or snapshot locations reach the page (a did entry keeps them for 撤销 only).
       activity: (Array.isArray(t.activity) ? t.activity : []).map(({ requestId: _r, abs: _a, snap: _s, after: _h, files, ...a }) => (files ? { ...a, files: files.map(({ abs: _x, snap: _y, after: _z, ...f }) => f) } : a)),
       deliverables: list.map((d) => ({ ...deliverableSummary(d), excerpt: excerptOf(d.markdown) })),
@@ -249,6 +252,9 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
       routineCount: routines.forMate(m.id).length, dir: m.dir, template: m.template || '',
       // Files you hand over go to the template's drop folder (知识库: 原始资料/), else 材料/; the composer's line for them.
       drop: (() => { const tp = m.template ? templates.get(m.template) : null; return { dir: (tp && tp.dropDir) || MATERIAL_DIR, say: (tp && tp.dropSay) || '' } })(),
+      // A template's work bench beside the thread (知识库 · 论文 · 实验 · 项目), and a 连续跑 in progress.
+      panel: (() => { const tp = m.template ? templates.get(m.template) : null; return tp && tp.panel ? { id: tp.panel.id, tab: tp.panel.tab || tp.name, icon: tp.panel.icon || '' } : null })(),
+      loop: benches.loopView(m),
       askFirst: cleanAskFirst(m.askFirst), proactive: PROACTIVE_LEVELS.includes(m.proactive) ? m.proactive : 'default', readTime: m.isDefault ? (READ_TIME.test(m.readTime || '') ? m.readTime : DEFAULT_READ_TIME) : '',
     }
   }
@@ -375,9 +381,15 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     return [opts.schedule ? '今天的会（来自日程表）：\n' + (agenda || '- 日程表里今天没有安排') : '', out.length ? '同事们做过的事（按同事分）：\n' + out.join('\n\n') : '', '现在有效的例行（以此为准，别的说法都过时了）：\n' + (standing.join('\n') || '- 无')].filter(Boolean).join('\n\n')
   }
 
+  // The work benches of the teammates made for AI work (benches.js): arXiv list, 连续跑, results.tsv, projects, 核引用.
+  const benches = createBenches({ store, mates, routines, templates, emit, pump: () => engine.pump(), log, notFound, bad, fetch: config.fetch })
   const engine = createEngine({
     ctx, store, deliverables, mates, routines, scenarios, log, emit, controller, presetFor, workRecord,
-    afterTurn: (mateId) => { if (stalePresets.delete(mateId)) relink(mateId); try { onboardAfterIntro(mateId); subscribeAfterOnboard(mateId) } catch (e) { log('onboard: ' + (e && e.message)) } },
+    afterTurn: (mateId) => {
+      if (stalePresets.delete(mateId)) relink(mateId)
+      try { onboardAfterIntro(mateId); subscribeAfterOnboard(mateId) } catch (e) { log('onboard: ' + (e && e.message)) }
+      try { benches.continueLoop(mateId) } catch (e) { log('loop: ' + (e && e.message)) }
+    },
     config: {
       concurrency: Number(config.concurrency) || 2, timeoutMs: Math.max(1, Number(config.timeoutMinutes) || 20) * 60000,
       permission: String(config.permission || 'workspace-write'), agentPreset: config.agentPreset === '' ? undefined : (config.agentPreset || 'standard'),
@@ -652,10 +664,15 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
    * queued like any other). A reminder does not run the teammate: it fires (fired[] as before) and posts a synthetic
    * done run into the teammate's thread whose activity is one { kind: 'remind', routineId, title, at, acked } entry.
    */
-  function runRoutine(id) {
+  function runRoutine(id, opts = {}) {
     const r = routines.get(String(id || ''))
     if (!r) throw notFound('routine not found')
     const mateId = mates.get(r.mateId) ? r.mateId : DEFAULT_MATE_ID
+    // A bench routine: 过夜实验 starts 连续跑; 今天的 arXiv has code fetch the day's list first (its run comes after).
+    if (r.kind !== 'remind') {
+      const took = benches.runRoutine(r, mateId, opts)
+      if (took) return { routine: rview(routines.get(r.id)), runId: took.runId, preparing: !!took.preparing }
+    }
     if (r.kind === 'remind') {
       routines.fire(r.id)
       const at = routines.get(r.id).fired[0].at
@@ -668,6 +685,7 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     const run = store.create({ mateId, trigger: 'routine', routineId: r.id, routineTitle: r.title, input: r.input })
     // 知识库体检: code finds orphans, broken links and pages missing from the index first; the model does the rest.
     if (r.lint === 'wiki') { try { store.update(run.id, { prompt: routinePrompt(r, null, '') + '\n\n程序先查到的：\n' + lintFindings(scanWiki(mates.get(mateId).dir)) }) } catch (e) { log(`lint ${r.id}: ${e && e.message}`) } }
+    if (r.prep) { try { const extra = benches.routineFacts(r, mates.get(mateId)); if (extra) store.update(run.id, { promptExtra: extra }) } catch (e) { log(`prep ${r.id}: ${e && e.message}`) } }
     routines.ran(r.id, { taskId: run.id })
     emit('queued', run)
     engine.pump()
@@ -757,7 +775,7 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
    * any, is queued behind the intro as a line handed over by MyWork (run.source 'mywork', shown 「MyWork 转交」).
    */
   function handOver(b) {
-    const mate = createMate({ description: b.description, name: b.name, title: b.title, group: b.group })
+    const mate = createMate(b.template ? { template: b.template } : { description: b.description, name: b.name, title: b.title, group: b.group })
     const first = String(b.first || '').trim()
     if (first) {
       const run = store.create({ mateId: mate.id, trigger: 'user', input: first, source: 'mywork' })
@@ -1034,20 +1052,24 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     if (e.done) throw bad('已经交给它了。')
     const on = (id) => (b.items && typeof b.items === 'object' && id in b.items ? !!b.items[id] : !!((e.items || []).find((x) => x.id === id) || {}).on)
     const made = []
+    const now = []
     for (const x of tp.subscribe || []) {
       if (!on(x.id)) continue
       if (x.routine && x.routine.schedule && !routines.forMate(m.id).some((r) => r.title === x.routine.title)) {
-        const r = routines.create({ mateId: m.id, kind: 'task', title: x.routine.title, input: x.routine.input, schedule: x.routine.schedule, lint: x.routine.lint })
+        const r = routines.create({ mateId: m.id, kind: 'task', title: x.routine.title, input: x.routine.input, schedule: x.routine.schedule, lint: x.routine.lint, prep: x.routine.prep, loopUntil: x.routine.loopUntil })
         store.activity(run.id, { kind: 'routine', action: 'created', routineId: r.id, title: r.title, scheduleLabel: describeSchedule(r.schedule) })
         store.activity(run.id, { kind: 'did', id: didId(), act: 'routine', routineId: r.id, title: r.title, undoable: true })
         emit('routine', null, { mateId: m.id, routine: rview(r) })
         made.push(r.id)
+        if (x.routine.runNow) now.push(r.id)
       }
       if (x.rule) { rememberLine(m, String(x.rule)); store.activity(run.id, { kind: 'did', id: didId(), act: 'rule', line: String(x.rule), undoable: true }) }
     }
     const at = new Date().toISOString()
     store.update(run.id, () => { e.done = true; e.doneAt = at; e.items = (e.items || []).map((x) => ({ ...x, on: on(x.id) })) })
     emit('mate', null, { mateId: m.id })
+    // 「先过一遍今天的」: a routine the template runs once at once (每日论文's first list), after the card is closed.
+    for (const id of now) { try { runRoutine(id, { manual: true }) } catch (x) { log(`run now ${id}: ${x && x.message}`) } }
     return { routines: made }
   }
 
@@ -1184,7 +1206,7 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     {
       name: 'mywork_remember',
       description: '记一条规矩（只在 MyWork 同事的会话里可用）：用户纠正你、或说了长期的偏好和口径时用。写成一行追加到你文件夹里的 AGENTS.md，以后每一轮都会读到；用户在资料栏里能改能删，对话里会出一行「记下了」。≤300 字，一次一条；一次性的事不要记。',
-      parameters: { fact: { type: 'string', required: true, description: '这条规矩，一句话，例如「周报用表格，按项目分」「财务数字只用年报原文，研报里的数标为券商估计」' } },
+      parameters: { fact: { type: 'string', required: true, description: '这条规矩，一句话，例如「周报用表格，按项目分」「模型的数字只用官方报告和 system card，第三方测评标为第三方」' } },
       execute(args, exec) {
         const c = mateOnly(exec, 'mywork_remember')
         const fact = String(args.fact || '').replace(/\s+/g, ' ').trim()
@@ -1234,16 +1256,29 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
         title: { type: 'string', description: '可选，一行头衔' },
         group: { type: 'string', description: '可选，类型（左边列表的分组），≤12 字；有合适的已有类型就用已有的' },
         first: { type: 'string', description: '可选，要它马上先做的第一件事，一句话，例如「先出一份今天的」；不给就等到点再做' },
+        template: { type: 'string', description: '可选，从模板建（有对口的模板就用）：papers 每日论文 / wiki 知识库 / experiments 实验 / code-research 代码研究 / paper 论文。用模板时 description 写一句用户的原话即可，它会先请用户填开工卡，first 不用给。' },
       },
       execute(args, exec) {
         const c = myworkOnly(exec, 'mywork_mate_create')
-        const { mate, first } = handOver({ description: args.description, name: args.name, title: args.title, group: args.group, first: args.first })
+        if (args.template && !templates.has(String(args.template))) throw new Error('没有这个模板：' + args.template + '。可用的：' + [...templates.keys()].join(' / '))
+        const { mate, first } = handOver({ description: args.description, name: args.name, title: args.title, group: args.group, first: args.template ? '' : args.first, template: args.template })
         if (c.run) store.activity(c.run.id, { kind: 'mate', action: 'created', mateId: mate.id, name: mate.named ? mate.name : '' })
-        return { created: true, id: mate.id, name: mate.named ? mate.name : '', group: mate.group, first }
+        return { created: true, id: mate.id, name: mate.named ? mate.name : '', group: mate.group, first, ...(args.template ? { template: String(args.template) } : {}) }
       },
-      render: (_a, v) => [{ type: 'text', text: `已新建同事${v.name ? '「' + v.name + '」' : '（它会先给自己起名）'}，它正在自我介绍${v.first ? '，接着马上做「' + v.first + '」' : ''}。用一两句话告诉用户：它负责什么、在左边的同事列表里，以后这件事直接找它。不要再自己做这件事。` }],
+      render: (_a, v) => [{ type: 'text', text: `已新建同事${v.name ? '「' + v.name + '」' : '（它会先给自己起名）'}，它正在自我介绍${v.first ? '，接着马上做「' + v.first + '」' : ''}${v.template ? '，然后会请用户填一张开工卡' : ''}。用一两句话告诉用户：它负责什么、在左边的同事列表里，以后这件事直接找它。不要再自己做这件事。` }],
     },
   ]
+  // The bench tools (mywork_loop for 实验, mywork_cite_check for 论文): only the teammate whose template has that bench.
+  for (const bt of benches.tools) {
+    tools.push({
+      name: bt.name, description: bt.description, parameters: bt.parameters, render: bt.render,
+      execute(args, exec) {
+        const c = mateOnly(exec, bt.name)
+        if (benches.benchOf(c.mate) !== bt.bench) throw new Error(`${bt.name} 只给有这个工作台的同事用。`)
+        return bt.execute(args || {}, mates.get(c.mate.id) || c.mate)
+      },
+    })
+  }
 
   // ── HTTP ──
   const idOf = (b) => String((b && b.id) || '').trim()
@@ -1264,12 +1299,12 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
         return { mate: mateViewById(idOf(b)), runId: r.runId, mode: r.mode }
       },
     },
-    '/mates/stop': { POST: (_q, b) => { if (!mates.get(idOf(b))) throw notFound('同事不存在。'); engine.stop(idOf(b)); return { mate: mateViewById(idOf(b)) } } },
+    '/mates/stop': { POST: (_q, b) => { const m = mates.get(idOf(b)); if (!m) throw notFound('同事不存在。'); benches.finishLoop(m, '你停下了'); engine.stop(idOf(b)); return { mate: mateViewById(idOf(b)) } } },
     '/answer': { POST: (_q, b) => ({ run: runView(engine.answer(idOf(b), b.askId === undefined || b.askId === null ? '' : String(b.askId), b.answer)) }) },
     '/routines': { GET: (q) => { const mate = String(q.get('mate') || '').trim(); const list = mate ? routines.forMate(mate) : routines.items; return { items: list.slice().reverse().map(rview), pending: routines.pending() } } },
     '/routines/create': { POST: (_q, b) => ({ routine: createRoutine({ mateId: b.mateId || DEFAULT_MATE_ID, input: b.input, schedule: b.schedule, kind: b.kind, title: b.title }) }) },
     '/routines/update': { POST: (_q, b) => ({ routine: updateRoutine(b) }) },
-    '/routines/run': { POST: (_q, b) => runRoutine(idOf(b)) },
+    '/routines/run': { POST: (_q, b) => runRoutine(idOf(b), { manual: true }) },
     '/routines/enable': { POST: (_q, b) => { const r = routines.setEnabled(idOf(b), b.enabled !== false); if (!r) throw notFound('routine not found'); return { routine: rview(r) } } },
     '/routines/remove': { POST: (_q, b) => ({ removed: removeRoutine(idOf(b)) }) },
     '/routines/ack': { POST: (_q, b) => ({ routine: ackRoutine(idOf(b), b.at), pending: routines.pending() }) },
@@ -1298,6 +1333,7 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     '/mates/wiki/page': { GET: (q) => wikiPage(q.get('id'), q.get('path'), q.get('name'), q.get('from')) },
     '/mates/wiki/seen': { POST: (_q, b) => wikiSeen(idOf(b), b.path) },
     '/mates/wiki/search': { GET: (q) => { const m = mates.get(String(q.get('id') || '')); if (!m) throw notFound('同事不存在。'); return { items: searchWiki(m.dir, q.get('q')) } } },
+    ...benches.routes,
   }
   /** One request: { status, body }. `query` is URLSearchParams or a plain object. */
   async function handle(method, path, query, body) {
@@ -1314,7 +1350,8 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
 
   /** The scheduler tick: due routines run, questions nobody answered in 24 h resume on assumptions. */
   function tick() {
-    try { for (const r of routines.due()) runRoutine(r.id) } catch (e) { log('scheduler: ' + (e && e.message)) }
+    try { for (const r of routines.due()) if (!benches.isPreparing(r.id)) runRoutine(r.id) } catch (e) { log('scheduler: ' + (e && e.message)) }
+    try { for (const m of mates.items) if (m.loop && m.loop.active) benches.continueLoop(m.id) } catch (e) { log('loop tick: ' + (e && e.message)) }
     try { engine.expireAsks() } catch (e) { log('ask expiry: ' + (e && e.message)) }
   }
 

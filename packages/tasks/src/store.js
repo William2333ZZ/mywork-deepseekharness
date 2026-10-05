@@ -367,7 +367,7 @@ export function askView(a) {
 }
 
 /** A quiet routine run (变化：无) is kept in the routine's record but is not part of the thread. */
-export const isQuietRun = (t) => !!t && t.quiet === true && t.trigger === 'routine'
+export const isQuietRun = (t) => !!t && t.quiet === true && (t.trigger === 'routine' || !!t.loop)
 /** Is the run in flight (queued for its turn, or in it)? */
 export const isLiveRun = (t) => !!t && (t.status === 'running' || t.status === 'queued')
 

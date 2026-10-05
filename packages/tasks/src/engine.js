@@ -354,7 +354,8 @@ export function createEngine({ ctx, store, deliverables, mates, routines, scenar
         const previous = previousRun ? deliverables.get(previousRun.deliverableId) : null
         const record = wantsRecord(routine) && typeof workRecord === 'function' ? workRecord(recordDays(routine), { schedule: wantsSchedule(routine) }) : ''
         if (record) store.update(run.id, { material: record, report: true }) // the verifier must see the same record
-        return routinePrompt(routine, previous, record)
+        // Facts code prepared for this run (实验早报: the numbers from results.tsv) follow the routine's prompt.
+        return routinePrompt(routine, previous, record) + (run.promptExtra ? '\n' + run.promptExtra : '')
       }
     }
     return run.promptExtra ? run.input + '\n' + run.promptExtra : run.input
@@ -745,7 +746,8 @@ export function createEngine({ ctx, store, deliverables, mates, routines, scenar
       return
     }
     if (error && ask) store.settleAsk(runId, 'expired')
-    const quiet = run.trigger === 'routine' && !error ? quietFor(run, state.text) : false
+    // A round of 连续跑 is one grey line in the thread (the panel has the numbers); a failed one shows.
+    const quiet = run.loopRound > 0 && !error ? true : run.trigger === 'routine' && !error ? quietFor(run, state.text) : false
     if (run.trigger === 'routine') {
       // The closing 变化 line is for the engine; the thread shows the reply without it.
       store.update(runId, (x) => { for (let i = x.activity.length - 1; i >= 0; i -= 1) if (x.activity[i].kind === 'text') { const cleaned = stripVerdict(x.activity[i].text); if (cleaned) x.activity[i].text = cleaned; break } })

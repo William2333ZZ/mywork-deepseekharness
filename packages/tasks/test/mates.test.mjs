@@ -20,11 +20,12 @@ import { describeSchedule } from '../src/routines.js'
 const describe = (r) => describeSchedule(r.schedule)
 import { ASK_TEXT, INTERRUPTED, messageText, NUDGE_TEXT, STOPPED } from '../src/engine.js'
 import { ASK_EXPIRY_MS, pendingAsk } from '../src/store.js'
+import { BIB, fakeScholar, RSS, TEX } from './fakes.mjs'
 
 const STANDARD = new URL('../presets/mate-base/agent.cordis.yml', import.meta.url).pathname
 const gate = () => { let open; const promise = new Promise((r) => { open = r }); return { promise, open } }
 
-export function harness({ concurrency = 2, verify = false, home } = {}) {
+export function harness({ concurrency = 2, verify = false, home, fetch } = {}) {
   const dir = home || mkdtempSync(join(tmpdir(), 'mywork-mates-'))
   const sessions = new Map()
   const h = { dir, sessions, scripts: [], verdict: '{"passed": true, "checked": 2, "issues": 0, "notes": "ok"}', verifyGate: null, scriptErrors: [], logs: [], events: [], prompts: [], deduped: [], cancels: [], workspaces: [], created: [], recomposes: [], titles: [], removedItems: [], agents: new Map(), promptFails: false, mw: null }
@@ -149,7 +150,7 @@ export function harness({ concurrency = 2, verify = false, home } = {}) {
   }
   h.controller = controller
   h.ctx = ctx
-  h.mw = createMyWork({ ctx, config: { concurrency, verify, timeoutMinutes: 1 }, home: dir, log: (m) => h.logs.push(m), controller: () => controller, hostEmit: (p) => h.events.push(p) })
+  h.mw = createMyWork({ ctx, config: { concurrency, verify, timeoutMinutes: 1, ...(fetch ? { fetch } : {}) }, home: dir, log: (m) => h.logs.push(m), controller: () => controller, hostEmit: (p) => h.events.push(p) })
   h.until = async (fn, ms = 3000) => { const t0 = Date.now(); while (!fn()) { if (h.scriptErrors.length) throw h.scriptErrors[0]; if (Date.now() - t0 > ms) throw new Error('timed out waiting for the engine'); await new Promise((r) => setTimeout(r, 5)) } }
   h.call = async (method, path, a) => { const out = await h.mw.handle(method, path, method === 'GET' ? a : undefined, method === 'POST' ? a : undefined); return out }
   h.ok = async (method, path, a) => { const out = await h.call(method, path, a); assert.equal(out.status, 200, JSON.stringify(out.body)); return out.body }
@@ -1116,7 +1117,8 @@ test('先问 and 主动程度 go into the persona; capability lines replace the 
 test('知识库 from its template: intro → 上岗卡 (topic + first sources into 原始资料/) → it builds the wiki → 它会主动做的 (a rule, the weekly 体检) → the wiki read by code', async () => {
   const h = harness()
   const { items: tpls } = await h.ok('GET', '/templates')
-  assert.deepEqual(tpls.map((x) => x.id), ['wiki'])
+  // The teammates made for AI work, in the order the new-teammate page shows them (design/v2/AI-WORKERS.md).
+  assert.deepEqual(tpls.map((x) => x.id), ['papers', 'wiki', 'experiments', 'code-research', 'paper'])
   h.scripts.push((t) => { assert.match(t.texts[0], /知识库/); assert.doesNotMatch(t.texts[0], /mywork_mate_update/); t.say('你好，我替你维护知识库。') })
   const { mate } = await h.ok('POST', '/mates/create', { template: 'wiki' })
   assert.deepEqual([mate.name, mate.group, mate.template, mate.drop.dir], ['知识库', '研究', 'wiki', '原始资料'])
@@ -1210,5 +1212,248 @@ test('files a run writes any way (a script, bash) become one did entry; 撤销 d
   assert.equal(readFileSync(join(dir, 'wiki', 'index.md'), 'utf8'), '# 索引\n旧\n')
   assert.equal(existsSync(join(dir, 'wiki', 'new.md')), false)
   assert.equal(readFileSync(join(dir, 'wiki', 'gone.md'), 'utf8'), '# 要删的\n')
+  h.cleanup()
+})
+
+// ── the teammates made for AI work (design/v2/AI-WORKERS.md) ──
+const introDone = (h, id) => h.runsOf(id).some((r) => r.trigger === 'system' && r.status === 'done' && (r.activity || []).some((a) => a.kind === 'onboard'))
+const cardIn = (h, id, kind) => { for (const r of h.runsOf(id)) { const e = (r.activity || []).find((a) => a.kind === kind); if (e) return { run: r, e } } return null }
+
+test('每日论文: 上岗卡 → its categories in AGENTS.md → 交给它 fetches the whole day by code and the run gets it → picks in the panel → 收进知识库 hands the paper to the 知识库; a day already gone through or without a list is one grey line', async () => {
+  const calls = []
+  let feed = RSS([{ id: '2610.00001', title: 'Sparse Attention for Long Context' }, { id: '2610.00002', title: 'KV Cache Compression', type: 'cross', cross: true }, { id: '2609.11111', title: 'An Old Paper, Revised', type: 'replace' }])
+  const h = harness({ fetch: async (url) => { calls.push(url); return { ok: true, status: 200, text: async () => feed } } })
+  h.scripts.push((t) => { assert.match(t.texts[0], /每日论文/); t.say('你好，我替你每天过 arXiv。') })
+  const { mate } = await h.ok('POST', '/mates/create', { template: 'papers' })
+  assert.deepEqual([mate.name, mate.group, mate.panel, mate.drop.dir], ['每日论文', '研究', { id: 'papers', tab: '论文', icon: 'newspaper' }, '文献库'])
+  const dir = join(h.dir, 'mywork', 'mates', mate.id)
+  assert.ok(existsSync(join(dir, '每日')) && existsSync(join(dir, '文献库')))
+  await h.until(() => introDone(h, mate.id))
+  const ob = cardIn(h, mate.id, 'onboard')
+  // 上岗: it writes the categories where code reads them
+  h.scripts.push((t) => {
+    assert.match(t.texts[0], /^分类：cs\.CL, cs\.LG。长上下文/); assert.match(t.texts[0], /「分类：」那一行/)
+    const a = join(dir, 'AGENTS.md'); writeFileSync(a, readFileSync(a, 'utf8').replace(/^- 分类：.*$/m, '- 分类：cs.CL, cs.LG'))
+    t.say('订了 cs.CL 和 cs.LG。')
+  })
+  await h.ok('POST', '/mates/onboard', { id: mate.id, runId: ob.run.id, entryId: ob.e.id, text: '分类：cs.CL, cs.LG。长上下文推理。' })
+  await h.until(() => !!cardIn(h, mate.id, 'subscribe'))
+  const sb = cardIn(h, mate.id, 'subscribe')
+  assert.deepEqual(sb.e.items.map((x) => [x.id, x.on]), [['daily', true], ['ask', true], ['weekly', false]])
+  // 交给它: the workday routine, and the first list at once — fetched by code, handed to the run
+  h.scripts.push((t) => {
+    assert.match(t.texts[0], /程序取到了 2026-10-05 的 arXiv 全表（cs\.CL, cs\.LG）：3 篇 —— 新 1 · 交叉 1 · 更新 1。/)
+    assert.match(t.texts[0], /\n1\. \[2610\.00001\] Sparse Attention for Long Context（cs\.CL · 新）\n2\. \[2610\.00002\] KV Cache Compression（cs\.CL cs\.LG · 交叉）/)
+    assert.doesNotMatch(t.texts[0], /2609\.11111\] An Old/) // updated papers are in their own file, not the titles to go through
+    assert.match(readFileSync(join(dir, '每日', '2026-10-05.更新.txt'), 'utf8'), /2609\.11111/)
+    writeFileSync(join(dir, '每日', '2026-10-05.md'), '## 必读\n\n[2610.00001] Sparse Attention for Long Context\n- 做了什么：…\n\n## 值得看\n- [2610.00002] KV Cache Compression —— 和你的方向近\n\n过了 2 篇（新 1 · 交叉 1），必读 1，值得看 1。\n')
+    t.say('必读一篇：Sparse Attention for Long Context。')
+  })
+  const { routines: made } = await h.ok('POST', '/mates/subscribe', { id: mate.id, runId: sb.run.id, entryId: sb.e.id })
+  const rt = h.mw.routines.get(made[0])
+  assert.deepEqual([rt.title, rt.prep, describe(rt)], ['今天的 arXiv', 'arxiv', '工作日 12:30'])
+  await h.until(() => h.runsOf(mate.id).some((r) => r.trigger === 'routine' && r.status === 'done'))
+  assert.deepEqual(calls, ['https://rss.arxiv.org/rss/cs.CL+cs.LG'])
+  const view = await h.ok('GET', '/mates/papers', { id: mate.id })
+  assert.deepEqual([view.date, view.triage, view.cats, view.counts], ['2026-10-05', '每日/2026-10-05.md', ['cs.CL', 'cs.LG'], { new: 1, cross: 1, replace: 1 }])
+  assert.deepEqual(view.items.map((p) => [p.id, p.pick, p.typeWord]), [['2610.00001', 'must', '新'], ['2610.00002', 'worth', '交叉'], ['2609.11111', '', '更新']])
+  assert.equal((await h.ok('GET', '/mates/papers/item', { id: mate.id, date: '2026-10-05', pid: '2610.00001' })).abstract, 'An abstract.')
+  // 收进知识库: refused while there is no 知识库; with one, the abstract goes to its 原始资料/ and it takes it in
+  const none = await h.call('POST', '/mates/papers/wiki', { id: mate.id, date: '2026-10-05', pid: '2610.00001' })
+  assert.equal(none.status, 400)
+  h.scripts.push((t) => t.say('你好，我替你维护知识库。'))
+  const { mate: wiki } = await h.ok('POST', '/mates/create', { template: 'wiki' })
+  await h.until(() => introDone(h, wiki.id))
+  h.scripts.push((t) => { assert.match(t.texts[0], /^收进知识库：原始资料\/arXiv-2610\.00001\.md（Sparse Attention for Long Context）/); t.say('收好了。') })
+  const handed = await h.ok('POST', '/mates/papers/wiki', { id: mate.id, date: '2026-10-05', pid: '2610.00001' })
+  assert.equal(handed.wiki.id, wiki.id)
+  assert.match(readFileSync(join(h.dir, 'mywork', 'mates', wiki.id, '原始资料', 'arXiv-2610.00001.md'), 'utf8'), /^来源：https:\/\/arxiv\.org\/abs\/2610\.00001\nPDF：https:\/\/arxiv\.org\/pdf\/2610\.00001\n取得：\d{4}-\d{2}-\d{2}（每日论文转来/)
+  assert.match(readFileSync(join(dir, '收藏.md'), 'utf8'), /- \d{4}-\d{2}-\d{2} \[2610\.00001\] Sparse Attention for Long Context\n$/)
+  await h.until(() => h.run(handed.runId).status === 'done')
+  const wth = await h.ok('GET', '/mates/thread', { id: wiki.id })
+  assert.equal(wth.runs.find((r) => r.id === handed.runId).via, 'mate:每日论文')
+  assert.equal((await h.ok('GET', '/mates/papers', { id: mate.id })).items[0].handed, true)
+  // the scheduler on a day already gone through, then a day without a list: a grey line each, no run of the model
+  const before = h.runsOf(mate.id).filter((r) => r.trigger === 'routine' && !r.quiet).length
+  h.mw.runRoutine(rt.id)
+  await h.until(() => h.runsOf(mate.id).some((r) => r.quiet && r.summary === '2026-10-05 的表已经过过了'))
+  feed = RSS([], 'Sat, 10 Oct 2026 00:00:00 -0400')
+  h.mw.runRoutine(rt.id)
+  await h.until(() => h.runsOf(mate.id).some((r) => r.quiet && /没有新表/.test(r.summary)))
+  assert.equal(h.runsOf(mate.id).filter((r) => r.trigger === 'routine' && !r.quiet).length, before)
+  assert.equal(h.mw.routines.get(rt.id).runs[0].changed, false)
+  h.cleanup()
+})
+
+test('实验: 连续跑 — code calls round after round (each a grey line), and after 3 rounds without a new results.tsv row it ends with a line of numbers by code; 停下 ends it at once; past its time it ends on the tick', async () => {
+  const h = harness()
+  h.scripts.push((t) => t.say('你好，我是实验。'))
+  const { mate } = await h.ok('POST', '/mates/create', { template: 'experiments' })
+  assert.deepEqual(mate.panel, { id: 'experiments', tab: '实验', icon: 'flask' })
+  await h.until(() => introDone(h, mate.id))
+  const dir = join(h.dir, 'mywork', 'mates', mate.id)
+  assert.equal(readFileSync(join(dir, 'results.tsv'), 'utf8'), 'commit\tmetric\tmemory_gb\tstatus\tdescription\n')
+  writeFileSync(join(dir, 'program.md'), '# program.md\n\n- 指标：val_bpb\n- 方向：越低越好\n')
+  const tsv = join(dir, 'results.tsv')
+  writeFileSync(tsv, 'commit\tval_bpb\tmemory_gb\tstatus\tdescription\na1\t0.9979\t44\tkeep\tbaseline\n')
+  const add = (line) => writeFileSync(tsv, readFileSync(tsv, 'utf8') + line + '\n')
+  h.scripts.push((t) => { assert.match(t.texts[0], /^（连续跑 · 第 1 轮 · 到 \d\d:\d\d 为止/); assert.match(t.texts[0], /不要问要不要继续/); add('b2\t0.9932\t44\tkeep\tLR 0.04'); t.say('LR 0.04：0.9932，留。') })
+  h.scripts.push((t) => { assert.match(t.texts[0], /第 2 轮/); assert.match(t.texts[0], /今晚到现在：1 次：保留 1 · 丢弃 0 · 崩溃 0；val_bpb 0\.9979 → 0\.9932（b2）/); add('c3\t1.005\t44\tdiscard\tGeLU'); t.say('GeLU：1.005，丢。') })
+  h.scripts.push((t) => { assert.match(t.texts[0], /第 3 轮/); assert.doesNotMatch(t.texts[0], /上一轮没有/); t.say('GPU 被占了。') })
+  h.scripts.push((t) => { assert.match(t.texts[0], /第 4 轮/); assert.match(t.texts[0], /上一轮没有往 results\.tsv 加行/); t.say('还是被占。') })
+  h.scripts.push((t) => { assert.match(t.texts[0], /第 5 轮/); t.say('还是被占。') })
+  const started = await h.ok('POST', '/mates/loop', { id: mate.id, minutes: 600 })
+  assert.equal(started.loop.rounds, 1)
+  assert.ok(h.mw.mateView(mate.id).loop)
+  await h.until(() => !h.mw.mates.get(mate.id).loop.active)
+  const rounds = h.runsOf(mate.id).filter((r) => r.loop)
+  assert.deepEqual(rounds.map((r) => [r.loopRound, r.quiet]), [[1, true], [2, true], [3, true], [4, true], [5, true]])
+  const end = h.runsOf(mate.id).find((r) => r.loopEnd)
+  assert.match(end.summary, /^连续跑结束（连续 3 轮没有新结果）：\d\d:\d\d–\d\d:\d\d，5 轮。2 次：保留 1 · 丢弃 1 · 崩溃 0；val_bpb 0\.9979 → 0\.9932（b2）$/)
+  const th = await h.ok('GET', '/mates/thread', { id: mate.id, limit: 50 })
+  assert.deepEqual(th.runs.filter((r) => r.loop).map((r) => r.loop.n), [1, 2, 3, 4, 5])
+  assert.equal(h.mw.mateView(mate.id).loop, null)
+  const ledger = await h.ok('GET', '/mates/ledger', { id: mate.id })
+  assert.deepEqual([ledger.metric, ledger.dir, ledger.total, ledger.keep, ledger.best.commit, ledger.lastLoop.rounds, ledger.lastLoop.why], ['val_bpb', 'lower', 3, 2, 'b2', 5, '连续 3 轮没有新结果'])
+
+  // 停下: the round in flight is stopped and no other comes
+  const g = gate()
+  h.scripts.push(async () => { await g.promise }) // (a cancelled turn says nothing more)
+  await h.ok('POST', '/mates/loop', { id: mate.id, until: '07:00' })
+  await h.until(() => h.runsOf(mate.id).some((r) => r.loop && r.status === 'running'))
+  await h.ok('POST', '/mates/stop', { id: mate.id })
+  g.open()
+  await h.until(() => h.runsOf(mate.id).filter((r) => r.loopEnd).length === 2)
+  assert.match(h.runsOf(mate.id).filter((r) => r.loopEnd)[1].summary, /^连续跑结束（你停下了）/)
+  await new Promise((r) => setTimeout(r, 30))
+  assert.equal(h.runsOf(mate.id).filter((r) => r.status !== 'done').length, 0)
+
+  // past its time: the tick ends it
+  const g2 = gate()
+  h.scripts.push(async (t) => { await g2.promise; t.say('…') })
+  await h.ok('POST', '/mates/loop', { id: mate.id, minutes: 30 })
+  await h.until(() => h.runsOf(mate.id).some((r) => r.loop && r.status === 'running'))
+  h.mw.mates.update(mate.id, { loop: { ...h.mw.mates.get(mate.id).loop, until: new Date(Date.now() - 1000).toISOString() } })
+  g2.open()
+  await h.until(() => h.runsOf(mate.id).filter((r) => r.loopEnd).length === 3)
+  assert.match(h.runsOf(mate.id).filter((r) => r.loopEnd)[2].summary, /^连续跑结束（到点了）/)
+  // only the 实验 teammate has the bench
+  const other = await h.call('POST', '/mates/loop', { id: 'mywork', minutes: 10 })
+  assert.equal(other.status, 400)
+  h.cleanup()
+})
+
+test('过夜实验 and 实验早报: the routine starts 连续跑 with its run as round one; the morning report gets the numbers from results.tsv', async () => {
+  const h = harness()
+  h.scripts.push((t) => t.say('你好，我是实验。'))
+  const { mate } = await h.ok('POST', '/mates/create', { template: 'experiments' })
+  await h.until(() => introDone(h, mate.id))
+  const dir = join(h.dir, 'mywork', 'mates', mate.id)
+  writeFileSync(join(dir, 'program.md'), '- 指标：val_bpb\n- 方向：越低越好\n')
+  const tsv = join(dir, 'results.tsv')
+  writeFileSync(tsv, 'commit\tval_bpb\tmemory_gb\tstatus\tdescription\na1\t0.9979\t44\tkeep\tbaseline\n')
+  // the subscription card, closed straight away (the onboarding run is not what this test is about)
+  const ob = cardIn(h, mate.id, 'onboard')
+  h.scripts.push((t) => t.say('基线 0.9979。'))
+  await h.ok('POST', '/mates/onboard', { id: mate.id, runId: ob.run.id, entryId: ob.e.id, text: 'ssh gpu1，~/nanochat' })
+  await h.until(() => !!cardIn(h, mate.id, 'subscribe'))
+  const sb = cardIn(h, mate.id, 'subscribe')
+  const { routines: made } = await h.ok('POST', '/mates/subscribe', { id: mate.id, runId: sb.run.id, entryId: sb.e.id })
+  const night = made.map((id) => h.mw.routines.get(id)).find((r) => r.loopUntil)
+  const morning = made.map((id) => h.mw.routines.get(id)).find((r) => r.prep === 'ledger')
+  assert.deepEqual([night.title, describe(night), night.loopUntil, morning.title, describe(morning)], ['过夜实验', '每天 23:00', '07:00', '实验早报', '每天 08:00'])
+  assert.match(readFileSync(join(dir, 'AGENTS.md'), 'utf8'), /（留或丢）提升很小却加了一堆难看代码的改动不留/)
+  // 23:00: round one is the routine's own run; then code calls the next
+  h.scripts.push((t) => { assert.match(t.texts[0], /^（例行《过夜实验》。.*到 07:00 为止/); assert.match(t.texts[0], /这是第一轮/); writeFileSync(tsv, readFileSync(tsv, 'utf8') + 'b2\t0.9950\t44\tkeep\tbigger batch\n'); t.say('第一轮：0.9950，留。') })
+  h.scripts.push((t) => { assert.match(t.texts[0], /第 1 轮/); writeFileSync(tsv, readFileSync(tsv, 'utf8') + 'c3\t0.0\t0\tcrash\tOOM\n'); t.say('OOM。') })
+  for (let i = 0; i < 3; i++) h.scripts.push((t) => t.say('卡住了。'))
+  h.mw.runRoutine(night.id)
+  await h.until(() => h.mw.mates.get(mate.id).loop && !h.mw.mates.get(mate.id).loop.active)
+  const first = h.runsOf(mate.id).find((r) => r.routineId === night.id)
+  assert.deepEqual([first.loopRound, first.quiet], [0, false])
+  // 08:00: the facts code read go after the routine's prompt
+  h.scripts.push((t) => {
+    assert.match(t.texts[0], /这是例行任务《实验早报》/)
+    assert.match(t.texts[0], /程序从 results\.tsv 算好的（以这些数字为准）：\n- 昨晚的连续跑（\d\d:\d\d–\d\d:\d\d，4 轮，连续 3 轮没有新结果）：2 次：保留 1 · 丢弃 0 · 崩溃 1；val_bpb 0\.9979 → 0\.995（b2）/)
+    t.tool('deliver', { title: '实验早报', markdown: '变化：最好成绩 0.995。' }); t.say('早报在这。\n变化：有')
+  })
+  h.mw.runRoutine(morning.id)
+  await h.until(() => h.runsOf(mate.id).some((r) => r.routineId === morning.id && r.status === 'done'))
+  h.cleanup()
+})
+
+test('代码研究: the projects by code — 进行中, 未经你审, 审过 (marked by you, the report says the date)', async () => {
+  const h = harness()
+  h.scripts.push((t) => t.say('你好，我是代码研究。'))
+  const { mate } = await h.ok('POST', '/mates/create', { template: 'code-research' })
+  assert.deepEqual(mate.panel, { id: 'projects', tab: '项目', icon: 'folder-code' })
+  await h.until(() => introDone(h, mate.id))
+  const dir = join(h.dir, 'mywork', 'mates', mate.id)
+  assert.match(readFileSync(join(dir, 'AGENTS.md'), 'utf8'), /> 未经你审/)
+  mkdirSync(join(dir, '2026-10-05-md-libs'))
+  writeFileSync(join(dir, '2026-10-05-md-libs', 'README.md'), '# 哪个 Markdown 库最快\n\n> 未经你审\n\n## 结论\n\ncmarkgfm 最快。\n')
+  mkdirSync(join(dir, '2026-10-05-pyodide'))
+  writeFileSync(join(dir, '2026-10-05-pyodide', 'notes.md'), '- 在编译\n')
+  const v = await h.ok('GET', '/mates/projects', { id: mate.id })
+  assert.deepEqual(v.counts, { doing: 1, unreviewed: 1, reviewed: 0 })
+  assert.deepEqual(v.items.find((p) => p.folder === '2026-10-05-md-libs'), { folder: '2026-10-05-md-libs', title: '哪个 Markdown 库最快', date: '2026-10-05', state: 'unreviewed', gist: 'cmarkgfm 最快。', mtime: v.items.find((p) => p.folder === '2026-10-05-md-libs').mtime, path: '2026-10-05-md-libs/README.md' })
+  const after = await h.ok('POST', '/mates/projects/review', { id: mate.id, folder: '2026-10-05-md-libs' })
+  assert.deepEqual(after.counts, { doing: 1, unreviewed: 0, reviewed: 1 })
+  assert.match(readFileSync(join(dir, '2026-10-05-md-libs', 'README.md'), 'utf8'), /^> 审过：\d{4}-\d{2}-\d{2}$/m)
+  assert.equal((await h.call('POST', '/mates/projects/review', { id: mate.id, folder: '../x' })).status, 400)
+  assert.equal((await h.call('GET', '/mates/projects', { id: 'mywork' })).status, 400)
+  h.cleanup()
+})
+
+test('论文: mywork_cite_check looks every reference up by code (the 论文 teammate only); the panel has the claims from 论点.md and the problems of the last check', async () => {
+  const h = harness({ fetch: fakeScholar() })
+  h.scripts.push((t) => t.say('你好，我是论文。'))
+  const { mate } = await h.ok('POST', '/mates/create', { template: 'paper' })
+  assert.deepEqual([mate.panel.id, mate.drop.dir], ['paper', '稿子'])
+  await h.until(() => introDone(h, mate.id))
+  const dir = join(h.dir, 'mywork', 'mates', mate.id)
+  const empty = await h.ok('GET', '/mates/paper', { id: mate.id })
+  assert.deepEqual([empty.claims, empty.files, empty.check, empty.checking], [[], [], null, false])
+  writeFileSync(join(dir, '稿子', 'refs.bib'), BIB)
+  writeFileSync(join(dir, '稿子', 'main.tex'), TEX)
+  writeFileSync(join(dir, '论点.md'), '# 论点\n\n| 论点 | 证据 | 局限 | 状态 |\n|---|---|---|---|\n| 2 bit 几乎不掉点 | 表 2，results/kv2.json | 只测了检索 | 有证据 |\n')
+  const got = {}
+  h.scripts.push(async (t) => { assert.equal(t.texts[0], '核一遍引用（投稿前）'); got.out = await t.toolAsync('mywork_cite_check'); t.say('查完了：两条疑似查无此文。') })
+  await h.ok('POST', '/mates/say', { id: mate.id, text: '核一遍引用（投稿前）' })
+  await h.until(() => h.runsOf(mate.id).filter((r) => r.trigger === 'user' && r.status === 'done').length === 1)
+  assert.deepEqual(got.out.counts, { total: 7, ok: 2, mismatch: 1, missing: 2, pending: 1, web: 1, nometa: 0, undefined: 1 })
+  assert.match(got.out.md, /^核引用\/\d{4}-\d{2}-\d{2}\.md$/)
+  assert.ok(existsSync(join(dir, got.out.md)))
+  const v = await h.ok('GET', '/mates/paper', { id: mate.id })
+  assert.deepEqual(v.claims, [{ claim: '2 bit 几乎不掉点', evidence: '表 2，results/kv2.json', limits: '只测了检索', status: '有证据' }])
+  assert.deepEqual([v.entries, v.cites, v.check.counts.total], [7, 8, 7])
+  assert.deepEqual(v.check.problems.map((p) => [p.key, p.status]), [['fake2024', 'missing'], ['brown2020gpt3', 'mismatch'], ['flaky', 'pending'], ['gone', 'missing'], ['missingkey', 'undefined']])
+  // the run that called it recorded the report it wrote (做了告诉你)
+  const did = h.runsOf(mate.id).find((r) => r.trigger === 'user').activity.find((a) => a.kind === 'did' && a.act === 'files')
+  assert.ok(did.files.some((f) => /^核引用\/.+\.md$/.test(f.path)))
+  // another teammate cannot call it
+  h.scripts.push((t) => { got.refused = t.tool('mywork_cite_check'); t.say('不行。') })
+  await h.ok('POST', '/mates/say', { id: 'mywork', text: '核一下引用' })
+  await h.until(() => !!got.refused)
+  assert.match(got.refused.error, /只给有这个工作台的同事用/)
+  h.cleanup()
+})
+
+test('MyWork makes a teammate from a template: the 每日论文 it creates has its bench and its onboarding card', async () => {
+  const h = harness()
+  const got = {}
+  h.scripts.push((t) => { got.made = t.tool('mywork_mate_create', { template: 'papers', description: '每天过 arXiv', first: '先过今天的' }); t.say('建好了：每日论文。') })
+  h.scripts.push((t) => t.say('你好，我替你每天过 arXiv。'))
+  await h.ok('POST', '/mates/say', { id: 'mywork', text: '我想每天过一遍 arXiv 上 NLP 的新论文' })
+  await h.until(() => h.mw.mates.items.length === 2 && introDone(h, h.mw.mates.items.find((m) => !m.isDefault).id))
+  const mate = h.mw.mates.items.find((m) => !m.isDefault)
+  assert.deepEqual(got.made, { created: true, id: mate.id, name: '每日论文', group: '研究', first: '', template: 'papers' })
+  assert.equal(h.mw.mateView(mate.id).panel.id, 'papers')
+  // no first job behind a template's intro: the onboarding card is the first thing
+  assert.equal(h.runsOf(mate.id).length, 1)
+  h.scripts.push((t) => { got.bad = t.tool('mywork_mate_create', { template: 'nope', description: 'x' }); t.say('没有这个模板。') })
+  await h.ok('POST', '/mates/say', { id: 'mywork', text: '再建一个' })
+  await h.until(() => !!got.bad)
+  assert.match(got.bad.error, /没有这个模板：nope。可用的：papers \/ wiki \/ experiments \/ code-research \/ paper/)
   h.cleanup()
 })

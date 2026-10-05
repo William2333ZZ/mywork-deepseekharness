@@ -27,9 +27,9 @@ Stop = controller.cancel (keeps the inbox) of the bound run; with no run bound, 
  * No imports from @deepseek-ai/* here: this package is `link:`ed into the profile, so those specifiers do not resolve
  * from its real path. The two helpers dsh-automation imports (createUserMessage, installModelSelection) are inlined.
  */
-import { copyFileSync, existsSync, mkdirSync, readFileSync, statSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { createHash, randomUUID } from 'node:crypto'
-import { extname, isAbsolute, join, relative, resolve } from 'node:path'
+import { dirname, extname, isAbsolute, join, relative, resolve } from 'node:path'
 import { ACTIVITY_DETAIL_MAX, ASK_DETAIL_MAX, ASK_EXPIRY_MS, ASK_KINDS, ASK_MAX_PER_TASK, ASK_OPTION_MAX, ASK_OPTIONS_MAX, ASK_OPTIONS_MIN, ASK_QUESTION_MAX, MATE_SESSION_PREFIX, pendingAsk, titleOf, ts } from './store.js'
 import { defaultVerifyPrompt, parseVerdict, stepNameFor } from './scenarios.js'
 import { changedVerdict, parseSchedule, recordDays, routinePrompt, stripVerdict, wantsRecord, wantsSchedule } from './routines.js'
@@ -473,6 +473,79 @@ export function createEngine({ ctx, store, deliverables, mates, routines, scenar
     return true
   }
 
+  /**
+   * 做了告诉你 for files written any way (bash, scripts, tools): when a run's first turn starts, the folder's file list
+   * is kept and its text files (≤1 MB each, ≤20 MB in all) are set aside in .mywork/undo/<runId>/base/; when the run
+   * ends, what was created, changed or deleted becomes one did entry { act: 'files', files: [...] } that 撤销 reverses
+   * (a file it could not set aside says 撤不回). Files the tool hook already recorded are left to their own entries.
+   */
+  const SNAP_SKIP = new Set(['.mywork', '.cache', '.dsh', '.git', 'node_modules', '__pycache__'])
+  const SNAP_TEXT = /\.(md|markdown|txt|csv|tsv|json|jsonl|ya?ml|toml|html?|xml|js|mjs|cjs|ts|py|tex|bib|ini|cfg)$/i
+  function folderList(dir) {
+    const out = new Map()
+    const walk = (rel, depth) => {
+      if (out.size >= 5000 || depth > 8) return
+      let names = []
+      try { names = readdirSync(rel ? join(dir, rel) : dir) } catch { return }
+      for (const n of names) {
+        if (SNAP_SKIP.has(n)) continue
+        const p = rel ? rel + '/' + n : n
+        let st
+        try { st = statSync(join(dir, p)) } catch { continue }
+        if (st.isDirectory()) walk(p, depth + 1)
+        else if (st.isFile()) out.set(p, { size: st.size, mtime: st.mtimeMs })
+      }
+    }
+    walk('', 0)
+    return out
+  }
+  const UNDO_KEEP_MS = 14 * 86400000
+  function snapshotRun(runId, mate) {
+    const run = store.get(runId)
+    if (!run || run.snapAt || !mate || !mate.dir || !existsSync(mate.dir)) return
+    // What was set aside for runs more than 14 days old goes (their 撤销 then says what it could not put back).
+    try { const root = join(mate.dir, '.mywork', 'undo'); for (const n of readdirSync(root)) { const p = join(root, n); try { if (Date.now() - statSync(p).mtimeMs > UNDO_KEEP_MS) rmSync(p, { recursive: true, force: true }) } catch {} } } catch {}
+    try {
+      const base = join(mate.dir, '.mywork', 'undo', runId, 'base')
+      const list = folderList(mate.dir)
+      let total = 0
+      const kept = []
+      for (const [rel, f] of list) {
+        if (!SNAP_TEXT.test(rel) || f.size > UNDO_MAX_BYTES / 2 || total + f.size > 20 * 1024 * 1024) continue
+        try { mkdirSync(dirname(join(base, rel)), { recursive: true }); copyFileSync(join(mate.dir, rel), join(base, rel)); total += f.size; kept.push(rel) } catch {}
+      }
+      mkdirSync(join(mate.dir, '.mywork', 'undo', runId), { recursive: true })
+      writeFileSync(join(mate.dir, '.mywork', 'undo', runId, 'list.json'), JSON.stringify({ files: Object.fromEntries(list), kept }))
+      store.update(runId, { snapAt: new Date().toISOString() })
+    } catch (e) { log(`snapshot ${runId}: ${errorText(e)}`) }
+  }
+  function diffRun(runId, mate) {
+    const run = store.get(runId)
+    if (!run || !run.snapAt || run.diffAt || !mate) return
+    try {
+      const dir = join(mate.dir, '.mywork', 'undo', runId)
+      const before = JSON.parse(readFileSync(join(dir, 'list.json'), 'utf8'))
+      const was = before.files || {}
+      const kept = new Set(before.kept || [])
+      const now = folderList(mate.dir)
+      const known = new Set((run.activity || []).filter((a) => a && a.kind === 'did' && a.act === 'file').map((a) => a.abs))
+      // A rule written by mywork_remember has its own line (记下了规矩 · 删): AGENTS.md is not listed again.
+      if ((run.activity || []).some((a) => a && a.kind === 'did' && a.act === 'rule')) known.add(join(mate.dir, 'AGENTS.md'))
+      const files = []
+      for (const [rel, f] of now) {
+        const old = was[rel]
+        if (old && old.size === f.size && old.mtime === f.mtime) continue
+        const abs = join(mate.dir, rel)
+        if (known.has(abs)) continue
+        const snap = old && kept.has(rel) ? join(dir, 'base', rel) : ''
+        files.push({ path: rel, abs, existed: !!old, snap, undoable: !old || !!snap })
+      }
+      for (const rel of Object.keys(was)) if (!now.has(rel) && !known.has(join(mate.dir, rel))) files.push({ path: rel, abs: join(mate.dir, rel), existed: true, deleted: true, snap: kept.has(rel) ? join(dir, 'base', rel) : '', undoable: kept.has(rel) })
+      if (files.length) store.activity(runId, { kind: 'did', id: 'did-' + Date.now().toString(36) + rand().slice(0, 4), act: 'files', files: files.slice(0, 500), n: files.length, undoable: files.some((f) => f.undoable) })
+      store.update(runId, { diffAt: new Date().toISOString() })
+    } catch (e) { log(`diff ${runId}: ${errorText(e)}`) }
+  }
+
   function recordDid(runId, mate, tool, rawArgs) {
     const didId = () => 'did-' + Date.now().toString(36) + rand().slice(0, 4)
     // dsh hands the model's arguments over as the JSON text it wrote; tests and other callers may pass the object.
@@ -509,6 +582,7 @@ export function createEngine({ ctx, store, deliverables, mates, routines, scenar
     state.timer = setTimeout(() => { state.timedOut = true; if (!cancelSession(mateId)) finishRun(runId, { kind: 'aborted' }) }, config.timeoutMs)
     if (state.timer && typeof state.timer.unref === 'function') state.timer.unref()
     store.setStatus(runId, 'running', { startedAt: run.startedAt || new Date().toISOString(), finishedAt: '', error: '', dispatched: true, pendingText: '', resumeAskId: '' })
+    snapshotRun(runId, mates.get(mateId))
     emit('started', store.get(runId))
     return store.get(runId)
   }
@@ -658,7 +732,10 @@ export function createEngine({ ctx, store, deliverables, mates, routines, scenar
     if (!run || run.status === 'done') return
     store.endSteps(runId)
     // What each changed file looks like now: 撤销 later refuses a file someone changed again since.
-    if ((run.activity || []).some((a) => a && a.kind === 'did' && a.act === 'file')) store.update(runId, (x) => { for (const a of x.activity || []) if (a && a.kind === 'did' && a.act === 'file') a.after = hashOf(a.abs) })
+    if (!pendingAsk(run)) diffRun(runId, mates.get(run.mateId))
+    if ((store.get(runId).activity || []).some((a) => a && a.kind === 'did' && (a.act === 'file' || a.act === 'files'))) {
+      store.update(runId, (x) => { for (const a of x.activity || []) { if (a && a.kind === 'did' && a.act === 'file') a.after = hashOf(a.abs); if (a && a.kind === 'did' && a.act === 'files') for (const f of a.files || []) f.after = hashOf(f.abs) } })
+    }
     const error = state.stopped ? STOPPED : state.timedOut ? '超过最长运行时间。' : reasonError(reason)
     const ask = pendingAsk(run)
     if (!error && ask) {

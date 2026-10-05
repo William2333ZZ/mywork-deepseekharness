@@ -45,34 +45,22 @@ MyWork Kit v2 的核心成员：**同事模型**。设计见 [design/v2/TEAMMATE
 
 `POST /mates/create { description, name?, title? }` 建好同事后排一次**隐藏的自我介绍运行**（`trigger: 'system'`，线程里不显示它的用户行，只显示回复）：没有名字时先 `mywork_mate_update` 给自己起 2–4 个汉字的名字；职责里带时间就 `mywork_routine_create` 建好例行；然后两三句话说它怎么理解职责、需要什么。
 
-## 模板：「盯在用的 AI」（EDITIONS.md 3、4.1、9.3；PROACTIVE.md 12）
+## 模板与「知识库」（Karpathy, "LLM Wiki"）
 
-模板在 `templates/<id>/`：`template.json`（名字、头衔、类型、头像、一句话、自我介绍的话、上岗卡、「它会主动做的」、例行、预检名）、`duty.md`（职责）、`seed/`（建同事时拷进它的文件夹：`清单.csv`、`判断.csv` 的表头，`AGENTS.md` 初始规矩，`{date}` 换成当天）、`sources.json`（预检要读的厂商页面）。现在只有 `watch-ai`。
+模板在 `templates/<id>/`：`template.json`（名字、头衔、类型、头像、一句话、自我介绍的话、`dropDir` 交来的文件放哪、上岗卡、「它会主动做的」各项及其例行和规矩）、`duty.md`（职责）、`seed/`（建同事时连目录一起拷进它的文件夹，`{date}` 换成当天）。新同事表单先列模板。现在只有 `wiki`。
 
-走法（每一步都在对话里，没有新页面）：
+知识库照 Karpathy 的 LLM Wiki 做：三层——`原始资料/`（你给的原文，只读）、`wiki/`（同事写的页：`index.md`、`log.md`、`来源/`、`概念/`、`人和机构/`、`综述与对比/`）、`AGENTS.md`（schema：库怎么组织、收资料 / 回答 / 体检各怎么做，你和同事一起改）；三个动作——收资料、回答（好的回答存回库里）、体检。
 
-1. **建**：`POST /mates/create { template: 'watch-ai' }`。名字、头衔、类型、头像来自模板；自我介绍用模板的话（`run.prompt`），不建例行。
-2. **上岗卡**：自我介绍那一轮结束后，引擎在它下面挂一张 `{ kind: 'onboard' }` 卡：拖文件或选文件（`POST /mates/upload`，分块 ≤150 KB，进 `材料/`，同名不覆盖，单个 ≤20 MB），写几句，「交给它」（`POST /mates/onboard`）。程序先读出候选行（`src/inventory.js`：package.json、requirements*.txt、pyproject.toml、go.mod、new-api / one-api 渠道导出、LiteLLM 配置、账单 CSV、文字里提到的代码目录里加了引号的模型 ID），连同「怎么知道的」附在这句话后面（用户看不到），同事核对后用 `mywork_list_write`（confirm）写进 `清单.csv`。
-3. **清单确认卡**：`{ kind: 'listcheck' }`，前 10 行（对象 · 哪里在用 · 怎么知道的），「对，就这些」（`POST /mates/listok`）或「改一下」（输入框填「把 清单.csv 里 」）。
-4. **它会主动做的**：确认后出 `{ kind: 'subscribe' }`，逐项可勾；「交给它」（`POST /mates/subscribe`）建例行「查下线和调价」（每 6 小时，`precheck: 'ai-watch'`，`options.sdk`），并**马上跑第一次**（基线）。
+1. **建**：`POST /mates/create { template: 'wiki' }`。自我介绍用模板的话（`run.prompt`），完了挂上岗卡（`{ kind: 'onboard' }`）。
+2. **上岗卡**：说这个库是关于什么的，丢第一批资料（`POST /mates/upload` 分块进 `原始资料/`），「交给它」（`POST /mates/onboard`）。你的话成为一句用户话，模板的开张指示跟在后面（用户看不到）：写进 AGENTS.md、存网页、按流程收资料、建索引、记日志。
+3. **它会主动做的**：开张那一轮结束后出（`{ kind: 'subscribe' }`），「交给它」（`POST /mates/subscribe`）：「好的回答存回库里」「资料多时一次收一批」写成 AGENTS.md 里的规矩，「每周一 9 点体检」建成例行（`lint: 'wiki'`）；每一项在对话里留一行，能撤销。
+4. **平时**：任何同事的输入框都能附文件（回形针，或把文件拖到页面上），文件进它的 `dropDir`（知识库是 `原始资料/`，其余是 `材料/`），输入框里填好「收进知识库：…」；同事改了哪些页在「做了告诉你」那一行，能整次撤销。
 
-**预检**（`src/aiwatch.js`，只用 Node，不叫模型）：读 `清单.csv` 里启用的行，查 deprecations.info（海外各家的下线日期）、models.dev（价格、弃用标记）、OpenRouter（供应商是 OpenRouter 的行）、模板的厂商页（按句子判断哪个模型是主语：「A 将于 7/24 停止使用，指向 B」只算 A），以及在用 SDK 的 npm / PyPI 版本。经代理还是直连按域名定（`src/net.js`：国内厂商先直连，其余先走 HTTPS_PROXY，失败换另一条）。状态存在同事文件夹的 `.mywork/precheck/<routineId>.json`；同一件事只说一次（`said`）。
+**代码读库**（`src/wiki.js`）：`[[页名]]` / `[[页名|显示]]` / 指向 `.md` 的链接，正反向链接，孤立页、断链、没进索引的页，日志最近几条，全文搜索（不含索引和日志）。体检例行的提示里先附上这些（`lintFindings`），同事接着查矛盾、过时、缺页和空白。
 
-- **档位由代码定**：下线 / 涨价 / 改名或重定向 / 改计费 / 限区域 / 停用 / 下架，碰到在用的行（精确对上，不是别名对快照），离生效 ≤14 天（或已生效）→ 立刻；其余到点；SDK 小版本不说。旧闻（30 天前的升级、价格说明）不说，**在用模型的下线永远说**。
-- **没变化**：不建运行，例行上记一条回执 `{ at, precheck: { checked, related, unreadable, baseline }, changed: false }`；`/mates/thread` 把它画成一行灰字「例行 · 查下线和调价 · 看过 999 · 没有动到在用的」。
-- **有变化**：建一次 `trigger: 'routine'` 的运行，`run.prompt` 带着变化（同事去一手出处确认、说清哪里在用、月费、离生效几天、要改什么、替代；全是换了说法就回「变化：无」），`activity` 里一张代码拼的变化卡 `{ kind: 'changes', items[], checked, related, unreadable }`，`run.watch = { tier, headline, n, now, push }`。今天卡把它列进变化并标「立刻 / 到点」；IM（dsh-mywork-im）只推立刻档，推送正文不带金额。
+**界面**：知识库同事的右栏默认开着「知识库」：搜索；`n 页 · m 份原始资料 · 你还没看的改动 k`；体检（孤立 / 断链 / 没进索引，点开能去）；最近的日志；按类别的页（被链得多的在前，改过而你没看的带点）；打开索引、打开日志。页在阅读视图里打开，`[[链接]]` 能点（对话里同事回答中的链接也能点），文末列「被这些页提到」。
 
-**变化之后（调研 7.2：痛在迁移和重测，不在不知道；I5：只信自己任务上的实测）**：变化卡的每一条（下线、改名重定向、改计费、调价…）下面有四个动作（`POST /mates/change { id, runId, entryId, key, action }`）：
-- `plan` 出迁移方案：同事收到这条变化的事实，找出代码里每一处用到它的 文件:行、先按约束再按能力排替代（至多三个）、列出要重测什么和时间线，用 deliver 交一份「迁移方案」；
-- `retest` 在我们的任务上重测：同事用 `自测/任务.csv`（没有就先从代码和提示词起草 10 条，说明是起草的）跑现在用的和替代，调用 `mywork_selftest_run`；
-- `mine` 我来改 / `doing` 已经在改了：只标记。
-今天卡的「今天的日子」倒数 30 天内要生效的下线和改名（最多 3 行），后面跟着处理到哪一步。
-
-**自测**（`src/selftest.js`）：`自测/任务.csv` 表头 `编号,任务,输入,判定方法,期望,备注`；判定方法 包含 / 不包含 / 等于 / 正则 / JSON / 长度不超过 由程序判，标准 由 judge 模型判（抽 5 条标「抽检」给你看），人工 留给你看。候选走 OpenAI 兼容接口（按 vendor 给出 DeepSeek、百炼、智谱、Kimi、火山方舟、硅基流动、OpenAI、Anthropic、Google、OpenRouter 等的地址，或给 baseUrl），key 从 `.mywork/keys.json`（按供应商）或参数取，不写进结果。结果表 `自测/结果-<时间>.csv`，对话里一张结果卡（每个候选 通过/总数、待你看、失败、平均耗时、token）。
-
-**推送闸**（dsh-mywork-im `src/gate.js`）：立刻档的推送经过免打扰（22:00–07:30）和每天 5 条的预算，压下的在窗口打开时合成一条发出（`$DSH_HOME/mywork/im-gate.json`）。
-
-工具：`mywork_selftest_run({ candidates, tasks?, judge?, limit? })`、`mywork_list_write({ rows, replace?, confirm? })`（按表头合并：模型按「模型ID或版本」、SDK 按「名称」；写前留快照，能撤销）、`mywork_inventory_scan({ paths })`（读候选行，不写文件）。
+路由：`GET /templates`、`POST /mates/upload`、`POST /mates/onboard`、`POST /mates/subscribe`、`GET /mates/wiki?id=`、`GET /mates/wiki/page?id=&path= | &name=&from=`（解析链接、反向链接）、`POST /mates/wiki/seen { id, path }`、`GET /mates/wiki/search?id=&q=`。
 
 ## 例行
 
@@ -155,4 +143,4 @@ GET  /today                         → { ready, readTime, at, date, needs, chan
 
 ## 测试
 
-`pnpm --filter dsh-mywork-tasks test`。`test/aiwatch.test.mjs` 用固定的页面和 JSON 测预检和清单读法（不联网）。`test/mates.test.mjs` 用一个假的 dsh 宿主跑完整流程（它照 dsh 的收件箱语义：queue 进下一轮、steer 并进当前轮、cancel 保留收件箱）。
+`pnpm --filter dsh-mywork-tasks test`。`test/wiki.test.mjs` 测代码读库（链接、孤立、断链、索引、日志、搜索）。`test/mates.test.mjs` 用一个假的 dsh 宿主跑完整流程（它照 dsh 的收件箱语义：queue 进下一轮、steer 并进当前轮、cancel 保留收件箱）。

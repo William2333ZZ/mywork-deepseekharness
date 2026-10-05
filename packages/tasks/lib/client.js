@@ -22,8 +22,11 @@ function inline(s) {
   out = out.replace(/`([^`]+)`/g, (_, c) => '<code>' + c + '</code>')
   out = out.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
   out = out.replace(/(^|[^*\w])\*([^*\n]+)\*(?!\w)/g, '$1<em>$2</em>')
+  // [[页名]] / [[页名|显示的字]] / [[页名#小节]]: a wiki link (the 知识库 page opens the page it names).
+  out = out.replace(/\[\[([^\]\n|#]+)(?:#[^\]\n|]*)?(?:\|([^\]\n]+))?\]\]/g, (_, target, label) => '<a href="#" class="md-wiki" data-wiki="' + target.trim() + '">' + (label || target.split('/').pop()).trim() + '</a>')
   out = out.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, (_, t, u) => '<a href="' + u + '" target="_blank" rel="noopener noreferrer">' + t + '</a>')
-  // A link to a file in the teammate's own folder (no scheme) reads as its name; the folder is in the right panel.
+  // A link to a page of the teammate's wiki (概念/注意力.md) opens it like [[…]]; any other file in its folder reads as its name.
+  out = out.replace(/\[([^\]]+)\]\((?!https?:)([^)\s]+\.md)(?:#[^)\s]*)?\)/g, (_, t, u) => '<a href="#" class="md-wiki" data-wiki="' + u + '">' + t + '</a>')
   out = out.replace(/\[([^\]]+)\]\((?!https?:)[^)\s]+\)/g, '<span class="md-file">$1</span>')
   return out
 }
@@ -110,10 +113,8 @@ module.exports = { render, inline, esc }
  *   remind    { routineId, title, acked }      a reminder card (activity { kind:'remind' }, or a whole synthetic remind run)
  *   auto      {}                               the 24 h resume (the user line with auto: true): one muted line
  *   onboard   { e }                            a template teammate's 上岗卡 (activity { kind:'onboard' })
- *   listcheck { e }                            the list card mywork_list_write left (前 10 行 · 对，就这些 / 改一下)
  *   subscribe { e }                            「它会主动做的」: the subscription card
- *   changes   { e }                            a precheck's change card (built by code; the tier is code's)
- *                                              these four close their segment, after the teammate's reply
+ *                                              these two close their segment, after the teammate's reply
  *   thinking  { step }                         one line while the run works (status running, not queued); the caller adds the time
  *   queued    {}                               the run has not started: it waits behind the teammate's current run
  *   stopped   {}                               a done run you stopped (error 已停止 / 已取消): a centred 「已停止」, not a failure
@@ -223,7 +224,7 @@ function threadOf(run, deliverables) {
       else if (e.kind === 'routine' && (e.action === 'created' || !e.action)) body.push({ kind: 'scheduled', key: 's' + (e.routineId || seq++), at: str(e.at), routineId: str(e.routineId || e.id), title: str(e.title), scheduleLabel: str(e.scheduleLabel) })
       else if (e.kind === 'remind') body.push({ kind: 'remind', key: 'm' + seq++, at: str(e.at), routineId: str(e.routineId || e.id), title: str(e.title || e.text), acked: !!(e.acked || e.ackedAt) })
       else if (e.kind === 'mate' && e.action === 'created' && str(e.mateId)) body.push({ kind: 'newMate', key: 'n' + e.mateId, at: str(e.at), mateId: str(e.mateId), name: str(e.name) })
-      else if (e.kind === 'onboard' || e.kind === 'listcheck' || e.kind === 'subscribe' || e.kind === 'changes' || e.kind === 'selftest') cards.push({ kind: e.kind, key: e.kind + ':' + (e.id || seq++), at: str(e.at), e })
+      else if (e.kind === 'onboard' || e.kind === 'subscribe') cards.push({ kind: e.kind, key: e.kind + ':' + (e.id || seq++), at: str(e.at), e })
     }
     // Text before the segment's last deliverable or question is narration (过程); what comes after it is the reply.
     const cut = Math.max(mine.length ? time(mine[mine.length - 1].createdAt) : -Infinity, asks.length ? time(asks[asks.length - 1].at) : -Infinity)
@@ -573,6 +574,8 @@ const EXTRA_ICONS = {
   monitor: ['M4 3h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z', 'M8 21h8', 'M12 17v4'],
   square: ['M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z'],
   file: ['M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z', 'M14 2v4a2 2 0 0 0 2 2h4'],
+  'book-open': ['M12 7v14', 'M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z'],
+  paperclip: ['m16 6-8.414 8.586a2 2 0 0 0 2.829 2.829l8.414-8.586a4 4 0 1 0-5.657-5.657l-8.379 8.551a6 6 0 1 0 8.485 8.485l8.379-8.551'],
   ellipsis: ['M12 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2z', 'M19 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2z', 'M5 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2z'],
 }
 if (icons.PATHS) for (const k of Object.keys(EXTRA_ICONS)) if (!icons.PATHS[k]) icons.PATHS[k] = EXTRA_ICONS[k]
@@ -673,16 +676,12 @@ const zh = {
   readTime: '读的时间', readTimeHint: '今天卡在这个时间拼好。',
   rowsMore: '还有 {n} 行', itemsMore: '还有 {n} 条',
   tplHead: '从模板建', tplOr: '或者，写一句它负责什么',
-  obDrop: '把文件拖到这里，或', obPick: '选文件', obGo: '交给它', obDone: '已交给它 · {t}', obUploading: '在传 {n}…', obNeed: '给它一个文件，或者写几句你们在用什么。', obFailed: '没传上：{e}',
-  lcTitle: '清单 · {n} 行', lcOk: '对，就这些', lcEdit: '改一下', lcConfirmed: '你确认了 · {t}', lcWhere: '哪里在用', lcHow: '怎么知道的', lcName: '对象', lcEmpty: '未填',
+  obDrop: '把文件拖到这里，或', obPick: '选文件', obGo: '交给它', obDone: '已交给它 · {t}', obUploading: '在传 {n}…', obNeed: '写几句，或者给它一个文件。', obFailed: '没传上：{e}',
   subGo: '交给它', subDone: '已交给它 · {t}',
-  chgTitle: '变化 · {n} 条动到在用', chgBaseline: '第一次检查', tierNow: '立刻', tierDigest: '到点', chgWhereNone: '哪里在用：未填', chgUsed: '{w}在用',
-  chgOpen: '看出处', chgAlso: '另见 {s}', chgReplace: '替代：{s}', chgFoot: '看过 {n} · 动到在用 {m}', chgUnread: '没读到 {n}：{s}',
-  whenLeft: '{d} 生效，还有 {n} 天', whenPast: '{d} 已生效', whenToday: '今天生效', whenIn: '已生效',
-  chgPlan: '出迁移方案', chgRetest: '在我们的任务上重测', chgMine: '我来改', chgDoing: '已经在改了', chgHandled: { plan: '方案在出 · {t}', retest: '在重测 · {t}', mine: '你来改 · {t}', doing: '在改 · {t}' },
-  stTitle: '自测 · {n} 条任务', stRow: '通过 {p}/{n}', stManual: '待你看 {n}', stErr: '失败 {n}', stAvg: '平均 {s} 秒', stTokens: '{i}+{o} token', stChecks: '模型判的抽了 {n} 条给你看', stOpen: '打开结果表', stJudge: '「标准」类由 {j} 判',
-  todayDays: '今天的日子', dayLeft: '还有 {n} 天', dayToday: '今天',
-  quietPre: '例行 · {t} · 看过 {n} · 没有动到在用的', quietPreBase: '例行 · {t} · 第一次检查 · 看过 {n} · 在用的现状已记下', quietPreEmpty: '例行 · {t} · 清单还是空的，没查', quietPreUnread: '没读到 {n}',
+  didFilesNew: '新建 {n} 个文件', didFilesChanged: '改了 {n} 个文件', didFilesGone: '删了 {n} 个文件',
+  wikiTab: '知识库', wikiSearch: '搜索知识库', wikiStats: '{p} 页 · {s} 份原始资料', wikiUnread: '你还没看的改动 {n}', wikiHealth: '体检', wikiOrphans: '孤立 {n}', wikiBroken: '断链 {n}', wikiUnindexed: '没进索引 {n}', wikiHealthy: '链接和索引没有问题',
+  wikiRecent: '最近', wikiIndex: '打开索引', wikiLog: '打开日志', wikiEmpty: '库还是空的。在对话里丢资料或贴链接，它会收进来。', wikiNoHit: '没搜到。', wikiBacklinks: '被这些页提到', wikiNoBacklinks: '还没有别的页提到这一页。', wikiMissing: '库里还没有「{n}」这一页。',
+  attach: '附上文件', attachSay: '我放了文件在 {dir}/：{files}', attaching: '在传 {n}…', dropHere: '放到这里，交给 {name}',
 }
 const en = {
   mate: 'Teammate', files: 'Files',
@@ -733,16 +732,12 @@ const en = {
   readTime: 'Reading time', readTimeHint: 'Today’s card is put together at this time.',
   rowsMore: '{n} more rows', itemsMore: '{n} more',
   tplHead: 'From a template', tplOr: 'Or write its job in a sentence',
-  obDrop: 'Drop files here, or', obPick: 'choose files', obGo: 'Hand it over', obDone: 'Handed over · {t}', obUploading: 'Uploading {n}…', obNeed: 'Give it a file or a few words about what you use.', obFailed: 'Upload failed: {e}',
-  lcTitle: 'List · {n} rows', lcOk: 'That’s it', lcEdit: 'Change it', lcConfirmed: 'Confirmed · {t}', lcWhere: 'Used where', lcHow: 'How it knows', lcName: 'Item', lcEmpty: 'not filled in',
+  obDrop: 'Drop files here, or', obPick: 'choose files', obGo: 'Hand it over', obDone: 'Handed over · {t}', obUploading: 'Uploading {n}…', obNeed: 'Write a few words, or give it a file.', obFailed: 'Upload failed: {e}',
   subGo: 'Hand it over', subDone: 'Handed over · {t}',
-  chgTitle: '{n} changes touch what you use', chgBaseline: 'first check', tierNow: 'now', tierDigest: 'digest', chgWhereNone: 'used where: not filled in', chgUsed: 'used by {w}',
-  chgOpen: 'Source', chgAlso: 'also {s}', chgReplace: 'Replacement: {s}', chgFoot: 'Looked at {n} · touching what you use {m}', chgUnread: 'Not read {n}: {s}',
-  whenLeft: 'effective {d}, {n} days left', whenPast: 'effective since {d}', whenToday: 'effective today', whenIn: 'in effect',
-  chgPlan: 'Migration plan', chgRetest: 'Retest on our tasks', chgMine: 'I’ll change it', chgDoing: 'Already on it', chgHandled: { plan: 'plan coming · {t}', retest: 'retesting · {t}', mine: 'you change it · {t}', doing: 'in progress · {t}' },
-  stTitle: 'Self-test · {n} tasks', stRow: 'passed {p}/{n}', stManual: '{n} for you to look at', stErr: '{n} failed', stAvg: 'avg {s} s', stTokens: '{i}+{o} tokens', stChecks: '{n} model verdicts sampled for you', stOpen: 'Open results', stJudge: 'rubric tasks judged by {j}',
-  todayDays: 'Today’s dates', dayLeft: '{n} days left', dayToday: 'today',
-  quietPre: 'Routine · {t} · looked at {n} · nothing you use changed', quietPreBase: 'Routine · {t} · first check · looked at {n} · baseline recorded', quietPreEmpty: 'Routine · {t} · the list is empty, nothing checked', quietPreUnread: 'not read {n}',
+  didFilesNew: '{n} files created', didFilesChanged: '{n} files changed', didFilesGone: '{n} files deleted',
+  wikiTab: 'Wiki', wikiSearch: 'Search the wiki', wikiStats: '{p} pages · {s} sources', wikiUnread: '{n} changes you have not read', wikiHealth: 'Health', wikiOrphans: '{n} orphans', wikiBroken: '{n} broken links', wikiUnindexed: '{n} not in the index', wikiHealthy: 'Links and index are fine',
+  wikiRecent: 'Recent', wikiIndex: 'Open the index', wikiLog: 'Open the log', wikiEmpty: 'The wiki is empty. Drop sources or links in the conversation and it files them.', wikiNoHit: 'No match.', wikiBacklinks: 'Linked from', wikiNoBacklinks: 'No other page links here yet.', wikiMissing: 'There is no page “{n}” yet.',
+  attach: 'Attach files', attachSay: 'I put files in {dir}/: {files}', attaching: 'Uploading {n}…', dropHere: 'Drop here for {name}',
 }
 
 const STYLE = `
@@ -1228,44 +1223,44 @@ span.mwt-act:hover{color:var(--fg-3);text-decoration:none}
 .mwt-acts .msg{margin-right:auto;color:var(--fg-3);font-size:12px;line-height:16px;font-variant-numeric:tabular-nums}
 .mwt-acts .msg.err{color:var(--danger)}
 .mwt-acts .mwt-btn{height:28px;padding:0 12px;font-size:13px}
-.mwt-lc{width:600px}
-.mwt-lc .tb{margin-top:8px;max-height:380px;overflow:auto;scrollbar-width:thin}
-.mwt-lc table{width:100%;border-collapse:collapse;font-size:12px;line-height:18px;font-variant-numeric:tabular-nums}
-.mwt-lc th{padding:6px 12px;border-bottom:1px solid var(--rule-soft);color:var(--fg-3);font-weight:400;text-align:left;white-space:nowrap}
-.mwt-lc td{padding:6px 12px;border-bottom:1px solid var(--rule-soft);vertical-align:top;word-break:break-word}
-.mwt-lc th:first-child,.mwt-lc td:first-child{padding-left:16px}
-.mwt-lc td.id{font-family:var(--font-mono)}
-.mwt-lc td.src,.mwt-lc td.empty{color:var(--fg-3)}
-.mwt-lc .more{appearance:none;display:block;margin:6px 16px 0;padding:0;border:0;background:transparent;color:var(--fg-3);font:inherit;font-size:12px;line-height:18px;cursor:pointer}
-.mwt-lc .more:hover{color:var(--fg)}
 .mwt-sub .it{display:flex;align-items:flex-start;gap:10px;padding:10px 16px 0;font-size:13px;line-height:20px}
 .mwt-check{appearance:none;display:grid;place-items:center;flex:none;width:16px;height:16px;margin-top:2px;padding:0;border:1px solid var(--fg-3);border-radius:4px;background:transparent;color:var(--accent-fg);cursor:pointer}
 .mwt-check[aria-checked=true]{border-color:var(--accent);background:var(--accent)}
 .mwt-check[disabled]{cursor:default;opacity:.55}
 .mwt-sub .note{display:block;color:var(--fg-3);font-size:12px;line-height:18px}
 .mwt-sub .quiet{padding:10px 16px 0;color:var(--fg-3);font-size:12px;line-height:18px}
-.mwt-chg{width:600px}
-.mwt-chg .it{padding:10px 16px;border-top:1px solid var(--rule-soft)}
-.mwt-chg .hd+.it{border-top:0}
-.mwt-chg .l1{display:flex;align-items:baseline;gap:8px;font-size:13px;line-height:20px}
-.mwt-chg .l1 .s{flex:none;max-width:45%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--font-mono);font-size:12.5px;font-weight:500}
-.mwt-chg .l1 .w{flex:1;min-width:0;word-break:break-word}
-.mwt-chg .tier{flex:none;color:var(--fg-3);font-size:11px;line-height:16px;white-space:nowrap}
-.mwt-chg .tier[data-now=true]{color:var(--accent-text)}
-.mwt-chg .l2{margin-top:2px;color:var(--fg-2);font-size:12px;line-height:18px;font-variant-numeric:tabular-nums}
-.mwt-chg .q{margin-top:4px;color:var(--fg-3);font-size:12px;line-height:18px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
-.mwt-chg a{color:var(--accent-text);text-decoration:none}
-.mwt-chg a:hover{text-decoration:underline;text-underline-offset:3px}
-.mwt-chg .acts2{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.mwt-chg .acts2 .mwt-btn{height:26px;padding:0 10px;font-size:12px}
-.mwt-chg .done{margin-top:6px;color:var(--fg-3);font-size:12px;line-height:18px}
-.mwt-st{width:520px}
-.mwt-st .r{display:flex;align-items:baseline;gap:10px;padding:6px 16px;border-top:1px solid var(--rule-soft);font-size:13px;line-height:20px;font-variant-numeric:tabular-nums}
-.mwt-st .r b{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mwt-st .r .p{margin-left:auto;white-space:nowrap}
-.mwt-st .r .m{color:var(--fg-3);font-size:12px;white-space:nowrap}
-.mwt-chg .ft{display:grid;gap:2px;padding:8px 16px 12px;border-top:1px solid var(--rule-soft);color:var(--fg-3);font-size:12px;line-height:18px;font-variant-numeric:tabular-nums}
 .mwt-tpls{display:grid;gap:8px;margin-bottom:20px}
+.mwt-wiki .stat{margin:8px 0 0;color:var(--fg-3);font-size:12px;line-height:18px;font-variant-numeric:tabular-nums}
+.mwt-wiki .stat b{color:var(--accent-text);font-weight:400}
+.mwt-wiki .hl{appearance:none;display:block;width:100%;margin:10px 0 0;padding:0;border:0;background:transparent;color:var(--fg-2);font:inherit;font-size:12px;line-height:18px;text-align:left;cursor:pointer}
+.mwt-wiki .hl:hover{color:var(--fg)}
+.mwt-wiki .hlist{margin:6px 0 0;padding:0 0 0 12px;border-left:1px solid var(--rule)}
+.mwt-wiki .cat{appearance:none;display:flex;align-items:center;gap:6px;width:100%;margin:0;padding:6px 0;border:0;background:transparent;color:var(--fg);font:inherit;font-size:13px;line-height:20px;font-weight:600;text-align:left;cursor:pointer}
+.mwt-wiki .cat .n{color:var(--fg-3);font-weight:400}
+.mwt-wiki .cat svg{color:var(--fg-3);transition:transform var(--fast)}
+.mwt-wiki .cat[aria-expanded=false] svg{transform:rotate(-90deg)}
+.mwt-wiki .pg{appearance:none;display:flex;align-items:baseline;gap:8px;width:100%;margin:0;padding:4px 0 4px 18px;border:0;background:transparent;color:var(--fg-2);font:inherit;font-size:12.5px;line-height:18px;text-align:left;cursor:pointer;min-width:0}
+.mwt-wiki .pg:hover{color:var(--fg)}
+.mwt-wiki .pg .t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mwt-wiki .pg .r{margin-left:auto;flex:none;color:var(--fg-3);font-size:11px;font-variant-numeric:tabular-nums}
+.mwt-wiki .pg .dot{flex:none;width:6px;height:6px;border-radius:50%;background:var(--accent);align-self:center}
+.mwt-wiki .snip{display:block;color:var(--fg-3);font-size:11.5px;line-height:16px;white-space:normal}
+.mwt-wiki .log{display:flex;gap:8px;padding:3px 0;font-size:12px;line-height:18px;color:var(--fg-2);min-width:0}
+.mwt-wiki .log .d{flex:none;color:var(--fg-3);font-variant-numeric:tabular-nums}
+.mwt-wiki .log .x{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mwt-wiki .links{display:flex;gap:16px;margin-top:10px}
+.mwt .mwt-md a.md-wiki{color:var(--accent-text);text-decoration:none;border-bottom:1px dotted color-mix(in srgb,var(--accent-text) 55%,transparent);cursor:pointer}
+.mwt .mwt-md a.md-wiki:hover{border-bottom-style:solid}
+.mwt-backlinks{margin:32px 0 8px;padding-top:16px;border-top:1px solid var(--rule-soft)}
+.mwt-backlinks h3{margin:0 0 8px;color:var(--fg-3);font-size:12px;line-height:16px;font-weight:400}
+.mwt-backlinks .bl{appearance:none;display:block;margin:0;padding:3px 0;border:0;background:transparent;color:var(--accent-text);font:inherit;font-size:14px;line-height:22px;text-align:left;cursor:pointer}
+.mwt-backlinks p{margin:0;color:var(--fg-3);font-size:13px}
+.mwt-flash{position:sticky;top:64px;z-index:6;width:fit-content;max-width:90%;margin:0 auto;padding:6px 14px;border-radius:999px;background:var(--elevated);box-shadow:var(--shadow);color:var(--fg);font-size:13px;line-height:20px}
+.mwt-attach{appearance:none;display:grid;place-items:center;flex:none;width:32px;height:32px;margin-left:4px;border:0;border-radius:8px;background:transparent;color:var(--fg-3);cursor:pointer}
+.mwt-attach:hover{color:var(--fg);background:var(--rule-soft)}
+.mwt-attach[disabled]{opacity:.4;cursor:default}
+.mwt-say-up{display:block;margin:6px 4px 0;color:var(--fg-3);font-size:12px;line-height:16px}
+.mwt-mate[data-dragging=true] .mwt-say{outline:2px dashed var(--accent);outline-offset:4px}
 .mwt-tpl{appearance:none;display:flex;align-items:flex-start;gap:12px;width:100%;padding:12px 14px;border:1px solid var(--rule);border-radius:8px;background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
 .mwt-tpl:hover{border-color:var(--fg-3)}
 .mwt-tpl[disabled]{opacity:.5;cursor:default}
@@ -1842,8 +1837,11 @@ function makeComponents(ctx, t) {
    * 「在对话里改」 (back to the thread, the composer filled with 「把 <表名> 里 」). A .csv / .tsv is a table, .md / .txt
    * the Markdown body, .json a monospace block.
    */
-  function FileView({ mate, path, backLabel, onBack, onEdit }) {
+  function FileView({ mate, path, backLabel, onBack, onEdit, onOpenPath }) {
     const [data, setData] = React.useState(null)
+    // A 知识库 page: what links back to it, and that you read it (its unread dot goes).
+    const wikiPage = /^wiki\/.+\.md$/.test(String(path))
+    const [back, setBack] = React.useState(null)
     React.useEffect(() => {
       let on = true
       setData(null)
@@ -1856,6 +1854,14 @@ function makeComponents(ctx, t) {
       return () => { on = false; clearInterval(timer) }
     }, [mate.id, path])
     useEscapeBack(onBack)
+    const stamp = data && data.modifiedAt
+    React.useEffect(() => {
+      if (!wikiPage || !stamp) return undefined
+      let on = true
+      api('/mates/wiki/page?id=' + encodeURIComponent(mate.id) + '&path=' + encodeURIComponent(path)).then((d) => { if (on) setBack((d && d.backlinks) || []) }).catch(() => { if (on) setBack([]) })
+      api('/mates/wiki/seen', { id: mate.id, path }).catch(() => {})
+      return () => { on = false }
+    }, [mate.id, path, stamp])
     const name = (data && data.name) || String(path).split('/').pop() || path
     const title = name.replace(/\.[^./]+$/, '') || name
     const kind = fileKindOf(name)
@@ -1881,7 +1887,9 @@ function makeComponents(ctx, t) {
       h('button', { type: 'button', className: 'mwt-read-back', onClick: onBack }, '← ' + backLabel),
       !data ? h(Skeleton, { rows: 6 })
         : data.error ? h(React.Fragment, null, h('h1', null, title), h('div', { className: 'mwt-retry', style: { marginTop: 16 } }, h('span', null, data.error)))
-          : h(React.Fragment, null, h('h1', null, title), metaLine(meta), body))
+          : h(React.Fragment, null, h('h1', null, title), metaLine(meta), body,
+            wikiPage && back ? h('div', { className: 'mwt-backlinks' }, h('h3', null, t('wikiBacklinks')),
+              back.length ? back.map((b) => h('button', { key: b.path, type: 'button', className: 'bl', onClick: () => onOpenPath && onOpenPath(b.path) }, b.title)) : h('p', null, t('wikiNoBacklinks'))) : null))
   }
 
   /**
@@ -2117,10 +2125,19 @@ function makeComponents(ctx, t) {
   const insideFolder = (p) => !!p && !/^([\\/]|[A-Za-z]:)/.test(String(p))
   /** One did entry as words. */
   const didWords = (e) => e.act === 'file' ? (e.existed ? t('didFile') : t('didFileNew')).replace('{p}', baseName(e.path)) + (Number(e.n) > 1 ? ' ×' + e.n : '')
+    : e.act === 'files' ? didFilesWords(e.files || [], e.n)
     : e.act === 'send' ? t('didSend').replace('{t}', e.target || 'IM')
       : e.act === 'web' ? t('didWeb').replace('{n}', String(e.n || 1))
         : e.act === 'routine' ? t('didRoutine').replace('{t}', e.title || '')
           : e.act === 'rule' ? t('didRuleLabel').replace('{t}', e.line || '') : String(e.act || '')
+  /** 改了 / 新建 / 删了 n 个文件, with the first names (several files written in a run, any way). */
+  const didFilesWords = (files, n) => {
+    const made = files.filter((f) => !f.existed).length
+    const gone = files.filter((f) => f.deleted).length
+    const changed = files.length - made - gone
+    const names = files.slice(0, 2).map((f) => baseName(f.path)).join('、') + (files.length > 2 ? ' …' : '')
+    return [made ? t('didFilesNew').replace('{n}', String(made)) : '', changed ? t('didFilesChanged').replace('{n}', String(changed)) : '', gone ? t('didFilesGone').replace('{n}', String(gone)) : ''].filter(Boolean).join('、') + '（' + names + '）'
+  }
   /** A quiet routine run: a routine that checked and found nothing (never unread, drawn as one grey line). */
   const quietRun = (r) => !!r && r.quiet === true && r.trigger === 'routine' && !r.error
 
@@ -2136,7 +2153,7 @@ function makeComponents(ctx, t) {
     const open = undoable.filter((e) => !e.undoneAt)
     const allUndone = undoable.length > 0 && !open.length
     const irreversible = entries.some((e) => !e.undoable)
-    const file = entries.find((e) => e.act === 'file' && !e.undoneAt && insideFolder(e.path))
+    const file = entries.find((e) => e.act === 'file' && !e.undoneAt && insideFolder(e.path)) || (() => { const g = entries.find((e) => e.act === 'files' && !e.undoneAt); const f = g && (g.files || []).find((x) => !x.deleted && /\.(md|csv|tsv|txt|json)$/i.test(x.path)); return f || null })()
     const undo = () => {
       if (busy) return
       setBusy(true); setMsg('')
@@ -2171,33 +2188,16 @@ function makeComponents(ctx, t) {
         h('button', { type: 'button', className: 'mwt-act mute', disabled: busy, onClick: remove }, t('ruleRemove'))))
   }
 
-  /**
-   * 例行 · 标题 · 没有变化 · HH:MM (several in a row: · n 次（first–last）); opens the routine in 资料. A precheck's
-   * receipt says what it looked at: 例行 · 查下线和调价 · 看过 1310 · 没有动到在用的 · 没读到 1 (the titles on hover).
-   */
+  /** 例行 · 标题 · 没有变化 · HH:MM (several in a row: · n 次（first–last）); opens the routine in 资料. */
   function QuietLine({ group, onOpen }) {
     const first = group[0]
     const last = group[group.length - 1]
     const title = last.routineTitle || last.title || t('routineWord')
     const end = last.finishedAt || last.createdAt
     const when = group.length > 1 ? t('quietTimes').replace('{n}', String(group.length)) + '（' + imTime(first.createdAt, t('yesterday')) + '–' + hhmm(end) + '）' : imTime(end, t('yesterday'))
-    const pc = last.precheck
-    if (pc) {
-      const unread = Array.isArray(pc.unreadable) ? pc.unreadable : []
-      const head = pc.empty ? t('quietPreEmpty') : pc.baseline ? t('quietPreBase') : t('quietPre')
-      const words = [head.replace('{t}', title).replace('{n}', String(pc.checked || 0)), unread.length ? t('quietPreUnread').replace('{n}', String(unread.length)) : '', when].filter(Boolean).join(' · ')
-      return h('button', { type: 'button', className: 'mwt-note', title: unread.map((u) => u.title + '：' + u.reason).join('\n') || t('routines'), onClick: onOpen }, words)
-    }
     return h('button', { type: 'button', className: 'mwt-note', title: t('routines'), onClick: onOpen }, t('quietLine').replace('{t}', title) + ' · ' + when)
   }
 
-  /** 生效 words of a change: 10/22 生效，还有 14 天 · 09/10 已生效 · 今天生效 · 已生效. */
-  const whenOf = (x) => {
-    const d = x.effective ? x.effective.slice(5).replace('-', '/') : ''
-    if (x.days === null || x.days === undefined) return d
-    if (!d) return x.days <= 0 ? t('whenIn') : ''
-    return x.days < 0 ? t('whenPast').replace('{d}', d) : x.days === 0 ? t('whenToday') : t('whenLeft').replace('{d}', d).replace('{n}', String(x.days))
-  }
   /** Base64 of bytes, in slices (String.fromCharCode.apply has a stack limit). */
   const b64 = (bytes) => { let s = ''; for (let i = 0; i < bytes.length; i += 32768) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 32768)); return btoa(s) }
   const UPLOAD_PIECE = 150 * 1024
@@ -2255,7 +2255,7 @@ function makeComponents(ctx, t) {
         onClick: () => pick.current && pick.current.click(),
         onKeyDown: (ev) => { if ((ev.key === 'Enter' || ev.key === ' ') && pick.current) { ev.preventDefault(); pick.current.click() } },
         onDragOver: (ev) => { ev.preventDefault(); setOver(true) }, onDragLeave: () => setOver(false),
-        onDrop: (ev) => { ev.preventDefault(); setOver(false); add(ev.dataTransfer && ev.dataTransfer.files) },
+        onDrop: (ev) => { ev.preventDefault(); ev.stopPropagation(); setOver(false); add(ev.dataTransfer && ev.dataTransfer.files) },
       }, t('obDrop') + ' ', h('b', null, t('obPick')),
       h('input', { ref: pick, type: 'file', multiple: true, hidden: true, onChange: (ev) => { add(ev.target.files); ev.target.value = '' } })),
       files.length ? h('div', { className: 'mwt-files' }, files.map((f, i) => h('span', { key: f.name + i, className: 'mwt-file' },
@@ -2268,45 +2268,61 @@ function makeComponents(ctx, t) {
   }
 
   /**
-   * 清单确认卡: what mywork_list_write wrote — the first 10 rows of 清单.csv (对象 · 哪里在用 · 怎么知道的), 「还有 n 行」
-   * opens the file; 对，就这些 (POST /mates/listok) or 改一下 (the composer, 「把 清单.csv 里 」).
+   * 知识库 (Karpathy, "LLM Wiki": the model writes the wiki, you read it — his Obsidian side): search, how many pages
+   * from how many sources and how many changed since you read them, 体检 by code (孤立 / 断链 / 没进索引, each opens),
+   * the latest log entries, the pages by category (most linked first; a dot on what changed since you read it), the
+   * index and the log. A page opens in the reading view, where [[链接]] lead on and 被这些页提到 lists the backlinks.
    */
-  function ListCheckCard({ run, e, mate, onDone, onEdit, onOpenPath }) {
-    const [table, setTable] = React.useState(null)
-    const [busy, setBusy] = React.useState(false)
+  function WikiPanel({ mate, openPath, onOpenFile }) {
+    const [data, setData] = React.useState(null)
+    const [q, setQ] = React.useState('')
+    const [hits, setHits] = React.useState(null)
+    const [shut, setShut] = React.useState({})
+    const [health, setHealth] = React.useState(false)
     React.useEffect(() => {
       let on = true
-      api('/mates/file?id=' + encodeURIComponent(mate.id) + '&path=' + encodeURIComponent(e.file || '清单.csv')).then((d) => (d && typeof d.text === 'string' ? tableOf(d.text, ',') : null)).catch(() => null)
-        .then((x) => { if (on) setTable(x || { header: [], rows: [] }) })
+      api('/mates/wiki?id=' + encodeURIComponent(mate.id)).then((d) => { if (on) setData(d) }).catch(() => { if (on) setData((p) => p || { error: true }) })
       return () => { on = false }
-    }, [mate.id, e.file, e.rows, mate.lastAt || ''])
-    const rows = table ? table.rows.filter((r) => r.some((c) => String(c).trim())) : []
-    const col = (names) => (table ? table.header.findIndex((x) => names.includes(String(x).trim())) : -1)
-    const nameI = Math.max(0, col(['名称', '对象', '名字']))
-    const idI = col(['模型ID或版本', '模型ID'])
-    const whereI = col(['哪里在用', '在哪用'])
-    const howI = col(['怎么知道的', '来源'])
-    const ok = () => { if (busy) return; setBusy(true); api('/mates/listok', { id: mate.id, runId: run.id, entryId: e.id }).then(() => { if (onDone) onDone() }).catch(() => {}).finally(() => setBusy(false)) }
-    return h('div', { className: 'mwt-card mwt-lc' },
-      h('div', { className: 'mwt-card-h' }, t('lcTitle').replace('{n}', String(rows.length || e.rows || 0))),
-      !table ? h('div', { style: { padding: '12px 16px 0' } }, h(Skeleton, { rows: 2 }))
-        : h('div', { className: 'tb' }, h('table', null,
-          h('thead', null, h('tr', null, h('th', null, t('lcName')), whereI >= 0 ? h('th', null, t('lcWhere')) : null, howI >= 0 ? h('th', null, t('lcHow')) : null)),
-          h('tbody', null, rows.slice(0, 10).map((r, i) => {
-            const id = idI >= 0 ? String(r[idI] || '').trim() : ''
-            const name = String(r[nameI] || '').trim()
-            const where = whereI >= 0 ? String(r[whereI] || '').trim() : ''
-            return h('tr', { key: i },
-              h('td', { className: 'id' }, name + (id && id !== name && !/^\d/.test(id) ? ' · ' + id : id && /^\d/.test(id) ? ' ' + id : '')),
-              whereI >= 0 ? h('td', { className: where ? undefined : 'empty' }, where || t('lcEmpty')) : null,
-              howI >= 0 ? h('td', { className: 'src' }, r[howI]) : null)
-          })))),
-      rows.length > 10 ? h('button', { type: 'button', className: 'more', onClick: () => onOpenPath && onOpenPath(e.file || '清单.csv') }, t('rowsMore').replace('{n}', String(rows.length - 10))) : null,
-      e.confirmed
-        ? h('div', { className: 'mwt-acts' }, h('span', { className: 'msg' }, t('lcConfirmed').replace('{t}', hhmm(e.confirmedAt))))
-        : h('div', { className: 'mwt-acts' }, h('span', { className: 'msg' }),
-          h('button', { type: 'button', className: 'mwt-btn', onClick: onEdit }, t('lcEdit')),
-          h('button', { type: 'button', className: 'mwt-btn primary', disabled: busy, onClick: ok }, t('lcOk'))))
+    }, [mate.id, mate.lastAt || '', mate.state || '', mate.step || '', openPath || ''])
+    React.useEffect(() => {
+      const v = q.trim()
+      if (!v) { setHits(null); return undefined }
+      let on = true
+      const id = setTimeout(() => { api('/mates/wiki/search?id=' + encodeURIComponent(mate.id) + '&q=' + encodeURIComponent(v)).then((d) => { if (on) setHits((d && d.items) || []) }).catch(() => { if (on) setHits([]) }) }, 200)
+      return () => { on = false; clearTimeout(id) }
+    }, [q, mate.id])
+    const open = (path) => { if (onOpenFile && path) onOpenFile({ path }) }
+    if (!data) return h('section', { className: 'mwt-sec' }, h(Skeleton, { rows: 4 }))
+    if (data.error) return h('section', { className: 'mwt-sec' }, h('p', { className: 'mwt-quiet' }, t('loadFailed')))
+    const hl = data.health || { orphans: [], broken: [], unindexed: [] }
+    const problems = hl.orphans.length + hl.broken.length + hl.unindexed.length
+    const titleOf = (path) => { for (const c of data.categories || []) for (const pg of c.pages) if (pg.path === path) return pg.title; return path.replace(/^wiki\//, '').replace(/\.md$/, '') }
+    const row = (path, label, key) => h('button', { key: key || path, type: 'button', className: 'pg', title: path, onClick: () => open(path) }, h('span', { className: 't' }, label))
+    return h('div', { className: 'mwt-wiki' },
+      h('section', { className: 'mwt-sec', 'data-sec': 'wiki' },
+        h('input', { className: 'mwt-input small', type: 'search', value: q, placeholder: t('wikiSearch'), 'aria-label': t('wikiSearch'), onChange: (e) => setQ(e.target.value) }),
+        h('p', { className: 'stat' }, t('wikiStats').replace('{p}', String(data.pages)).replace('{s}', String(data.sources)), data.unread ? h(React.Fragment, null, ' · ', h('b', null, t('wikiUnread').replace('{n}', String(data.unread)))) : null),
+        !hits && data.pages ? h('button', { type: 'button', className: 'hl', 'aria-expanded': health, onClick: () => setHealth(!health) },
+          t('wikiHealth') + '：' + (problems ? [hl.orphans.length ? t('wikiOrphans').replace('{n}', String(hl.orphans.length)) : '', hl.broken.length ? t('wikiBroken').replace('{n}', String(hl.broken.length)) : '', hl.unindexed.length ? t('wikiUnindexed').replace('{n}', String(hl.unindexed.length)) : ''].filter(Boolean).join(' · ') : t('wikiHealthy'))) : null,
+        !hits && health && problems ? h('div', { className: 'hlist' },
+          hl.orphans.map((p) => row(p, t('wikiOrphans').replace('{n}', '').trim() + ' · ' + titleOf(p), 'o:' + p)),
+          hl.broken.map((b, i) => row(b.from, titleOf(b.from) + ' → [[' + b.target + ']]', 'b:' + i)),
+          hl.unindexed.map((p) => row(p, t('wikiUnindexed').replace('{n}', '').trim() + ' · ' + titleOf(p), 'u:' + p))) : null),
+      hits ? h('section', { className: 'mwt-sec' }, hits.length ? hits.map((x) => h('button', { key: x.path, type: 'button', className: 'pg', onClick: () => open(x.path) },
+        h('span', { className: 't', style: { whiteSpace: 'normal' } }, x.title, x.snippet ? h('span', { className: 'snip' }, x.snippet) : null))) : h('p', { className: 'mwt-quiet' }, t('wikiNoHit')))
+        : !data.pages ? h('section', { className: 'mwt-sec' }, h('p', { className: 'mwt-quiet' }, t('wikiEmpty')))
+          : h(React.Fragment, null,
+            data.log && data.log.length ? h('section', { className: 'mwt-sec' }, h('h2', null, t('wikiRecent')),
+              data.log.slice(0, 5).map((x, i) => h('div', { key: i, className: 'log' }, h('span', { className: 'd' }, x.date.slice(5).replace('-', '/')), h('span', { className: 'x', title: x.title }, x.op + ' · ' + x.title)))) : null,
+            h('section', { className: 'mwt-sec' },
+              (data.categories || []).map((c) => h(React.Fragment, { key: c.name },
+                h('button', { type: 'button', className: 'cat', 'aria-expanded': !shut[c.name], onClick: () => setShut({ ...shut, [c.name]: !shut[c.name] }) }, icon('chevron-down', { size: 14 }), c.name, h('span', { className: 'n' }, String(c.pages.length))),
+                shut[c.name] ? null : c.pages.map((pg) => h('button', { key: pg.path, type: 'button', className: 'pg', title: pg.path, onClick: () => open(pg.path) },
+                  pg.unread ? h('span', { className: 'dot', 'aria-label': t('wikiUnread').replace('{n}', '') }) : null,
+                  h('span', { className: 't' }, pg.title), pg.inbound ? h('span', { className: 'r' }, '← ' + pg.inbound) : null)))),
+              h('div', { className: 'links' },
+                h('button', { type: 'button', className: 'mwt-link', onClick: () => open('wiki/index.md') }, t('wikiIndex')),
+                h('button', { type: 'button', className: 'mwt-link', onClick: () => open('wiki/log.md') }, t('wikiLog'))))))
   }
 
   /** 它会主动做的 (PROACTIVE.md 12): the items it will do unasked, ticked by default per the template; 交给它 makes them its routines. */
@@ -2330,54 +2346,6 @@ function makeComponents(ctx, t) {
   }
 
   /**
-   * 变化卡 (EDITIONS.md 4.2, 9.3): a precheck's changes, built by code — per row: what, its tier (立刻 / 到点), where it is
-   * used, when it takes effect, the monthly delta when the list has the spend, the source (and the quote), the
-   * replacement. The foot: how much it looked at, and what it could not read.
-   */
-  const ACTIONABLE = new Set(['下线', '改名重定向', '改计费', '调价', '限区域', '停用', '下架'])
-  function ChangeCard({ run, e, mate, onDone }) {
-    const items = e.items || []
-    const unread = e.unreadable || []
-    const [busy, setBusy] = React.useState('')
-    const act = (x, action) => { if (busy || !run || !mate) return; setBusy(x.key); api('/mates/change', { id: mate.id, runId: run.id, entryId: e.id, key: x.key, action }).then(() => { if (onDone) onDone() }).catch(() => {}).finally(() => setBusy('')) }
-    const actions = (x) => {
-      if (!run || !mate || !ACTIONABLE.has(x.category)) return null
-      if (x.handled) return h('div', { className: 'done' }, (t('chgHandled')[x.handled.action] || '').replace('{t}', hhmm(x.handled.at)))
-      return h('div', { className: 'acts2' },
-        h('button', { type: 'button', className: 'mwt-btn', disabled: !!busy, onClick: () => act(x, 'plan') }, t('chgPlan')),
-        h('button', { type: 'button', className: 'mwt-btn', disabled: !!busy, onClick: () => act(x, 'retest') }, t('chgRetest')),
-        h('button', { type: 'button', className: 'mwt-btn plain', disabled: !!busy, onClick: () => act(x, 'mine') }, t('chgMine')),
-        h('button', { type: 'button', className: 'mwt-btn plain', disabled: !!busy, onClick: () => act(x, 'doing') }, t('chgDoing')))
-    }
-    return h('div', { className: 'mwt-card mwt-chg mwt-today' },
-      h('div', { className: 'hd' }, h('b', null, t('chgTitle').replace('{n}', String(items.length))), e.baseline ? h('span', null, t('chgBaseline')) : null),
-      items.map((x) => h('div', { key: x.key, className: 'it' },
-        h('div', { className: 'l1' }, h('span', { className: 's', title: x.subject }, x.subject), h('span', { className: 'w' }, x.summary),
-          h('span', { className: 'tier', 'data-now': x.tier === 'now' ? 'true' : undefined }, x.tier === 'now' ? t('tierNow') : t('tierDigest'))),
-        h('div', { className: 'l2' }, [x.where ? t('chgUsed').replace('{w}', x.where) : t('chgWhereNone'), whenOf(x), x.monthly, x.replacement && x.replacement.length ? t('chgReplace').replace('{s}', x.replacement.join('、')) : ''].filter(Boolean).join(' · ')),
-        h('div', { className: 'l2' }, x.source, x.also && x.also.length ? '（' + t('chgAlso').replace('{s}', x.also.join('、')) + '）' : '', x.url ? h(React.Fragment, null, ' · ', h('a', { href: x.url, target: '_blank', rel: 'noopener noreferrer' }, t('chgOpen'))) : null),
-        x.quote ? h('div', { className: 'q', title: x.quote }, '「' + x.quote + '」') : null,
-        actions(x))),
-      h('div', { className: 'ft' },
-        h('span', null, t('chgFoot').replace('{n}', String(e.checked || 0)).replace('{m}', String(e.related || 0))),
-        unread.length ? h('span', { title: unread.map((u) => u.title + '：' + u.reason).join('\n') }, t('chgUnread').replace('{n}', String(unread.length)).replace('{s}', unread.map((u) => u.title).join('、'))) : null))
-  }
-
-  /** 自测结果卡: per candidate 通过 / 总数, 待你看, 失败, average time, tokens; the sampled model verdicts; the table. */
-  function SelftestCard({ e, onOpenPath }) {
-    return h('div', { className: 'mwt-card mwt-st' },
-      h('div', { className: 'mwt-card-h' }, t('stTitle').replace('{n}', String(e.tasks || 0))),
-      h('div', { style: { height: 8 } }),
-      (e.summary || []).map((s) => h('div', { key: s.label, className: 'r' },
-        h('b', { title: s.model }, s.label),
-        h('span', { className: 'm' }, [s.manual ? t('stManual').replace('{n}', String(s.manual)) : '', s.errors ? t('stErr').replace('{n}', String(s.errors)) : '', s.avgMs ? t('stAvg').replace('{s}', (s.avgMs / 1000).toFixed(1)) : '', t('stTokens').replace('{i}', String(s.tokensIn)).replace('{o}', String(s.tokensOut))].filter(Boolean).join(' · ')),
-        h('span', { className: 'p' }, t('stRow').replace('{p}', String(s.pass)).replace('{n}', String(s.total))))),
-      h('div', { className: 'mwt-acts' },
-        h('span', { className: 'msg' }, [e.judge ? t('stJudge').replace('{j}', e.judge) : '', e.checks ? t('stChecks').replace('{n}', String(e.checks)) : ''].filter(Boolean).join(' · ')),
-        onOpenPath ? h('button', { type: 'button', className: 'mwt-btn', onClick: () => onOpenPath(e.file) }, t('stOpen')) : null))
-  }
-
-  /**
    * 今天卡 (EDITIONS.md 4.4, GET /today): MyWork's message at 读的时间, put together by code — 需要你 (open questions,
    * reminders, failures; --warn), 变化 (routine results and files not opened yet, three per teammate), then how many
    * things they did and how much they checked without speaking. Anything that came after 读的时间 says 「补 HH:MM」.
@@ -2387,22 +2355,18 @@ function makeComponents(ctx, t) {
     const mateOf = (id) => (mates || []).find((m) => m.id === id) || { id, name: '' }
     const kindOf = { ask: [t('kAsk'), 'warn'], remind: [t('kRemind'), undefined], failed: [t('kFailed'), 'danger'], file: [t('kFile'), undefined], routine: ['', undefined] }
     const row = (x) => {
-      const [word, tone] = x.kind === 'watch' ? (x.tier === 'now' ? [t('tierNow'), 'accent'] : [t('tierDigest'), undefined]) : kindOf[x.kind] || ['', undefined]
-      const right = x.kind === 'watch' ? [word, x.late ? t('todayLate') + ' ' + hhmm(x.at) : ''].filter(Boolean).join(' · ') : x.late ? t('todayLate') + ' ' + hhmm(x.at) : x.more ? t('todayMore').replace('{n}', String(x.more)) : word
+      const [word, tone] = kindOf[x.kind] || ['', undefined]
+      const right = x.late ? t('todayLate') + ' ' + hhmm(x.at) : x.more ? t('todayMore').replace('{n}', String(x.more)) : word
       return h('button', { key: x.kind + ':' + x.runId + ':' + x.at, type: 'button', className: 'row', onClick: () => onOpen(x.mateId, x.runId) },
         h('span', { className: 'who' }, h(Avatar, { mate: mateOf(x.mateId), size: 16 }), x.mateName),
         h('span', { className: 'tx', title: x.text }, x.text),
-        h('span', { className: 'k', 'data-tone': x.late && x.kind !== 'watch' ? undefined : tone }, right))
+        h('span', { className: 'k', 'data-tone': x.late ? undefined : tone }, right))
     }
     const quiet = (card.quiet || []).map((q) => q.mateName + ' ' + q.n).join(' · ')
     const nothing = !card.needs.length && !card.changes.length
     return h('div', { className: 'mwt-card mwt-today' },
       h('div', { className: 'hd' }, h('b', null, t('todayTitle').replace('{d}', card.date)), h('span', null, [card.readTime, card.updatedAt ? t('todayUpdated').replace('{t}', hhmm(card.updatedAt)) : ''].filter(Boolean).join(' · '))),
       card.needs.length ? h(React.Fragment, null, h('div', { className: 'sec need' }, t('todayNeeds').replace('{n}', String(card.needs.length))), card.needs.map(row)) : null,
-      card.days && card.days.length ? h(React.Fragment, null, h('div', { className: 'sec' }, t('todayDays')), card.days.map((x) => h('button', { key: 'day:' + x.runId + x.text, type: 'button', className: 'row', onClick: () => onOpen(x.mateId, x.runId) },
-        h('span', { className: 'who' }, h(Avatar, { mate: mateOf(x.mateId), size: 16 }), x.mateName),
-        h('span', { className: 'tx', title: x.text }, x.text),
-        h('span', { className: 'k', 'data-tone': x.days <= 3 ? 'accent' : undefined }, x.days === 0 ? t('dayToday') : t('dayLeft').replace('{n}', String(x.days)))))) : null,
       card.changes.length ? h(React.Fragment, null, h('div', { className: 'sec' }, t('todayChanges').replace('{n}', String(card.changes.length + (card.hidden || 0)))), card.changes.map(row),
         card.hidden ? h('div', { className: 'none' }, t('todayMore').replace('{n}', String(card.hidden))) : null) : null,
       nothing ? h('div', { className: 'none' }, t('todayNone')) : null,
@@ -2419,7 +2383,7 @@ function makeComponents(ctx, t) {
     React.useEffect(() => { if (th.loaded && !th.error) threadCache.set(mate.id, { runs: th.runs, nextBefore: th.nextBefore }) }, [th.runs, th.nextBefore])
     const [bump, setBump] = React.useState(0)
     const working = mate.state === 'working'
-    const key = [mate.lastAt || '', mate.checkedAt || '', mate.state || '', mate.step || '', mate.ask && mate.ask.id ? mate.ask.id : '', working ? Math.floor(Date.now() / FAST_MS) : 0, bump].join('|')
+    const key = [mate.lastAt || '', mate.state || '', mate.step || '', mate.ask && mate.ask.id ? mate.ask.id : '', working ? Math.floor(Date.now() / FAST_MS) : 0, bump].join('|')
     React.useEffect(() => {
       let on = true
       const started = Date.now()
@@ -2563,7 +2527,13 @@ function makeComponents(ctx, t) {
     }, [mate.isDefault, rosterKey])
 
     // The right panel: per teammate, mode 'mate' (电脑 · 例行 · 设置) or 'new-mate' (the form).
-    const [aside, setAside] = React.useState(() => ({ open: asideMemory(mate.id) === 'open', mode: 'mate', section: '', routineId: '', seq: 0 }))
+    // A 知识库 teammate opens with its wiki beside the conversation (Karpathy: the agent on one side, the wiki on the other).
+    const isWiki = mate.template === 'wiki'
+    const [aside, setAside] = React.useState(() => ({ open: isWiki ? asideMemory(mate.id) !== 'closed' : asideMemory(mate.id) === 'open', mode: 'mate', section: isWiki ? 'wiki' : '', routineId: '', seq: 0 }))
+    const [flash, setFlash] = React.useState('')
+    React.useEffect(() => { if (!flash) return undefined; const id = setTimeout(() => setFlash(''), 3000); return () => clearTimeout(id) }, [flash])
+    const [dragging, setDragging] = React.useState(false)
+    const attachRef = React.useRef(null)
     const showAside = (open, patch) => { setAside((a) => ({ ...a, open, ...(patch || {}), seq: a.seq + 1 })); if (!patch || patch.mode === 'mate') rememberAside(mate.id, open ? 'open' : 'closed') }
 
     // Navigation requests (the column, toasts, the bell, search): a run to jump to, the panel to open.
@@ -2716,10 +2686,7 @@ function makeComponents(ctx, t) {
         } else if (e.kind === 'ask') add('mate', e, () => h(AskCard, { e, onAnswer: answer(run.id), onTakeover: takeover }), { card: true })
         else if (e.kind === 'remind') add('mate', e, () => h(RemindCard, { e, onAck: ack }), { card: true })
         else if (e.kind === 'onboard') add('mate', e, () => h(OnboardCard, { run, e: e.e, mate, onDone: () => { th.reload(); kick() } }), { card: true })
-        else if (e.kind === 'listcheck') add('mate', e, () => h(ListCheckCard, { run, e: e.e, mate, onDone: () => { th.reload(); kick() }, onEdit: () => editInThread(e.e.file || '清单.csv'), onOpenPath: (p) => openFile({ path: p }) }), { card: true })
         else if (e.kind === 'subscribe') add('mate', e, () => h(SubscribeCard, { run, e: e.e, mate, onDone: () => { th.reload(); kick() } }), { card: true })
-        else if (e.kind === 'changes') add('mate', e, () => h(ChangeCard, { run, e: e.e, mate, onDone: () => { th.reload(); kick() } }), { card: true })
-        else if (e.kind === 'selftest') add('mate', e, () => h(SelftestCard, { e: e.e, onOpenPath: (p) => openFile({ path: p }) }), { card: true })
         else if (e.kind === 'failed') add('mate', e, bubble('danger', false, t('failedTitle') + ' · ' + e.reason))
         else if (e.kind === 'thinking') add('status', e, null, { parts: [t('working'), e.step, elapsedOf(run)], live: true })
         else if (e.kind === 'queued') add('status', e, null, { parts: [t('queued')] })
@@ -2827,8 +2794,19 @@ function makeComponents(ctx, t) {
     const panelMode = aside.mode === 'new-mate' ? 'new-mate' : tabOf(aside.section)
     const settingsOpen = shown && panelMode === 'profile'
     const computerOpen = shown && panelMode === 'computer'
+    const wikiOpen = shown && panelMode === 'wiki'
+    // [[链接]] anywhere on the page (a reply, a wiki page): the page it names opens in the reading view.
+    const onWikiLink = (ev) => {
+      const a = ev.target && typeof ev.target.closest === 'function' ? ev.target.closest('a.md-wiki') : null
+      if (!a) return
+      ev.preventDefault()
+      const name = a.getAttribute('data-wiki') || ''
+      const from = readingRef.current && readingRef.current.kind === 'file' ? readingRef.current.path : ''
+      api('/mates/wiki/page?id=' + encodeURIComponent(mate.id) + '&name=' + encodeURIComponent(name) + (from ? '&from=' + encodeURIComponent(from) : ''))
+        .then((d) => openFile({ path: d.path })).catch(() => setFlash(t('wikiMissing').replace('{n}', name)))
+    }
     const toggleSettings = () => showAside(!settingsOpen, { mode: 'mate', section: 'profile', routineId: '' })
-    const title = panelMode === 'new-mate' ? t('newMate') : panelMode === 'profile' ? t('profile') : t('computer')
+    const title = panelMode === 'new-mate' ? t('newMate') : panelMode === 'profile' ? t('profile') : panelMode === 'wiki' ? t('wikiTab') : t('computer')
     const asideBody = () => aside.mode === 'new-mate'
       ? h(NewMateForm, { mates, onCreated: (m) => { setAside((a) => ({ ...a, open: false, mode: 'mate', seq: a.seq + 1 })); if (getNav().mateId !== m.id) openMate(m.id) } })
       : h(MatePanel, { mate, mates, live, screen, renderSlot, section: aside.section, routineId: aside.routineId, seq: aside.seq, openPath: reading && reading.kind === 'file' ? reading.path : '', onOpenFile: openFile, onJump: (runId) => { backTo.current = null; setReading(null); jump.current = { id: runId, tries: 0 }; setJumpSeq((x) => x + 1) } })
@@ -2836,7 +2814,7 @@ function makeComponents(ctx, t) {
       h('div', { className: 'mwt-aside-head' },
         panelMode === 'new-mate' ? h('span', { className: 'title' }, title)
           : h('div', { className: 'mwt-ptabs', role: 'tablist', 'aria-label': mate.name },
-            [['profile', t('profile')], ['computer', t('computer')]].map(([k, label]) => h('button', { key: k, type: 'button', role: 'tab', 'aria-selected': panelMode === k, onClick: () => showAside(true, { mode: 'mate', section: k, routineId: '' }) }, label))),
+            [...(isWiki ? [['wiki', t('wikiTab')]] : []), ['profile', t('profile')], ['computer', t('computer')]].map(([k, label]) => h('button', { key: k, type: 'button', role: 'tab', 'aria-selected': panelMode === k, onClick: () => showAside(true, { mode: 'mate', section: k, routineId: '' }) }, label))),
         h('button', { type: 'button', className: 'mwt-ibtn', 'aria-label': t('close'), title: t('close'), onClick: () => showAside(false) }, icon('x', { size: 16 }))),
       shown ? h('div', { className: 'mwt-aside-body' }, asideBody()) : null)
     const menu = [
@@ -2851,6 +2829,7 @@ function makeComponents(ctx, t) {
           h(Avatar, { mate, size: 28, working: running }),
           h('span', { className: 'who' }, h('span', { className: 'name' }, mate.name), mate.title ? h('span', { className: 'ttl' }, mate.title) : null))),
       h('div', { className: 'mwt-bar-acts' },
+        isWiki ? h('button', { type: 'button', className: 'mwt-ibtn', 'aria-label': t('wikiTab'), 'aria-pressed': wikiOpen, title: t('wikiTab'), onClick: () => showAside(!wikiOpen, { mode: 'mate', section: 'wiki', routineId: '' }) }, icon('book-open', { size: 16 })) : null,
         h('button', { type: 'button', className: 'mwt-ibtn', 'aria-label': t('computer'), 'aria-pressed': computerOpen, title: t('computer'), onClick: () => showAside(!computerOpen, { mode: 'mate', section: 'computer', routineId: '' }) }, icon('monitor', { size: 16 })),
         h(Menu, { items: menu })))
     const thread = () => h(React.Fragment, null,
@@ -2862,15 +2841,23 @@ function makeComponents(ctx, t) {
           : h('section', { className: 'mwt-thread' },
             th.nextBefore ? h('button', { type: 'button', className: 'mwt-older', disabled: th.busy, onClick: loadEarlier }, t('loadEarlier')) : null,
             renderThread()),
-        h('div', { className: 'mwt-dock' }, h(Dock, { key: mate.id, mate, fillRef, draft, targetId: mate.id, running, onStop: stop, textAsk, answering: mate.state === 'waiting' || !!textAsk, onPending: (text) => { atBottom.current = true; setPending({ text, at: text ? Date.now() : 0 }) }, onSent: () => { th.reload(); kick() } }))))
-    return h('div', { ref: rootRef, className: 'mwt mwt-mate', 'data-mwt-mate': mate.id, onScroll },
+        h('div', { className: 'mwt-dock' }, h(Dock, { key: mate.id, mate, fillRef, draft, attachRef, targetId: mate.id, running, onStop: stop, textAsk, answering: mate.state === 'waiting' || !!textAsk, onPending: (text) => { atBottom.current = true; setPending({ text, at: text ? Date.now() : 0 }) }, onSent: () => { th.reload(); kick() } }))))
+    const hasFiles = (ev) => !!(ev.dataTransfer && Array.from(ev.dataTransfer.types || []).includes('Files'))
+    return h('div', {
+      ref: rootRef, className: 'mwt mwt-mate', 'data-mwt-mate': mate.id, 'data-dragging': dragging ? 'true' : undefined, onScroll, onClick: onWikiLink,
+      // A file dropped anywhere on the page goes to the teammate (its drop folder), the composer says so.
+      onDragOver: (ev) => { if (hasFiles(ev) && !reading) { ev.preventDefault(); if (!dragging) setDragging(true) } },
+      onDragLeave: (ev) => { if (ev.target === rootRef.current || !ev.relatedTarget) setDragging(false) },
+      onDrop: (ev) => { if (!hasFiles(ev)) return; ev.preventDefault(); setDragging(false); if (attachRef.current) attachRef.current(ev.dataTransfer.files) },
+    },
       h('style', null, STYLE),
+      flash ? h('div', { className: 'mwt-flash', role: 'status' }, flash) : null,
       !split ? h('div', { className: 'mwt-aside-dock' }, h('div', { className: 'mwt-aside-clip', style: box.h ? { height: box.h } : undefined }, asidePanel('over'))) : null,
       h('div', { className: 'mwt-page mate' + (shown && split ? ' split' : '') },
         h('div', { className: 'mwt-col' },
           reading ? h('div', { className: 'mwt-inner' }, reading.kind === 'file'
             ? (openKindOf(reading.path) === 'text'
-              ? h(FileView, { key: 'f:' + reading.path, mate, path: reading.path, backLabel: t('backToThread'), onBack: closeDoc, onEdit: editInThread })
+              ? h(FileView, { key: 'f:' + reading.path, mate, path: reading.path, backLabel: t('backToThread'), onBack: closeDoc, onEdit: editInThread, onOpenPath: (p) => openFile({ path: p }) })
               : h(LinkView, { key: 'l:' + reading.path + ':' + (reading.at || 0), mate, path: reading.path, backLabel: t('backToThread'), onBack: closeDoc }))
             : h(ReadingView, { key: 'd:' + reading.id, id: reading.id, mates, backLabel: t('backToThread'), onBack: closeDoc, onRated: patchRating })) : thread()),
         shown && split ? asidePanel('col') : null))
@@ -2898,13 +2885,31 @@ function makeComponents(ctx, t) {
    * run; working: steers the run; waiting: answers the question. Enter sends; what you sent shows at once as your turn,
    * except an answer (`answering`), which lands as the question's 「已回答」 line when the thread comes back.
    */
-  function Dock({ mate, fillRef, draft, targetId, textAsk, answering, running, onStop, onPending, onSent }) {
+  function Dock({ mate, fillRef, draft, attachRef, targetId, textAsk, answering, running, onStop, onPending, onSent }) {
     const [text, setTextState] = React.useState(() => (draft && draft.current) || '')
     const setText = (v) => { if (draft) draft.current = v; setTextState(v) }
     const [busy, setBusy] = React.useState(false)
     const [err, setErr] = React.useState('')
     const ref = React.useRef(null)
     if (fillRef) fillRef.current = (v) => { setText(v); setTimeout(() => { const el = ref.current; if (el) { el.focus(); el.setSelectionRange(v.length, v.length) } }, 0) }
+    // 附上文件: each goes to the teammate's drop folder (知识库: 原始资料/) in pieces; the composer then says what you gave it.
+    const [up, setUp] = React.useState('')
+    const pick = React.useRef(null)
+    const attach = async (list) => {
+      const files = Array.from(list || []).slice(0, 20)
+      if (!files.length || up) return
+      const names = []
+      setErr('')
+      try {
+        for (let i = 0; i < files.length; i++) { setUp(t('attaching').replace('{n}', (i + 1) + '/' + files.length)); names.push(String(await uploadFile(mate.id, files[i])).split('/').pop()) }
+        const drop = mate.drop || {}
+        const line = (drop.say || t('attachSay')).replace('{dir}', drop.dir || '材料').replace('{files}', names.join('、'))
+        const next = text.trim() ? line + '\n' + text : line
+        setText(next)
+        setTimeout(() => { const el = ref.current; if (el) { el.focus(); el.setSelectionRange(next.length, next.length) } }, 0)
+      } catch (e) { setErr(t('obFailed').replace('{e}', (e && e.message) || String(e))) } finally { setUp('') }
+    }
+    if (attachRef) attachRef.current = attach
     const submit = async () => {
       const body = text.trim()
       if (!body || busy) return
@@ -2918,16 +2923,19 @@ function makeComponents(ctx, t) {
     React.useEffect(() => { const el = ref.current; if (!el) return; el.style.height = 'auto'; el.style.height = Math.min(200, el.scrollHeight) + 'px' }, [text])
     return h('div', null,
       h('div', { className: 'mwt-say' },
+        h('button', { type: 'button', className: 'mwt-attach', disabled: !!up, 'aria-label': t('attach'), title: t('attach'), onClick: () => pick.current && pick.current.click() }, icon('paperclip', { size: 16 })),
+        h('input', { ref: pick, type: 'file', multiple: true, hidden: true, onChange: (e) => { attach(e.target.files); e.target.value = '' } }),
         h('div', { className: 'mwt-say-in' }, h('textarea', { ref, value: text, rows: 1, placeholder: textAsk ? t('answerPh') : t('sayTo').replace('{name}', mate.name || ''), 'aria-label': textAsk ? t('answerPh') : t('sayTo').replace('{name}', mate.name || ''), onChange: (e) => setText(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); submit() } } })),
         running && onStop ? h('button', { type: 'button', className: 'mwt-stop', 'aria-label': t('stop'), title: t('stop'), onClick: onStop }, h('i', { 'aria-hidden': 'true' })) : null,
         h('button', { type: 'button', className: 'mwt-send', 'aria-label': t('send'), title: t('send'), disabled: busy || !text.trim(), onClick: submit }, icon('arrow-up', { size: 16, strokeWidth: 2 }))),
+      up ? h('small', { className: 'mwt-say-up', role: 'status' }, up) : null,
       err ? h('small', { className: 'mwt-say-err' }, err) : null)
   }
 
   // ---- the right panel: 资料 · 电脑 -----------------------------------------------------------------------------------
 
   /** Which tab a panel section opens: 电脑 (the screen and the folder) or 资料 (who it is, its job, routines, memory). */
-  const tabOf = (section) => (!section || section === 'computer' || section === 'folder' ? 'computer' : 'profile')
+  const tabOf = (section) => (section === 'wiki' ? 'wiki' : !section || section === 'computer' || section === 'folder' ? 'computer' : 'profile')
 
   function MatePanel({ mate, mates, live, screen, renderSlot, section, routineId, seq, openPath, onOpenFile, onJump }) {
     const ref = React.useRef(null)
@@ -2936,9 +2944,10 @@ function makeComponents(ctx, t) {
       const el = ref.current.querySelector('[data-sec="' + section + '"]')
       if (el && typeof el.scrollIntoView === 'function') { try { el.scrollIntoView({ block: 'start' }) } catch {} }
     }, [seq])
-    return h('div', { ref }, tabOf(section) === 'computer'
-      ? h(MateComputer, { mate, live, screen, renderSlot, openPath, onOpenFile })
-      : h(MateProfile, { key: mate.id, mate, mates, routineId, seq, onOpenFile, onJump }))
+    const tab = tabOf(section)
+    return h('div', { ref }, tab === 'wiki' ? h(WikiPanel, { key: mate.id, mate, openPath, onOpenFile })
+      : tab === 'computer' ? h(MateComputer, { mate, live, screen, renderSlot, openPath, onOpenFile })
+        : h(MateProfile, { key: mate.id, mate, mates, routineId, seq, onOpenFile, onJump }))
   }
 
   /**
@@ -3013,7 +3022,7 @@ function makeComponents(ctx, t) {
     const [busy, setBusy] = React.useState(false)
     const listRef = React.useRef(null)
     const load = React.useCallback(() => api('/routines?mate=' + encodeURIComponent(mate.id)).then((d) => setItems((d.items || []).filter((r) => !r.mateId || r.mateId === mate.id))).catch(() => setItems((p) => p || [])), [mate.id])
-    React.useEffect(() => { load() }, [load, mate.lastAt || '', mate.checkedAt || '', mate.routineCount])
+    React.useEffect(() => { load() }, [load, mate.lastAt || '', mate.routineCount])
     React.useEffect(() => { if (expand) setOpen(expand) }, [expand, seq])
     React.useEffect(() => {
       if (!expand || !items || !listRef.current) return

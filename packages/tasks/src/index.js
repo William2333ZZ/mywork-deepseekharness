@@ -27,11 +27,8 @@ import {
   isLiveRun, isQuietRun, isThreadEntry, lastAtOf, lastLineOf, later, MATE_DESCRIPTION_MAX, MATE_TITLE_MAX, MateStore, migrate,
   pendingAsk, plainLine, plainText, SeenStore, TaskStore, ts,
 } from './store.js'
-import { describeSchedule, parseSchedule, routineLastAt, RoutineStore, routineView } from './routines.js'
-import { changePrompt, changesEntry, LIST_HEADER, parseCsv, precheck as aiPrecheck, pushOf, toCsv } from './aiwatch.js'
-import { mergeRows, scanDir, scanFiles } from './inventory.js'
-import { getText, postJson } from './net.js'
-import { BASE_URLS, readTasks, resultsCsv, runSelftest, TASK_HEADER } from './selftest.js'
+import { describeSchedule, parseSchedule, routineLastAt, routinePrompt, RoutineStore, routineView } from './routines.js'
+import { lintFindings, outside, resolvePage, scanWiki, searchWiki } from './wiki.js'
 
 export const name = 'dsh-mywork-tasks'
 export const inject = ['tools', 'agents', 'sessions', 'workspaceRegistry', 'agentDefaultModel', 'agentPresets', 'permissionPresets']
@@ -68,8 +65,8 @@ export const PROACTIVE_LEVELS = ['ask', 'default', 'more']
 
 /**
  * Teammate templates (EDITIONS.md 9.5), one folder each under templates/: template.json (name, title, group, avatar,
- * pitch, intro, onboard card, subscription items, routine, precheck), duty.md (the job), seed/ (清单.csv, 判断.csv,
- * AGENTS.md copied into a new teammate's folder; {date} becomes today) and sources.json (the precheck's vendor pages).
+ * pitch, intro, dropDir, onboard card, subscription items with their routines and rules), duty.md (the job) and seed/
+ * (files and folders copied into a new teammate's folder; {date} becomes today).
  */
 export function loadTemplates(root) {
   const out = new Map()
@@ -82,14 +79,11 @@ export function loadTemplates(root) {
       if (!t || !t.id) continue
       t.dir = dir
       t.duty = existsSync(join(dir, 'duty.md')) ? readFileSync(join(dir, 'duty.md'), 'utf8').trim() : ''
-      t.sources = existsSync(join(dir, 'sources.json')) ? JSON.parse(readFileSync(join(dir, 'sources.json'), 'utf8')) : []
       out.set(t.id, t)
     } catch {}
   }
   return out
 }
-/** Prechecks by name: async ({ listText, state, sources, options, fetchText, now }) → { state, changes, checked, related, unreadable, … } */
-export const PRECHECKS = { 'ai-watch': aiPrecheck }
 /** A file handed over in pieces may grow to this size (材料/). */
 const UPLOAD_MAX = 20 * 1024 * 1024
 const MATERIAL_DIR = '材料'
@@ -114,7 +108,7 @@ export function personaPrefix(mate) {
     ...(askFirst.length ? [`- 例外：下面这几类事，做之前先用 mywork_ask（askKind approval）问用户，用户允许了再做——${askFirst.join('；')}。`] : []),
     '- 网站要登录时：用户给过你账号和密码就直接登录；没给过，用 mywork_ask（askKind takeover）请用户在电脑上的浏览器里登录，或者问用户要账号。登录状态会留在浏览器里。',
     '- 用户说带时间的事（每天 / 每周 / 工作日 / 几点 / 多久之后 / 提醒我），用 mywork_routine_create 安排成你的例行（这样用户在 MyWork 里看得见、管得着），一件事只安排一次；mywork_routines 查看，mywork_routine_cancel 取消。例行到点时你会收到「这是例行任务…」开头的消息，照要求做完回话；例行运行时没人在等着回答，不要用 mywork_ask。',
-    '- 你盯的东西（股票、在用的模型和依赖、课题、竞品……）记在你文件夹里的 清单.csv：一行一个对象，第一列是对象名，其余列你定，中文表头，只往后加列；已经有表头的照表头写，用 mywork_list_write 写（按表头合并，用户能撤销）。用户说出的看法、假设和决定记在 判断.csv，表头固定为 编号,类型,内容,依据,重看条件,状态,日期（编号从 J-01 起；类型是 看法 / 假设 / 决定 / 前提；状态是 有效 / 动摇 / 已改 / 撤回）。用户在右边的资料栏里看这两张表。改用户的判断时写清新的状态和理由；你自己的看法在内容前标「同事的：」。',
+    '- 你盯的东西（股票、课题、竞品……）记在你文件夹里的 清单.csv：一行一个对象，第一列是对象名，其余列你定，中文表头，只往后加列。用户说出的看法、假设和决定记在 判断.csv，表头固定为 编号,类型,内容,依据,重看条件,状态,日期（编号从 J-01 起；类型是 看法 / 假设 / 决定 / 前提；状态是 有效 / 动摇 / 已改 / 撤回）。用户在右边的资料栏里看这两张表。改用户的判断时写清新的状态和理由；你自己的看法在内容前标「同事的：」。',
     '- 用户纠正你，或说了长期的偏好和口径（称呼、格式、数据只用哪种来源），用 mywork_remember 记一条规矩；它写进你文件夹里的 AGENTS.md，以后每一轮都会读到，用户能在资料栏里改和删。一次性的事不要记。',
     '- 用户在你干活时插话，是在改这件事的要求，接着做，按最新的话为准。',
     ...(mate.proactive === 'ask' ? ['- 主动程度：只在用户问时。只做用户叫你做的事和你的例行，不要额外多查、多备、多做。'] : []),
@@ -172,10 +166,8 @@ export function mateComposition(baseText, mate) {
  * Everything but the cordis wiring. `ctx` is the dsh plugin context (or a fake), `home` the DSH_HOME, `controller()`
  * the session controller, `hostEmit(payload)` where 'mywork/task' events go.
  */
-export function createMyWork({ ctx, config = {}, home, log = () => {}, controller = () => null, hostEmit = () => {}, fetchText, post, templates: givenTemplates }) {
-  const postModel = typeof post === 'function' ? post : postJson
+export function createMyWork({ ctx, config = {}, home, log = () => {}, controller = () => null, hostEmit = () => {}, templates: givenTemplates }) {
   const templates = givenTemplates instanceof Map ? givenTemplates : loadTemplates(join(dirname(fileURLToPath(import.meta.url)), '..', 'templates'))
-  const fetchSource = typeof fetchText === 'function' ? fetchText : (url) => getText(url, { timeoutMs: 25000 }).then((r) => r.text)
   const dshHome = home || process.env.DSH_HOME || join(homedir(), '.dsh')
   const dir = join(dshHome, 'mywork')
   const presetRoot = join(dshHome, '.agent-presets')
@@ -215,11 +207,11 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
       id: t.id, mateId: t.mateId, trigger: t.trigger, routineId: t.routineId || '', routineTitle: t.routineTitle || (t.routineId && routines.get(t.routineId) ? routines.get(t.routineId).title : ''),
       status: t.status === 'queued' ? 'running' : t.status, queued: t.status === 'queued',
       input: t.trigger === 'system' ? '' : t.input, title: t.title || '', summary: t.summary || '', via: t.source === 'mywork' ? 'mywork' : '',
-      activity: (Array.isArray(t.activity) ? t.activity : []).map(({ requestId: _r, ...a }) => a),
+      // No absolute paths or snapshot locations reach the page (a did entry keeps them for 撤销 only).
+      activity: (Array.isArray(t.activity) ? t.activity : []).map(({ requestId: _r, abs: _a, snap: _s, after: _h, files, ...a }) => (files ? { ...a, files: files.map(({ abs: _x, snap: _y, after: _z, ...f }) => f) } : a)),
       deliverables: list.map((d) => ({ ...deliverableSummary(d), excerpt: excerptOf(d.markdown) })),
       verification: t.verification || null, verifying: !!t.verifying,
       ask: ask ? askView(ask) : null, error: t.error || '', quiet: !!t.quiet, migrated: !!t.migrated, remind: t.remind ? remindOfRun(t) : null,
-      watch: t.watch ? { tier: t.watch.tier, headline: t.watch.headline, n: t.watch.n, now: t.watch.now, push: t.watch.push || '' } : null,
       step: t.status === 'running' ? currentStepOf(t) : '',
       createdAt: t.createdAt, startedAt: t.startedAt || '', finishedAt: t.finishedAt || '',
     }
@@ -255,8 +247,8 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
       state, step, since: running ? (running.startedAt || running.createdAt) : live.length ? live[0].createdAt : pending ? pending.at : '',
       ask: pending ? { ...askView(pending), runId: waiting.id } : null,
       routineCount: routines.forMate(m.id).length, dir: m.dir, template: m.template || '',
-      // When a precheck last settled (a quiet one leaves only a receipt): the page re-reads the thread and routines on it.
-      checkedAt: routines.forMate(m.id).reduce((acc, r) => (r.precheck && r.runs && r.runs[0] && r.runs[0].settledAt ? later(acc, r.runs[0].settledAt) : acc), ''),
+      // Files you hand over go to the template's drop folder (知识库: 原始资料/), else 材料/; the composer's line for them.
+      drop: (() => { const tp = m.template ? templates.get(m.template) : null; return { dir: (tp && tp.dropDir) || MATERIAL_DIR, say: (tp && tp.dropSay) || '' } })(),
       askFirst: cleanAskFirst(m.askFirst), proactive: PROACTIVE_LEVELS.includes(m.proactive) ? m.proactive : 'default', readTime: m.isDefault ? (READ_TIME.test(m.readTime || '') ? m.readTime : DEFAULT_READ_TIME) : '',
     }
   }
@@ -385,7 +377,7 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
 
   const engine = createEngine({
     ctx, store, deliverables, mates, routines, scenarios, log, emit, controller, presetFor, workRecord,
-    afterTurn: (mateId) => { if (stalePresets.delete(mateId)) relink(mateId); try { onboardAfterIntro(mateId) } catch (e) { log('onboard: ' + (e && e.message)) } },
+    afterTurn: (mateId) => { if (stalePresets.delete(mateId)) relink(mateId); try { onboardAfterIntro(mateId); subscribeAfterOnboard(mateId) } catch (e) { log('onboard: ' + (e && e.message)) } },
     config: {
       concurrency: Number(config.concurrency) || 2, timeoutMs: Math.max(1, Number(config.timeoutMinutes) || 20) * 60000,
       permission: String(config.permission || 'workspace-write'), agentPreset: config.agentPreset === '' ? undefined : (config.agentPreset || 'standard'),
@@ -515,16 +507,7 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
       if (r.trigger === 'system' && r.status === 'done' && !r.error && !(r.activity || []).some(isThreadEntry) && !(index.get(r.id) || []).length) return false
       return true
     }
-    // A precheck that found nothing made no run: its receipt on the routine is drawn as the same grey line.
-    const receipts = []
-    for (const rt of routines.forMate(m.id)) {
-      if (!rt.precheck) continue
-      for (const x of rt.runs || []) {
-        if (!x.precheck || x.taskId || x.precheck.running) continue
-        receipts.push({ id: 'pc-' + rt.id + '-' + ts(x.at), mateId: m.id, trigger: 'routine', routineId: rt.id, routineTitle: rt.title, status: 'done', quiet: true, receipt: true, precheck: x.precheck, error: '', input: '', activity: [], deliverableIds: [], createdAt: x.at, startedAt: x.at, finishedAt: x.settledAt || x.at })
-      }
-    }
-    const runs = [...store.forMate(m.id).filter(visible), ...receipts].map((r, i) => ({ r, i })).sort((a, b) => (ts(a.r.createdAt) - ts(b.r.createdAt)) || (a.i - b.i)).map((x) => x.r)
+    const runs = store.forMate(m.id).filter(visible).map((r, i) => ({ r, i })).sort((a, b) => (ts(a.r.createdAt) - ts(b.r.createdAt)) || (a.i - b.i)).map((x) => x.r)
     const b = String(before || '').trim()
     if (b && !Number.isFinite(Date.parse(b))) throw bad('before must be an ISO date')
     const cut = b ? ts(b) : Infinity
@@ -533,8 +516,7 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     let start = Math.max(0, eligible.length - n)
     while (start > 0 && ts(eligible[start - 1].createdAt) === ts(eligible[start].createdAt)) start -= 1
     const page = eligible.slice(start)
-    const viewOf = (r) => (r.receipt ? { ...runView(r, []), receipt: true, precheck: r.precheck } : liteRun(runView(r, index.get(r.id) || [])))
-    return { runs: page.map(viewOf), nextBefore: start > 0 && page.length ? page[0].createdAt : null }
+    return { runs: page.map((r) => liteRun(runView(r, index.get(r.id) || []))), nextBefore: start > 0 && page.length ? page[0].createdAt : null }
   }
   /**
    * The thread's copy of a run: tool calls leave the activity of a run that is not live (the 过程 fold fetches them from
@@ -674,7 +656,6 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     const r = routines.get(String(id || ''))
     if (!r) throw notFound('routine not found')
     const mateId = mates.get(r.mateId) ? r.mateId : DEFAULT_MATE_ID
-    if (r.precheck && PRECHECKS[r.precheck]) return startPrecheck(r)
     if (r.kind === 'remind') {
       routines.fire(r.id)
       const at = routines.get(r.id).fired[0].at
@@ -685,6 +666,8 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
       return { routine: rview(routines.get(r.id)), runId: run.id }
     }
     const run = store.create({ mateId, trigger: 'routine', routineId: r.id, routineTitle: r.title, input: r.input })
+    // 知识库体检: code finds orphans, broken links and pages missing from the index first; the model does the rest.
+    if (r.lint === 'wiki') { try { store.update(run.id, { prompt: routinePrompt(r, null, '') + '\n\n程序先查到的：\n' + lintFindings(scanWiki(mates.get(mateId).dir)) }) } catch (e) { log(`lint ${r.id}: ${e && e.message}`) } }
     routines.ran(r.id, { taskId: run.id })
     emit('queued', run)
     engine.pump()
@@ -787,7 +770,7 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
   // ── 做了告诉你 / 撤销 / 规矩 / 今天卡 ──
   const didId = () => 'did-' + Date.now().toString(36) + randomBytes(2).toString('hex')
   /** The person-facing copy of a did entry: no absolute path, no snapshot location. */
-  const didView = ({ abs: _a, snap: _s, after: _h, ...rest }) => rest
+  const didView = ({ abs: _a, snap: _s, after: _h, files, ...rest }) => (files ? { ...rest, files: files.map(({ abs: _x, snap: _y, after: _z, ...f }) => f) } : rest)
   /** Everything a teammate changed or sent, newest first (资料 › 它做过的): its did entries with their run. */
   function didList(id, limit) {
     const m = mates.get(String(id || ''))
@@ -849,6 +832,19 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
         if (a.after !== undefined && hashOf(a.abs) !== a.after) { conflicts.push(a.path); continue }
         try { if (a.existed) copyFileSync(a.snap, a.abs); else if (existsSync(a.abs)) rmSync(a.abs) } catch (e) { log(`undo ${a.abs}: ${e && e.message}`); conflicts.push(a.path); continue }
         undone.push(a)
+      } else if (a.act === 'files') {
+        // files written any way in the run: each back to before it (a new one goes, a deleted one comes back)
+        let ok = 0
+        for (const f of a.files || []) {
+          if (!f.undoable) { kept.push(f.path); continue }
+          const nowHash = hashOf(f.abs)
+          if (f.after !== undefined && nowHash !== f.after) { conflicts.push(f.path); continue }
+          try {
+            if (f.existed) { mkdirSync(dirname(f.abs), { recursive: true }); copyFileSync(f.snap, f.abs) } else if (existsSync(f.abs)) rmSync(f.abs)
+            ok += 1
+          } catch (e) { log(`undo ${f.abs}: ${e && e.message}`); conflicts.push(f.path) }
+        }
+        if (ok) undone.push(a)
       } else if (a.act === 'rule') {
         if (editRule(t.mateId, a.line, null)) undone.push(a); else kept.push(a.line)
       } else if (a.act === 'routine') {
@@ -899,8 +895,6 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
         if (isQuietRun(t)) { q += 1; continue }
         if (t.error) { if (t.error !== '已停止。') needs.push(item('failed', t.finishedAt, (t.routineTitle ? t.routineTitle + ' · ' : '') + t.error)); continue }
         if (t.trigger === 'system') continue
-        // A precheck's change: its headline and the tier code gave it (立刻 · pushed at HH:MM / 到点).
-        if (t.watch) { mine.push({ ...item('watch', t.finishedAt, t.watch.headline + (t.watch.n > 1 ? ` 等 ${t.watch.n} 条` : '')), tier: t.watch.tier }); continue }
         const docs = index.get(t.id) || []
         // Something you asked for counts only when it left a file you have not opened yet; a routine's result always.
         if (t.trigger !== 'routine' && !(docs.length && seen.unread(m.id, t.finishedAt))) continue
@@ -908,27 +902,24 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
         const text = docs.length ? docs[docs.length - 1].title : reply ? plainLine(reply.text) : t.summary
         if (text) mine.push(item(t.trigger === 'routine' ? 'routine' : 'file', t.finishedAt, (t.trigger === 'routine' && t.routineTitle && !docs.length ? t.routineTitle + '：' : '') + text))
       }
-      for (const rt of routines.forMate(m.id)) if (rt.precheck) for (const x of rt.runs || []) if (x.precheck && !x.taskId && !x.precheck.running && ts(x.settledAt || x.at) >= since) q += 1
-      mine.sort((a, b) => (a.tier === 'now' ? 0 : 1) - (b.tier === 'now' ? 0 : 1) || ts(b.at) - ts(a.at))
+      mine.sort((a, b) => ts(b.at) - ts(a.at))
       if (mine.length) changes.push(...mine.slice(0, 3).map((x, i) => (i === 2 && mine.length > 3 ? { ...x, more: mine.length - 3 } : x)))
       if (q) quiet.push({ mateId: m.id, mateName: name, n: q })
     }
     const order = { ask: 0, failed: 1, remind: 2 }
     needs.sort((a, b) => (order[a.kind] - order[b.kind]) || (ts(b.at) - ts(a.at)))
-    // 立刻 changes first, across teammates (EDITIONS.md 4.4); the rest keep their teammate order.
-    changes.sort((a, b) => (a.tier === 'now' ? 0 : 1) - (b.tier === 'now' ? 0 : 1))
     // One screen: at most 12 rows in all (需要你 first); what does not fit is counted, and each teammate's thread has it.
     const room = Math.max(3, TODAY_ROWS - needs.length)
     const hidden = Math.max(0, changes.length - room)
-    const days = daysOf(now)
-    return { ...base, ready: true, needs, days, changes: changes.slice(0, Math.max(3, room - days.length)), hidden: Math.max(0, changes.length - Math.max(3, room - days.length)), did, quiet, updatedAt: now.toISOString() }
+    return { ...base, ready: true, needs, changes: changes.slice(0, room), hidden, did, quiet, updatedAt: now.toISOString() }
   }
 
-  // ── templates, 上岗, 在用清单, 预检 (EDITIONS.md 3, 4.1, 9.3; PROACTIVE.md 12) ──
+  // ── templates, 上岗, 它会主动做的 (EDITIONS.md 3, 9.5; PROACTIVE.md 12) ──
   const cardId = (p) => p + '-' + Date.now().toString(36) + randomBytes(3).toString('hex')
   const dayStr = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') }
   const templateView = (tp) => ({ id: tp.id, name: tp.name, title: tp.title || '', group: tp.group || '', avatar: tp.avatar || null, pitch: tp.pitch || '' })
-  /** A template's seed files into a new teammate's folder (never over a file that is already there). */
+  const templateOf = (m) => (m && m.template ? templates.get(m.template) || null : null)
+  /** A template's seed files into a new teammate's folder, folders included (never over a file that is already there). */
   function seedFolder(tp, dir, sub = '') {
     const from = join(tp.dir, 'seed', sub)
     let names = []
@@ -951,7 +942,7 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
   /** After a template teammate's intro turn: the onboarding card (上岗卡) under its greeting, once. */
   function onboardAfterIntro(mateId) {
     const m = mates.get(mateId)
-    const tp = m && m.template ? templates.get(m.template) : null
+    const tp = templateOf(m)
     if (!tp || !tp.onboard) return
     const intro = store.forMate(m.id).find((r) => r.trigger === 'system' && r.template)
     if (!intro || intro.status !== 'done' || (intro.activity || []).some((a) => a && a.kind === 'onboard')) return
@@ -959,17 +950,20 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     store.activity(intro.id, { kind: 'onboard', id: cardId('ob'), template: tp.id, title: o.title || '开工 · ' + tp.name, question: o.question || '', hint: o.hint || '', placeholder: o.placeholder || '', done: false })
     emit('mate', null, { mateId: m.id })
   }
-  /** A new name in 材料/ for a file handed over (never over an existing one). */
+  /** Where files handed over go: the template's dropDir (知识库: 原始资料/), else 材料/. */
+  const dropDirOf = (m) => { const tp = templateOf(m); return (tp && tp.dropDir) || MATERIAL_DIR }
+  /** A new name in the drop folder for a file handed over (never over an existing one). */
   function materialPath(m, name) {
+    const dir = dropDirOf(m)
     const base = String(name || 'file').replace(/[\\/:*?"<>|\u0000-\u001f]+/g, ' ').replace(/^\.+/, '').trim().slice(0, 120) || 'file'
-    mkdirSync(join(m.dir, MATERIAL_DIR), { recursive: true })
+    mkdirSync(join(m.dir, dir), { recursive: true })
     const ext = extname(base)
     const stem = ext ? base.slice(0, -ext.length) : base
     let candidate = base
-    for (let i = 2; existsSync(join(m.dir, MATERIAL_DIR, candidate)); i += 1) candidate = `${stem} (${i})${ext}`
-    return MATERIAL_DIR + '/' + candidate
+    for (let i = 2; existsSync(join(m.dir, dir, candidate)); i += 1) candidate = `${stem} (${i})${ext}`
+    return dir + '/' + candidate
   }
-  /** POST /mates/upload { id, name, data (base64) } → a new file in 材料/; { path, data } appends the next piece to it. */
+  /** POST /mates/upload { id, name, data (base64) } → a new file in the drop folder; { path, data } appends the next piece. */
   function upload(b) {
     const m = mates.get(String((b && b.id) || ''))
     if (!m) throw notFound('同事不存在。')
@@ -977,20 +971,17 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     let rel = String(b.path || '')
     if (rel) {
       const full = resolve(m.dir, rel)
-      const inside = relative(resolve(m.dir, MATERIAL_DIR), full)
-      if (!inside || inside.startsWith('..') || isAbsolute(inside)) throw bad('只能续写 材料/ 里的文件。')
+      const inside = relative(resolve(m.dir, dropDirOf(m)), full)
+      if (!inside || inside.startsWith('..') || isAbsolute(inside)) throw bad(`只能续写 ${dropDirOf(m)}/ 里的文件。`)
       rel = relative(resolve(m.dir), full).split('\\').join('/')
     } else rel = materialPath(m, b.name)
     const full = join(m.dir, rel)
     const before = b.path && existsSync(full) ? statSync(full).size : 0
     if (before + data.length > UPLOAD_MAX) throw bad('文件太大了：一个最多 20 MB。')
     if (b.path) appendFileSync(full, data); else writeFileSync(full, data)
-    return { path: rel, size: before + data.length }
+    return { path: rel, size: before + data.length, dir: dropDirOf(m) }
   }
-  /**
-   * The onboarding card's 「交给它」: files already in 材料/ plus what you wrote. Code reads candidates first (dependency
-   * files, gateway configs, bills, folders the text names); the teammate checks them and writes 清单.csv.
-   */
+  /** The onboarding card's 「交给它」: what you wrote and the files become your line; the template's prompt follows it unseen. */
   function onboard(b) {
     const m = mates.get(String((b && b.id) || ''))
     if (!m) throw notFound('同事不存在。')
@@ -998,285 +989,115 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     if (e.done) throw bad('已经交给它了。')
     const files = (Array.isArray(b.files) ? b.files : []).map((x) => String(x || '').trim()).filter(Boolean).slice(0, 20)
     const text = String(b.text || '').trim().slice(0, 4000)
-    if (!files.length && !text) throw bad('给它一个文件，或者写几句你们在用什么。')
-    const texts = []
-    for (const f of files) { try { texts.push({ name: f.replace(/^材料\//, ''), text: readFileSync(folderPath(m.id, f).full, 'utf8').slice(0, 5 * 1024 * 1024) }) } catch {} }
-    if (text) texts.push({ name: '你写的', text })
-    const scan = scanFiles(texts)
-    const dirs = []
-    for (const raw of text.match(/(?:~|\/)[^\s，。；、"'`]+/g) || []) { const p = raw.startsWith('~') ? join(homedir(), raw.slice(1)) : raw; try { if (statSync(p).isDirectory() && !dirs.includes(p)) dirs.push(p) } catch {} }
-    let rows = scan.rows
-    for (const d of dirs.slice(0, 3)) { const s = scanDir(d); rows = mergeRows([...rows, ...s.rows]); scan.read.push({ name: d, kind: '代码目录', n: s.rows.length }) }
-    const at = new Date().toISOString()
-    store.update(introRun.id, () => { e.done = true; e.doneAt = at; e.files = files; e.note = clip(text, 120) })
-    const shown = files.map((f) => f.replace(/^材料\//, ''))
-    const visible = [shown.length ? '我们在用的东西放在 材料/ 里：' + shown.join('、') + '。' : '', text].filter(Boolean).join('\n')
-    const cols = ['类型', '名称', '供应商', '模型ID或版本', '月用量或花费', '怎么知道的']
-    const extra = [
-      '',
-      '（以下是 MyWork 替用户附上的，用户看不到。）',
-      rows.length ? `程序先从这些材料里读出了 ${rows.length} 行候选（「怎么知道的」已写好）：\n` + toCsv(cols, rows.slice(0, 200).map((r) => cols.map((c) => r[c] || ''))) : '程序没从材料里读出候选：你自己读一遍材料（材料/ 下），或者问用户。',
-      scan.skipped.length ? '程序不认识的：' + scan.skipped.map((x) => x.name).join('、') + '（你自己看）。' : '',
-      dirs.length ? `用户给的代码目录（程序扫过一遍）：${dirs.join('、')}。` : '',
-      '你要做：核对这些候选（去掉不是在用的、合并重复的、SDK 和模型分开），能确定的列补上；用户写到的哪里在用、负责人、月花费照填，用户没说的「哪里在用」留空，不要猜。然后调用 mywork_list_write（confirm: true，rows 的键用 清单.csv 的表头）写进清单，再用两三句话告诉用户：读到了几行、哪几行的「哪里在用」还空着、还缺什么（比如账单）。不要交付文件，不要建例行。',
-    ].filter((x) => x !== '').join('\n')
+    if (!files.length && !text) throw bad('写几句，或者给它一个文件。')
+    store.update(introRun.id, () => { e.done = true; e.doneAt = new Date().toISOString(); e.files = files; e.note = clip(text, 120) })
+    const shown = files.map((f) => f.split('/').pop())
+    const visible = [text, shown.length ? `第一批资料（在 ${dropDirOf(m)}/）：${shown.join('、')}` : ''].filter(Boolean).join('\n')
+    const tp = templateOf(m)
     const run = store.create({ mateId: m.id, trigger: 'user', input: visible })
-    store.update(run.id, { promptExtra: extra })
+    store.update(run.id, { onboardRun: true, ...(tp && tp.onboard && tp.onboard.prompt ? { promptExtra: '\n' + tp.onboard.prompt } : {}) })
     emit('mate', null, { mateId: m.id })
     emit('queued', store.get(run.id))
     engine.pump()
-    return { runId: run.id, candidates: rows.length, read: scan.read }
+    return { runId: run.id }
   }
-  /**
-   * 清单.csv by its header: a model row is keyed by 模型ID或版本 (else 名称), an SDK row by 名称; an existing row takes the
-   * non-empty cells it is given; a column the header lacks is added at the end. The file is snapshotted for 撤销 first.
-   * confirm → the list card (前 10 行 + 对，就这些 / 改一下) under the run's reply.
-   */
-  function writeList(mate, runId, rows, { replace, confirm } = {}) {
-    const file = join(mate.dir, '清单.csv')
-    const existing = existsSync(file) ? parseCsv(readFileSync(file, 'utf8')) : []
-    const header = existing.length ? existing[0].map((x) => String(x).trim()) : mate.template === 'watch-ai' ? LIST_HEADER.slice() : []
-    const keyOf = (o) => {
-      const sdk = /sdk|框架|库|framework|library/i.test(String(o['类型'] || ''))
-      const v = String((sdk ? o['名称'] : o['模型ID或版本'] || o['名称']) || (header[0] ? o[header[0]] : '') || '').trim().toLowerCase()
-      return v ? (sdk ? 'sdk:' : 'm:') + v : ''
-    }
-    const body = replace ? [] : existing.slice(1).filter((c) => c.some((x) => String(x).trim())).map((cells) => Object.fromEntries(header.map((h, i) => [h, String(cells[i] === undefined ? '' : cells[i])])))
-    let added = 0
-    let updated = 0
-    for (const raw of rows) {
-      if (!raw || typeof raw !== 'object') continue
-      const o = {}
-      for (const [k, v] of Object.entries(raw)) { const kk = String(k).trim().slice(0, 20); if (kk) o[kk] = String(v === undefined || v === null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, 300) }
-      for (const k of Object.keys(o)) if (!header.includes(k)) header.push(k)
-      const k = keyOf(o)
-      const hit = k ? body.find((x) => keyOf(x) === k) : null
-      if (hit) { for (const [kk, v] of Object.entries(o)) if (v) hit[kk] = v; updated += 1 } else { body.push(o); added += 1 }
-    }
-    if (!header.length) throw new Error('清单还没有表头：rows 里至少要有一个键。')
-    mkdirSync(mate.dir, { recursive: true })
-    if (runId) engine.recordFileChange(runId, mate, file)
-    writeFileSync(file, toCsv(header, body.map((o) => header.map((h) => o[h] || ''))))
-    if (confirm && runId) store.activity(runId, { kind: 'listcheck', id: cardId('lc'), file: '清单.csv', rows: body.length, added, updated, confirmed: false })
-    emit('mate', null, { mateId: mate.id })
-    return { rows: body.length, added, updated, header }
-  }
-  /** 「对，就这些」 on the list card; a template teammate's subscription card (它会主动做的) follows, once. */
-  function listOk(b) {
-    const m = mates.get(String((b && b.id) || ''))
-    if (!m) throw notFound('同事不存在。')
-    const { run, e } = cardOf(b.runId, b.entryId, 'listcheck')
-    store.update(run.id, () => { e.confirmed = true; e.confirmedAt = new Date().toISOString() })
-    const tp = m.template ? templates.get(m.template) : null
-    const asked = store.forMate(m.id).some((r) => (r.activity || []).some((a) => a && a.kind === 'subscribe'))
-    if (tp && Array.isArray(tp.subscribe) && tp.subscribe.length && !asked) {
-      store.activity(run.id, { kind: 'subscribe', id: cardId('sb'), title: '它会主动做的 · ' + (m.name || tp.name), items: tp.subscribe.map((x) => ({ id: String(x.id), label: String(x.label || ''), note: String(x.note || ''), on: x.on !== false })), quiet: tp.quiet || '', done: false })
-    }
+  /** After the run the onboarding card started: 「它会主动做的」, once (templates whose subscribeAfter is 'onboard'). */
+  function subscribeAfterOnboard(mateId) {
+    const m = mates.get(mateId)
+    const tp = templateOf(m)
+    if (!tp || tp.subscribeAfter !== 'onboard' || !Array.isArray(tp.subscribe) || !tp.subscribe.length) return
+    const runs = store.forMate(m.id)
+    if (runs.some((r) => (r.activity || []).some((a) => a && a.kind === 'subscribe'))) return
+    const run = runs.find((r) => r.onboardRun && r.status === 'done')
+    if (!run) return
+    store.activity(run.id, { kind: 'subscribe', id: cardId('sb'), title: '它会主动做的 · ' + (m.name || tp.name), items: tp.subscribe.map((x) => ({ id: String(x.id), label: String(x.label || ''), note: String(x.note || ''), on: x.on !== false })), quiet: tp.quiet || '', done: false })
     emit('mate', null, { mateId: m.id })
-    return { run: runView(store.get(run.id)) }
   }
-  /** 「交给它」 on the subscription card: the ticked items become its routines, and the first check (the baseline) runs now. */
+  /** A rule line in the teammate's AGENTS.md (- YYYY-MM-DD 规矩); the same file mywork_remember appends to. */
+  function rememberLine(mate, fact) {
+    const file = join(mate.dir, MEMORY_FILE)
+    mkdirSync(mate.dir, { recursive: true })
+    if (!existsSync(file)) writeFileSync(file, `# ${mate.name || '同事'}的规矩\n\n口径、来源、格式、教训，一行一条（mywork_remember 追加；用户在资料栏里改和删）。\n\n`)
+    const d = new Date()
+    const line = `- ${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${fact}`
+    const text = readFileSync(file, 'utf8')
+    appendFileSync(file, (text.endsWith('\n') || !text ? '' : '\n') + line + '\n')
+    return line
+  }
+  /** 「交给它」 on 它会主动做的: a ticked item becomes its routine and / or a rule, each with its line (撤销 removes it). */
   function subscribe(b) {
     const m = mates.get(String((b && b.id) || ''))
     if (!m) throw notFound('同事不存在。')
-    const tp = m.template ? templates.get(m.template) : null
+    const tp = templateOf(m)
     if (!tp) throw bad('这位同事不是用模板建的。')
     const { run, e } = cardOf(b.runId, b.entryId, 'subscribe')
     if (e.done) throw bad('已经交给它了。')
     const on = (id) => (b.items && typeof b.items === 'object' && id in b.items ? !!b.items[id] : !!((e.items || []).find((x) => x.id === id) || {}).on)
-    let routine = null
-    if (on('precheck') && tp.routine && tp.precheck) {
-      routine = routines.forMate(m.id).find((r) => r.precheck === tp.precheck) || null
-      if (!routine) {
-        routine = routines.create({ mateId: m.id, kind: 'task', title: tp.routine.title, input: tp.routine.input, schedule: { type: 'interval', everyMinutes: Number(tp.routine.everyMinutes) || 360 }, precheck: tp.precheck, options: { sdk: on('sdk') } })
-        store.activity(run.id, { kind: 'routine', action: 'created', routineId: routine.id, title: routine.title, scheduleLabel: describeSchedule(routine.schedule) })
-        store.activity(run.id, { kind: 'did', id: didId(), act: 'routine', routineId: routine.id, title: routine.title, undoable: true })
-        emit('routine', null, { mateId: m.id, routine: rview(routine) })
-      } else routines.update(routine.id, (r) => { r.options = { ...(r.options || {}), sdk: on('sdk') } })
+    const made = []
+    for (const x of tp.subscribe || []) {
+      if (!on(x.id)) continue
+      if (x.routine && x.routine.schedule && !routines.forMate(m.id).some((r) => r.title === x.routine.title)) {
+        const r = routines.create({ mateId: m.id, kind: 'task', title: x.routine.title, input: x.routine.input, schedule: x.routine.schedule, lint: x.routine.lint })
+        store.activity(run.id, { kind: 'routine', action: 'created', routineId: r.id, title: r.title, scheduleLabel: describeSchedule(r.schedule) })
+        store.activity(run.id, { kind: 'did', id: didId(), act: 'routine', routineId: r.id, title: r.title, undoable: true })
+        emit('routine', null, { mateId: m.id, routine: rview(r) })
+        made.push(r.id)
+      }
+      if (x.rule) { rememberLine(m, String(x.rule)); store.activity(run.id, { kind: 'did', id: didId(), act: 'rule', line: String(x.rule), undoable: true }) }
     }
     const at = new Date().toISOString()
     store.update(run.id, () => { e.done = true; e.doneAt = at; e.items = (e.items || []).map((x) => ({ ...x, on: on(x.id) })) })
     emit('mate', null, { mateId: m.id })
-    // 马上出基线: the first check runs now, not in six hours.
-    if (routine) startPrecheck(routines.get(routine.id))
-    return { routine: routine ? rview(routines.get(routine.id)) : null }
+    return { routines: made }
   }
 
+  // ── the 知识库 (Karpathy, "LLM Wiki": 原始资料/ → wiki/ → AGENTS.md) ──
+  const CATEGORY_ORDER = ['来源', '概念', '人和机构', '综述与对比']
   /**
-   * A routine with a precheck: the script runs first (no model). Nothing touched a row in use → a receipt on the routine
-   * (drawn as one grey line, no run, no unread, no push). Changes → a routine run whose prompt carries them, the change
-   * card (activity 'changes') built by code, and `watch` (tier, headline, push text) for the 今天卡 and the IM push.
+   * GET /mates/wiki: the wiki for the 知识库 tab — pages by category (most linked first), the latest log entries,
+   * health by code (孤立 / 断链 / 没进索引), how many pages changed since you last opened them.
    */
-  const prechecking = new Map() // routineId → Promise
-  function startPrecheck(r) {
-    if (prechecking.has(r.id)) return { routine: rview(r), precheck: true, running: true }
-    routines.ran(r.id, { precheck: { running: true } })
-    const receiptAt = routines.get(r.id).runs[0].at
-    const p = runPrecheck(r.id, receiptAt)
-      .catch((e) => {
-        log(`precheck ${r.id}: ${e && e.message}`)
-        try { routines.markRun(r.id, receiptAt, { precheck: { checked: 0, related: 0, unreadable: [{ title: '预检', reason: clip(String((e && e.message) || e), 80) }], failed: true }, changed: false }) } catch {}
-        emit('mate', null, { mateId: r.mateId })
-        return { changes: 0, error: String((e && e.message) || e) }
-      })
-      .finally(() => prechecking.delete(r.id))
-    prechecking.set(r.id, p)
-    return { routine: rview(routines.get(r.id)), precheck: true }
-  }
-  async function runPrecheck(routineId, receiptAt) {
-    const r = routines.get(routineId)
-    const mate = r ? mates.get(r.mateId) : null
-    if (!r || !mate) return { changes: 0 }
-    const tp = (mate.template && templates.get(mate.template)) || [...templates.values()].find((x) => x.precheck === r.precheck) || null
-    const stateFile = join(mate.dir, '.mywork', 'precheck', routineId + '.json')
-    let state = {}
-    try { state = JSON.parse(readFileSync(stateFile, 'utf8')) } catch {}
-    let listText = ''
-    try { listText = readFileSync(join(mate.dir, '清单.csv'), 'utf8') } catch {}
-    const result = await PRECHECKS[r.precheck]({ listText, state, sources: tp ? tp.sources : [], options: r.options || {}, fetchText: fetchSource, now: new Date() })
-    mkdirSync(dirname(stateFile), { recursive: true })
-    writeFileSync(stateFile, JSON.stringify(result.state, null, 1))
-    const summary = { checked: result.checked || 0, related: result.related || 0, unreadable: (result.unreadable || []).slice(0, 8), baseline: !!result.baseline, empty: !!result.empty, sources: (result.sources || []).length }
-    // 立刻 first: the card's order, the headline (今天卡) and the push all lead with what cannot wait.
-    const loud = (result.changes || []).filter((c) => c.tier !== 'seen').sort((a, b) => (a.tier === 'now' ? 0 : 1) - (b.tier === 'now' ? 0 : 1))
-    if (!loud.length) {
-      routines.markRun(routineId, receiptAt, { precheck: summary, changed: false })
-      log(`precheck ${routineId}: nothing touched a row in use (${summary.checked} looked at)`)
-      emit('mate', null, { mateId: mate.id })
-      return { changes: 0 }
-    }
-    const res = { ...result, changes: loud }
-    const now = loud.filter((c) => c.tier === 'now').length
-    const run = store.create({ mateId: mate.id, trigger: 'routine', routineId, routineTitle: r.title, input: r.input })
-    store.update(run.id, { prompt: changePrompt(r, res), watch: { tier: now ? 'now' : 'digest', headline: loud[0].headline, n: loud.length, now, push: pushOf(mate.name, loud) } })
-    store.activity(run.id, { ...changesEntry(res), id: cardId('chg') })
-    routines.markRun(routineId, receiptAt, { taskId: run.id, precheck: summary })
-    log(`precheck ${routineId}: ${loud.length} change(s), ${now} now → run ${run.id}`)
-    emit('queued', store.get(run.id))
-    engine.pump()
-    return { changes: loud.length, now, runId: run.id }
-  }
-  /**
-   * An item of a change card, acted on (POST /mates/change): plan → it writes a migration plan (where the code names the
-   * model, what to change, replacements constraints first, what to retest); retest → it runs the current model and the
-   * replacements on 自测/任务.csv (drafting the tasks with you when there are none); mine / doing → you are on it, the
-   * card says so and the countdown stays. Research (needs report 7.2): the pain is migrating and retesting, not knowing.
-   */
-  const CHANGE_ACTIONS = ['plan', 'retest', 'mine', 'doing']
-  function actOnChange(b) {
-    const m = mates.get(String((b && b.id) || ''))
+  function wikiView(id) {
+    const m = mates.get(String(id || ''))
     if (!m) throw notFound('同事不存在。')
-    const action = String(b.action || '')
-    if (!CHANGE_ACTIONS.includes(action)) throw bad('action 是 plan / retest / mine / doing。')
-    const { run, e } = cardOf(b.runId, b.entryId, 'changes')
-    const item = (e.items || []).find((x) => x.key === String(b.key || ''))
-    if (!item) throw notFound('卡片上没有这一条。')
-    const at = new Date().toISOString()
-    let runId = ''
-    if (action === 'plan' || action === 'retest') {
-      const facts = [`${item.subject} ${item.summary}`, item.where ? item.where + '在用' : '哪里在用：未填', item.effective ? '生效 ' + item.effective : '', item.replacement && item.replacement.length ? '厂商给的替代：' + item.replacement.join('、') : '', '出处 ' + item.source + (item.url ? ' ' + item.url : ''), item.quote ? '原文「' + item.quote + '」' : ''].filter(Boolean).join('；')
-      const visible = action === 'plan' ? `给 ${item.subject} 出一份迁移方案` : `在我们的任务上重测 ${item.subject} 和它的替代`
-      const extra = action === 'plan' ? [
-        '', '（以下是 MyWork 替用户附上的，用户看不到。）', '变化：' + facts,
-        '出一份迁移方案，用 deliver 交付（kind report，标题「迁移方案 · ' + item.subject + '」）：',
-        '1. 在哪里改：在清单里「怎么知道的」提到的文件和代码目录里找出所有用到这个模型的地方，逐条写 文件:行 和要改成什么（模型名、base URL、参数）。找不到代码的写明「代码没给我」。',
-        '2. 换成什么：先列约束（同一家、同一个账号和发票、国内能买到、会不会被封、合规），再比能力和价格；至多三个候选，写清不选的理由。价格标出处（官方 / 第三方）。',
-        '3. 要重测什么：按「哪里在用」列出要重测的业务和看哪些指标；如果文件夹里有 自测/任务.csv，说明可以直接用 mywork_selftest_run 跑。',
-        '4. 时间线：离生效还有几天、建议哪天前改完、要谁来做。',
-        '不要替用户改代码，除非用户在对话里明说让你改。交付后用两三句话回话。',
-      ] : [
-        '', '（以下是 MyWork 替用户附上的，用户看不到。）', '变化：' + facts,
-        '在用户自己的任务上重测（EDITIONS 9.3）：',
-        '1. 任务在 自测/任务.csv（表头 ' + TASK_HEADER.join(',') + '；判定方法是 包含 / 不包含 / 等于 / 正则 / JSON / 长度不超过 / 标准 / 人工）。没有任务或少于 5 条时，先从「哪里在用」相关的代码、提示词和日志里起草 10 条真实任务写进去（判定方法能用代码判的就用代码判），在回话里说清是你起草的、请用户改，然后照样跑。',
-        '2. 候选：现在用的模型，加一到两个替代（先看约束：同一家、同一个账号和发票、国内能买到）。',
-        '3. key：用户在对话里给过的 key 存在 .mywork/keys.json（{ "deepseek": "sk-…" } 按供应商）；这里没有的，用 mywork_ask 问用户要，不要猜。',
-        '4. 调用 mywork_selftest_run 跑；然后用三五句话说结果（每个候选 通过/总数、待你看几条、平均耗时），哪几条值得用户亲自看。数字标「我们测的」。',
-      ]
-      const created = store.create({ mateId: m.id, trigger: 'user', input: visible })
-      store.update(created.id, { promptExtra: extra.join('\n') })
-      runId = created.id
-      emit('queued', store.get(created.id))
-      engine.pump()
+    const scan = scanWiki(m.dir)
+    const seenMap = m.wikiSeen || {}
+    const pages = scan.pages.map((p) => ({ path: p.path, title: p.title, category: p.category, inbound: p.inbound.length, links: p.links.length, mtime: p.mtime, words: p.words, unread: !(ts(seenMap[p.path]) >= ts(p.mtime)) }))
+    const groups = new Map()
+    for (const p of pages) { if (p.path === 'wiki/index.md' || p.path === 'wiki/log.md') continue; const k = p.category || '其他'; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(p) }
+    const rank = (k) => { const i = CATEGORY_ORDER.indexOf(k); return i < 0 ? CATEGORY_ORDER.length : i }
+    const categories = [...groups.entries()].sort((a, b) => rank(a[0]) - rank(b[0]) || a[0].localeCompare(b[0], 'zh'))
+      .map(([name, list]) => ({ name, pages: list.sort((a, b) => b.inbound - a.inbound || a.title.localeCompare(b.title, 'zh')) }))
+    const content = pages.filter((p) => p.path !== 'wiki/index.md' && p.path !== 'wiki/log.md')
+    return { pages: content.length, sources: scan.sources, categories, log: scan.log.slice(0, 8), health: { orphans: scan.orphans, broken: scan.broken.slice(0, 50), unindexed: scan.unindexed }, unread: content.filter((p) => p.unread).length, dropDir: dropDirOf(m) }
+  }
+  /** GET /mates/wiki/page: a link target resolved to its page (from the page it is on), and what links back to that page. */
+  function wikiPage(id, path, name, from) {
+    const m = mates.get(String(id || ''))
+    if (!m) throw notFound('同事不存在。')
+    const scan = scanWiki(m.dir)
+    const want = path ? String(path) : resolvePage(scan, String(name || ''), String(from || ''))
+    const page = scan.pages.find((p) => p.path === want)
+    if (!page) {
+      // A link to a file outside the wiki (AGENTS.md, 原始资料/…) opens that file.
+      const out = name ? outside(m.dir, String(name)) : ''
+      if (out) return { path: out, title: out.split('/').pop(), category: '', backlinks: [], links: 0, outside: true }
+      throw notFound(name ? `库里还没有「${name}」这一页。` : '没有这一页。')
     }
-    store.update(run.id, () => { item.handled = { action, at, runId } })
-    emit('mate', null, { mateId: m.id })
-    return { run: runView(store.get(run.id)), runId }
+    const titleOf2 = (p0) => { const x = scan.pages.find((y) => y.path === p0); return x ? x.title : p0 }
+    return { path: page.path, title: page.title, category: page.category, backlinks: page.inbound.filter((x) => x !== 'wiki/index.md').map((x) => ({ path: x, title: titleOf2(x) })), links: page.links.length }
   }
-
-  /** The keys a teammate keeps (.mywork/keys.json, by vendor or label); never shown, never written to results. */
-  function keyOf(mate, c) {
-    if (c.apiKey) return String(c.apiKey)
-    if (c.keyEnv && process.env[c.keyEnv]) return process.env[c.keyEnv]
-    try {
-      const keys = JSON.parse(readFileSync(join(mate.dir, '.mywork', 'keys.json'), 'utf8'))
-      for (const k of [c.vendor, c.label, c.model].filter(Boolean)) if (typeof keys[k] === 'string' && keys[k]) return keys[k]
-    } catch {}
-    return ''
-  }
-  const stampNow = () => { const d = new Date(); const p2 = (n) => String(n).padStart(2, '0'); return `${d.getFullYear()}${p2(d.getMonth() + 1)}${p2(d.getDate())}-${p2(d.getHours())}${p2(d.getMinutes())}` }
-  /** mywork_selftest_run: the tasks on every candidate, a results table in 自测/, a card in the thread. */
-  async function selftest(mate, runId, args) {
-    const file = resolve(mate.dir, String(args.tasks || '自测/任务.csv'))
-    let text = ''
-    try { text = readFileSync(file, 'utf8') } catch { throw new Error(`${relative(mate.dir, file)} 不存在：先和用户一起写 10–30 条真实任务，表头 ${TASK_HEADER.join(',')}。`) }
-    let tasks = readTasks(text)
-    if (!tasks.length) throw new Error('任务表是空的：每行至少要有「输入」。')
-    const limit = Math.floor(Number(args.limit)) || 0
-    if (limit > 0) tasks = tasks.slice(0, limit)
-    const list = (Array.isArray(args.candidates) ? args.candidates : []).slice(0, 4)
-    if (!list.length) throw new Error('给至少一个候选：{ vendor 或 baseUrl, model }。')
-    const resolveOne = (c, i) => {
-      const vendor = String(c.vendor || '').toLowerCase()
-      const baseUrl = String(c.baseUrl || BASE_URLS[vendor] || '')
-      const model = String(c.model || '').trim()
-      if (!model) throw new Error(`第 ${i + 1} 个候选没有 model。`)
-      if (!baseUrl) throw new Error(`${model}：不知道它的接口地址，给 baseUrl（OpenAI 兼容的 /v1），或 vendor（${Object.keys(BASE_URLS).join(' / ')}）。`)
-      const apiKey = keyOf(mate, { ...c, vendor })
-      if (!apiKey) throw new Error(`${model}：没有 key。用户给你 key 后存进 .mywork/keys.json（{ "${vendor || 'label'}": "sk-…" }），或在 apiKey 里传。`)
-      return { label: String(c.label || model), vendor, baseUrl, model, apiKey }
-    }
-    const candidates = list.map(resolveOne)
-    const judge = args.judge && args.judge.model ? resolveOne(args.judge, list.length) : null
-    const { rows, summary } = await runSelftest({ tasks, candidates, judge, post: postModel, concurrency: 4 })
-    const out = join(mate.dir, '自测', `结果-${stampNow()}.csv`)
-    mkdirSync(dirname(out), { recursive: true })
-    if (runId) engine.recordFileChange(runId, mate, out)
-    writeFileSync(out, resultsCsv(rows))
-    const rel = relative(mate.dir, out).split('\\').join('/')
-    const checks = rows.filter((x) => x.check).length
-    if (runId) store.activity(runId, { kind: 'selftest', id: cardId('st'), file: rel, tasks: tasks.length, judge: judge ? judge.label : '', checks, summary: summary.map((s) => ({ label: s.label, model: s.model, total: s.total, pass: s.pass, fail: s.fail, manual: s.manual, errors: s.errors, avgMs: s.avgMs, tokensIn: s.tokensIn, tokensOut: s.tokensOut })) })
-    emit('mate', null, { mateId: mate.id })
-    return { file: rel, tasks: tasks.length, checks, summary: summary.map(({ model: _m, ...s }) => s) }
-  }
-
-  /** 今天的日子 (PROACTIVE.md 7.4): open migrations counting down (a shutdown or redirect of a row in use, ≤30 days ahead). */
-  function daysOf(now) {
-    const out = []
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
-    for (const m of mates.items) {
-      for (const t of store.forMate(m.id)) {
-        for (const a of t.activity || []) {
-          if (!a || a.kind !== 'changes') continue
-          for (const x of a.items || []) {
-            if (!x.effective || !(x.category === '下线' || x.category === '改名重定向' || x.category === '改计费')) continue
-            const [y, mo, d] = x.effective.split('-').map(Number)
-            const left = Math.round((Date.UTC(y, mo - 1, d) - Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())) / 86400000)
-            if (left < 0 || left > 30 || !(today >= 0)) continue
-            out.push({ mateId: m.id, mateName: m.name || '新同事', runId: t.id, kind: 'day', at: x.effective, days: left, text: clip(`${x.subject} ${x.category === '下线' ? '下线' : x.category}还有 ${left} 天${x.where ? ' · ' + x.where + '在用' : ''}${x.handled ? ' · ' + ({ plan: '方案在出', retest: '在重测', mine: '你来改', doing: '在改' }[x.handled.action] || '') : ''}`, 70) })
-          }
-        }
-      }
-    }
-    const seenKey = new Set()
-    return out.filter((x) => { const k = x.mateId + x.text; if (seenKey.has(k)) return false; seenKey.add(k); return true }).sort((a, b) => a.days - b.days).slice(0, 3)
-  }
-
-  /** Run a routine's precheck now and wait for it (tests; 现在跑一次 does not wait). */
-  function precheckNow(id) {
-    const r = routines.get(String(id || ''))
-    if (!r || !r.precheck) throw notFound('routine not found')
-    startPrecheck(r)
-    return prechecking.get(r.id) || Promise.resolve({ changes: 0 })
+  /** POST /mates/wiki/seen: you opened a page (the tab counts pages changed since). */
+  function wikiSeen(id, path) {
+    const m = mates.get(String(id || ''))
+    if (!m) throw notFound('同事不存在。')
+    const p = String(path || '')
+    if (!/^wiki\/.+\.md$/.test(p)) throw bad('不是知识库里的页。')
+    const next = { ...(m.wikiSeen || {}), [p]: new Date().toISOString() }
+    const keys = Object.keys(next)
+    if (keys.length > 3000) for (const k of keys.slice(0, keys.length - 3000)) delete next[k]
+    mates.update(m.id, { wikiSeen: next })
+    return { seen: p }
   }
 
   // ── tools ──
@@ -1369,71 +1190,11 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
         const fact = String(args.fact || '').replace(/\s+/g, ' ').trim()
         if (!fact) throw new Error('fact 不能为空。')
         if (fact.length > REMEMBER_MAX) throw new Error(`太长了（${fact.length} 字）：一条 ≤${REMEMBER_MAX} 字。`)
-        const file = join(c.mate.dir, MEMORY_FILE)
-        mkdirSync(c.mate.dir, { recursive: true })
-        if (!existsSync(file)) writeFileSync(file, `# ${c.mate.name || '同事'}的规矩\n\n口径、来源、格式、教训，一行一条（mywork_remember 追加；用户在资料栏里改和删）。\n\n`)
-        const d = new Date()
-        const line = `- ${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${fact}`
-        appendFileSync(file, line + '\n')
+        const line = rememberLine(c.mate, fact)
         if (c.run) store.activity(c.run.id, { kind: 'did', id: didId(), act: 'rule', line: fact, undoable: true })
         return { remembered: true, line }
       },
       render: (_a, v) => [{ type: 'text', text: '已记下规矩：' + v.line }],
-    },
-    {
-      name: 'mywork_list_write',
-      description: '把行写进你文件夹里的 清单.csv（只在 MyWork 同事的会话里可用）。按表头合并：模型按「模型ID或版本」、SDK 按「名称」对上已有的行，只补非空的列；表头没有的列加在最后；用户在对话里能一键撤销。confirm: true 时对话里出一张清单确认卡（前 10 行 + 「对，就这些 / 改一下」）：第一次建清单、或用户给了新材料后用。',
-      parameters: {
-        rows: { type: 'array', required: true, items: { type: 'object' }, description: '一行一个对象，键是 清单.csv 的表头，例如 { 类型: "模型", 名称: "deepseek-chat", 供应商: "DeepSeek", 模型ID或版本: "deepseek-chat", 哪里在用: "客服机器人", 月用量或花费: "¥5,000", 怎么知道的: "网关渠道「客服」" }' },
-        replace: { type: 'boolean', description: 'true = 整张换掉（默认合并）' },
-        confirm: { type: 'boolean', description: 'true = 对话里出清单确认卡' },
-      },
-      execute(args, exec) {
-        const c = mateOnly(exec, 'mywork_list_write')
-        const rows = Array.isArray(args.rows) ? args.rows : []
-        if (!rows.length && !args.replace) throw new Error('rows 不能为空。')
-        return writeList(c.mate, c.run ? c.run.id : '', rows, { replace: !!args.replace, confirm: !!args.confirm })
-      },
-      render: (_a, v) => [{ type: 'text', text: `清单写好了：共 ${v.rows} 行（新加 ${v.added}，更新 ${v.updated}）。` }],
-    },
-    {
-      name: 'mywork_selftest_run',
-      description: '在用户自己的任务上测模型（只在 MyWork 同事的会话里可用）：读 自测/任务.csv（表头 编号,任务,输入,判定方法,期望,备注），每条任务在每个候选上跑一次（OpenAI 兼容接口），按判定方法判（包含 / 不包含 / 等于 / 正则 / JSON / 长度不超过 由程序判；标准 由 judge 模型判，抽 5 条给用户看；人工 留给用户看），结果写进 自测/结果-<时间>.csv，对话里出一张结果卡。key 从 .mywork/keys.json（按供应商）或 apiKey 取，不会写进结果。',
-      parameters: {
-        candidates: { type: 'array', required: true, items: { type: 'object' }, description: '1–4 个候选，例如 { vendor: "deepseek", model: "deepseek-flash", label: "替代" }；vendor 是 deepseek / alibaba / zhipu / moonshot / volcengine / siliconflow / openai / anthropic / google / openrouter 等，或者直接给 baseUrl（OpenAI 兼容的 /v1）；apiKey 可选' },
-        tasks: { type: 'string', description: '任务表路径，默认 自测/任务.csv' },
-        judge: { type: 'object', description: '可选，给「标准」类任务打分的模型，格式同候选' },
-        limit: { type: 'number', description: '可选，只跑前 N 条（先试跑）' },
-      },
-      async execute(args, exec) {
-        const c = mateOnly(exec, 'mywork_selftest_run')
-        return selftest(c.mate, c.run ? c.run.id : '', args || {})
-      },
-      render: (_a, v) => [{ type: 'text', text: `测完了：${v.tasks} 条任务，结果在 ${v.file}。` + v.summary.map((s) => `${s.label} 通过 ${s.pass}/${s.total}${s.manual ? '，待看 ' + s.manual : ''}${s.errors ? '，失败 ' + s.errors : ''}`).join('；') }],
-    },
-    {
-      name: 'mywork_inventory_scan',
-      description: '用程序读出「我们在用什么」的候选行（只在 MyWork 同事的会话里可用）。给文件或目录的路径（相对你的文件夹，或绝对路径，~ 是用户主目录）。认得 package.json、requirements*.txt、pyproject.toml、go.mod、new-api / one-api 渠道导出、LiteLLM 配置、账单 CSV，以及代码里加了引号的模型 ID。返回候选行和「怎么知道的」，不写文件；核对后用 mywork_list_write 写进清单。',
-      parameters: { paths: { type: 'array', required: true, items: { type: 'string' }, description: '文件或目录的路径' } },
-      execute(args, exec) {
-        const c = mateOnly(exec, 'mywork_inventory_scan')
-        const files = []
-        const rows = []
-        const read = []
-        const skipped = []
-        for (const raw of (Array.isArray(args.paths) ? args.paths : []).slice(0, 20)) {
-          const p0 = String(raw || '').trim()
-          if (!p0) continue
-          const p = p0.startsWith('~') ? join(homedir(), p0.slice(1)) : resolve(c.mate.dir, p0)
-          let st
-          try { st = statSync(p) } catch { skipped.push({ name: p0, reason: '不存在' }); continue }
-          if (st.isDirectory()) { const s = scanDir(p); rows.push(...s.rows); read.push({ name: p0, kind: '目录', n: s.rows.length, files: s.files }) }
-          else if (st.size > 8 * 1024 * 1024) skipped.push({ name: p0, reason: '超过 8 MB' })
-          else { try { files.push({ name: p0, text: readFileSync(p, 'utf8') }) } catch (e) { skipped.push({ name: p0, reason: String(e && e.message) }) } }
-        }
-        const s = scanFiles(files)
-        return { rows: mergeRows([...rows, ...s.rows]).slice(0, 300), read: [...read, ...s.read], skipped: [...skipped, ...s.skipped] }
-      },
     },
     {
       name: 'mywork_mate_update',
@@ -1532,9 +1293,11 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     '/templates': { GET: () => ({ items: [...templates.values()].map(templateView) }) },
     '/mates/upload': { POST: (_q, b) => upload(b) },
     '/mates/onboard': { POST: (_q, b) => onboard(b) },
-    '/mates/listok': { POST: (_q, b) => listOk(b) },
     '/mates/subscribe': { POST: (_q, b) => subscribe(b) },
-    '/mates/change': { POST: (_q, b) => actOnChange(b) },
+    '/mates/wiki': { GET: (q) => wikiView(q.get('id')) },
+    '/mates/wiki/page': { GET: (q) => wikiPage(q.get('id'), q.get('path'), q.get('name'), q.get('from')) },
+    '/mates/wiki/seen': { POST: (_q, b) => wikiSeen(idOf(b), b.path) },
+    '/mates/wiki/search': { GET: (q) => { const m = mates.get(String(q.get('id') || '')); if (!m) throw notFound('同事不存在。'); return { items: searchWiki(m.dir, q.get('q')) } } },
   }
   /** One request: { status, body }. `query` is URLSearchParams or a plain object. */
   async function handle(method, path, query, body) {
@@ -1568,7 +1331,7 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     on: (fn) => { listeners.add(fn); return () => listeners.delete(fn) },
   }
 
-  return { store, deliverables, routines, seen, mates, scenarios, engine, api, tools, routes, handle, tick, runView, mateView: mateViewById, listMates, thread, activity, files, search, workRecord, presetFor, createMate, updateMate, removeMate, createRoutine, updateRoutine, runRoutine, ackRoutine, dir, presetRoot, templates, precheckNow, writeList, onboard, listOk, subscribe, upload, todayCard, actOnChange, selftest }
+  return { store, deliverables, routines, seen, mates, scenarios, engine, api, tools, routes, handle, tick, runView, mateView: mateViewById, listMates, thread, activity, files, search, workRecord, presetFor, createMate, updateMate, removeMate, createRoutine, updateRoutine, runRoutine, ackRoutine, dir, presetRoot, templates, onboard, subscribe, upload, todayCard, wikiView, wikiPage }
 }
 
 export function apply(ctx, config = {}) {

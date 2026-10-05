@@ -12,8 +12,11 @@ function inline(s) {
   out = out.replace(/`([^`]+)`/g, (_, c) => '<code>' + c + '</code>')
   out = out.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
   out = out.replace(/(^|[^*\w])\*([^*\n]+)\*(?!\w)/g, '$1<em>$2</em>')
+  // [[页名]] / [[页名|显示的字]] / [[页名#小节]]: a wiki link (the 知识库 page opens the page it names).
+  out = out.replace(/\[\[([^\]\n|#]+)(?:#[^\]\n|]*)?(?:\|([^\]\n]+))?\]\]/g, (_, target, label) => '<a href="#" class="md-wiki" data-wiki="' + target.trim() + '">' + (label || target.split('/').pop()).trim() + '</a>')
   out = out.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, (_, t, u) => '<a href="' + u + '" target="_blank" rel="noopener noreferrer">' + t + '</a>')
-  // A link to a file in the teammate's own folder (no scheme) reads as its name; the folder is in the right panel.
+  // A link to a page of the teammate's wiki (概念/注意力.md) opens it like [[…]]; any other file in its folder reads as its name.
+  out = out.replace(/\[([^\]]+)\]\((?!https?:)([^)\s]+\.md)(?:#[^)\s]*)?\)/g, (_, t, u) => '<a href="#" class="md-wiki" data-wiki="' + u + '">' + t + '</a>')
   out = out.replace(/\[([^\]]+)\]\((?!https?:)[^)\s]+\)/g, '<span class="md-file">$1</span>')
   return out
 }

@@ -58,6 +58,8 @@ test('code research: one folder per question — 进行中 without a report, 未
   const list = scanProjects(dir)
   assert.deepEqual(list.map((p) => [p.folder, p.state]), [['2026-10-05-pyodide', 'doing'], ['2026-10-04-markdown-libs', 'unreviewed']])
   assert.equal(list[1].gist, 'cmarkgfm 最快，比 markdown-it-py 快 9 倍。')
+  writeFileSync(join(dir, '2026-10-04-markdown-libs', 'README.md'), '# 哪个最快\n\n> 未经你审\n\n## 结论\n\n1. **最快的是 `marshal.dumps`**：见 [图](chart.png)。\n')
+  assert.equal(scanProjects(dir).find((p) => p.folder === '2026-10-04-markdown-libs').gist, '最快的是 marshal.dumps：见 图。')
   assert.equal(list[1].title, '哪个 Markdown 库最快')
   markReviewed(dir, '2026-10-04-markdown-libs', '2026-10-05')
   assert.match(readFileSync(join(dir, '2026-10-04-markdown-libs', 'README.md'), 'utf8'), /^> 审过：2026-10-05$/m)

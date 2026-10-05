@@ -20,7 +20,8 @@ function gistOf(text) {
   for (const block of src.split(/\n\s*\n/)) {
     const b = block.trim()
     if (!b || /^(>|\||```|---)/.test(b)) continue
-    const line = b.replace(/^[-*+]\s+/gm, '').replace(/\s*\n\s*/g, ' ')
+    // Read as plain text in the panel: no list marks, emphasis, code ticks or link syntax.
+    const line = b.replace(/^\s*(?:[-*+]|\d+[.)])\s+/gm, '').replace(/\*\*|__|`/g, '').replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/\s*\n\s*/g, ' ')
     return line.length > 160 ? line.slice(0, 159) + '…' : line
   }
   return ''

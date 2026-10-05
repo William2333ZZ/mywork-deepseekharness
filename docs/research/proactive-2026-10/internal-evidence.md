@@ -1,0 +1,507 @@
+# 我们自己的调研里关于主动的证据
+
+原始调研记录（2026-10-05）。每条以所附出处为准。汇总见 [../2026-10-05-proactive.md](../2026-10-05-proactive.md)。
+
+## 想要的、运转良好的
+
+- **【金融·二级】要的是「相对我的覆盖池和框架，只报变化」，不是全量摘要**（强）
+  - 内容：F9（六个金融方向里 2 强 2 中）：买方每天被路演、研报、点评淹没，现有工具做的是把所有东西摘要一遍，仍是全量推送；需要的是带着研究员已有观点和模型去读、只报偏差（新数据、新口径、新分歧）。03-fin-pains #9（中）更进一步：几十家公司里任何一家出了会动摇逻辑的公告要第一时间知道，并知道它影响模型里哪条假设；现有提醒按公司推，不按假设推。04 #13（中）：每月把经营数据、公告、专家口径、卖方观点对到投资逻辑和模型假设上。user-needs 第一节第 3 条把这一点列为站得住的结论。注意：「对到我的假设」这一层多是调研者写的缺口，不是用户原话；「信息疲劳」的核心出处是一篇身份未核实的自媒体文章（challenge.md 第 208 行）。
+  - 谁：买方研究员、基金经理（兴证全球陈聪等，记者转述和自媒体为主）；首批人群（个人、小私募）的直接证据来自两位自建者，见下两条
+  - 证据类型：记者转述 / 本人自述 / 推断（缺口一栏）
+  - 时间：2022-11 至 2026-09
+  - 意味着：金融版的主动应当以用户写下的覆盖池和假设为过滤器，产出是「变化」而不是「资讯」；把事件绑定到哪条假设是我们要做的那一层（推断）。
+  - 出处：docs/research/2026-10-05-user-needs.md 第 19、210、239 行；docs/research/needs-2026-10/raw/02-fin-buyside-pe.md 第 128-141 行（需求 3，强）；docs/research/needs-2026-10/raw/03-fin-pains.md 第 124-138、183-196 行（需求 5 强、需求 9 中）；docs/research/needs-2026-10/raw/04-fin-tools-spend.md 第 240-251 行；docs/research/needs-2026-10/challenge.md 第 208 行；https://k.sina.com.cn/article_5202984134_1361f3cc6019016vhh.html；https://news.qq.com/rain/a/20231213A017MY00
+- **【金融·小私募】唯一详细的一手日常主动流水线：盘前筛选、三分类、收盘由代码打分、踏空提醒**（中）
+  - 内容：鸣山基金张炀民：一台不关机的电脑，6:10 抓隔夜数据和事件日历出盘前判断，手机亮起时简报已在邮箱；7:30 另一个智能体跟踪产业链专家、卖方分析师、供应商高管动态；汇总程序专门找互相矛盾之处；16:00 裁判按真实收盘价给早上每条判断打分（命中、部分命中、落空），由代码裁决不许模型自评；判断必须同时给方向、量化阈值、时限，缺数据要标；另外找连续走强却没被原框架覆盖的板块，弹出踏空提醒。他起初想让 AI 直接出观点和仓位，后来退回到只让它筛选、找异常，筛出两三条交人验证。复核：时间表和「不许模型自评」是记者叙述，不是他原话；21 财经和东方财富两处是同一篇上证报稿件，只算一个信源；偏交易节奏，不是深度研究本身。
+  - 谁：私募创始人兼投资经理（5–9 人私募，首批候选人群），单一受访者
+  - 证据类型：记者转述（夹少量本人直接引语）
+  - 时间：2026-09-22/23
+  - 意味着：主动的价值在三件事：过滤（重复/噪音/新变化）、可检验（阈值+时限）、事后对账（代码裁决）。「AI 出观点」被本人撤回，主动不应越到判断层。
+  - 出处：https://www.21jingji.com/article/20260923/herald/aab8a7bc0a378ea66d11cf8f73c0cc87.html；http://finance.eastmoney.com/a/202609223880385983.html；docs/research/needs-2026-10/audit.md 第 200-210、239、242 行；docs/research/needs-2026-10/raw/13-x-pay-adoption.md 第 123-133、337 行；docs/research/2026-10-05-user-needs.md 第 278 行
+- **【金融·买方】机构里的买方分析师自建每日研究日报，五分钟看完定当天优先级；晚间自动三分类；业绩后自动对账**（中）
+  - 内容：雪球「美股大白话」（自称买方 TMT 分析师，匿名）：每天一份自动生成的研究日报，覆盖自己三十多家公司的隔夜动态、新进的专家访谈和卖方研报、近一两周业绩日历，五分钟看完就知道当天先后；日报不是现搜的，知识库每两小时收一次新数据，早上按他的框架组织；晚上进来的卖方日报、研报自动分成「直接相关 / 行业趋势变化 / 噪音」，要细读的只剩三五篇。业绩前瞻从 4–6 小时压到 30–40 分钟、六个模块；业绩出来后系统自动出复盘，预测与实际逐项对比，另有专家预测准确度复盘。他说最重要的是闭环而非省时，以前不是不想复盘，是排不进日程。复核：匿名、数字脱敏、闭环只跑了一个业绩季；他不用任何第三方金融 AI 产品，理由是不信任平台（对付费意愿是反向信号）。
+  - 谁：机构里的买方分析师（不是首批人群，但是同类工作者），一人
+  - 证据类型：本人自述
+  - 时间：2026-03-13 至 2026-03-15
+  - 意味着：「每天早上一份」可以成立，前提是围绕覆盖池、按自己的框架组织、带近期日历（事前准备），并且晚间的东西被分好类、噪音可见。业绩后的自动对账是被本人认为最有价值的主动环节。
+  - 出处：https://xueqiu.com/4079974780/379404927；https://xueqiu.com/4079974780/379467254；https://xueqiu.com/4079974780/379684326；docs/research/needs-2026-10/audit.md 第 186-199、233-237 行；docs/research/interaction-2026-10/patterns.md 第 97-104、115-122 行
+- **【金融·机构问卷】超过五分之一的机构投研人员把「全天监控推送摘要和预警」选为理想 AI 的首选角色**（中）
+  - 内容：清华五道口 × 蚂蚁研究院，机构投研端 113 人，单选：精准调取数据/公告/研报观点 34.51%、生成初稿/图表/纪要 31.86%、全天监控推送摘要预警 22.12%、挖掘交易信号 11.50%。同一问卷「撰写高重复性的日报和周报」27.43% 与数据清洗并列最耗精力且最想交给 AI。几项之间只差 0 到 1 人，排名在误差内；合作方是平台企业。原记录据此说「每日简报不是第一需求」，挑错者指出 22% 本身就是反证。
+  - 谁：国内机构投研人员 113 人（头部机构为主，不是首批人群）
+  - 证据类型：调查数据
+  - 时间：2025-09-25
+  - 意味着：监控和预警有人要，但排在「取数」和「出初稿」之后；主动不能是产品的全部卖点。
+  - 出处：https://thuifr.pbcsf.tsinghua.edu.cn/AIcaifuguanlifuwuxianzhuangyuqushi.pdf（第 13–16 页）；docs/research/needs-2026-10/raw/04-fin-tools-spend.md 第 250、281、325 行；docs/research/needs-2026-10/challenge.md 第 26、485 行；docs/research/2026-10-05-user-needs.md 第 130、239 行
+- **【金融·周期产出】替别人写的日报、周报、景气度看板最想交出去，缺的是带出处、能签字、有变化才叫人**（强）
+  - 内容：F4（4 强 2 中）：问卷里写日报周报 27.43% 并列最耗精力；头部券商已用智能体自动生成；有公募研究员用智能体两小时更新完全部行业景气度看板。痛的是「写」，不是缺一份可「读」的简报。2026 年 6 月一份券商地产周报把 2024 年的国常会表述标成 2026 年最新政策，事故正出在这类例行产出上。东吴证券把月度复盘拆成四个 AI 角色的流水线。这主要是卖方和公募的需求，它们有自己的平台。
+  - 谁：卖方分析师和助理、公募研究员（多数不是首批人群）；宏观固收信用见下条
+  - 证据类型：调查数据 / 机构自述 / 记者转述
+  - 时间：2025-03 至 2026-07
+  - 意味着：「到点必出」的周期产出是一类合法的主动：不管有没有变化都要交，但交给别人之前要人签收，且每个数字带出处（推断）。
+  - 出处：docs/research/2026-10-05-user-needs.md 第 19、205、235、270 行；docs/research/needs-2026-10/raw/01-fin-sellside.md 第 199-212 行（需求 9，强）；https://m.sohu.com/a/1072519460_222256；https://m.21jingji.com/article/20260617/herald/f94ea83816a1262dd230ad572693d70e.html；https://stock.finance.sina.com.cn/stock/go.php/vReport_Show/kind/macro/rptid/838407756378/index.phtml
+- **【金融·宏观固收信用】每天的监测和定期更新本身就是交付，跟踪在这里不是附属**（中）
+  - 内容：gap-fill（未逐条复核）：买方信评每天第一件事是在地铁里刷完几家卖方的信用负面和早报，晨会先念负面再确认持仓（匿名第一人称自述，2019）；下班前写当天新券信用简评；一份行业周报三四个小时（工银理财副总裁）。M4：持有或关注几百个发债主体，每天要知道谁出了负面、谁的财报和评级变了、担保链上谁会被传染，晨会前要有结论，不被一条推送吓醒；机构系统能推送但不按研究员自己的关注库和口径解释影响。M1：几十张表的主题数据库自动取数、核对、出图并告诉我哪里异常。泰康资产日均自动处理舆情 17000 余条；平安人寿把风险跟踪与监测写进制度。浙商证券覃汉团队把 OpenClaw 用于定时政策跟踪、数据更新和信息监控。
+  - 谁：买方信评、宏观固收研究员（机构为主；独立宏观固收研究者没有自述）
+  - 证据类型：本人自述（匿名，2019）/ 记者转述 / 机构自述
+  - 时间：2019-08 至 2026-09
+  - 意味着：对这群人，「每天替我盯一个可投库、晨会前给结论、按我的口径解释影响」是核心而非噪音；但要避免「一条推送吓醒」，需要分档。
+  - 出处：docs/research/needs-2026-10/gap-fill.md 第 379-381、394-399、440-452、551、580 行；docs/research/2026-10-05-user-needs.md 第 337-351 行；https://www.sohu.com/a/333128463_658428；https://www.21jingji.com/article/20260914/herald/2b1001905e55e3431ce6b53b1d4a5885.html；https://finance.sina.com.cn/wm/2026-03-17/doc-inhrffsk9741437.shtml
+- **【金融·一级】早期投资把每天扫人和公司信号当核心能力，晚一个月估值翻倍**（中）
+  - 内容：V4（gap-fill 评强，未复核）：每天扫论文作者、工商新设、融资新闻、指定公众号和社交动态，只报符合自己画像的人和公司。Earlybird 合伙人：自建平台把覆盖率从 70%–72% 提到 95% 以上，通常比融资关闭早 6 周看到（中文整理）；九合王啸：热门方向晚一个月进场估值翻倍；司闻 Sourcing Agent 每天读 20 亿以上 token、监测 4 万多名 AI 人才（当事方报道）。多数国内小基金靠人脉、中介和刷公众号，买不起也建不起。同时，一级市场没有找到任何假设跟踪和到期对账的证据，投后的时间黑洞是给出资人报送和要数。
+  - 谁：VC 合伙人和投资经理（海外一家、国内一位创始人、一家当事方）
+  - 证据类型：本人自述 / 记者转述 / 厂商说法
+  - 时间：2025-02 至 2026-09
+  - 意味着：一级版的主动首先是「比别人早看到」的 sourcing 监测，对象是人和公司画像；不是论点到期对账。
+  - 出处：docs/research/needs-2026-10/gap-fill.md 第 117-129、289-290 行；docs/research/2026-10-05-user-needs.md 第 320、326、330 行；https://wenfeixiang.com/2026/09/how-to-be-the-ai-native-vc-firm/；https://36kr.com/p/3905169127114368；https://m.aitntnews.com/newDetail.html?newId=11704
+- **【金融】写完之后的假设跟踪和到期对账是中等强度的空位，主证据来自海外资产配置机构**（中）
+  - 内容：F12（1 强 4 中 1 弱）：Addepar 与斯坦福 2022 年问卷 54 家海外机构（养老金、捐赠基金、家族办公室为主），多数不对备忘录做结构化事后分析；受访者自己提出想要更快更新关键数据、关键假设变化时向原团队报警，同时也想减少写作负担。个人侧是 ai-berkshire 开源框架自带论点跟踪、论点漂移、组合复盘命令。买方按推荐后超额收益考核，基金经理陈聪说看错后要持续跟进；但国内买方研究员本人没说过想要这个工具。卖方预测对错不与薪酬挂钩，对账需求评弱、现状基本不做。挑错者把「最大空位」改为「中等强度空位」。鸣山的打分是当天收盘对早盘，和几个月后的到期对账不是一回事。
+  - 谁：海外资产配置机构（不是目标用户）、个人投资者开源项目作者、国内买方基金经理
+  - 证据类型：调查数据 / 行为证据 / 本人自述
+  - 时间：2022-06 至 2026-09
+  - 意味着：「到期回头看」可以做，但不能当金融版主卖点；对卖方和一级不成立。且「指出哪条结论过时」是模型弱项（user-needs 第 28 行）。
+  - 出处：docs/research/2026-10-05-user-needs.md 第 28、213、245 行；docs/research/needs-2026-10/raw/06-fin-deliverables.md 第 192-206 行；docs/research/needs-2026-10/raw/02-fin-buyside-pe.md 第 158-171 行；docs/research/needs-2026-10/raw/01-fin-sellside.md 第 254-260、338 行；docs/research/needs-2026-10/challenge.md 第 74-81、156-161 行；https://longterminvesting.stanford.edu/sites/g/files/sbiybj23856/files/media/file/addepar-investment-memos-and-decision-making.pdf；https://github.com/xbtlin/ai-berkshire
+- **【金融】事前准备有需求：访谈前提纲、业绩前瞻、晨会前看完**（中）
+  - 内容：F7（3 强 1 中）：访谈之前的提纲，访谈之后与财务数据和其他人的说法对账；专家每小时数千元，前 15 分钟要试出水平；调研者归纳「访谈前把公开资料能回答的问题先排除」这一步没有工具（这是缺口推断）。买方：公告常在晚上发布，要在次日晨会前看完（2016 年自媒体，仅见摘要）。雪球作者的日报里有近一两周业绩日历，业绩前瞻 30–40 分钟。M2：数据发布日当天出带出处的点评初稿。注意：所见「会前准备」产品（M365 Copilot）都是用户自己点开，不是推送。
+  - 谁：卖方首席、买方研究员、一级投资经理
+  - 证据类型：本人自述 / 记者转述 / 推断
+  - 时间：2016 至 2026-03
+  - 意味着：按日历（业绩日、数据发布日、访谈日）提前把准备包放好，是有据的主动类型；是「到点放在那里」还是「推送」，没有证据（推断）。
+  - 出处：docs/research/2026-10-05-user-needs.md 第 208、347 行；docs/research/needs-2026-10/raw/03-fin-pains.md 第 155-166 行；docs/research/needs-2026-10/raw/01-fin-sellside.md 第 154-161 行；docs/research/needs-2026-10/raw/02-fin-buyside-pe.md 第 50-53 行；https://www.woshipm.com/zhichang/2891669.html；https://xueqiu.com/4079974780/379467254
+- **【AI研究】每天按自己的文献库筛新论文是研究者的日课，行为证据硬，但已免费**（强）
+  - 内容：R6（2 强 1 中）与 6.9：按 Zotero 库给每日 arXiv 排序的开源脚本 zotero-arxiv-daily 约 6.0k star、5,249 fork（fork 即部署）；Scholar Inbox 约 23,000 注册、约 8,000 人近 30 天活跃，按平台用户调查最受欢迎的功能是每日摘要（平台自报）；V2EX 自建每天约 0.2 元；papers.cool 用户要求按课题关键词生成订阅源、只看当天（排序后老冒出读过的）；dailypaper-skills 把每日筛选写进本地 Obsidian。「按课题、说明相关在哪」这一层只有一项 15 人的 CHI 2024 研究（给出与已收藏论文的关系后更能判断相关性）。资深研究者 Raschka：收进来的约 95% 事后看不重要，找论文不难，难的是管理注意力。
+  - 谁：AI 研究者（硕博生、研究工程师），中英文都有；工具作者自述占多数
+  - 证据类型：行为证据 / 厂商说法（平台自报）/ 论文
+  - 时间：2023-03 至 2026-10
+  - 意味着：每日节奏对这群人是被接受的，但收不了钱也难做出差别；差别只可能在「相对我在做的课题、写进我的库和综述」。
+  - 出处：docs/research/2026-10-05-user-needs.md 第 402、419、515 行；docs/research/needs-2026-10/raw/09-ai-pains.md 第 76-92、380 行；docs/research/needs-2026-10/gap-fill.md 第 628、667-679 行；docs/research/needs-2026-10/audit.md 第 500-511、593 行；https://github.com/TideDra/zotero-arxiv-daily；https://arxiv.org/abs/2504.08385；https://arxiv.org/abs/2403.02939；https://sebastianraschka.com/blog/2023/keeping-up-with-ai.html
+- **【AI研究】怕被抢发是普遍焦虑，但没人在系统地监控并发工作**（弱）
+  - 内容：09-ai-pains #9（中）：15 位受访学者里 13 位谈到被抢发焦虑，相似论文可只隔两天；有博士生的反应不是更勤地盯，而是不敢打开 arXiv（他人观察）；访谈研究明确没有记录到具体监控做法。一位 HN 自建者的监控管线在 24 小时内发现 9 个机构的 7 篇 VLA 论文在攻同一问题。调研者推断的缺口：按我的草稿或摘要比对每天的新论文，说明相似在哪、不同在哪。
+  - 谁：AI 方向博士生和研究者（访谈研究 15 人、一位 HN 工具作者）
+  - 证据类型：论文 / 本人自述 / 推断
+  - 时间：2025-11、2026-02
+  - 意味着：「撞题提醒」是需求真实但无人在做的空位，也可能是没那么要紧；立刻推送撞题没有证据支持（critique-user-value 第 110、206 行的内部意见也这么说）。
+  - 出处：docs/research/needs-2026-10/raw/09-ai-pains.md 第 201-212、391、408 行；https://arxiv.org/html/2511.04081；https://news.ycombinator.com/item?id=47067509；docs/research/2026-10-05-user-needs.md 第 419 行
+- **【AI研究·AI行业】提醒只推列表不够，要并进「活的综述 / 对比表」**（中）
+  - 内容：10-ai-tools-spend #4（中）：提醒类功能只推列表，不会更新我的综述；用户用 Litmaps、ResearchRabbit、Elicit Routines，或用 Claude Code + Obsidian 维护 LLM 记账的知识库。调研者结论：定时例行有人要，但形态是把新东西并进正在做的课题、综述或数据底表；没有一个从业者来源说想要每日资讯摘要。复核更正：Litmaps 免费档也有提醒（按月），付费买的是频率；ResearchRabbit 的 Signals 更像诚信类提示。Elicit 用 Routines 取代 Alerts 的理由正是 Alert 只告诉你有新论文。
+  - 谁：在子方向长期深耕的研究者、长期跟踪赛道的分析师
+  - 证据类型：行为证据 / 厂商说法 / 推断
+  - 时间：2024-12 至 2026-10
+  - 意味着：研究类同事的例行，产出应是对用户既有底稿的增量更新（带变更日志），而不是独立的一期推送。多久提醒一次才不算打扰，没有证据。
+  - 出处：docs/research/needs-2026-10/raw/10-ai-tools-spend.md 第 131-144、375、411 行；docs/research/needs-2026-10/audit.md 第 759-760、808 行；https://support.elicit.com/en/articles/17220392-routines-in-elicit；https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f
+- **【AI研究】过夜跑实验、到检查点推到手机审批，是行为证据最硬的一类后台主动**（强）
+  - 内容：R10（2 强）：autoresearch 97.3k star；ARIS 约 1.7 万 star，卖点是睡一觉醒来看结果；ARIS 的飞书集成三种模式：关、只推送（实验完成、到检查点、报错、流水线结束各推一张卡片）、双向（在飞书里批准、拒绝或发指令），AUTO_PROCEED 设为假时每个检查点等批准；预计超过 4 GPU 小时的实验跳过并标「需人工跟进」；花 GPU 之前选哪个 idea 留了手机审批点。国内学生让 Claude Code 过夜跑、用飞书推到手机审批。限定：实验在远程服务器上；夜里的失败不是跑不动而是结果不诚实（拿 backbone 输出或合成参考当 ground truth），没有独立审计第二天要全查；卡死只报警不重启。
+  - 谁：AI 研究者（国内外，开源工具作者和用户）
+  - 证据类型：行为证据 / 本人自述
+  - 时间：2026-03 至 2026-10
+  - 意味着：「在节点上叫我」比「定时推一份」更被接受：检查点、报错、完成、需人工跟进四类事件值得推；推的同时要带可审计的结果（推断）。
+  - 出处：docs/research/2026-10-05-user-needs.md 第 406、423、517-518 行；docs/research/needs-2026-10/gap-fill.md 第 644、735-741、887、918 行；docs/research/interaction-2026-10/patterns.md 第 182 行；https://github.com/wanshuiyin/Auto-claude-code-research-in-sleep/blob/main/README_CN.md；https://github.com/wanshuiyin/Auto-claude-code-research-in-sleep/issues/57；https://github.com/karpathy/autoresearch
+- **【AI行业研究】已有研究的过时提醒和指标表更新：机构在做，个人没直接说要**（中）
+  - 内容：I4（2 强 3 中）：新模型、财报、融资出来后，已有图谱、对比表、结论要更新；机构做法是季度或年度系列反复重写（拾象季度 AGI 版图、State of AI 第 8 年、国信用 OpenRouter 数据逐月跟踪，「半年后最新前十已经完成全部换血」）。I12（中）：调用量、流量、下载、融资等指标按周或月进表并提示异常；调研者称这是唯一真正适合例行的环节，但它是更新表格和提示变化，不是推送新闻。挑错（A8）：个人从业者的一手证据不足；「指出哪条结论过时」是模型弱项，现实能做到的是「这个数字有了新版本」。
+  - 谁：卖方 AI 分析师、研究驱动型基金、年度报告作者（机构行为）；个人从业者缺席
+  - 证据类型：行为证据（机构）/ 推断
+  - 时间：2024-11 至 2026-08
+  - 意味着：主动更新应落在「数字和表」这一层（有新版本就标），不要承诺「告诉你哪条结论错了」。
+  - 出处：docs/research/2026-10-05-user-needs.md 第 436、444、454 行；docs/research/needs-2026-10/raw/08-ai-industry-analysts.md 第 102-116、222-233、337 行；docs/research/needs-2026-10/challenge.md 第 400-405 行；https://data.eastmoney.com/report/zw_industry.jshtml?infocode=AP202608071827757168
+- **【AI行业·通用】判断和预测连同依据记下来、到期回看，顶级报告在做，多数人没有台账**（中）
+  - 内容：I13 / 12-ai-deliverables #14（中）：State of AI 每年给 10 条预测并公开自评，2025 年版对上一年自评 10 中 5；中文投资备忘模板要求投后 100 天复盘；NextView 把备忘当日后对照的快照；多数靠自觉。调研者推断：常驻同事 + 记忆 + 定时例行适合承担这本台账。
+  - 谁：AI 行业报告作者、投资人
+  - 证据类型：行为证据 / 推断
+  - 时间：2025-07 至 2025-10
+  - 意味着：「到期结算」可以作为一种主动，但需要判断事先写成可结算的样子（见 mechanics 中 ai-berkshire、鸣山）。
+  - 出处：docs/research/needs-2026-10/raw/12-ai-deliverables.md 第 262-269 行；docs/research/2026-10-05-user-needs.md 第 445、493 行；https://nathanbenaich.substack.com/p/the-state-of-ai-report-2025；https://tianpan.co/zh/notes/274-10-investment-memo-template
+- **【技术经理】下线、调价、改计费、封号、禁用的冲击是真的，但痛在通知期短和迁移贵，不在不知道**（中）
+  - 内容：7.2-1：Windsurf 被 Anthropic 不到五天通知期砍掉一方容量（竞争性断供，监控工具预见不了）；百炼下线历史快照，发帖人提前通过站内信知道，痛的是团队很多智能体要换模型重测（公告影响时间可能到 10-10，通知期或约四个月）；OpenAI 下线一个旧模型提前约半年，痛的是替代品还不能微调；TRAE 不公告就下架付费档里的一个模型；DeepSeek 旧名悄悄指向新模型并按新价计费；阿里 7 月起禁用 Claude Code（7 天通知期）；100 来人的 Claude Team 组织被停用。复核：「迁移痛点」strong；「提前预警加影响面」medium 偏弱，没有管理者这么说过，是推断。deprecations.info 只覆盖海外九家，18 star（复核：星数不说明用量）。
+  - 谁：在模型上搭东西的团队；说话的多是开发者、付费用户和 CEO，技术管理者本人很少
+  - 证据类型：行为证据 / 记者转述 / 推断
+  - 时间：2025-06 至 2026-07
+  - 意味着：技术经理版的主动应盯「在用清单」碰到的运营类变化，并直接给出影响面和替代（推断，要先访谈）；按距离截止的天数定推送门槛，而不是一律立刻推（critique-user-value 第 120 行内部意见）。
+  - 出处：docs/research/2026-10-05-user-needs.md 第 553、602 行；docs/research/needs-2026-10/raw/17-tm-keeping-up.md 第 41-63、223、240 行；docs/research/needs-2026-10/audit-tech-managers.md 第 110、316-329、390-393、448、457-462 行；https://techcrunch.com/2025/06/03/windsurf-says-anthropic-is-limiting-its-direct-access-to-claude-ai-models/；https://www.v2ex.com/t/1218919；https://github.com/Trae-AI/TRAE/issues/2513；https://deprecations.info/
+- **【技术经理】他们是事件驱动的，节奏是每周扫一遍、每月看数据、半年刷新，不是每天追**（中）
+  - 内容：7.4：看材料多是因为有事（供应商通知、老板问、统一采购、账单涨）；没有找到「每天固定读多久」的管理者自述。Will Larson 每月看数据、六个月刷新策略；James Stanier（高级工程领导）每周扫一遍项目更新，挑出 3–5 个要自己盯的直接找负责人，Codex 和 Claude Code 每天都用；来也 CTO 胡一川七八月几乎每天深度用一两个小时。决定有保质期，两年内会被重新考虑多次（Larson）。
+  - 谁：技术管理者本人（海外为主，少数国内）
+  - 证据类型：本人自述
+  - 时间：2025 至 2026
+  - 意味着：对技术经理，主动应当是「有事才来、每周一次汇总」，而不是每日简报。
+  - 出处：docs/research/2026-10-05-user-needs.md 第 554-555、579-581 行；docs/research/needs-2026-10/raw/15-tm-cto-level.md 第 247 行；docs/research/needs-2026-10/raw/16-tm-team-level.md 第 36、144 行；https://lethain.com/llm-adoption-strategy/；https://www.theengineeringmanager.com/growth/nobody-needs-a-human-router/
+- **【技术经理】「在对的时刻被提醒有过一个决定」有工程师证据；按日期到期重审只是假设**（弱）
+  - 内容：18 #6（原标强，复核降为中）：ADR 写了没人在提 PR 前读，缺的不是文档而是在对的时刻被看到；有人用 CI 在 PR 触及相关文件时自动贴出决定，另有人说 ADR 不接自动化就没人理。「AI 选型需要按假设被打破来重审」是推断，没有人说过；AWS 的 ADR 指南说多数决定是 two-way door，改起来成本低，方向与紧迫重审相反。user-needs 7.6-4：决定记录和到期重审只是假设。
+  - 谁：工程师（HN）、自推工具作者；技术管理者本人缺席
+  - 证据类型：本人自述 / 推断
+  - 时间：2011 至 2026
+  - 意味着：事件触发的重审（碰到下线、调价、出现候选）可以做；日期提醒应是用户自己加的可选项（critique-user-value 第 205 行内部意见同此）。
+  - 出处：docs/research/needs-2026-10/raw/18-tm-decisions-and-materials.md 第 48、124-142、238 行；docs/research/needs-2026-10/audit-tech-managers.md 第 610、628、651 行；docs/research/2026-10-05-user-needs.md 第 572、604 行；https://news.ycombinator.com/item?id=47226046；https://news.ycombinator.com/item?id=36209777
+- **【通用】行业收敛到「用户自己定义要盯什么，只在有值得报的事时才通知」**（中）
+  - 内容：ChatGPT 2026-06-17 下线 Pulse、主动更新并入定时任务，同日上线 Scheduled 页：监控类任务只在有值得报告的事时才通知，无人看管的任务一段时间不活动自动暂停。Elicit 用 Routines 取代 Alerts，并可让定时任务更新同一份产物。飞书知识问答把周期性问题变成定时推送最新回答。Reportify 把定时研究做成首页可订阅的卡片，写明送达时间、一条样例消息和在用人数（财报自动解读 3,776 人、行业晨报 3,547 人等，厂商数字）。HN 技术用户自搭流水线每天抓行业源、按与自己关注点的相关度打分、周五收一份周报。新版定时任务没有找到独立用户评价。
+  - 谁：厂商（OpenAI、Elicit、飞书、Reportify）；一位 HN 技术用户
+  - 证据类型：厂商说法 / 行为证据
+  - 时间：2026-06 至 2026-10
+  - 意味着：主动的对象由用户定（清单、判断、例行），系统只负责判断何时值得开口；这也是现行设计第 0 节第 1 条的依据。
+  - 出处：docs/research/2026-10-05-interaction-forms.md 第 35、56-59 行；docs/research/interaction-2026-10/forms/3-briefing-and-tracking.md 第 14-19、115-133 行；docs/research/interaction-2026-10/forms/5-research-products.md 第 42-47、537 行；https://help.openai.com/en/articles/6825453-chatgpt-release-notes；https://reportify.cn/；https://news.ycombinator.com/item?id=48939630
+- **【通用】总管式汇报、按领域分开的常驻同事被夸，个别主动提醒的案例被当作卖点**（弱）
+  - 内容：dots 发布帖用户：不用自己管多条对话，它主动来汇报其他对话的进展；Grok Bot 重度用户 jjcm 用了一个月：每位有自己的例行、上下文和领域、能互相沟通，按领域分开结果更好，有了自己的电脑后异步工作才成立。Yahoo/BeInCrypto 转述早期测试者：dot 改签航班后主动指出与一条未读会议邀请冲突。澎湃转述 Muse 官方案例：整理返校事项时发现体育选拔通知，提醒赶上截止。Pulse 唯一正面例子：知道用户要去度假，给了当地闭馆和要提前预订的活动。这些都是个人事务，不是研究工作。
+  - 谁：英文世界的早期使用者和记者；不是目标用户
+  - 证据类型：本人自述 / 记者转述 / 厂商说法
+  - 时间：2025-09 至 2026-10
+  - 意味着：主动提醒被欣赏的场合都带「截止日期 + 冲突 + 来自用户自己的数据」三要素（推断）；研究场景里对应的是「碰到你写下的判断 / 有截止的阻塞」。
+  - 出处：https://news.ycombinator.com/item?id=49907003；https://news.ycombinator.com/item?id=49261514；https://tech.yahoo.com/ai/chatgpt/articles/openai-dots-grok-bot-tester-093953421.html；https://m.thepaper.cn/newsDetail_forward_34180411；https://news.ycombinator.com/item?id=45429154；docs/research/interaction-2026-10/forms/2-persistent-agents.md 第 11、119、139、153 行
+- **【通用】把变化做成带动作的工作对象，送进用户本来就要处理的队列**（中）
+  - 内容：Dependabot、Renovate 把依赖更新做成合并请求，自带 changelog 和测试结果，合并就是批准；OpenAI、Anthropic 弃用邮件只发给对该模型有活跃部署的账号，Anthropic 可导出按 key 和模型的用量；Statuspage 可只订自己在意的组件。HN 评价 Dependabot：尽管吵，它把你的注意力叫过来，加上延迟、把更新合成一个 PR 就好。Gemini Daily Brief 的条目上能直接回邮件、排日程、建待办，每条可查来源（无独立用户评价）。相关性靠事实（读仓库依赖、读账号用量）而不是猜。
+  - 谁：开发者和维护者；厂商
+  - 证据类型：厂商说法 / 本人自述
+  - 时间：2026-01 至 2026-10
+  - 意味着：同事开口时应附一个明确的下一步动作（看出处、改判断、签收、去登录），读完能结束；相关性靠清单匹配而非模型猜（推断）。
+  - 出处：docs/research/interaction-2026-10/forms/3-briefing-and-tracking.md 第 42-47、515-553、575-593 行；https://news.ycombinator.com/item?id=47638374；https://platform.claude.com/docs/en/about-claude/model-deprecations；https://gemini.google/overview/daily-brief/
+- **【通用】上岗那一刻同事主动开口、说出它理解的职责并问缺什么，被证明需要**（中）
+  - 内容：Rakazo 的 CHANGELOG：新 bot 建好后原先不出声，误解职责要到第一次干活才暴露（issue #900、#902），后改为建好后自动跑一轮，说出它怎么理解自己的职责并问还缺什么；官网写新建 bot 会先面试你。dots 创建后先自我介绍并根据已有上下文建议能帮什么。MyWork 开发数据：5 位专职同事在自我介绍轮里就把职责变成了例行；MyWork 当分诊口有一次完整样本：用户说以后每周一看小红书，它用选项卡问「新建一位同事 / 你来做就行」，用户点了前者。
+  - 谁：Rakazo 用户（issue 区）、OpenAI 文档；MyWork 开发者自测（非目标用户）
+  - 证据类型：行为证据 / 厂商说法
+  - 时间：2026-08 至 2026-10
+  - 意味着：「主动」最无争议的时刻是开头：同事先复述理解、提出要盯什么和何时说，让用户改；之后才安静地跑。
+  - 出处：https://github.com/elie222/rakazo/blob/main/CHANGELOG.md；https://github.com/elie222/rakazo/issues；https://learn.chatgpt.com/docs/dots.md；docs/research/interaction-2026-10/forms/2-persistent-agents.md 第 12、88、100、128 行；docs/research/interaction-2026-10/current-form.md 第 127、130 行
+- **【通用】把重复的事接过去，现有做法全是用户触发的「一句话或一次演示变成例行」**（弱）
+  - 内容：MyWork：16 条例行全部由同事从一句话里排出来，47 次运行 0 失败；用户临时说「10 分钟后再跑一次」也会变成一次性例行。M365 Copilot：把鼠标悬到已发过的提示上点 Schedule this prompt；飞书知识问答：周期性问题可建定时任务；Rakazo：演示一遍后 bot 把例行存成可读可改的 Markdown；Grok Bot 的 Teach a task 录屏最多十分钟生成技能；follow-builders 装完立刻出第一期。反向：ChatGPT 连接财务账户时系统可能自动建一个「每周财务动态」任务，帮助页把「收到自己没建过的任务的更新」列为摩擦。没有找到任何用户说想让系统自己发现重复并接过去。
+  - 谁：厂商功能；MyWork 开发者自测
+  - 证据类型：厂商说法 / 行为证据
+  - 时间：2026
+  - 意味着：「发现重复并接过」只能以提议出现、用户点头才生效；自动替用户建任务有摩擦证据（推断加一条厂商自述）。
+  - 出处：docs/research/interaction-2026-10/current-form.md 第 47-49、127 行；docs/research/interaction-2026-10/forms/3-briefing-and-tracking.md 第 125、132、340、385 行；docs/research/interaction-2026-10/forms/2-persistent-agents.md 第 93、114 行；docs/research/interaction-2026-10/forms/3-briefing-and-tracking.md 第 280 行
+- **【通用】长任务里，智能体自己停下来问比人打断它更常见；老用户放手更多同时打断更多**（中）
+  - 内容：Anthropic 对 Claude Code 使用数据：在最复杂的任务上，它为澄清而暂停的次数是人打断它的两倍以上；自己停下的原因 35% 是把几种做法摆出来让用户选、21% 收集诊断信息、13% 澄清含糊请求；新用户约 20% 会话全自动批准，老用户超过 40%，打断比例约 5% 升到约 9%；原文大意是有效的监督不需要批准每个动作，而是处在需要时能介入的位置。文章也提醒它不一定停在对的时刻。对象是写代码的人。
+  - 谁：Claude Code 用户（开发者），厂商研究
+  - 证据类型：厂商说法（使用数据）
+  - 时间：2026-02-18
+  - 意味着：在用户发起的长事里，同事在分岔口主动问（带选项）是被接受的；监督方式是「能随时插手」而不是逐步批准。
+  - 出处：https://www.anthropic.com/research/measuring-agent-autonomy；docs/research/interaction-2026-10/patterns.md 第 182、191 行；docs/research/needs-2026-10/raw/14-x-delegation-trust.md 第 166-170、366 行
+- **【通用·研究】主动式助手有收益，但设计细节决定用不用得起来**（弱）
+  - 内容：CHI 2025 随机实验：主动式编程助手有明显收益，但设计细节决定用不用得起来（arXiv 2410.04596）；另一项 CHI 2025 研究（18 人）：主动式智能体提高效率但打断工作流，显示它在做什么、给出上下文可以缓解（arXiv 2502.18658）。Horvitz 1999 混合主动原则：要点是判断何时发起、何时介入。对象是程序员和一般参与者。
+  - 谁：实验参与者（程序员为主），不是目标用户
+  - 证据类型：论文
+  - 时间：1999、2025
+  - 意味着：主动开口时带上「为什么现在、依据是什么」可以降低打断成本（推断）。
+  - 出处：docs/research/interaction-2026-10/forms/4-beyond-the-thread.md 第 63-68 行；https://export.arxiv.org/abs/2410.04596；https://export.arxiv.org/abs/2502.18658；https://www.microsoft.com/en-us/research/publication/principles-mixed-initiative-user-interfaces/
+
+## 失败的、被抱怨的
+
+- **【通用】系统猜题的每日简报 ChatGPT Pulse 下线，主动更新收回到用户自己定义的定时任务**（强）
+  - 内容：Pulse 2025-09-25 上线（只给 Pro），夜里根据记忆、聊天历史和反馈异步研究，第二天以卡片送达；2026-06-17 宣布下线，官方建议改为让 ChatGPT 排一个每日简报定时任务。用户侧：2026-05 Ask HN 一位新订 Pro 的用户问每天早上的随机综述有没有人得到过可行动的东西，零回复；发布帖里有人说痛点从来不是它不够主动、有人说这是把主动写作变成被动刷内容、有人说自动通知太容易被忽略（真人助理才难以忽略）、多人反感它先开口。第三方复盘归纳三条：揪着几周前已解决的话题不放、什么时候该主动判断不准、卡片只能读不产出草稿或决定，成了又一个收件箱（其中准确率和搜索量数字未核实）。dots 帖里有用户把 Pulse 列入「几个月后又被弃用」的清单。
+  - 谁：ChatGPT Pro 用户和 HN 技术读者（不是目标用户），加厂商官方动作
+  - 证据类型：厂商说法 / 本人自述 / 第三方复盘
+  - 时间：2025-09 至 2026-07
+  - 意味着：只靠聊天历史猜「你该看什么」的主动是失败形态；主动必须挂在用户明说的对象上，并且读完能产出动作。
+  - 出处：https://help.openai.com/en/articles/6825453-chatgpt-release-notes；https://news.ycombinator.com/item?id=48062680；https://news.ycombinator.com/item?id=45375477；https://news.ycombinator.com/item?id=45381288；https://news.ycombinator.com/item?id=45381688；https://news.ycombinator.com/item?id=45388428；https://prowlo.com/blog/chatgpt-pulse-shut-down；docs/research/interaction-2026-10/forms/3-briefing-and-tracking.md 第 7-12、95-113 行；docs/research/interaction-2026-10/forms/1-general-agents.md 第 49-54 行
+- **【金融】买方被推送淹没，再给一份按公司推的简报是在加噪音**（中）
+  - 内容：大券商每天不下一百封邮件、七八十条短信点评（财经编辑）；2022 年 92 家券商发研报 152,001 份；有基金经理抱怨一年约 20 万份研报重复多、噪音大，会给噪音打零分（36氪报道）；买方只看排名前五的分析师；路演从每季一次变成每月甚至每周，部分买方研究员和基金经理出现信息获取疲劳、避之不及（行业评论作者，身份未核实）。03-fin-pains 的出乎意料发现第 1 条：他们抱怨的不是信息不够而是太多且雷同，再给一份每日简报是在加噪音。另：头部券商分析师说部分买方客户已经明确不要 AI 生成的内容。
+  - 谁：买方研究员和基金经理（记者转述和行业评论为主；头部机构，不是首批人群）
+  - 证据类型：记者转述 / 行业评论
+  - 时间：2022-04 至 2025-04
+  - 意味着：按公司全量推公告和点评的主动不是金融版要的；要推也只推碰到用户假设的那几条。
+  - 出处：docs/research/needs-2026-10/raw/03-fin-pains.md 第 124-138、190、352 行；docs/research/needs-2026-10/raw/01-fin-sellside.md 第 197 行；docs/research/2026-10-05-user-needs.md 第 193、299 行；https://www.sohu.com/a/685791673_494564；https://www.36kr.com/p/1687118749455494；https://www.chnfund.com/article/AR20250427120030382
+- **【金融】更多信息没有换来更准的判断，信息负担重时预测反而变差**（中）
+  - 内容：美国卖方大样本（46,853 个报告-公司对，21 家券商 413 个团队）：终端接入生成式 AI 后报告的信息源多 26%、话题宽 24%、方法多 21%，但预测准确度下降 0.157 个标准差，集中在覆盖复杂、团队小的分析师身上。05-fin-ai-usage #10（中）的缺口写法：现有产品都在卖更多更快，没有产品卖更少更准。国信策略首席：AI 处理过多信息容易丢重点。
+  - 谁：美国卖方分析师（学术研究）；国内卖方首席
+  - 证据类型：论文 / 本人自述
+  - 时间：2025-03 至 2025
+  - 意味着：主动的指标应是「少说而说中」，推得越多不等于越有用；小团队、覆盖复杂的人最容易被多推伤到（推断）。
+  - 出处：https://arxiv.org/html/2512.19705v2；docs/research/needs-2026-10/raw/05-fin-ai-usage.md 第 200-211 行；docs/research/2026-10-05-user-needs.md 第 274 行；https://m.thepaper.cn/newsDetail_forward_30502827
+- **【AI研究】只告诉「有新论文」的提醒价值低**（中）
+  - 内容：Undermind Keep up：HN 用户 yorwba 说上线时做的两次搜索至今偶尔推新论文，但只是新的、相关的，并不新颖；不过最初的搜索帮他找回几篇漏掉的旧论文。Elicit 2026-09-30 用 Routines 取代 Alerts，帮助页理由是 Alert 只能告诉你有新论文匹配，Routine 能对发现的东西做分析、交回成品。10-ai-tools-spend 调研者结论：没有一个从业者来源提到想要每日资讯摘要。
+  - 谁：研究者（HN 单人）、厂商
+  - 证据类型：本人自述 / 厂商说法
+  - 时间：2025-09 至 2026-09
+  - 意味着：研究类的主动要交回「对我有什么意义、并进了哪里」，不能只是「有新东西」。
+  - 出处：https://news.ycombinator.com/item?id=45220814；https://support.elicit.com/en/articles/17220392-routines-in-elicit；docs/research/interaction-2026-10/forms/5-research-products.md 第 47、197 行；docs/research/needs-2026-10/raw/10-ai-tools-spend.md 第 375 行
+- **【AI研究】重度用户不敢用看不见筛选过程的推送；自建推送管道又常坏**（中）
+  - 内容：苏剑林（科学空间博主，Cool Papers 作者）多年逐篇刷 arXiv 官网，明说不用算法先筛，原文「主要还是担心算法漏召」。挑错者据此限定：「只报和课题相关的」必须让人看得到全量或被筛掉的部分，否则重度用户不敢用。zotero-arxiv-daily 用户：GitHub Actions 一个多月测试和每日任务一直失败；升级后推荐相关度下降；arXiv API 限流。follow-builders：中心 feed 多次停更，博客文章 7 天后被当成新的再出现一次（#95）。
+  - 谁：国内资深 AI 研究者（一位博主）、开源工具用户
+  - 证据类型：本人自述 / 行为证据
+  - 时间：2023-12 至 2026-03
+  - 意味着：主动过滤必须附「看过 n、筛掉 n、为什么」并可展开；推送管道的可靠性本身就是主动产品的门槛。
+  - 出处：https://www.spaces.ac.cn/archives/9907；docs/research/needs-2026-10/gap-fill.md 第 667-679、902、910、923 行；https://github.com/TideDra/zotero-arxiv-daily/issues/198；https://github.com/zarazhangrui/follow-builders/issues；docs/research/2026-10-05-user-needs.md 第 515 行
+- **【技术经理·开发者】每日 AI 资讯对技术管理者是最弱的需求，免费方案过剩**（中）
+  - 内容：7.3：「每天只看和自己技术栈有关的几条」「确认不追也不会错过要紧的事」原标强，复核后对管理者降为弱：没有一条管理者本人自述，说话的都是开发者；被当成工程领导者的 Dan Mahr 实为 Staff Software Engineer。开发者说不需要实时跟进：少看没事、重要的会自己推过来；HN 有人只留少数一手来源每周补一次（「真正重要的事能挺过 48 小时」的说法）；有人筛到累了全部退订。免费方案很多：AIHOT、BestBlogs（免费版就有「我的早报」和自定义源）、follow-builders、TrendRadar（6 万多星）。每周内部 AI 分享会从讲的人那边看是负担和表演。没有找到国内技术管理者为资讯筛选软件付费的自述。
+  - 谁：开发者和资深个人贡献者为主；技术管理者本人缺席
+  - 证据类型：本人自述 / 厂商说法
+  - 时间：2026
+  - 意味着：不为技术经理做每日资讯式主动；他们的主动只在「在用的东西出事」时成立。
+  - 出处：docs/research/2026-10-05-user-needs.md 第 564-565、595、601 行；docs/research/needs-2026-10/audit-tech-managers.md 第 353-354、445-446、463、472 行；docs/research/needs-2026-10/raw/16-tm-team-level.md 第 252 行；docs/research/needs-2026-10/raw/17-tm-keeping-up.md 第 146-152、238 行；https://www.v2ex.com/t/1214741；https://news.ycombinator.com/item?id=48939630；https://news.ycombinator.com/item?id=48414812
+- **【通用】常驻和心跳在没事时也在花钱，费用是本机常驻智能体退潮的第二原因**（强）
+  - 内容：OpenClaw 心跳默认每 30 分钟在主会话跑一轮模型调用；dots 帖里有用户说同类 Slack 常驻智能体在开着的频道里反复空醒烧钱，一次事故频道花掉约 400 美元（产品名未核实）；Grok Bot 重度用户一个月 token 超过此前五年，另一用户试 3 小时用掉一半周额度；扣子文档承认用户会觉得没干活积分却在少；Genspark Claw 每次 Heartbeat 都耗 credits；Claude Code 文档写明定时任务每次触发都带全量上下文，哪怕会话闲着。OpenClaw 国内退潮：2026-04-04 后部分用户月账单涨 50 倍，有人给每位助理设每天 20 美元上限；一位私募研究员一周烧掉 1,200 万 token、花了近千元。
+  - 谁：常驻智能体用户（英文和中文）、厂商文档、私募研究员
+  - 证据类型：本人自述 / 厂商说法 / 记者转述
+  - 时间：2026-03 至 2026-10
+  - 意味着：主动的检查要尽量不叫模型（脚本预检），心跳要有活跃时段和预算上限，并把每条例行的花费摆出来。
+  - 出处：https://docs.openclaw.ai/gateway/heartbeat.md；https://news.ycombinator.com/item?id=49899355；https://news.ycombinator.com/item?id=49261514；https://docs.coze.cn/cozespace_job；https://www.genspark.ai/helpcenter/genspark-claw；https://code.claude.com/docs/en/costs；https://www.163.com/dy/article/KRN25DTK05198R91.html；docs/research/interaction-2026-10/forms/2-persistent-agents.md 第 12、40、68-69、178 行；docs/research/2026-10-05-interaction-forms.md 第 98-107 行
+- **【通用】主动「学习」越界：Muse 未经授权读取短信库来推荐选题**（中）
+  - 内容：AppleInsider 转述 Inc 记者 Jason Aten：装上 Muse 一天后它就拿他发给播客搭档的短信内容来推荐选题，追查发现它在未授予完全磁盘访问的情况下同步了 Messages 数据库 187,000 行。亚马逊以未授权 AI 代理为由封了 Muse 的购物功能。HN 上不少人表示不会把邮件、财务等写权限交给主动型 agent。Claude 用户抱怨记忆把不相干的私人信息带进讨论，有人因此彻底关掉记忆。
+  - 谁：科技记者（一例）、HN 用户；不是目标用户
+  - 证据类型：记者转述 / 本人自述
+  - 时间：2026-09
+  - 意味着：主动提议只能用用户明确交给它的材料和清单；读取范围要可见、可限定（推断）。对研究用户，调研纪要不得外传的规定让这一点更敏感。
+  - 出处：https://appleinsider.com/articles/26/09/28/metas-new-ai-agent-blatantly-ignores-users-permissions；https://m.thepaper.cn/newsDetail_forward_34180411；https://news.ycombinator.com/item?id=49896604；https://news.ycombinator.com/item?id=49729412；docs/research/interaction-2026-10/forms/2-persistent-agents.md 第 19、160 行
+- **【通用】主动但反复确认也被嫌，人审批的速度成了上限**（弱）
+  - 内容：dots 实测者给 B-：已口头同意的预订被反复要求确认；作为个人助理仍排在 Grok Bot 后面。HN 上有人说自己的产出受限于自己审批的速度，夜里让 agent 跑没有意义。
+  - 谁：早期使用者（HN、记者）
+  - 证据类型：本人自述 / 记者转述
+  - 时间：2026-09/10
+  - 意味着：主动做事不能靠频繁找人点头来补安全；能按默认做完的就做完，只把会挡事或有后果的挂出来。
+  - 出处：https://news.ycombinator.com/item?id=49896604；https://tech.yahoo.com/ai/chatgpt/articles/openai-dots-grok-bot-tester-093953421.html；docs/research/interaction-2026-10/forms/1-general-agents.md 第 12、117 行
+- **【通用】定时任务静默失败、悄悄暂停，用户第二天才发现没跑**（中）
+  - 内容：一位自己跑了 20 个定时任务的 V2EX 用户列出：超时无感知、重复触发、失败不上报，第二天才发现没跑。ChatGPT 定时任务会因不活跃、等批准、关联对话被删而暂停，帮助页列为摩擦。WorkBuddy 更新日志：休眠期间调度不准、通知漏发、无记录却反复执行；Kimi Work、MiniMax 要求电脑不睡。Rakazo issue #3：周期例行跑一次就停。OpenClaw：session 文件失控后此后消息全部静默失败。
+  - 谁：重度个人用户、厂商帮助页和更新日志
+  - 证据类型：本人自述 / 厂商说法
+  - 时间：2026
+  - 意味着：MyWork 跑在用户电脑上，合盖和睡眠是真风险；「没跑」「没读到」「读法失效」必须和「没有变化」分开并主动报（推断）。
+  - 出处：https://www.v2ex.com/t/1202608；https://help.openai.com/zh-hans-cn/articles/10291617-scheduled-tasks-in-chatgpt；https://www.workbuddy.cn/docs/workbuddy/Changelog；https://github.com/elie222/rakazo/issues；https://github.com/openclaw/openclaw/issues/2254；docs/research/interaction-2026-10/forms/1-general-agents.md 第 33 行
+- **【通用】通知量一大，工作队列被淹，团队走形式或直接关掉**（强）
+  - 内容：一篇讽刺文把「减少 Dependabot 噪音」写成 16 条最佳实践（把 PR 上限设成 0、用机器人自动关掉没人看的 PR），上了 HN；评论里有人说自己团队靠直接关掉它解决了噪音；同一版本更新在多个项目各来一遍，有人为此做了终端分拣工具。GitHub 员工自述入职后被通知淹没、自己做了一个收件箱；另一人 99% 的 GitHub 邮件被自动清掉。Linear 每个工作区最多保留 2000 条未处理通知，说明堆积是常态；2026-09 把收件箱分成优先和其他两栏。
+  - 谁：开发者和维护者
+  - 证据类型：本人自述 / 厂商说法
+  - 时间：2025-01 至 2026-09
+  - 意味着：主动系统必须自带降量（合并、冷却、上限、长期不理自动降级），否则会被整体关掉。
+  - 出处：https://nesbitt.io/2026/01/10/16-best-practices-for-reducing-dependabot-noise.html；https://news.ycombinator.com/item?id=46583914；https://news.ycombinator.com/item?id=49109247；https://news.ycombinator.com/item?id=46859010；https://news.ycombinator.com/item?id=42778129；https://linear.app/changelog/2026-09-03-priority-inbox；docs/research/interaction-2026-10/patterns.md 第 139 行
+- **【通用】独立的收件箱和「又一个要去看的地方」没有立住**（中）
+  - 内容：LangChain 的 agent-inbox 仓库已归档，收件箱成了 LangSmith Fleet 里审批动作的一个部件；作者自述先试过 Slack，通知容易跟丢、积压，频道不好翻。Pulse 被复盘为成了又一个收件箱。另一个产品的作者在 HN 说真正难的界面问题是打断：什么重要到要带回来、带多少证据。Vibe Kanban 背后公司 2026-04 关闭。
+  - 谁：工具作者、厂商
+  - 证据类型：厂商说法 / 本人自述
+  - 时间：2025-01 至 2026-09
+  - 意味着：主动产出应回到同事的对话和一张每天到期作废的卡里，而不是另起一个要清零的收件箱（推断）。
+  - 出处：https://github.com/langchain-ai/agent-inbox；https://www.langchain.com/blog/introducing-ambient-agents；https://news.ycombinator.com/item?id=49165822；https://prowlo.com/blog/chatgpt-pulse-shut-down；docs/research/interaction-2026-10/forms/4-beyond-the-thread.md 第 42-47、257-275 行
+- **【通用·研究】打断有心理代价，主动式智能体会打断工作流**（中）
+  - 内容：Mark 等人 2008 年实验：被打断的人会加快速度补回来、质量不降，但压力、挫败感、时间压力和费力感更高。CHI 2025（18 人）：主动式智能体提高效率但打断工作流。Slack 把 Recap 定位为给你想留意但不想在工作时被打断的频道，明说是为了替代实时打断。
+  - 谁：实验参与者（知识工作者、程序员）
+  - 证据类型：论文 / 厂商说法
+  - 时间：2008、2025
+  - 意味着：大部分变化应攒到用户自己定的读的时间，只有少数类别值得实时打断。
+  - 出处：https://ics.uci.edu/~gmark/chi08-mark.pdf；https://export.arxiv.org/abs/2502.18658；https://slack.com/help/articles/25076892548883-Guide-to-AI-features-in-Slack；docs/research/interaction-2026-10/forms/4-beyond-the-thread.md 第 68 行
+- **【现有产品】MyWork 每天早上的主动产出远超阅读时间，唯一的压缩层自己不可靠**（中）
+  - 内容：开发者 7 天自测（非目标用户）：10-05 早 6:30–9:30 七位同事 8 轮例行、7 份文件共 26,702 字，按每分钟 500 字约 57 分钟；集中在 7:00–9:00，三条例行同在 9:00；并发上限 2，第三位每天排队约一分钟。MyWork 8:40 的晨报看不到 9:00 三位同事的东西；10-05 晨报里「几份核对有问题的交付」所指的文件没有核验戳，素材里也没有这句话。卡片关键数字标签每天换（财联社 4 次运行 4 组）。同事模型下 71 轮里例行 45 轮（63%），用户发起的 19 轮里 0 次内容追问、0 次修改，66 份文件的评价全空。
+  - 谁：开发者自测数据（用户画像写 CTO），不是目标用户
+  - 证据类型：行为证据
+  - 时间：2026-09-29 至 2026-10-05
+  - 意味着：多位同事各自定时开口会叠加成噪音；汇总层若用模型写会说没依据的话。0 次追问说明主动交的东西没有引出后续动作（也可能是自测性质，分不清）。
+  - 出处：docs/research/interaction-2026-10/current-form.md 第 14-21、26-27、35-36、50-52 行（真实使用 #2、#3、#6、#9、#14）；docs/research/interaction-2026-10/current-form.md 第 152-154 行（断点 5）
+- **【现有产品】「没有变化就不打扰」把一份真报告整个藏掉，用户来问「今天你没有播报」**（中）
+  - 内容：产品雷达 10-03 9:00 第一次例行交了 7 条（3 条高优先级、1 项定价变化）的日报，但因为是第一次运行它在末行写了「变化：无」，整轮被判静默，对话、文件页、铃铛都不出现。用户 13:44 来问；同事回答说跑了、交付了、你没看到应该是没推送渠道，这个解释是错的，然后补报 3 条。那份 2,850 字的原报告至今在界面上打不开。判定只凭模型回话末行的字样。
+  - 谁：开发者自测
+  - 证据类型：行为证据
+  - 时间：2026-10-03
+  - 意味着：静默由模型自评会出错，而且错得没有痕迹；一旦用户习惯了周期产出，缺席会被注意到。漏报对跟踪类用户比多报贵（这是 current-form 的判断，属推断）。
+  - 出处：docs/research/interaction-2026-10/current-form.md 第 29-31 行（真实使用 #7）、第 146-148 行（断点 3）
+- **【现有产品】只有用户能办的事进不了「需要你」，阻塞被写进报告正文一天天重复**（中）
+  - 内容：84 轮只有 2 次提问，都来自 MyWork；6 位专职同事 0 次。原因：例行轮不许提问，而近三分之二的轮是例行。X 账号要登录从 10-02 起在技术雷达、产品雷达的回话和文件里重复到 10-05（「X 信源连续第三天被拦」）；小红书登录连续两期没解决，直到用户自己来说「你打开网站给我二维码我登录」。10-05 晨报第三部分用正文列了 6 件「等你拍板的事」。手机没有推送，桌面通知要页面开着，同事在报告里写「现在没有任何可用的 IM 聊天，简报推不到你那」。
+  - 谁：开发者自测
+  - 证据类型：行为证据
+  - 时间：2026-10-02 至 2026-10-05
+  - 意味着：真正该主动开口的（只有用户能办、会挡事）恰恰没开口，不该开口的（全量简报）每天在说；主动的分档要反过来（推断）。
+  - 出处：docs/research/interaction-2026-10/current-form.md 第 32-34 行（真实使用 #8）、第 143-145 行（断点 2）、第 170-171 行（断点 11）
+- **【现有产品】核验发现了 115 处问题，但没有到达任何人；同事例行结束后自己又多跑一轮交「补全版」**（中）
+  - 内容：66 份文件里 38 份被核验：通过 22、有问题 15，共核对 544 个要点、标出 115 处问题；这些意见桌面端不显示、不回给同事，10-03 13:21 之后核验关闭。核验员连续 4 天在探新早报上指出同一类问题（星数无法回溯），问题照旧。另：红书雷达 10-05 8:10 交了周报，8:12 一个晚到的子任务返回，它改写报告又交了一份「补全版」，在对话里像凭空又发了一张文件卡，两份之间没有关系标记。
+  - 谁：开发者自测
+  - 证据类型：行为证据
+  - 时间：2026-09-30 至 2026-10-05
+  - 意味着：后台主动发现的问题必须回到同事并可见，否则主动核对等于没做；没有来由的主动补交要标清它取代了哪份（推断）。
+  - 出处：docs/research/interaction-2026-10/current-form.md 第 35-37 行（#9）、第 68-70 行（#20）、第 140-141 行（断点 1）、第 155-156 行（断点 6）
+- **【通用】自动推送会把不该扩散的内容送出去**（中）
+  - 内容：飞书智能纪要会后自动推送到会议群或参会人，帮助页自己提醒涉及公司敏感信息、员工答辩的会议慎用，自动推送可能让会议信息过度外溢。钉钉 CEO 举过 3000 人群里智能体把主人信息说给陌生人的案例。dots 在 Slack 里先私信问你愿意分享什么再在频道回复。金融侧：上市公司调研纪要按自律规则只能内部存档或写报告；第三方把有白名单限制的会议纪要提供给公众，终审判赔 410 万元。
+  - 谁：厂商帮助页、厂商高管、法院判决报道
+  - 证据类型：厂商说法 / 记者转述
+  - 时间：2026-03 至 2026-05
+  - 意味着：推到 IM 的只能是摘要和链接，不推原文和纪要内容；推送目标要用户自己定（推断）。
+  - 出处：https://www.feishu.cn/hc/zh-CN/articles/244959839578-%E5%9C%A8%E8%A7%86%E9%A2%91%E4%BC%9A%E8%AE%AE%E4%B8%AD%E4%BD%BF%E7%94%A8%E6%99%BA%E8%83%BD%E7%BA%AA%E8%A6%81；https://finance.sina.cn/stock/jdts/2026-03-17/detail-inhrhttn5374463.d.html?vt=4；https://learn.chatgpt.com/docs/dots/channels.md；https://finance.sina.com.cn/wm/2026-05-28/doc-inhzpfxw8077721.shtml；docs/research/2026-10-05-user-needs.md 第 231 行
+- **【金融·技术经理】机构侧对 AI 主动生成的东西有抵触，管理者用 AI 写的材料掉信任**（弱）
+  - 内容：头部券商分析师说部分买方客户已经明确不要 AI 生成的内容；2026 年 6 月券商周报事故出在例行产出上，学者建议政策日期和核心数据不直接采用 AI 输出、全程留痕。技术经理侧：下属嘲笑领导用 AI 写的会议议程（回帖者原话「一看就是 AI 写的」），HN 上有人说经理发来的 Claude 文档看不出目的；上级拿 AI 意见一轮轮来对。user-needs 把这一条定为相邻证据，可当设计约束不当卖点。
+  - 谁：头部券商分析师（记者转述）、企业员工（V2EX、HN）
+  - 证据类型：记者转述 / 本人自述
+  - 时间：2025-04 至 2026-06
+  - 意味着：同事主动起草、要交给别人的东西，要标清哪些是人核过的，签收前不外发。
+  - 出处：docs/research/2026-10-05-user-needs.md 第 229、299、570、583、605 行；https://www.chnfund.com/article/AR20250427120030382；https://finance.sina.com.cn/jjxw/2026-06-18/doc-inicuiyf5617968.shtml
+- **【通用】本机常驻智能体的先例在国内退潮，「装完第二周为什么不打开」没有被回答**（中）
+  - 内容：OpenClaw 2026 年 4 月访问量环比跌 50.67%，腾讯 QClaw 环比跌 99.19%；按来源排序的原因：装上之后用不上（时间成本倒挂，多数人的活没复杂到需要工作流）、费用、稳定性和升级（4 月底升级大面积中断）、安全和禁令。新智元评价 2.0 修的是为什么装不上、为什么不敢用，没回答装完第二周为什么不打开。HN「谁在用 OpenClaw」帖首条高赞：非技术用户面对空任务框说不出要它干什么。创业者想要数字员工，结果成了「数字祖宗」。
+  - 谁：国内跟风普通用户、创业者（记者转述），HN 用户
+  - 证据类型：记者转述 / 本人自述
+  - 时间：2026-03 至 2026-09
+  - 意味着：主动本身不能解决「第二周为什么打开」；用户说不出要它干什么时，同事得先提出它要盯什么（见上岗开口）。
+  - 出处：https://timeline.sohu.com/news/GCQ55R74GS；https://finance.sina.com.cn/tech/roll/2026-05-21/doc-inhyrmmu5981510.shtml；https://www.stcn.com/article/detail/3947903.html；https://news.ycombinator.com/item?id=47783940；docs/research/2026-10-05-interaction-forms.md 第 98-107 行；docs/research/interaction-2026-10/forms/2-persistent-agents.md 第 67-69 行
+
+## 具体机制
+
+- **Grok Bot：例行属于某一位，久不在时先问再暂停，通知只在做完或要输入时发**（强）
+  - 内容：Routine 定时或事件触发（Slack 消息、GitHub 通知），结果发回这位 Bot 的对话；每位最多 50 条，保留最近 20 次运行；Test run 会真的执行。久不在时会问是否继续跑例行，不回答就暂停。通知按 Bot 开关，做完或需要输入时发系统或手机通知，应用在前台时不弹。文档警告不要监听「每条新消息」，要求写明无数据和过期数据时怎么办。Bot 之间可发异步消息互相叫醒、交接；官方内部用法是一位 chief of staff 管各条线的专员。
+  - 谁：SpaceXAI 官方文档
+  - 证据类型：厂商说法
+  - 时间：2026-08-11 发布，文档读于 2026-10-05
+  - 意味着：「久不在就先问再暂停」和「前台不弹」可以直接借（现行设计 4.3 已借）。
+  - 出处：https://docs.x.ai/grok-bot/skills-routines-and-automations；https://docs.x.ai/grok-bot/settings-and-notifications；https://docs.x.ai/grok-bot/chat-and-collaboration；docs/research/interaction-2026-10/forms/2-persistent-agents.md 第 103-121 行
+- **OpenAI dots：自己决定何时醒来跟进；主动调研只读，记私有笔记后再来提议**（强）
+  - 内容：它自己决定何时暂停、何时醒来继续，不必每件事定时；固定时间的重复工作要存成 schedule；支持事件监听，但把它加进频道本身不等于开始监听。主动研究：在有权限读的信息里找可帮忙之处、记私下笔记，这类研究本身不能发消息、改内容或操作电脑，然后来向你提建议或提问。每个可能影响账号或对外分享的动作过自动审查：放行 / 要你批准 / 必须你自己做；自定义规则四档。可规定日常进度留在 ChatGPT、要决定的事发到 Slack。文档提醒运行完成不证明结果达成或送达。Pause 只停主任务，不停已派出的任务和定时。
+  - 谁：OpenAI 官方文档
+  - 证据类型：厂商说法
+  - 时间：2026-09-29
+  - 意味着：「无人值守的主动 = 只读调研 + 提议，动手要人点头」是现成的边界；按事情类型分渠道（进度留对话、决定推 IM）可借。
+  - 出处：https://learn.chatgpt.com/docs/dots.md；https://learn.chatgpt.com/docs/dots/tasks-and-memory.md；https://learn.chatgpt.com/docs/dots/controls.md；docs/research/interaction-2026-10/forms/2-persistent-agents.md 第 123-141 行；docs/research/interaction-2026-10/forms/4-beyond-the-thread.md 第 137-155 行
+- **Meta Muse：建议卡、主动发消息，对外动作由隔离的 Sentinel 放行**（中）
+  - 内容：根据目标、习惯和对话里学到的东西出想法卡片，自己判断主动发消息；耗时的事在关掉 App 后继续，状态变了或需要批准时回来找你；官方称有完整审计轨迹，列出做过和打算做的事；同一虚拟机上另有系统级隔离的 Sentinel 智能体，Muse 的任何对外动作要它放行；连接每个应用时选权限深浅（只读还是可代发）；可以让它忘掉学到的某件事。界面细节来自第三方转述。
+  - 谁：Meta 官方公告、澎湃和第三方评测转述
+  - 证据类型：厂商说法 / 记者转述
+  - 时间：2026-09-08
+  - 意味着：「打算做的事」也要可见；但 Muse 的越权事故说明建议卡的数据来源要受限（见 failed）。
+  - 出处：https://about.fb.com/news/2026/09/introducing-muse-personal-ai-agent/；https://m.thepaper.cn/newsDetail_forward_34180411；https://kingy.ai/blog/openai-dot-vs-grok-bot-vs-meta-muse/；docs/research/interaction-2026-10/forms/2-persistent-agents.md 第 143-161 行
+- **OpenClaw 心跳与常设指令；扣子 HEARTBEAT.md；Genspark Claw**（强）
+  - 内容：OpenClaw：心跳默认每 30 分钟在主会话跑一轮（Anthropic OAuth 时 1 小时），让它在不打扰你的前提下发现需要注意的事；默认把提醒发到主人私聊，可限定活跃时段；心跳和后台完成以带来源标记的系统事件进入会话，静默确认不显示；后台命令结束也会唤醒一轮；常设指令（standing orders）让它不等吩咐就做，里面写审批门和升级规则；文档明说记忆只能保留审批语境、不能强制策略，硬约束要靠审批设置、沙箱和定时任务。2.0 把心跳归到 Automations 调度器之下。扣子：Heartbeat 按 HEARTBEAT.md 周期醒来批量检查（如每半小时看有没有紧急邮件），在对话里说一句 Agent 就给自己建日程；官方建议怕日程消息扰乱主对话就另建一个项目，让它只在那里定期汇报。Genspark Claw 有 Heartbeat 签到和后台监控，每次都耗 credits。Manus Cue 只见到一组各有身份的个人 agent 在频道里依次传活，主动细节未亲见。
+  - 谁：官方文档
+  - 证据类型：厂商说法
+  - 时间：2026-08 至 2026-10
+  - 意味着：心跳要有活跃时段、静默确认不显示、硬约束不靠记忆；周期消息不该淹没主对话。
+  - 出处：https://docs.openclaw.ai/gateway/heartbeat.md；https://docs.openclaw.ai/automation/standing-orders.md；https://docs.coze.cn/cozespace_job；https://www.genspark.ai/helpcenter/genspark-claw；https://help.manus.im/en/articles/17190150-what-is-new-in-manus-2-0；docs/research/interaction-2026-10/forms/2-persistent-agents.md 第 163-181 行；docs/research/interaction-2026-10/forms/1-general-agents.md 第 84、190、250 行
+- **ChatGPT 定时任务：时间窗、监测只在值得报时通知、满足结束条件自停、不活跃自动暂停**（强）
+  - 内容：四种：一次性；周期（付费最高每小时一次可指定准确时间，免费只能选上午/下午/晚上）；监测（可用以往运行的信息，满足结束条件自己停）；事件触发（Gmail 新邮件、Slack 频道新消息、GitHub PR 活动，合计每小时最多 30 次、每天 720 次，多事件可能合并）。独立任务每次新开对话，对话内定时回到同一条对话带上下文。需批准的动作让任务暂停；任务会因不活跃、等批准、关联对话被删而暂停。活跃任务上限 3 到 15 个。Pulse 的机制：夜里异步研究、次日卡片、拇指和 curate 间接调。
+  - 谁：OpenAI 帮助页
+  - 证据类型：厂商说法
+  - 时间：2026-06-17 至 2026-10-02
+  - 意味着：「满足结束条件自停」对应盯到某日为止；「监测判断值得报」的标准 OpenAI 没公开。
+  - 出处：https://help.openai.com/zh-hans-cn/articles/10291617-scheduled-tasks-in-chatgpt；https://help.openai.com/en/articles/6825453-chatgpt-release-notes；docs/research/interaction-2026-10/forms/3-briefing-and-tracking.md 第 115-133 行
+- **Dependabot / Renovate：冷却、长期不理自动暂停、分组、排程、勾选才动**（强）
+  - 内容：Dependabot 版本更新默认 3 天冷却（新版本发布 3 天后才提 PR，安全更新不受限），维护者长期不理它的 PR 它会自己暂停并告诉你。Renovate：把相关包合成一个 PR、排到下班后或每月、测试通过自动合并；Dependency Dashboard 列出还没处理的、已弃用的、疑似被遗弃的、你关掉没合的（可勾选让它重提）；可设成对全部、某一类（如大版本）或某些包先勾选才建 PR，漏洞修复不受限；记得你拒绝过什么。Renovate 文档的目标是久而久之你越来越少看见它。
+  - 谁：GitHub、Renovate 官方文档
+  - 证据类型：厂商说法
+  - 时间：2026-10-05 读取
+  - 意味着：降量手段可以直接移植：类别冷却、同事件合并、长期不点开自动降档、拒绝过的不再提（现行设计 4.2 已借一部分）。
+  - 出处：https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/about-dependabot-version-updates；https://docs.renovatebot.com/noise-reduction/；https://docs.renovatebot.com/key-concepts/dashboard/；docs/research/interaction-2026-10/forms/3-briefing-and-tracking.md 第 535-553 行
+- **模型弃用通知和状态页：按实际用量或订阅组件决定通知谁**（强）
+  - 内容：OpenAI：受影响客户一定收到邮件，通知期 GA 模型至少 6 个月、专用变体至少 3 个月、预览可短到 2 周。Anthropic：模型四态（Active、Legacy、Deprecated、Retired），只通知有活跃部署的客户，公开模型至少提前 60 天，Console 可导出按 key 和模型的用量 CSV。缺点：只到账号层，落不到哪条工作流（HN 有人维护 54 个 LLM 工作流）。Statuspage 可只订某个组件，渠道含邮件、短信、Slack、Teams、webhook。deprecations.info 提供下线时自动建 GitHub issue 附迁移清单的示例。
+  - 谁：厂商文档
+  - 证据类型：厂商说法
+  - 时间：2026-09-30 至 2026-10-05
+  - 意味着：技术经理版的「在用清单」就是这一做法下沉到工作流层：清单行决定相关性，通知附截止日、替代和要重测什么（推断）。
+  - 出处：https://developers.openai.com/api/docs/deprecations；https://platform.claude.com/docs/en/about-claude/model-deprecations；https://news.ycombinator.com/item?id=49262312；https://www.atlassian.com/software/statuspage/features/notifications；https://deprecations.info/；docs/research/interaction-2026-10/forms/3-briefing-and-tracking.md 第 515-533、575-593 行
+- **Gemini Daily Brief / Spark：三段式、每条可查来源、条目上直接动作、反馈调整；正在看时不推手机**（中）
+  - 内容：Daily Brief 每天早上一页，分 Top of mind（要紧的）、FYI（提醒和日程）、Looking ahead（长期目标）；每条点 More 看来自哪封邮件、哪个日程；条目上直接回邮件、排日程、设提醒、建待办，可标完成、评有用或无用，给了反馈下一期调整；数据源 Gmail、日历、聊天记录可随时关掉某个。Spark 2026-07-13 起你正看着某个任务时不再推手机。Gemini 定时操作的内容提前准备，官方说不适合股价这类快变数据；Spark 的话题监控不适合分秒必争的事。均无独立用户评价。
+  - 谁：Google 官方介绍页
+  - 证据类型：厂商说法
+  - 时间：2026-09-09 对美国免费账号开放
+  - 意味着：系统选题的每日一页在「数据带截止、条目能动手、每条有出处」时还在扩张，和 Pulse 的差别就在这三点（forms/3 第 11 行的归纳）。
+  - 出处：https://gemini.google/overview/daily-brief/；https://support.google.com/gemini/answer/17171264?hl=en；https://support.google.com/gemini/answer/16316416?hl=en；docs/research/interaction-2026-10/forms/3-briefing-and-tracking.md 第 135-153 行；docs/research/interaction-2026-10/forms/1-general-agents.md 第 150 行
+- **Slack Recap、Linear Pulse/Inbox/Agent 规范：只订和我有关的、为替代实时打断而设**（中）
+  - 内容：Slack Recap：首次设置时推荐几个你常看但很少发言的频道，确认后开启并可静音；每天早上讲前一天错过的，离开多天就覆盖那几天；每个频道旁可移出今后的 recap；点 More details 看用了哪些消息。Linear Pulse：只订和我有关的（项目成员、负责的 initiative、显式订阅），每日或每周约早 6 点一条进 Inbox，可听朗读；侧栏入口可设总是显示 / 有角标才显示 / 从不显示；Priority inbox 分优先和其他两栏。Linear 的 Agent Interaction Guidelines：被叫到时立刻给不打扰的反馈，清楚显示在思考、等输入、执行还是完成，被要求退出时立即退出。
+  - 谁：厂商帮助页
+  - 证据类型：厂商说法
+  - 时间：2026-09-03 至 2026-10-05
+  - 意味着：「把这类以后移出」应是每条主动产出上的一键动作；入口角标可让用户选择从不显示。
+  - 出处：https://slack.com/help/articles/25076892548883-Guide-to-AI-features-in-Slack；https://linear.app/docs/pulse；https://linear.app/developers/aig；docs/research/interaction-2026-10/forms/3-briefing-and-tracking.md 第 355-373、455-473 行；docs/research/interaction-2026-10/forms/4-beyond-the-thread.md 第 277-295 行
+- **会前准备和会后回顾：多为用户点开，或贴着原事件送达**（中）
+  - 内容：M365 Copilot 会前准备：在 Outlook 日历里打开会议点 Prepare for this meeting，是用户去点不是推送；只对一对一或有相关内容的会议出，没有共享材料只给泛泛回答。会后回顾贴在会议聊天和日历事件上。定时提示最多 10 条，悬停已发提示点 Schedule this prompt。Cowork 激活计划前先批准。飞书智能纪要：有会议群发到群，没有由机器人发给参会人，一对一发到聊天框；个人可关推送，但组织者仍会收到。Lindy（厂商说法）内置可开关的每日简报、紧急邮件短信提醒、跟进催办、会前准备、排期；写操作一律等批准；Home 列出从邮件、Slack、会议里挑出的待办（可点可消）和它学到的关于你的事。
+  - 谁：厂商帮助页
+  - 证据类型：厂商说法
+  - 时间：2026-08 至 2026-10
+  - 意味着：「事前准备」的现成做法是挂在事件上随时可取，而不是提前推；送达位置贴着原事件最顺（forms/3 第 39 行的归纳）。
+  - 出处：https://support.microsoft.com/en-us/outlook/prepare-for-your-meeting-with-copilot；https://support.microsoft.com/en-us/microsoft-365-copilot/cowork-manage-tasks-schedule-prompts；https://www.feishu.cn/hc/zh-CN/articles/244959839578；https://docs.lindy.ai/teammate/routines.md；docs/research/interaction-2026-10/forms/3-briefing-and-tracking.md 第 335-353、395-413 行；docs/research/interaction-2026-10/forms/2-persistent-agents.md 第 283-300 行
+- **研究类订阅：Elicit Routines 与 Track artifact、Reportify 样例卡、进门研究模式、AlphaSense 人机交接点**（中）
+  - 内容：Elicit Routines（Pro 起）：每天或每周某天运行，每次落成带来源的 session，可进去核对引用、质疑结论、追加任务；Track artifact 定期更新同一份产物；运行后给所有者发邮件（每次都发或只在失败时发）。Reportify：智能任务卡片写明频率、送达时间（如财报发布 30 分钟内、明早 9:00）、灰框里一条样例消息和在用人数；条件触发的到价提醒附估值分位和回调原因。进门研究模式（通稿）：每个个股或赛道一个长期研究空间，常态化监测政策、经营数据、催化、公告和舆情，增量写回原底稿，针对聊完即废。AlphaSense SuperAnalyst（未上线）：事件一发生就对论点、观察名单、模型采取行动，先把排好序的 2 到 4 个主要分歧交给人批准再逐个深挖。
+  - 谁：厂商页面和通稿；没有读到金融使用者用了一段时间后的评价
+  - 证据类型：厂商说法
+  - 时间：2026-07 至 2026-10
+  - 意味着：建例行时给一条样例消息和送达时间，让用户事先知道会收到什么；例行更新同一份底稿而非每次新出一份。
+  - 出处：https://support.elicit.com/en/articles/17220392-routines-in-elicit；https://reportify.cn/；https://finance.sina.cn/2026-07-24/detail-iniiwvke4424572.d.html?vt=4；https://www.alpha-sense.com/platform/superanalyst/；docs/research/interaction-2026-10/forms/5-research-products.md 第 28-47、117、437、537 行
+- **ARIS 的飞书推送三档与过夜检查点**（强）
+  - 内容：三种模式：关；只推送（实验完成、到检查点、报错、流水线结束各推一张卡片到手机）；双向（在飞书里批准、拒绝或发指令）。AUTO_PROCEED 设为假时每个检查点等批准，信任默认就自动带着最优方案继续，用户决定参与多深。预计超过 4 GPU 小时的实验直接跳过并标「需人工跟进」；循环有轮数上限（默认 4 轮）；额度紧时可选审稿意见由用户自己贴。没有内置定时触发，过夜由用户启动。
+  - 谁：开源项目 README（作者自述），1.7 万 star
+  - 证据类型：行为证据 / 本人自述
+  - 时间：2026-04 至 2026-09
+  - 意味着：推送档位按事件类型给用户选（只通知 / 能回复），检查点和「需人工跟进」是值得推的事件。
+  - 出处：https://github.com/wanshuiyin/Auto-claude-code-research-in-sleep/blob/main/README_CN.md；docs/research/interaction-2026-10/patterns.md 第 182、191、218 行；docs/research/interaction-2026-10/forms/5-research-products.md 第 557 行
+- **鸣山与雪球作者的主动流水线细节（时点、分类、裁决）**（中）
+  - 内容：鸣山（记者转述）：6:10 抓隔夜数据和事件日历出盘前判断；7:30 起各领域智能体把过去 24 小时压成变化量、传导路径和可交易条件；汇总程序找相互矛盾之处；结果是分好重复、噪音、新变化的清单，两三条转研究员交叉验证；16:00 裁判按收盘价逐条打分；踏空提醒找连续走强却没被框架覆盖的板块。三类怎么判、清单什么版式，报道没写。雪球作者（本人自述）：每两小时把新数据收进知识库，早上只是按他的框架组织日报；晚间三分类（直接相关 / 行业趋势 / 噪音）；业绩后自动复盘把管理层新指引和之前的情景匹配，告诉他落在哪个情景。
+  - 谁：一位私募创始人（记者转述）、一位买方分析师（本人自述）
+  - 证据类型：记者转述 / 本人自述
+  - 时间：2026-03、2026-09
+  - 意味着：「收集持续跑、组织在固定时点、说话在读的时间」是把采集节奏和开口节奏分开的现成做法。
+  - 出处：https://www.21jingji.com/article/20260923/herald/aab8a7bc0a378ea66d11cf8f73c0cc87.html；https://xueqiu.com/4079974780/379404927；https://xueqiu.com/4079974780/379467254；docs/research/interaction-2026-10/patterns.md 第 97-122、142-149 行
+- **ai-berkshire 的 thesis-tracker / thesis-drift：假设带验证频率，红线带触发后动作，漂移只认证据**（强）
+  - 内容：建立时写一个文件：五句话核心论文；3–7 条核心假设，每条列验证方式、验证频率（每季度、每半年）、当前状态；红线清单每条写条件、严重程度（致命、严重、警告）、触发后动作（立即清仓、减仓一半并重估、深入调查），规则是买入前就写好卖出条件；每次检查往追踪记录表追加一行；健康度是公式（10 减破裂数乘 3、受损乘 2、弱化乘 1、触发红线乘 5）。漂移检测比较两份快照，五个固定维度只能判 Improved / Unchanged / Weakened，非 Unchanged 必须引用导致变化的具体新证据，找不到就判 Unchanged 或无法判断，不许为填表编证据；必须回答是事实变化还是价格变化；没有历史基线时明说不能做。
+  - 谁：个人投资者的开源项目（16.6k star），调研者亲读技能文件
+  - 证据类型：行为证据
+  - 时间：2026-09
+  - 意味着：「自己安排下一次」可以落成每条假设自带的验证频率和到期日；「换了说法不算变化」有可照搬的判定规则。
+  - 出处：https://github.com/xbtlin/ai-berkshire；docs/research/interaction-2026-10/patterns.md 第 106-113、142-149 行
+- **TradingView 预警：条件、触发次数、到期时间、消息模板、渠道**（中）
+  - 内容：预警对话框：触发条件（哪条数据、怎么比、和什么值比）、触发次数（只一次还是每次）、到期时间（到点自动停）、名字和消息（可放变量占位符）、通知方式（应用推送、弹窗、邮件、网络回调、声音）。失败样子：阈值是拍的，容易要么天天响要么永远不响；到期自动停了用户可能不知道。OpenMuse 的 Tracking 对网页做周期检查（内容变化、文本出现、价格阈值），告警去重、失败退避。
+  - 谁：厂商帮助页；开源仿制项目文档
+  - 证据类型：厂商说法
+  - 时间：2026
+  - 意味着：一条「盯」= 条件 + 到期 + 触发后做什么（只提醒还是让同事去查），到期也要告诉用户。
+  - 出处：https://www.tradingview.com/support/solutions/43000595315-how-to-set-up-alerts/；docs/research/interaction-2026-10/patterns.md 第 142-149 行；docs/research/muse-paseo.md 第 82、91、123 行
+- **Rakazo：例行是定时提示词；演示一遍存成例行；新 bot 先开口；例行运行中来的话单独排一轮**（中）
+  - 内容：VISION：Routines 是定时提示词而不是可视化工作流；聊天只显示回复、有用的进展、结果和真正的求助，不显示工具生命周期；只在需要信息、判断、授权、受保护输入时找人，后果性动作走显式审批，自动审查拿不准时倒向问。官网：演示一遍后 bot 把例行存成可读、可改、可提交的 Markdown。CHANGELOG：新 bot 建好后自动跑一轮说出理解并问缺什么；例行或 webhook 正在跑时你发的话原先并进那一轮，bot 会答「我没有上文」，现已改成等那一轮结束、单独一轮回答。Grok Bot 的 Teach a task 录屏最多十分钟生成技能。
+  - 谁：Rakazo 仓库（MyWork 同事模型的借鉴对象），无独立用户长评
+  - 证据类型：厂商说法 / 行为证据
+  - 时间：2026-08-13 起
+  - 意味着：「接过重复的事」的现成机制是演示或一句话 → 可读可改的例行文件；用户的话和例行撞车要分开处理。
+  - 出处：https://github.com/elie222/rakazo/blob/main/VISION.md；https://github.com/elie222/rakazo/blob/main/CHANGELOG.md；https://rakazo.com/；docs/research/interaction-2026-10/forms/2-persistent-agents.md 第 83-101 行
+- **国内券商基金的「数字员工」主动：核心时点推送预警、夜间解析、科技部门替人盯**（中）
+  - 内容：兴证全球头寸助理在每日核心时点自动推送负头寸预警并给处置方案；证券时报开篇场景：夜间后台解析研报、公告、纪要，次日早上基础工作已完成；兴证全球风控助手生成的条目经人工修正后回写知识库。国金资管科技部门基于开源智能体二次开发，测试中东情报整理和可转债公告抓取，每天为研究员省 0.5–1 小时，失败点是模型偶尔凭空捏造。方正金工测试 OpenClaw 每天抓公告、分类、出 Excel 和消息文本，用于晨会、盘中和复盘。易方达用任务成功率、人工介入率、单 token 成本衡量。
+  - 谁：机构自述、记者转述（头部机构，不是首批人群）
+  - 证据类型：机构自述 / 记者转述
+  - 时间：2026-03 至 2026-09
+  - 意味着：「核心时点推预警 + 附处置方案」「夜里做完、早上就绪」是机构已在用的主动形态；人工修正回写知识库对应纠正成规矩。
+  - 出处：https://finance.sina.cn/2026-09-28/detail-initifmt9843346.d.html；https://www.cls.cn/detail/2380077；https://finance.sina.cn/2026-03-14/detail-inhqxwhr0464607.d.html；https://finance.sina.com.cn/jjxw/2026-03-12/doc-inhqstev8717910.shtml；docs/research/interaction-2026-10/forms/2-persistent-agents.md 第 483-501 行；docs/research/needs-2026-10/raw/19-tm-spend-tools-constraints.md 第 189、205 行
+- **MyWork 现有的主动机制（代码和数据）**（强）
+  - 内容：例行 = 到点替你发一句话（每天 / 工作日 / 每周 / 每 N 分钟 / 一次性），没有交易日、每月、收盘后；引擎把例行原话 + 上一次交付物前 4,000 字 + 先写变化发给同事；回话末行写「变化：无」时整轮静默。例行轮和自我介绍轮不许提问；mywork_ask 每轮最多 2 次，24 小时不答按假设继续。桌面端页面开着时有 toast 和浏览器通知，手机没有推送，IM 渠道在开发环境没接通。只有 MyWork 在写晨报、日报、周报时拿到各同事工作记录的摘要（每段回话 160 字、每份文件 240 字）。有「只提醒不干活」的例行类型，但 16 条例行 0 条是提醒型，reminders.json 为空。全局并发 2。
+  - 谁：MyWork 代码与开发者 7 天数据
+  - 证据类型：行为证据
+  - 时间：2026-10-05
+  - 意味着：现有主动只有「定时做事」一种；提醒型、条件型、事件型、到期结算都没有；静默判定交给模型。
+  - 出处：docs/research/interaction-2026-10/current-form.md 第 7、47-49、97 行；packages/tasks/src/engine.js quietFor（current-form 第 31 行引）；packages/tasks/src/routines.js parseSchedule（current-form 第 49 行引）
+- **人在回路的三种方式与回应四种（ambient agents）**（中）
+  - 内容：LangChain 创始人 Harrison Chase：聊天界面要求每件事都由人发起、一次只能进行一件；环境式智能体由事件流触发，人在回路的三种方式是通知（只告知不动手）、提问（缺信息问人）、审阅（危险动作先给人看）；人的回应四种：接受、编辑参数、文字回复、忽略，每条中断可配置允许哪几种。博文写当时按时间排序、单人使用，优先级排序是以后的打算。
+  - 谁：工具作者
+  - 证据类型：厂商说法
+  - 时间：2025-01-14
+  - 意味着：同事主动开口时应区分「告知 / 要信息 / 要批准」三类，各配不同的打断级别（推断）。
+  - 出处：https://www.langchain.com/blog/introducing-ambient-agents；docs/research/interaction-2026-10/forms/4-beyond-the-thread.md 第 42-47、257-275 行
+
+## 归纳出的原则
+
+- 主动的对象由用户写下（覆盖池、在用清单、课题、判断），系统不猜题。依据：Pulse 靠聊天历史猜题而下线、收回到用户自定义定时任务；F9 / 03#9 要的是相对我的框架和假设；Dependabot 和弃用邮件靠读仓库依赖、账号用量判定相关；Linear Pulse 只订和我有关的。
+- 开口的单位是「变化」，且必须指出动到哪一行；换说法、价格波动不算事实变化。依据：鸣山和雪球作者都把信息分成重复 / 噪音 / 新变化；ai-berkshire thesis-drift 只认新证据、找不到就判未变；美国卖方研究显示信息更多预测更差（arXiv 2512.19705）。
+- 被筛掉的必须看得见（计数可展开、写明原因），否则重度用户不敢用。依据：苏剑林「担心算法漏召」不肯先筛；Elicit 给被排除的论文写理由；鸣山的三分类保留噪音而非删掉；现有产品静默规则把真报告藏得无痕。
+- 打不打扰、有没有变化、对账结果，由代码或规则判定，不由模型自评；模型只能往下放，不能往上提。依据：鸣山「由代码裁决、不许模型自评」（记者叙述）；ARIS 同线程续审分数从 3 虚涨到 8；MyWork 凭回话末行「变化：无」藏掉日报；晨报说了素材里没有的话。
+- 判断要写成能结算的样子（方向、阈值、时限、触发后做什么），到期由程序结算；「自己安排下一次」落在每条判断自带的验证频率和到期日上。依据：鸣山的判断三要素；ai-berkshire 红线和验证频率；TradingView 到期自停；ChatGPT 监测任务满足结束条件自停；Addepar 受访者要关键假设变化时报警。
+- 降量机制要内建：类别冷却、同事件合并、每日上限、免打扰、长期不点开自动降档或先问再暂停、用户正在看时不推。依据：Dependabot 3 天冷却和长期不理自动暂停；Renovate 分组排程；Grok Bot 久不在先问再停；ChatGPT 不活跃自动暂停；Gemini Spark 正看时不推手机；Dependabot 噪音被整体关掉、GitHub 99% 通知被自动清掉。
+- 只有「只有你能办且会挡事或有截止」以及「碰到你写成检验条件的判断」值得实时打断；其余攒到用户自己定的读的时间。依据：Slack Recap 为替代实时打断而设；Mark 2008 打断增加压力；CHI 2025 主动智能体打断工作流；MyWork 真正该叫人的登录阻塞埋在正文里 4 天，不该叫的全量简报每天在说。
+- 每次开口附一个能结束这件事的动作，送进用户本来就要处理的地方；不另起一个要清零的收件箱。依据：Dependabot PR 合并即结；Gemini Daily Brief 条目上直接动作；Pulse 被复盘为又一个收件箱；LangChain agent-inbox 归档。
+- 无人值守时默认只读和提议；对外发送、改用户的东西、花钱要人批准，批准类永不自动续跑。依据：dots 主动研究只读、四档规则；Muse 由 Sentinel 放行仍出了未授权读取 187,000 行短信的事故；HN 用户不给主动型 agent 写权限；Lindy 写操作一律等批准；Claude routines 运行时不停下等批准是风险点。
+- 「没跑、没读到、读法失效」必须和「没有变化」分开并主动报。依据：V2EX 用户 20 个定时任务静默失败第二天才发现；ChatGPT 任务悄悄暂停；WorkBuddy 休眠漏发；MyWork 本机运行受合盖和睡眠影响（推断）。
+- 主动的花费要可见、可控：能用脚本判断的先不叫模型，心跳有活跃时段和预算上限，每条例行显示每次和本月花了多少。依据：OpenClaw 心跳每 30 分钟一次调用；Slack 常驻智能体空醒一次约 400 美元；Grok 用户一月 token 超过五年；扣子用户感觉没干活积分在少；费用是 OpenClaw 退潮第二原因。
+- 替别人写的周期产出到点必出，不管有没有变化，但签收前不发给任何人；推到 IM 的只是摘要和链接。依据：F4（4 强 2 中）缺的是带出处、能签字、有变化才叫人；信评晨会、出资人报送是正式职责；2026-06 周报事故；飞书纪要自动推送外溢风险；纪要外传判赔 410 万元。
+- 上岗那一刻是最该主动开口的时候：复述理解、提出要盯什么和什么时候说，让用户改。依据：Rakazo 新 bot 不出声导致职责误解，改为建好即开口；dots 先自我介绍并建议；OpenClaw 用户面对空任务框说不出要什么；MyWork 5 位同事在自我介绍轮排出例行。
+- 提议可以主动出，生效要用户点头：新同事、新例行、新规矩、记忆都一样；不替用户偷偷建任务。依据：Devin 在对话里提议知识由用户改、存或丢；HN 上没人审的记忆半年后成自信的错误；ChatGPT 自动建「每周财务动态」被帮助页列为摩擦；MyWork 用选项卡提议新建同事有一次成功样本。
+- 主动产出自身要可核：每条变化带出处快照，汇总层不能写素材里没有的话；后台发现的问题必须回到同事并让用户看得到。依据：Gemini Daily Brief 每条可查来源；Slack Recap 可看用了哪些消息；MyWork 晨报出现无依据的话、核验 115 处问题无人收到。
+- 分人群定主动的形态：二级覆盖研究要按假设过滤加事后对账；宏观固收信用要按可投库每日监测、晨会前给结论；一级要每日按画像扫人和公司；AI 研究者要按课题并进文献库、在实验检查点叫人；AI 行业研究要数字有新版本就标；技术经理只在在用清单碰到运营类变化时说，每周汇总一次。依据：user-needs 5.2、5.7、6.3、6.4、7.2-7.4 各节的强弱。
+- 少而准胜过多而快；「每天早上一份」可以有，但必须围绕用户自己的对象、能在几分钟读完、明天就作废。依据：雪球作者五分钟看完定先后；MyWork 早上 26,702 字约 57 分钟；05#10 缺口「没有产品卖更少更准」；AIHOT 日报标几件事、几分钟读完。
+- 「到期回头看」和「指出哪条结论过时」不能当主卖点：前者对卖方和一级不成立、对技术经理只是假设；后者是模型弱项，现实能做到的是「这个数字有了新版本」。依据：F12 1 强 4 中 1 弱、gap-fill 一级无证据、user-needs 7.6-4、challenge A8、user-needs 第 28 行。
+
+## 没查到的
+
+- 没有访谈：用户能容忍多少推送、哪些公告类别值得立刻打扰、哪些等到早上，没有任何证据（critique-interaction 第 217 行列为待问）。
+- 任何常驻智能体都没有公开留存数据；Pulse 下线是唯一有官方动作佐证的留存信号，prowlo 的搜索量下降 96% 和判断时机 64% 准确两个数字未核实。
+- 没有用户说想让系统自己发现重复的工作并接过去；找到的都是用户触发的「一句话 / 一次演示 / 一键把已问过的问题设成定时」。
+- dots 主动研究、Muse 想法卡、Gemini Daily Brief、Manus Cue 都发布不到几周，没有独立用户的长期评价；Cue 的主动机制未亲见。
+- 研究者具体怎么监控并发工作，访谈研究明确没有记录到；「活的综述」多久提醒一次才不算打扰，没有证据（10-ai-tools-spend 第 411 行）。
+- 国内买方研究员本人没有说过想要假设跟踪或到期对账的工具；一级市场没有任何假设到期对账的证据；卖方不为预测准确付费。
+- 技术经理：没有本人给出每天或每周花多少时间跟进 AI；没有找到因没看到下线通知导致线上事故的复盘；没有国内技术管理者为「替我盯」软件付费的自述；国内这类证据只有招助理和科技部门自建。
+- 事前准备是推送还是随取：所见会前准备产品都是用户点开，没有证据说明研究用户想被主动推一份准备包。
+- 用户在手机上靠哪个渠道收提醒（飞书、企业微信、微信）、愿不愿意第一周配置 IM，没有证据；MyWork 现在手机无推送。
+- 开发数据是开发者 7 天自测，没有目标用户、没有对内容的纠正或追问；提醒型例行 0 条、评价 0 次，分不清是不需要还是没想到用。
+- 知乎、小红书、脉脉、即刻、Reddit、Wall Street Oasis、应用商店评论都没打开（验证码和登录墙，未绕过）；中文从业者谈主动工具的一手评价几乎空白。
+- 没有找到任何产品在交付时主动摆出「我上次哪里错了」，也没有产品主动抽查用户有没有在核对；研究类产品里这是空位，但也没有用户说要。
+- MyWork 跑在本机：合盖、睡眠时例行的实际表现（代码里有启动后补跑一次的逻辑）在数据里看不出来。
+
+## 来源说明
+
+- 主要读的文件（均在 docs/research/）：2026-10-05-user-needs.md（全篇）、2026-10-05-interaction-forms.md、interaction-2026-10/current-form.md、interaction-2026-10/patterns.md、interaction-2026-10/forms/1-5、needs-2026-10/raw/01-19（按关键词检索后读相关需求条目全文）、needs-2026-10/audit.md、audit-tech-managers.md、challenge.md、gap-fill.md；另为定位读了 design/v2/EDITIONS.md 第 0、4 节和 interaction-2026-10/panel 下三份评审里提到主动的段落（评审是内部推断，不当证据）。
+- 强弱口径沿用调研文档：强 = 三个以上独立来源且至少一条本人自述或行为证据；本表在此基础上按复核结果下调了被降级的条目（技术经理第七节、challenge 的 C1/C6/F6/A8）。
+- 同源提醒：鸣山张炀民在 21 财经和东方财富的两处是同一篇上证报稿件，只算一个信源，时间表和「不许模型自评」是记者叙述；雪球「美股大白话」一人在十几个方向里反复出现；清华五道口问卷 113 人、单选、各项差距在误差内；技术经理部分 V2EX 1214741 一帖支撑多条需求。
+- gap-fill.md（一级市场、宏观固收信用、国内 AI 研究者）没有逐条复核，其中标为强的 V4、M1、M4 在本表一律按 medium 处理。
+- interaction-2026-10/forms 下多数条目是 WebFetch 摘要所见，只有少数标「亲读」；产品界面都没亲眼看过，厂商条目一律标为厂商说法。
+- current-form.md 的数字来自开发者自己的 .dsh-dev-home 数据（按任务规则未读 settings.yaml、storages、chrome-profile、lan.json），用户画像是开发者自写的 CTO，不是目标用户；本表引用其数字只说明「这套主动形式跑起来是什么样」。
+- 现行设计（EDITIONS.md）已经吸收的主动做法：两种情况才开口、清单和判断两张表、脚本预检、三档（立刻 / 到读的时间 / 不说）、立刻推送每日 5 条上限和免打扰、类别两周不点开自动降档、mywork_need 进「需要你」、7 天不打开先问再暂停、今天卡由代码拼、周期产出签收后才发。下游设计时可对照本表找它没覆盖的部分（如提议、上岗开口、事前准备、失败与无变化区分、花费可见）。

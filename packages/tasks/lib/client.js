@@ -223,7 +223,7 @@ function threadOf(run, deliverables) {
       else if (e.kind === 'routine' && (e.action === 'created' || !e.action)) body.push({ kind: 'scheduled', key: 's' + (e.routineId || seq++), at: str(e.at), routineId: str(e.routineId || e.id), title: str(e.title), scheduleLabel: str(e.scheduleLabel) })
       else if (e.kind === 'remind') body.push({ kind: 'remind', key: 'm' + seq++, at: str(e.at), routineId: str(e.routineId || e.id), title: str(e.title || e.text), acked: !!(e.acked || e.ackedAt) })
       else if (e.kind === 'mate' && e.action === 'created' && str(e.mateId)) body.push({ kind: 'newMate', key: 'n' + e.mateId, at: str(e.at), mateId: str(e.mateId), name: str(e.name) })
-      else if (e.kind === 'onboard' || e.kind === 'listcheck' || e.kind === 'subscribe' || e.kind === 'changes') cards.push({ kind: e.kind, key: e.kind + ':' + (e.id || seq++), at: str(e.at), e })
+      else if (e.kind === 'onboard' || e.kind === 'listcheck' || e.kind === 'subscribe' || e.kind === 'changes' || e.kind === 'selftest') cards.push({ kind: e.kind, key: e.kind + ':' + (e.id || seq++), at: str(e.at), e })
     }
     // Text before the segment's last deliverable or question is narration (过程); what comes after it is the reply.
     const cut = Math.max(mine.length ? time(mine[mine.length - 1].createdAt) : -Infinity, asks.length ? time(asks[asks.length - 1].at) : -Infinity)
@@ -679,6 +679,9 @@ const zh = {
   chgTitle: '变化 · {n} 条动到在用', chgBaseline: '第一次检查', tierNow: '立刻', tierDigest: '到点', chgWhereNone: '哪里在用：未填', chgUsed: '{w}在用',
   chgOpen: '看出处', chgAlso: '另见 {s}', chgReplace: '替代：{s}', chgFoot: '看过 {n} · 动到在用 {m}', chgUnread: '没读到 {n}：{s}',
   whenLeft: '{d} 生效，还有 {n} 天', whenPast: '{d} 已生效', whenToday: '今天生效', whenIn: '已生效',
+  chgPlan: '出迁移方案', chgRetest: '在我们的任务上重测', chgMine: '我来改', chgDoing: '已经在改了', chgHandled: { plan: '方案在出 · {t}', retest: '在重测 · {t}', mine: '你来改 · {t}', doing: '在改 · {t}' },
+  stTitle: '自测 · {n} 条任务', stRow: '通过 {p}/{n}', stManual: '待你看 {n}', stErr: '失败 {n}', stAvg: '平均 {s} 秒', stTokens: '{i}+{o} token', stChecks: '模型判的抽了 {n} 条给你看', stOpen: '打开结果表', stJudge: '「标准」类由 {j} 判',
+  todayDays: '今天的日子', dayLeft: '还有 {n} 天', dayToday: '今天',
   quietPre: '例行 · {t} · 看过 {n} · 没有动到在用的', quietPreBase: '例行 · {t} · 第一次检查 · 看过 {n} · 在用的现状已记下', quietPreEmpty: '例行 · {t} · 清单还是空的，没查', quietPreUnread: '没读到 {n}',
 }
 const en = {
@@ -736,6 +739,9 @@ const en = {
   chgTitle: '{n} changes touch what you use', chgBaseline: 'first check', tierNow: 'now', tierDigest: 'digest', chgWhereNone: 'used where: not filled in', chgUsed: 'used by {w}',
   chgOpen: 'Source', chgAlso: 'also {s}', chgReplace: 'Replacement: {s}', chgFoot: 'Looked at {n} · touching what you use {m}', chgUnread: 'Not read {n}: {s}',
   whenLeft: 'effective {d}, {n} days left', whenPast: 'effective since {d}', whenToday: 'effective today', whenIn: 'in effect',
+  chgPlan: 'Migration plan', chgRetest: 'Retest on our tasks', chgMine: 'I’ll change it', chgDoing: 'Already on it', chgHandled: { plan: 'plan coming · {t}', retest: 'retesting · {t}', mine: 'you change it · {t}', doing: 'in progress · {t}' },
+  stTitle: 'Self-test · {n} tasks', stRow: 'passed {p}/{n}', stManual: '{n} for you to look at', stErr: '{n} failed', stAvg: 'avg {s} s', stTokens: '{i}+{o} tokens', stChecks: '{n} model verdicts sampled for you', stOpen: 'Open results', stJudge: 'rubric tasks judged by {j}',
+  todayDays: 'Today’s dates', dayLeft: '{n} days left', dayToday: 'today',
   quietPre: 'Routine · {t} · looked at {n} · nothing you use changed', quietPreBase: 'Routine · {t} · first check · looked at {n} · baseline recorded', quietPreEmpty: 'Routine · {t} · the list is empty, nothing checked', quietPreUnread: 'not read {n}',
 }
 
@@ -1250,6 +1256,14 @@ span.mwt-act:hover{color:var(--fg-3);text-decoration:none}
 .mwt-chg .q{margin-top:4px;color:var(--fg-3);font-size:12px;line-height:18px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
 .mwt-chg a{color:var(--accent-text);text-decoration:none}
 .mwt-chg a:hover{text-decoration:underline;text-underline-offset:3px}
+.mwt-chg .acts2{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.mwt-chg .acts2 .mwt-btn{height:26px;padding:0 10px;font-size:12px}
+.mwt-chg .done{margin-top:6px;color:var(--fg-3);font-size:12px;line-height:18px}
+.mwt-st{width:520px}
+.mwt-st .r{display:flex;align-items:baseline;gap:10px;padding:6px 16px;border-top:1px solid var(--rule-soft);font-size:13px;line-height:20px;font-variant-numeric:tabular-nums}
+.mwt-st .r b{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mwt-st .r .p{margin-left:auto;white-space:nowrap}
+.mwt-st .r .m{color:var(--fg-3);font-size:12px;white-space:nowrap}
 .mwt-chg .ft{display:grid;gap:2px;padding:8px 16px 12px;border-top:1px solid var(--rule-soft);color:var(--fg-3);font-size:12px;line-height:18px;font-variant-numeric:tabular-nums}
 .mwt-tpls{display:grid;gap:8px;margin-bottom:20px}
 .mwt-tpl{appearance:none;display:flex;align-items:flex-start;gap:12px;width:100%;padding:12px 14px;border:1px solid var(--rule);border-radius:8px;background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
@@ -2320,9 +2334,21 @@ function makeComponents(ctx, t) {
    * used, when it takes effect, the monthly delta when the list has the spend, the source (and the quote), the
    * replacement. The foot: how much it looked at, and what it could not read.
    */
-  function ChangeCard({ e }) {
+  const ACTIONABLE = new Set(['下线', '改名重定向', '改计费', '调价', '限区域', '停用', '下架'])
+  function ChangeCard({ run, e, mate, onDone }) {
     const items = e.items || []
     const unread = e.unreadable || []
+    const [busy, setBusy] = React.useState('')
+    const act = (x, action) => { if (busy || !run || !mate) return; setBusy(x.key); api('/mates/change', { id: mate.id, runId: run.id, entryId: e.id, key: x.key, action }).then(() => { if (onDone) onDone() }).catch(() => {}).finally(() => setBusy('')) }
+    const actions = (x) => {
+      if (!run || !mate || !ACTIONABLE.has(x.category)) return null
+      if (x.handled) return h('div', { className: 'done' }, (t('chgHandled')[x.handled.action] || '').replace('{t}', hhmm(x.handled.at)))
+      return h('div', { className: 'acts2' },
+        h('button', { type: 'button', className: 'mwt-btn', disabled: !!busy, onClick: () => act(x, 'plan') }, t('chgPlan')),
+        h('button', { type: 'button', className: 'mwt-btn', disabled: !!busy, onClick: () => act(x, 'retest') }, t('chgRetest')),
+        h('button', { type: 'button', className: 'mwt-btn plain', disabled: !!busy, onClick: () => act(x, 'mine') }, t('chgMine')),
+        h('button', { type: 'button', className: 'mwt-btn plain', disabled: !!busy, onClick: () => act(x, 'doing') }, t('chgDoing')))
+    }
     return h('div', { className: 'mwt-card mwt-chg mwt-today' },
       h('div', { className: 'hd' }, h('b', null, t('chgTitle').replace('{n}', String(items.length))), e.baseline ? h('span', null, t('chgBaseline')) : null),
       items.map((x) => h('div', { key: x.key, className: 'it' },
@@ -2330,10 +2356,25 @@ function makeComponents(ctx, t) {
           h('span', { className: 'tier', 'data-now': x.tier === 'now' ? 'true' : undefined }, x.tier === 'now' ? t('tierNow') : t('tierDigest'))),
         h('div', { className: 'l2' }, [x.where ? t('chgUsed').replace('{w}', x.where) : t('chgWhereNone'), whenOf(x), x.monthly, x.replacement && x.replacement.length ? t('chgReplace').replace('{s}', x.replacement.join('、')) : ''].filter(Boolean).join(' · ')),
         h('div', { className: 'l2' }, x.source, x.also && x.also.length ? '（' + t('chgAlso').replace('{s}', x.also.join('、')) + '）' : '', x.url ? h(React.Fragment, null, ' · ', h('a', { href: x.url, target: '_blank', rel: 'noopener noreferrer' }, t('chgOpen'))) : null),
-        x.quote ? h('div', { className: 'q', title: x.quote }, '「' + x.quote + '」') : null)),
+        x.quote ? h('div', { className: 'q', title: x.quote }, '「' + x.quote + '」') : null,
+        actions(x))),
       h('div', { className: 'ft' },
         h('span', null, t('chgFoot').replace('{n}', String(e.checked || 0)).replace('{m}', String(e.related || 0))),
         unread.length ? h('span', { title: unread.map((u) => u.title + '：' + u.reason).join('\n') }, t('chgUnread').replace('{n}', String(unread.length)).replace('{s}', unread.map((u) => u.title).join('、'))) : null))
+  }
+
+  /** 自测结果卡: per candidate 通过 / 总数, 待你看, 失败, average time, tokens; the sampled model verdicts; the table. */
+  function SelftestCard({ e, onOpenPath }) {
+    return h('div', { className: 'mwt-card mwt-st' },
+      h('div', { className: 'mwt-card-h' }, t('stTitle').replace('{n}', String(e.tasks || 0))),
+      h('div', { style: { height: 8 } }),
+      (e.summary || []).map((s) => h('div', { key: s.label, className: 'r' },
+        h('b', { title: s.model }, s.label),
+        h('span', { className: 'm' }, [s.manual ? t('stManual').replace('{n}', String(s.manual)) : '', s.errors ? t('stErr').replace('{n}', String(s.errors)) : '', s.avgMs ? t('stAvg').replace('{s}', (s.avgMs / 1000).toFixed(1)) : '', t('stTokens').replace('{i}', String(s.tokensIn)).replace('{o}', String(s.tokensOut))].filter(Boolean).join(' · ')),
+        h('span', { className: 'p' }, t('stRow').replace('{p}', String(s.pass)).replace('{n}', String(s.total))))),
+      h('div', { className: 'mwt-acts' },
+        h('span', { className: 'msg' }, [e.judge ? t('stJudge').replace('{j}', e.judge) : '', e.checks ? t('stChecks').replace('{n}', String(e.checks)) : ''].filter(Boolean).join(' · ')),
+        onOpenPath ? h('button', { type: 'button', className: 'mwt-btn', onClick: () => onOpenPath(e.file) }, t('stOpen')) : null))
   }
 
   /**
@@ -2358,6 +2399,10 @@ function makeComponents(ctx, t) {
     return h('div', { className: 'mwt-card mwt-today' },
       h('div', { className: 'hd' }, h('b', null, t('todayTitle').replace('{d}', card.date)), h('span', null, [card.readTime, card.updatedAt ? t('todayUpdated').replace('{t}', hhmm(card.updatedAt)) : ''].filter(Boolean).join(' · '))),
       card.needs.length ? h(React.Fragment, null, h('div', { className: 'sec need' }, t('todayNeeds').replace('{n}', String(card.needs.length))), card.needs.map(row)) : null,
+      card.days && card.days.length ? h(React.Fragment, null, h('div', { className: 'sec' }, t('todayDays')), card.days.map((x) => h('button', { key: 'day:' + x.runId + x.text, type: 'button', className: 'row', onClick: () => onOpen(x.mateId, x.runId) },
+        h('span', { className: 'who' }, h(Avatar, { mate: mateOf(x.mateId), size: 16 }), x.mateName),
+        h('span', { className: 'tx', title: x.text }, x.text),
+        h('span', { className: 'k', 'data-tone': x.days <= 3 ? 'accent' : undefined }, x.days === 0 ? t('dayToday') : t('dayLeft').replace('{n}', String(x.days)))))) : null,
       card.changes.length ? h(React.Fragment, null, h('div', { className: 'sec' }, t('todayChanges').replace('{n}', String(card.changes.length + (card.hidden || 0)))), card.changes.map(row),
         card.hidden ? h('div', { className: 'none' }, t('todayMore').replace('{n}', String(card.hidden))) : null) : null,
       nothing ? h('div', { className: 'none' }, t('todayNone')) : null,
@@ -2673,7 +2718,8 @@ function makeComponents(ctx, t) {
         else if (e.kind === 'onboard') add('mate', e, () => h(OnboardCard, { run, e: e.e, mate, onDone: () => { th.reload(); kick() } }), { card: true })
         else if (e.kind === 'listcheck') add('mate', e, () => h(ListCheckCard, { run, e: e.e, mate, onDone: () => { th.reload(); kick() }, onEdit: () => editInThread(e.e.file || '清单.csv'), onOpenPath: (p) => openFile({ path: p }) }), { card: true })
         else if (e.kind === 'subscribe') add('mate', e, () => h(SubscribeCard, { run, e: e.e, mate, onDone: () => { th.reload(); kick() } }), { card: true })
-        else if (e.kind === 'changes') add('mate', e, () => h(ChangeCard, { e: e.e }), { card: true })
+        else if (e.kind === 'changes') add('mate', e, () => h(ChangeCard, { run, e: e.e, mate, onDone: () => { th.reload(); kick() } }), { card: true })
+        else if (e.kind === 'selftest') add('mate', e, () => h(SelftestCard, { e: e.e, onOpenPath: (p) => openFile({ path: p }) }), { card: true })
         else if (e.kind === 'failed') add('mate', e, bubble('danger', false, t('failedTitle') + ' · ' + e.reason))
         else if (e.kind === 'thinking') add('status', e, null, { parts: [t('working'), e.step, elapsedOf(run)], live: true })
         else if (e.kind === 'queued') add('status', e, null, { parts: [t('queued')] })

@@ -8,6 +8,7 @@
  *   proxy first    everything else, when a proxy is configured (HTTPS_PROXY / HTTP_PROXY / ALL_PROXY, http:// only)
  *
  *   getText(url, { timeoutMs, maxBytes, headers }) → { status, url, text, via: 'direct' | 'proxy' }   (throws on failure)
+ *   postJson(url, body, { timeoutMs, headers })    → { status, json, text, via }   (an HTTP error status is returned, not thrown)
  *
  * Redirects (≤5) are followed; gzip / deflate / br are decoded; bodies above maxBytes are cut (truncated: true).
  */
@@ -64,12 +65,13 @@ function decode(res, buf) {
   return buf
 }
 
-async function once(url, route, { timeoutMs, maxBytes, headers }) {
+async function once(url, route, { timeoutMs, maxBytes, headers, method = 'GET', body = null }) {
   const u = new URL(url)
   const secure = u.protocol === 'https:'
   const port = Number(u.port) || (secure ? 443 : 80)
   const reqHeaders = { 'user-agent': UA, accept: '*/*', 'accept-encoding': 'gzip, deflate, br', 'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8', ...(headers || {}) }
-  const opts = { method: 'GET', headers: reqHeaders, timeout: timeoutMs }
+  if (body) reqHeaders['content-length'] = String(Buffer.byteLength(body))
+  const opts = { method, headers: reqHeaders, timeout: timeoutMs }
   let mod = secure ? https : http
   if (route.via === 'proxy') {
     if (secure) {
@@ -93,7 +95,7 @@ async function once(url, route, { timeoutMs, maxBytes, headers }) {
     })
     req.on('timeout', () => req.destroy(new Error('timeout after ' + timeoutMs + ' ms')))
     req.on('error', reject)
-    req.end()
+    req.end(body || undefined)
   })
 }
 
@@ -114,4 +116,24 @@ export async function getText(url, { timeoutMs = 20000, maxBytes = 12 * 1024 * 1
     return { status: res.status, url: current, text: res.body.toString('utf8'), via, truncated: res.truncated }
   }
   throw new Error('too many redirects')
+}
+
+/**
+ * POST a JSON body (a model API call): the same routes as getText, the second tried only when the first could not
+ * connect. The response comes back whatever its status, parsed as JSON when it is JSON.
+ */
+export async function postJson(url, body, { timeoutMs = 120000, headers, env } = {}) {
+  const host = new URL(url).hostname
+  const payload = JSON.stringify(body)
+  let last = null
+  for (const route of routesFor(host, env)) {
+    try {
+      const res = await once(url, route, { timeoutMs, maxBytes: 8 * 1024 * 1024, headers: { 'content-type': 'application/json', accept: 'application/json', ...(headers || {}) }, method: 'POST', body: payload })
+      const text = res.body.toString('utf8')
+      let json = null
+      try { json = JSON.parse(text) } catch {}
+      return { status: res.status, json, text, via: route.via }
+    } catch (e) { last = e }
+  }
+  throw last || new Error('unreachable')
 }

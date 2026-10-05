@@ -22,7 +22,7 @@ import { ASK_EXPIRY_MS, pendingAsk } from '../src/store.js'
 const STANDARD = new URL('../presets/mate-base/agent.cordis.yml', import.meta.url).pathname
 const gate = () => { let open; const promise = new Promise((r) => { open = r }); return { promise, open } }
 
-export function harness({ concurrency = 2, verify = false, home, fetchText } = {}) {
+export function harness({ concurrency = 2, verify = false, home, fetchText, post } = {}) {
   const dir = home || mkdtempSync(join(tmpdir(), 'mywork-mates-'))
   const sessions = new Map()
   const h = { dir, sessions, scripts: [], verdict: '{"passed": true, "checked": 2, "issues": 0, "notes": "ok"}', verifyGate: null, scriptErrors: [], logs: [], events: [], prompts: [], deduped: [], cancels: [], workspaces: [], created: [], recomposes: [], titles: [], removedItems: [], agents: new Map(), promptFails: false, mw: null }
@@ -36,6 +36,15 @@ export function harness({ concurrency = 2, verify = false, home, fetchText } = {
       const def = h.mw.tools.find((t) => t.name === name)
       let out
       try { out = def ? def.execute(args, { agent: { session: { id: s.id } } }) : { ok: true } } catch (e) { out = { error: e.message } }
+      ev(s, 'tool/result', { error: out && out.error ? out.error : undefined, message: { content: [{ type: 'text', text: JSON.stringify(out) }] } })
+      return out
+    },
+    /** A tool whose execute is async (mywork_selftest_run): awaited before its result event. */
+    async toolAsync(name, args = {}) {
+      ev(s, 'tool/call', { name, arguments: args })
+      const def = h.mw.tools.find((t) => t.name === name)
+      let out
+      try { out = def ? await def.execute(args, { agent: { session: { id: s.id } } }) : { ok: true } } catch (e) { out = { error: e.message } }
       ev(s, 'tool/result', { error: out && out.error ? out.error : undefined, message: { content: [{ type: 'text', text: JSON.stringify(out) }] } })
       return out
     },
@@ -138,7 +147,7 @@ export function harness({ concurrency = 2, verify = false, home, fetchText } = {
   }
   h.controller = controller
   h.ctx = ctx
-  h.mw = createMyWork({ ctx, config: { concurrency, verify, timeoutMinutes: 1 }, home: dir, log: (m) => h.logs.push(m), controller: () => controller, hostEmit: (p) => h.events.push(p), fetchText: fetchText || (async (url) => { throw new Error('offline: ' + url) }) })
+  h.mw = createMyWork({ ctx, config: { concurrency, verify, timeoutMinutes: 1 }, home: dir, log: (m) => h.logs.push(m), controller: () => controller, hostEmit: (p) => h.events.push(p), fetchText: fetchText || (async (url) => { throw new Error('offline: ' + url) }), post: post || (async (url) => { throw new Error('offline: ' + url) }) })
   h.until = async (fn, ms = 3000) => { const t0 = Date.now(); while (!fn()) { if (h.scriptErrors.length) throw h.scriptErrors[0]; if (Date.now() - t0 > ms) throw new Error('timed out waiting for the engine'); await new Promise((r) => setTimeout(r, 5)) } }
   h.call = async (method, path, a) => { const out = await h.mw.handle(method, path, method === 'GET' ? a : undefined, method === 'POST' ? a : undefined); return out }
   h.ok = async (method, path, a) => { const out = await h.call(method, path, a); assert.equal(out.status, 200, JSON.stringify(out.body)); return out.body }
@@ -1188,5 +1197,88 @@ test('盯在用的 AI from its template: intro → 上岗卡 → files and words
   const row = today.changes.find((x) => x.mateId === mate.id)
   assert.equal(row.kind, 'watch'); assert.equal(row.tier, 'now'); assert.match(row.text, /deepseek-chat/)
   assert.ok(today.quiet.some((q) => q.mateId === mate.id && q.n >= 1))
+  h.cleanup()
+})
+
+
+test('a change on the card: 出迁移方案 / 重测 hand the teammate a run with the facts; 我来改 marks it; the selftest tool runs our tasks with the kept keys; 今天的日子 counts down', async () => {
+  const calls = []
+  const post = async (url, body, opts) => {
+    calls.push({ url, model: body.model, auth: opts.headers.authorization })
+    const q = body.messages[0].content
+    if (/你是评分员/.test(q)) return { status: 200, json: { choices: [{ message: { content: '通过\n礼貌且给了单号' } }], usage: { prompt_tokens: 50, completion_tokens: 5 } } }
+    const flash = body.model === 'deepseek-flash'
+    const answer = /分类/.test(q) ? (flash ? '{"intent":"refund"}' : 'not json') : /退款/.test(q) ? (flash ? '您好，退款已受理，单号 R123。' : '退款处理中') : '欢迎'
+    return { status: 200, json: { choices: [{ message: { content: answer } }], usage: { prompt_tokens: 20, completion_tokens: 10 } } }
+  }
+  const soon = new Date(Date.now() + 9 * 86400000)
+  const day = soon.getFullYear() + '-' + String(soon.getMonth() + 1).padStart(2, '0') + '-' + String(soon.getDate()).padStart(2, '0')
+  const pages = {
+    'https://deprecations.info/v1/deprecations.json': '[]',
+    'https://models.dev/api.json': '{}',
+    'https://api-docs.deepseek.com/zh-cn/updates': '<p>' + '说明。'.repeat(120) + `</p><p>旧模型名 deepseek-chat 将于 ${day} 停止使用。</p>`,
+    'https://api-docs.deepseek.com/zh-cn/quick_start/pricing': '<p>' + '价格说明。'.repeat(120) + '</p>',
+  }
+  const h = harness({ post, fetchText: async (url) => { if (url in pages) return pages[url]; throw new Error('HTTP 404') } })
+  h.scripts.push((t) => t.say('你好。'))
+  const { mate } = await h.ok('POST', '/mates/create', { template: 'watch-ai' })
+  await h.until(() => h.runsOf(mate.id).every((r) => r.status === 'done'))
+  const dir = join(h.dir, 'mywork', 'mates', mate.id)
+  assert.equal(readFileSync(join(dir, '自测', '任务.csv'), 'utf8'), '编号,任务,输入,判定方法,期望,备注\n')
+  h.mw.writeList(h.mw.mates.get(mate.id), '', [{ 类型: '模型', 名称: 'deepseek-chat', 供应商: 'DeepSeek', 模型ID或版本: 'deepseek-chat', 哪里在用: '客服机器人' }])
+  const routine = h.mw.routines.create({ mateId: mate.id, kind: 'task', title: '查下线和调价', input: '查', schedule: { type: 'interval', everyMinutes: 360 }, precheck: 'ai-watch', options: {} })
+  h.scripts.push((t) => t.say('确认了。\n变化：有'))
+  await h.mw.precheckNow(routine.id)
+  await h.until(() => h.runsOf(mate.id).some((r) => r.routineId === routine.id && r.status === 'done'))
+  const change = h.runsOf(mate.id).find((r) => r.routineId === routine.id)
+  const entry = change.activity.find((a) => a.kind === 'changes')
+  const item = entry.items[0]
+  assert.deepEqual([item.subject, item.category, item.tier, item.days], ['deepseek-chat', '下线', 'now', 9])
+
+  // 今天的日子
+  await h.ok('POST', '/mates/update', { id: 'mywork', readTime: '00:00' })
+  const today = await h.ok('GET', '/today')
+  assert.equal(today.days.length, 1); assert.equal(today.days[0].days, 9); assert.match(today.days[0].text, /deepseek-chat 下线还有 9 天 · 客服机器人在用/)
+
+  // 出迁移方案: a run with the facts behind the visible line
+  h.scripts.push((t) => { assert.match(t.texts[0], /^给 deepseek-chat 出一份迁移方案/); assert.match(t.texts[0], /文件:行/); assert.match(t.texts[0], /停止使用/); t.say('方案在这。') })
+  const plan = await h.ok('POST', '/mates/change', { id: mate.id, runId: change.id, entryId: entry.id, key: item.key, action: 'plan' })
+  await h.until(() => h.run(plan.runId).status === 'done')
+  assert.equal(h.run(plan.runId).input, '给 deepseek-chat 出一份迁移方案')
+  assert.equal(h.run(change.id).activity.find((a) => a.kind === 'changes').items[0].handled.action, 'plan')
+  assert.match((await h.ok('GET', '/today')).days[0].text, /方案在出/)
+  assert.equal((await h.call('POST', '/mates/change', { id: mate.id, runId: change.id, entryId: entry.id, key: 'nope', action: 'mine' })).status, 404)
+  assert.equal((await h.call('POST', '/mates/change', { id: mate.id, runId: change.id, entryId: entry.id, key: item.key, action: 'x' })).status, 400)
+
+  // 重测: the teammate drafts tasks, keeps the key, runs the tool; a card with the summary, a table without keys
+  writeFileSync(join(dir, '自测', '任务.csv'), '编号,任务,输入,判定方法,期望,备注\nT01,退款回复,用户要退款怎么回,标准,礼貌并给出单号,\nT02,意图,把「我要退款」分类，只输出 JSON,JSON,intent=refund,\nT03,人工看,写一句欢迎语,人工,,\n')
+  mkdirSync(join(dir, '.mywork'), { recursive: true })
+  writeFileSync(join(dir, '.mywork', 'keys.json'), JSON.stringify({ deepseek: 'sk-secret-123' }))
+  let out
+  h.scripts.push(async (t) => {
+    assert.match(t.texts[0], /^在我们的任务上重测 deepseek-chat/); assert.match(t.texts[0], /mywork_selftest_run/); assert.match(t.texts[0], /keys\.json/)
+    out = await t.toolAsync('mywork_selftest_run', { candidates: [{ vendor: 'deepseek', model: 'deepseek-chat', label: '现在用的' }, { vendor: 'deepseek', model: 'deepseek-flash', label: '替代' }], judge: { vendor: 'deepseek', model: 'deepseek-flash' } })
+    t.say('测完了。')
+  })
+  const re = await h.ok('POST', '/mates/change', { id: mate.id, runId: change.id, entryId: entry.id, key: item.key, action: 'retest' })
+  await h.until(() => h.run(re.runId).status === 'done')
+  assert.equal(out.error, undefined, out.error)
+  assert.equal(out.tasks, 3)
+  assert.deepEqual(out.summary.map((s) => [s.label, s.pass, s.fail, s.manual, s.errors]), [['现在用的', 1, 1, 1, 0], ['替代', 2, 0, 1, 0]])
+  assert.ok(calls.every((c) => c.url === 'https://api.deepseek.com/v1/chat/completions' && c.auth === 'Bearer sk-secret-123'))
+  const card = h.run(re.runId).activity.find((a) => a.kind === 'selftest')
+  assert.equal(card.file, out.file); assert.equal(card.judge, 'deepseek-flash'); assert.ok(card.checks >= 1)
+  const table = readFileSync(join(dir, out.file), 'utf8')
+  assert.match(table, /^编号,任务,候选,判定方法,结果/); assert.match(table, /T02,意图,替代,JSON,通过,intent = refund/)
+  assert.doesNotMatch(table, /sk-secret/)
+  assert.ok(h.run(re.runId).activity.some((a) => a.kind === 'did' && a.act === 'file' && a.path === out.file))
+  // no key → a clear error naming where to put it
+  h.scripts.push(async (t) => { out = await t.toolAsync('mywork_selftest_run', { candidates: [{ vendor: 'zhipu', model: 'glm-4.6' }] }); t.say('缺 key。') })
+  await h.ok('POST', '/mates/say', { id: mate.id, text: '再测一下 glm' })
+  await h.until(() => h.runsOf(mate.id).every((r) => r.status === 'done'))
+  assert.match(out.error, /glm-4\.6：没有 key/)
+  // 我来改: marked, no run
+  await h.ok('POST', '/mates/change', { id: mate.id, runId: change.id, entryId: entry.id, key: item.key, action: 'mine' })
+  assert.match((await h.ok('GET', '/today')).days[0].text, /你来改/)
   h.cleanup()
 })

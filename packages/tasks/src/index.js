@@ -30,7 +30,8 @@ import {
 import { describeSchedule, parseSchedule, routineLastAt, RoutineStore, routineView } from './routines.js'
 import { changePrompt, changesEntry, LIST_HEADER, parseCsv, precheck as aiPrecheck, pushOf, toCsv } from './aiwatch.js'
 import { mergeRows, scanDir, scanFiles } from './inventory.js'
-import { getText } from './net.js'
+import { getText, postJson } from './net.js'
+import { BASE_URLS, readTasks, resultsCsv, runSelftest, TASK_HEADER } from './selftest.js'
 
 export const name = 'dsh-mywork-tasks'
 export const inject = ['tools', 'agents', 'sessions', 'workspaceRegistry', 'agentDefaultModel', 'agentPresets', 'permissionPresets']
@@ -171,7 +172,8 @@ export function mateComposition(baseText, mate) {
  * Everything but the cordis wiring. `ctx` is the dsh plugin context (or a fake), `home` the DSH_HOME, `controller()`
  * the session controller, `hostEmit(payload)` where 'mywork/task' events go.
  */
-export function createMyWork({ ctx, config = {}, home, log = () => {}, controller = () => null, hostEmit = () => {}, fetchText, templates: givenTemplates }) {
+export function createMyWork({ ctx, config = {}, home, log = () => {}, controller = () => null, hostEmit = () => {}, fetchText, post, templates: givenTemplates }) {
+  const postModel = typeof post === 'function' ? post : postJson
   const templates = givenTemplates instanceof Map ? givenTemplates : loadTemplates(join(dirname(fileURLToPath(import.meta.url)), '..', 'templates'))
   const fetchSource = typeof fetchText === 'function' ? fetchText : (url) => getText(url, { timeoutMs: 25000 }).then((r) => r.text)
   const dshHome = home || process.env.DSH_HOME || join(homedir(), '.dsh')
@@ -918,7 +920,8 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     // One screen: at most 12 rows in all (需要你 first); what does not fit is counted, and each teammate's thread has it.
     const room = Math.max(3, TODAY_ROWS - needs.length)
     const hidden = Math.max(0, changes.length - room)
-    return { ...base, ready: true, needs, changes: changes.slice(0, room), hidden, did, quiet, updatedAt: now.toISOString() }
+    const days = daysOf(now)
+    return { ...base, ready: true, needs, days, changes: changes.slice(0, Math.max(3, room - days.length)), hidden: Math.max(0, changes.length - Math.max(3, room - days.length)), did, quiet, updatedAt: now.toISOString() }
   }
 
   // ── templates, 上岗, 在用清单, 预检 (EDITIONS.md 3, 4.1, 9.3; PROACTIVE.md 12) ──
@@ -926,12 +929,13 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
   const dayStr = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') }
   const templateView = (tp) => ({ id: tp.id, name: tp.name, title: tp.title || '', group: tp.group || '', avatar: tp.avatar || null, pitch: tp.pitch || '' })
   /** A template's seed files into a new teammate's folder (never over a file that is already there). */
-  function seedFolder(tp, dir) {
-    const from = join(tp.dir, 'seed')
+  function seedFolder(tp, dir, sub = '') {
+    const from = join(tp.dir, 'seed', sub)
     let names = []
     try { names = readdirSync(from) } catch { return }
     for (const n of names) {
-      const to = join(dir, n)
+      const to = join(dir, sub, n)
+      try { if (statSync(join(from, n)).isDirectory()) { mkdirSync(to, { recursive: true }); seedFolder(tp, dir, join(sub, n)); continue } } catch { continue }
       if (existsSync(to)) continue
       try { writeFileSync(to, readFileSync(join(from, n), 'utf8').replace(/\{date\}/g, dayStr())) } catch (e) { log(`seed ${n}: ${e && e.message}`) }
     }
@@ -1152,6 +1156,121 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     engine.pump()
     return { changes: loud.length, now, runId: run.id }
   }
+  /**
+   * An item of a change card, acted on (POST /mates/change): plan → it writes a migration plan (where the code names the
+   * model, what to change, replacements constraints first, what to retest); retest → it runs the current model and the
+   * replacements on 自测/任务.csv (drafting the tasks with you when there are none); mine / doing → you are on it, the
+   * card says so and the countdown stays. Research (needs report 7.2): the pain is migrating and retesting, not knowing.
+   */
+  const CHANGE_ACTIONS = ['plan', 'retest', 'mine', 'doing']
+  function actOnChange(b) {
+    const m = mates.get(String((b && b.id) || ''))
+    if (!m) throw notFound('同事不存在。')
+    const action = String(b.action || '')
+    if (!CHANGE_ACTIONS.includes(action)) throw bad('action 是 plan / retest / mine / doing。')
+    const { run, e } = cardOf(b.runId, b.entryId, 'changes')
+    const item = (e.items || []).find((x) => x.key === String(b.key || ''))
+    if (!item) throw notFound('卡片上没有这一条。')
+    const at = new Date().toISOString()
+    let runId = ''
+    if (action === 'plan' || action === 'retest') {
+      const facts = [`${item.subject} ${item.summary}`, item.where ? item.where + '在用' : '哪里在用：未填', item.effective ? '生效 ' + item.effective : '', item.replacement && item.replacement.length ? '厂商给的替代：' + item.replacement.join('、') : '', '出处 ' + item.source + (item.url ? ' ' + item.url : ''), item.quote ? '原文「' + item.quote + '」' : ''].filter(Boolean).join('；')
+      const visible = action === 'plan' ? `给 ${item.subject} 出一份迁移方案` : `在我们的任务上重测 ${item.subject} 和它的替代`
+      const extra = action === 'plan' ? [
+        '', '（以下是 MyWork 替用户附上的，用户看不到。）', '变化：' + facts,
+        '出一份迁移方案，用 deliver 交付（kind report，标题「迁移方案 · ' + item.subject + '」）：',
+        '1. 在哪里改：在清单里「怎么知道的」提到的文件和代码目录里找出所有用到这个模型的地方，逐条写 文件:行 和要改成什么（模型名、base URL、参数）。找不到代码的写明「代码没给我」。',
+        '2. 换成什么：先列约束（同一家、同一个账号和发票、国内能买到、会不会被封、合规），再比能力和价格；至多三个候选，写清不选的理由。价格标出处（官方 / 第三方）。',
+        '3. 要重测什么：按「哪里在用」列出要重测的业务和看哪些指标；如果文件夹里有 自测/任务.csv，说明可以直接用 mywork_selftest_run 跑。',
+        '4. 时间线：离生效还有几天、建议哪天前改完、要谁来做。',
+        '不要替用户改代码，除非用户在对话里明说让你改。交付后用两三句话回话。',
+      ] : [
+        '', '（以下是 MyWork 替用户附上的，用户看不到。）', '变化：' + facts,
+        '在用户自己的任务上重测（EDITIONS 9.3）：',
+        '1. 任务在 自测/任务.csv（表头 ' + TASK_HEADER.join(',') + '；判定方法是 包含 / 不包含 / 等于 / 正则 / JSON / 长度不超过 / 标准 / 人工）。没有任务或少于 5 条时，先从「哪里在用」相关的代码、提示词和日志里起草 10 条真实任务写进去（判定方法能用代码判的就用代码判），在回话里说清是你起草的、请用户改，然后照样跑。',
+        '2. 候选：现在用的模型，加一到两个替代（先看约束：同一家、同一个账号和发票、国内能买到）。',
+        '3. key：用户在对话里给过的 key 存在 .mywork/keys.json（{ "deepseek": "sk-…" } 按供应商）；这里没有的，用 mywork_ask 问用户要，不要猜。',
+        '4. 调用 mywork_selftest_run 跑；然后用三五句话说结果（每个候选 通过/总数、待你看几条、平均耗时），哪几条值得用户亲自看。数字标「我们测的」。',
+      ]
+      const created = store.create({ mateId: m.id, trigger: 'user', input: visible })
+      store.update(created.id, { promptExtra: extra.join('\n') })
+      runId = created.id
+      emit('queued', store.get(created.id))
+      engine.pump()
+    }
+    store.update(run.id, () => { item.handled = { action, at, runId } })
+    emit('mate', null, { mateId: m.id })
+    return { run: runView(store.get(run.id)), runId }
+  }
+
+  /** The keys a teammate keeps (.mywork/keys.json, by vendor or label); never shown, never written to results. */
+  function keyOf(mate, c) {
+    if (c.apiKey) return String(c.apiKey)
+    if (c.keyEnv && process.env[c.keyEnv]) return process.env[c.keyEnv]
+    try {
+      const keys = JSON.parse(readFileSync(join(mate.dir, '.mywork', 'keys.json'), 'utf8'))
+      for (const k of [c.vendor, c.label, c.model].filter(Boolean)) if (typeof keys[k] === 'string' && keys[k]) return keys[k]
+    } catch {}
+    return ''
+  }
+  const stampNow = () => { const d = new Date(); const p2 = (n) => String(n).padStart(2, '0'); return `${d.getFullYear()}${p2(d.getMonth() + 1)}${p2(d.getDate())}-${p2(d.getHours())}${p2(d.getMinutes())}` }
+  /** mywork_selftest_run: the tasks on every candidate, a results table in 自测/, a card in the thread. */
+  async function selftest(mate, runId, args) {
+    const file = resolve(mate.dir, String(args.tasks || '自测/任务.csv'))
+    let text = ''
+    try { text = readFileSync(file, 'utf8') } catch { throw new Error(`${relative(mate.dir, file)} 不存在：先和用户一起写 10–30 条真实任务，表头 ${TASK_HEADER.join(',')}。`) }
+    let tasks = readTasks(text)
+    if (!tasks.length) throw new Error('任务表是空的：每行至少要有「输入」。')
+    const limit = Math.floor(Number(args.limit)) || 0
+    if (limit > 0) tasks = tasks.slice(0, limit)
+    const list = (Array.isArray(args.candidates) ? args.candidates : []).slice(0, 4)
+    if (!list.length) throw new Error('给至少一个候选：{ vendor 或 baseUrl, model }。')
+    const resolveOne = (c, i) => {
+      const vendor = String(c.vendor || '').toLowerCase()
+      const baseUrl = String(c.baseUrl || BASE_URLS[vendor] || '')
+      const model = String(c.model || '').trim()
+      if (!model) throw new Error(`第 ${i + 1} 个候选没有 model。`)
+      if (!baseUrl) throw new Error(`${model}：不知道它的接口地址，给 baseUrl（OpenAI 兼容的 /v1），或 vendor（${Object.keys(BASE_URLS).join(' / ')}）。`)
+      const apiKey = keyOf(mate, { ...c, vendor })
+      if (!apiKey) throw new Error(`${model}：没有 key。用户给你 key 后存进 .mywork/keys.json（{ "${vendor || 'label'}": "sk-…" }），或在 apiKey 里传。`)
+      return { label: String(c.label || model), vendor, baseUrl, model, apiKey }
+    }
+    const candidates = list.map(resolveOne)
+    const judge = args.judge && args.judge.model ? resolveOne(args.judge, list.length) : null
+    const { rows, summary } = await runSelftest({ tasks, candidates, judge, post: postModel, concurrency: 4 })
+    const out = join(mate.dir, '自测', `结果-${stampNow()}.csv`)
+    mkdirSync(dirname(out), { recursive: true })
+    if (runId) engine.recordFileChange(runId, mate, out)
+    writeFileSync(out, resultsCsv(rows))
+    const rel = relative(mate.dir, out).split('\\').join('/')
+    const checks = rows.filter((x) => x.check).length
+    if (runId) store.activity(runId, { kind: 'selftest', id: cardId('st'), file: rel, tasks: tasks.length, judge: judge ? judge.label : '', checks, summary: summary.map((s) => ({ label: s.label, model: s.model, total: s.total, pass: s.pass, fail: s.fail, manual: s.manual, errors: s.errors, avgMs: s.avgMs, tokensIn: s.tokensIn, tokensOut: s.tokensOut })) })
+    emit('mate', null, { mateId: mate.id })
+    return { file: rel, tasks: tasks.length, checks, summary: summary.map(({ model: _m, ...s }) => s) }
+  }
+
+  /** 今天的日子 (PROACTIVE.md 7.4): open migrations counting down (a shutdown or redirect of a row in use, ≤30 days ahead). */
+  function daysOf(now) {
+    const out = []
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
+    for (const m of mates.items) {
+      for (const t of store.forMate(m.id)) {
+        for (const a of t.activity || []) {
+          if (!a || a.kind !== 'changes') continue
+          for (const x of a.items || []) {
+            if (!x.effective || !(x.category === '下线' || x.category === '改名重定向' || x.category === '改计费')) continue
+            const [y, mo, d] = x.effective.split('-').map(Number)
+            const left = Math.round((Date.UTC(y, mo - 1, d) - Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())) / 86400000)
+            if (left < 0 || left > 30 || !(today >= 0)) continue
+            out.push({ mateId: m.id, mateName: m.name || '新同事', runId: t.id, kind: 'day', at: x.effective, days: left, text: clip(`${x.subject} ${x.category === '下线' ? '下线' : x.category}还有 ${left} 天${x.where ? ' · ' + x.where + '在用' : ''}${x.handled ? ' · ' + ({ plan: '方案在出', retest: '在重测', mine: '你来改', doing: '在改' }[x.handled.action] || '') : ''}`, 70) })
+          }
+        }
+      }
+    }
+    const seenKey = new Set()
+    return out.filter((x) => { const k = x.mateId + x.text; if (seenKey.has(k)) return false; seenKey.add(k); return true }).sort((a, b) => a.days - b.days).slice(0, 3)
+  }
+
   /** Run a routine's precheck now and wait for it (tests; 现在跑一次 does not wait). */
   function precheckNow(id) {
     const r = routines.get(String(id || ''))
@@ -1278,6 +1397,21 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
       render: (_a, v) => [{ type: 'text', text: `清单写好了：共 ${v.rows} 行（新加 ${v.added}，更新 ${v.updated}）。` }],
     },
     {
+      name: 'mywork_selftest_run',
+      description: '在用户自己的任务上测模型（只在 MyWork 同事的会话里可用）：读 自测/任务.csv（表头 编号,任务,输入,判定方法,期望,备注），每条任务在每个候选上跑一次（OpenAI 兼容接口），按判定方法判（包含 / 不包含 / 等于 / 正则 / JSON / 长度不超过 由程序判；标准 由 judge 模型判，抽 5 条给用户看；人工 留给用户看），结果写进 自测/结果-<时间>.csv，对话里出一张结果卡。key 从 .mywork/keys.json（按供应商）或 apiKey 取，不会写进结果。',
+      parameters: {
+        candidates: { type: 'array', required: true, items: { type: 'object' }, description: '1–4 个候选，例如 { vendor: "deepseek", model: "deepseek-flash", label: "替代" }；vendor 是 deepseek / alibaba / zhipu / moonshot / volcengine / siliconflow / openai / anthropic / google / openrouter 等，或者直接给 baseUrl（OpenAI 兼容的 /v1）；apiKey 可选' },
+        tasks: { type: 'string', description: '任务表路径，默认 自测/任务.csv' },
+        judge: { type: 'object', description: '可选，给「标准」类任务打分的模型，格式同候选' },
+        limit: { type: 'number', description: '可选，只跑前 N 条（先试跑）' },
+      },
+      async execute(args, exec) {
+        const c = mateOnly(exec, 'mywork_selftest_run')
+        return selftest(c.mate, c.run ? c.run.id : '', args || {})
+      },
+      render: (_a, v) => [{ type: 'text', text: `测完了：${v.tasks} 条任务，结果在 ${v.file}。` + v.summary.map((s) => `${s.label} 通过 ${s.pass}/${s.total}${s.manual ? '，待看 ' + s.manual : ''}${s.errors ? '，失败 ' + s.errors : ''}`).join('；') }],
+    },
+    {
       name: 'mywork_inventory_scan',
       description: '用程序读出「我们在用什么」的候选行（只在 MyWork 同事的会话里可用）。给文件或目录的路径（相对你的文件夹，或绝对路径，~ 是用户主目录）。认得 package.json、requirements*.txt、pyproject.toml、go.mod、new-api / one-api 渠道导出、LiteLLM 配置、账单 CSV，以及代码里加了引号的模型 ID。返回候选行和「怎么知道的」，不写文件；核对后用 mywork_list_write 写进清单。',
       parameters: { paths: { type: 'array', required: true, items: { type: 'string' }, description: '文件或目录的路径' } },
@@ -1400,6 +1534,7 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     '/mates/onboard': { POST: (_q, b) => onboard(b) },
     '/mates/listok': { POST: (_q, b) => listOk(b) },
     '/mates/subscribe': { POST: (_q, b) => subscribe(b) },
+    '/mates/change': { POST: (_q, b) => actOnChange(b) },
   }
   /** One request: { status, body }. `query` is URLSearchParams or a plain object. */
   async function handle(method, path, query, body) {
@@ -1433,7 +1568,7 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     on: (fn) => { listeners.add(fn); return () => listeners.delete(fn) },
   }
 
-  return { store, deliverables, routines, seen, mates, scenarios, engine, api, tools, routes, handle, tick, runView, mateView: mateViewById, listMates, thread, activity, files, search, workRecord, presetFor, createMate, updateMate, removeMate, createRoutine, updateRoutine, runRoutine, ackRoutine, dir, presetRoot, templates, precheckNow, writeList, onboard, listOk, subscribe, upload, todayCard }
+  return { store, deliverables, routines, seen, mates, scenarios, engine, api, tools, routes, handle, tick, runView, mateView: mateViewById, listMates, thread, activity, files, search, workRecord, presetFor, createMate, updateMate, removeMate, createRoutine, updateRoutine, runRoutine, ackRoutine, dir, presetRoot, templates, precheckNow, writeList, onboard, listOk, subscribe, upload, todayCard, actOnChange, selftest }
 }
 
 export function apply(ctx, config = {}) {

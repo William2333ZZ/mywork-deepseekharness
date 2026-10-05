@@ -171,3 +171,28 @@ test('a model named only as the target of another model\'s change is not what ch
   assert.deepEqual(r.changes.map((c) => c.subject), ['deepseek-chat'])
   assert.equal(r.changes[0].quote, '旧的模型名 deepseek-chat 将于（2026-07-24）停止使用。')
 })
+
+import { judgeByCode, parseVerdict, readTasks, resultsCsv, runSelftest } from '../src/selftest.js'
+
+test('selftest: judging by code, by a model for rubrics (with samples to check), and a table without keys', async () => {
+  const j = (method, expect, out) => judgeByCode({ method, expect }, out)
+  assert.equal(j('包含', '单号|编号', '您的单号是 1').pass, true)
+  assert.equal(j('包含', '单号&退款', '您的单号是 1').pass, false)
+  assert.equal(j('不包含', '抱歉', '好的').pass, true)
+  assert.equal(j('等于', 'A', ' A ').pass, true)
+  assert.equal(j('正则', '^R\\d+$', 'R12').pass, true)
+  assert.equal(j('JSON', 'a.b=1', '```json\n{"a":{"b":1}}\n```').pass, true)
+  assert.equal(j('JSON', '', 'nope').pass, false)
+  assert.equal(j('长度不超过', '5', '123456').pass, false)
+  assert.equal(j('标准', '礼貌', 'x').needsJudge, true)
+  assert.equal(j('人工', '', 'x').pass, null)
+  assert.deepEqual(parseVerdict('不通过\n没有单号'), { pass: false, reason: '没有单号' })
+  const tasks = readTasks('编号,任务,输入,判定方法,期望,备注\nT1,a,问一,包含,好,\n,b,问二,标准,礼貌,\nT3,c,,人工,,\n')
+  assert.deepEqual(tasks.map((x) => [x.id, x.method]), [['T1', '包含'], ['T02', '标准']])
+  const post = async (url, body) => ({ status: body.model === 'bad' ? 401 : 200, json: body.model === 'bad' ? { error: { message: 'invalid key' } } : { choices: [{ message: { content: /评分员/.test(body.messages[0].content) ? '通过\n可以' : '好的' } }], usage: { prompt_tokens: 3, completion_tokens: 2 } } })
+  const r = await runSelftest({ tasks, candidates: [{ label: 'A', baseUrl: 'https://x/v1', model: 'm', apiKey: 'sk-1' }, { label: 'B', baseUrl: 'https://x/v1', model: 'bad', apiKey: 'sk-2' }], judge: { label: 'J', baseUrl: 'https://x/v1', model: 'j', apiKey: 'sk-3' }, post })
+  assert.deepEqual(r.summary.map((s) => [s.label, s.pass, s.errors]), [['A', 2, 0], ['B', 0, 2]])
+  assert.ok(r.rows.some((x) => x.check))
+  const csv = resultsCsv(r.rows)
+  assert.match(csv, /调用失败/); assert.match(csv, /HTTP 401：invalid key/); assert.doesNotMatch(csv, /sk-/)
+})

@@ -62,7 +62,17 @@ MyWork Kit v2 的核心成员：**同事模型**。设计见 [design/v2/TEAMMATE
 - **没变化**：不建运行，例行上记一条回执 `{ at, precheck: { checked, related, unreadable, baseline }, changed: false }`；`/mates/thread` 把它画成一行灰字「例行 · 查下线和调价 · 看过 999 · 没有动到在用的」。
 - **有变化**：建一次 `trigger: 'routine'` 的运行，`run.prompt` 带着变化（同事去一手出处确认、说清哪里在用、月费、离生效几天、要改什么、替代；全是换了说法就回「变化：无」），`activity` 里一张代码拼的变化卡 `{ kind: 'changes', items[], checked, related, unreadable }`，`run.watch = { tier, headline, n, now, push }`。今天卡把它列进变化并标「立刻 / 到点」；IM（dsh-mywork-im）只推立刻档，推送正文不带金额。
 
-工具：`mywork_list_write({ rows, replace?, confirm? })`（按表头合并：模型按「模型ID或版本」、SDK 按「名称」；写前留快照，能撤销）、`mywork_inventory_scan({ paths })`（读候选行，不写文件）。
+**变化之后（调研 7.2：痛在迁移和重测，不在不知道；I5：只信自己任务上的实测）**：变化卡的每一条（下线、改名重定向、改计费、调价…）下面有四个动作（`POST /mates/change { id, runId, entryId, key, action }`）：
+- `plan` 出迁移方案：同事收到这条变化的事实，找出代码里每一处用到它的 文件:行、先按约束再按能力排替代（至多三个）、列出要重测什么和时间线，用 deliver 交一份「迁移方案」；
+- `retest` 在我们的任务上重测：同事用 `自测/任务.csv`（没有就先从代码和提示词起草 10 条，说明是起草的）跑现在用的和替代，调用 `mywork_selftest_run`；
+- `mine` 我来改 / `doing` 已经在改了：只标记。
+今天卡的「今天的日子」倒数 30 天内要生效的下线和改名（最多 3 行），后面跟着处理到哪一步。
+
+**自测**（`src/selftest.js`）：`自测/任务.csv` 表头 `编号,任务,输入,判定方法,期望,备注`；判定方法 包含 / 不包含 / 等于 / 正则 / JSON / 长度不超过 由程序判，标准 由 judge 模型判（抽 5 条标「抽检」给你看），人工 留给你看。候选走 OpenAI 兼容接口（按 vendor 给出 DeepSeek、百炼、智谱、Kimi、火山方舟、硅基流动、OpenAI、Anthropic、Google、OpenRouter 等的地址，或给 baseUrl），key 从 `.mywork/keys.json`（按供应商）或参数取，不写进结果。结果表 `自测/结果-<时间>.csv`，对话里一张结果卡（每个候选 通过/总数、待你看、失败、平均耗时、token）。
+
+**推送闸**（dsh-mywork-im `src/gate.js`）：立刻档的推送经过免打扰（22:00–07:30）和每天 5 条的预算，压下的在窗口打开时合成一条发出（`$DSH_HOME/mywork/im-gate.json`）。
+
+工具：`mywork_selftest_run({ candidates, tasks?, judge?, limit? })`、`mywork_list_write({ rows, replace?, confirm? })`（按表头合并：模型按「模型ID或版本」、SDK 按「名称」；写前留快照，能撤销）、`mywork_inventory_scan({ paths })`（读候选行，不写文件）。
 
 ## 例行
 

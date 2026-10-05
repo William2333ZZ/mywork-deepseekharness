@@ -14,10 +14,12 @@
  *     configured PER TASK (tool automation_notify_set, API /mywork-im/api/notify, UI on the 定时任务 page)
  */
 import { randomBytes } from 'node:crypto'
+import { join } from 'node:path'
 import { listChats, resolveChat, relayPrompt, directAccount } from './chats.js'
 import { sendFeishuText } from './feishu.js'
 import { configSchema, defineRawTool, rejectUntrusted } from './harness.js'
-import { createAutomationWatcher, listAutomationTasks, readNotifyConfig, resolveTask, writeNotifyConfig } from './notify.js'
+import { createAutomationWatcher, dshHome, listAutomationTasks, readNotifyConfig, resolveTask, writeNotifyConfig } from './notify.js'
+import { createGate } from './gate.js'
 
 export const name = 'dsh-mywork-im'
 export const inject = ['tools']
@@ -60,6 +62,9 @@ export function apply(ctx, config = {}) {
   // run that has news, a failed run, and a user run that took long enough that you probably walked away. Chat replies, the
   // intro and quiet routine runs never do.
   const LONG_RUN_MS = 2 * 60000
+  // What teammates push unasked (a precheck's 立刻 change) goes through the gate: quiet hours, a daily budget, merged later.
+  const gate = createGate({ file: join(dshHome(), 'mywork', 'im-gate.json'), log, send: (text) => { const rule = notifyConfig.automation.default; return rule ? send(rule.target, text) : Promise.resolve() } })
+  ctx.effect(() => { const id = setInterval(() => { gate.flush().catch(() => {}) }, 60000); return () => clearInterval(id) }, 'dsh-mywork-im: push gate')
   ctx.effect(() => ctx.on('mywork/task', (payload) => {
     try {
       if (!payload || !payload.run) return
@@ -86,7 +91,7 @@ export function apply(ctx, config = {}) {
       // link — never money); 到点 waits for the 今天卡; the teammate finding it was only reworded (quiet) sends nothing.
       if (run.watch) {
         if (run.quiet || run.watch.tier !== 'now' || !run.watch.push) return
-        out(run.watch.push + (run.error ? '\n（同事没能确认：' + line(run.error, 40) + '）' : ''), `run ${run.id} change`)
+        gate.push(run.watch.push + (run.error ? '\n（同事没能确认：' + line(run.error, 40) + '）' : ''), `run ${run.id} change`).then((r) => log(`run ${run.id} change → IM ${r}`)).catch((e) => log(`run ${run.id} change → IM failed: ${e && e.message}`))
         return
       }
       const failed = !!run.error

@@ -1,0 +1,8 @@
+[
+  { "id": "deepseek-updates", "vendor": "deepseek", "title": "DeepSeek 更新日志", "url": "https://api-docs.deepseek.com/zh-cn/updates" },
+  { "id": "deepseek-pricing", "vendor": "deepseek", "title": "DeepSeek 定价", "url": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing" },
+  { "id": "zhipu-models", "vendor": "zhipu", "title": "智谱 模型概览", "url": "https://docs.bigmodel.cn/cn/guide/start/model-overview" },
+  { "id": "alibaba-models", "vendor": "alibaba", "title": "阿里云百炼 模型列表", "url": "https://help.aliyun.com/zh/model-studio/models" },
+  { "id": "moonshot-pricing", "vendor": "moonshot", "title": "Kimi 开放平台 定价", "url": "https://platform.moonshot.cn/docs/pricing/chat", "render": true },
+  { "id": "volcengine-models", "vendor": "volcengine", "title": "火山方舟 模型列表", "url": "https://www.volcengine.com/docs/82379/1330310", "render": true }
+]

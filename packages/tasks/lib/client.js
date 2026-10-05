@@ -109,6 +109,11 @@ module.exports = { render, inline, esc }
  *                                              that opens it; the caller reads its current name from the roster)
  *   remind    { routineId, title, acked }      a reminder card (activity { kind:'remind' }, or a whole synthetic remind run)
  *   auto      {}                               the 24 h resume (the user line with auto: true): one muted line
+ *   onboard   { e }                            a template teammate's 上岗卡 (activity { kind:'onboard' })
+ *   listcheck { e }                            the list card mywork_list_write left (前 10 行 · 对，就这些 / 改一下)
+ *   subscribe { e }                            「它会主动做的」: the subscription card
+ *   changes   { e }                            a precheck's change card (built by code; the tier is code's)
+ *                                              these four close their segment, after the teammate's reply
  *   thinking  { step }                         one line while the run works (status running, not queued); the caller adds the time
  *   queued    {}                               the run has not started: it waits behind the teammate's current run
  *   stopped   {}                               a done run you stopped (error 已停止 / 已取消): a centred 「已停止」, not a failure
@@ -199,6 +204,7 @@ function threadOf(run, deliverables) {
     const end = last ? Infinity : time(segs[i + 1].at)
     if (seg.bubble) out.push({ kind: 'user', key: 'u' + i, at: seg.at, text: seg.text, ...(seg.via ? { via: seg.via } : {}) })
     const body = []
+    const cards = []
     // Deliverables of this segment: the first also takes anything stamped before its own line (clock skew, trimmed history).
     const mine = docs.filter((d) => { const c = time(d.createdAt); return (i === 0 || c >= start) && c < end })
     const asks = seg.entries.filter((e) => e.kind === 'ask')
@@ -217,6 +223,7 @@ function threadOf(run, deliverables) {
       else if (e.kind === 'routine' && (e.action === 'created' || !e.action)) body.push({ kind: 'scheduled', key: 's' + (e.routineId || seq++), at: str(e.at), routineId: str(e.routineId || e.id), title: str(e.title), scheduleLabel: str(e.scheduleLabel) })
       else if (e.kind === 'remind') body.push({ kind: 'remind', key: 'm' + seq++, at: str(e.at), routineId: str(e.routineId || e.id), title: str(e.title || e.text), acked: !!(e.acked || e.ackedAt) })
       else if (e.kind === 'mate' && e.action === 'created' && str(e.mateId)) body.push({ kind: 'newMate', key: 'n' + e.mateId, at: str(e.at), mateId: str(e.mateId), name: str(e.name) })
+      else if (e.kind === 'onboard' || e.kind === 'listcheck' || e.kind === 'subscribe' || e.kind === 'changes') cards.push({ kind: e.kind, key: e.kind + ':' + (e.id || seq++), at: str(e.at), e })
     }
     // Text before the segment's last deliverable or question is narration (过程); what comes after it is the reply.
     const cut = Math.max(mine.length ? time(mine[mine.length - 1].createdAt) : -Infinity, asks.length ? time(asks[asks.length - 1].at) : -Infinity)
@@ -237,6 +244,7 @@ function threadOf(run, deliverables) {
     }
     // In time order; entries stamped at the same moment keep the order above.
     body.map((e, n) => ({ e, n, at: time(e.at) })).sort((a, b) => a.at - b.at || a.n - b.n).forEach((x) => out.push(x.e))
+    for (const c of cards) out.push(c)
   })
 
   if (!done && !waiting) {
@@ -664,6 +672,14 @@ const zh = {
   didSec: '它做过的', didEmpty: '它还没改过、发过什么。',
   readTime: '读的时间', readTimeHint: '今天卡在这个时间拼好。',
   rowsMore: '还有 {n} 行', itemsMore: '还有 {n} 条',
+  tplHead: '从模板建', tplOr: '或者，写一句它负责什么',
+  obDrop: '把文件拖到这里，或', obPick: '选文件', obGo: '交给它', obDone: '已交给它 · {t}', obUploading: '在传 {n}…', obNeed: '给它一个文件，或者写几句你们在用什么。', obFailed: '没传上：{e}',
+  lcTitle: '清单 · {n} 行', lcOk: '对，就这些', lcEdit: '改一下', lcConfirmed: '你确认了 · {t}', lcWhere: '哪里在用', lcHow: '怎么知道的', lcName: '对象', lcEmpty: '未填',
+  subGo: '交给它', subDone: '已交给它 · {t}',
+  chgTitle: '变化 · {n} 条动到在用', chgBaseline: '第一次检查', tierNow: '立刻', tierDigest: '到点', chgWhereNone: '哪里在用：未填', chgUsed: '{w}在用',
+  chgOpen: '看出处', chgAlso: '另见 {s}', chgReplace: '替代：{s}', chgFoot: '看过 {n} · 动到在用 {m}', chgUnread: '没读到 {n}：{s}',
+  whenLeft: '{d} 生效，还有 {n} 天', whenPast: '{d} 已生效', whenToday: '今天生效', whenIn: '已生效',
+  quietPre: '例行 · {t} · 看过 {n} · 没有动到在用的', quietPreBase: '例行 · {t} · 第一次检查 · 看过 {n} · 在用的现状已记下', quietPreEmpty: '例行 · {t} · 清单还是空的，没查', quietPreUnread: '没读到 {n}',
 }
 const en = {
   mate: 'Teammate', files: 'Files',
@@ -713,6 +729,14 @@ const en = {
   didSec: 'What it did', didEmpty: 'It has not changed or sent anything yet.',
   readTime: 'Reading time', readTimeHint: 'Today’s card is put together at this time.',
   rowsMore: '{n} more rows', itemsMore: '{n} more',
+  tplHead: 'From a template', tplOr: 'Or write its job in a sentence',
+  obDrop: 'Drop files here, or', obPick: 'choose files', obGo: 'Hand it over', obDone: 'Handed over · {t}', obUploading: 'Uploading {n}…', obNeed: 'Give it a file or a few words about what you use.', obFailed: 'Upload failed: {e}',
+  lcTitle: 'List · {n} rows', lcOk: 'That’s it', lcEdit: 'Change it', lcConfirmed: 'Confirmed · {t}', lcWhere: 'Used where', lcHow: 'How it knows', lcName: 'Item', lcEmpty: 'not filled in',
+  subGo: 'Hand it over', subDone: 'Handed over · {t}',
+  chgTitle: '{n} changes touch what you use', chgBaseline: 'first check', tierNow: 'now', tierDigest: 'digest', chgWhereNone: 'used where: not filled in', chgUsed: 'used by {w}',
+  chgOpen: 'Source', chgAlso: 'also {s}', chgReplace: 'Replacement: {s}', chgFoot: 'Looked at {n} · touching what you use {m}', chgUnread: 'Not read {n}: {s}',
+  whenLeft: 'effective {d}, {n} days left', whenPast: 'effective since {d}', whenToday: 'effective today', whenIn: 'in effect',
+  quietPre: 'Routine · {t} · looked at {n} · nothing you use changed', quietPreBase: 'Routine · {t} · first check · looked at {n} · baseline recorded', quietPreEmpty: 'Routine · {t} · the list is empty, nothing checked', quietPreUnread: 'not read {n}',
 }
 
 const STYLE = `
@@ -1180,6 +1204,60 @@ span.mwt-act:hover{color:var(--fg-3);text-decoration:none}
 .mwt-today .k{color:var(--fg-3);font-size:11px;line-height:16px;white-space:nowrap;font-variant-numeric:tabular-nums}
 .mwt-today .k[data-tone=warn]{color:var(--warn)}
 .mwt-today .k[data-tone=danger]{color:var(--danger)}
+.mwt-today .k[data-tone=accent]{color:var(--accent-text)}
+.mwt-ob{width:520px}
+.mwt-ob .q{padding:10px 16px 0;font-size:14px;line-height:22px}
+.mwt-ob .hint{margin:2px 16px 0;color:var(--fg-3);font-size:12px;line-height:18px}
+.mwt-drop{display:block;margin:12px 16px 0;padding:14px 16px;border:1px dashed var(--rule);border-radius:8px;color:var(--fg-3);font-size:13px;line-height:20px;text-align:center;cursor:pointer;transition:border-color var(--fast),background-color var(--fast)}
+.mwt-drop[data-over=true],.mwt-drop:hover{border-color:var(--fg-3);background:var(--rule-soft)}
+.mwt-drop b{color:var(--accent-text);font-weight:400}
+.mwt-files{display:flex;flex-wrap:wrap;gap:6px;margin:10px 16px 0}
+.mwt-file{display:inline-flex;align-items:center;gap:6px;max-width:100%;height:26px;padding:0 4px 0 10px;border:1px solid var(--rule);border-radius:6px;color:var(--fg-2);font-size:12px;line-height:16px}
+.mwt-file .n{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mwt-file .s{color:var(--fg-3);font-variant-numeric:tabular-nums}
+.mwt-file button{appearance:none;display:inline-flex;padding:3px;border:0;background:transparent;color:var(--fg-3);cursor:pointer}
+.mwt-file button:hover{color:var(--fg)}
+.mwt-ob textarea.mwt-input{width:calc(100% - 32px);min-height:60px;margin:10px 16px 0;padding:8px 12px;font-size:13px;line-height:20px}
+.mwt-acts{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px;padding:12px 16px;border-top:1px solid var(--rule-soft)}
+.mwt-acts .msg{margin-right:auto;color:var(--fg-3);font-size:12px;line-height:16px;font-variant-numeric:tabular-nums}
+.mwt-acts .msg.err{color:var(--danger)}
+.mwt-acts .mwt-btn{height:28px;padding:0 12px;font-size:13px}
+.mwt-lc{width:600px}
+.mwt-lc .tb{margin-top:8px;max-height:380px;overflow:auto;scrollbar-width:thin}
+.mwt-lc table{width:100%;border-collapse:collapse;font-size:12px;line-height:18px;font-variant-numeric:tabular-nums}
+.mwt-lc th{padding:6px 12px;border-bottom:1px solid var(--rule-soft);color:var(--fg-3);font-weight:400;text-align:left;white-space:nowrap}
+.mwt-lc td{padding:6px 12px;border-bottom:1px solid var(--rule-soft);vertical-align:top;word-break:break-word}
+.mwt-lc th:first-child,.mwt-lc td:first-child{padding-left:16px}
+.mwt-lc td.id{font-family:var(--font-mono)}
+.mwt-lc td.src,.mwt-lc td.empty{color:var(--fg-3)}
+.mwt-lc .more{appearance:none;display:block;margin:6px 16px 0;padding:0;border:0;background:transparent;color:var(--fg-3);font:inherit;font-size:12px;line-height:18px;cursor:pointer}
+.mwt-lc .more:hover{color:var(--fg)}
+.mwt-sub .it{display:flex;align-items:flex-start;gap:10px;padding:10px 16px 0;font-size:13px;line-height:20px}
+.mwt-check{appearance:none;display:grid;place-items:center;flex:none;width:16px;height:16px;margin-top:2px;padding:0;border:1px solid var(--fg-3);border-radius:4px;background:transparent;color:var(--accent-fg);cursor:pointer}
+.mwt-check[aria-checked=true]{border-color:var(--accent);background:var(--accent)}
+.mwt-check[disabled]{cursor:default;opacity:.55}
+.mwt-sub .note{display:block;color:var(--fg-3);font-size:12px;line-height:18px}
+.mwt-sub .quiet{padding:10px 16px 0;color:var(--fg-3);font-size:12px;line-height:18px}
+.mwt-chg{width:600px}
+.mwt-chg .it{padding:10px 16px;border-top:1px solid var(--rule-soft)}
+.mwt-chg .hd+.it{border-top:0}
+.mwt-chg .l1{display:flex;align-items:baseline;gap:8px;font-size:13px;line-height:20px}
+.mwt-chg .l1 .s{flex:none;max-width:45%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--font-mono);font-size:12.5px;font-weight:500}
+.mwt-chg .l1 .w{flex:1;min-width:0;word-break:break-word}
+.mwt-chg .tier{flex:none;color:var(--fg-3);font-size:11px;line-height:16px;white-space:nowrap}
+.mwt-chg .tier[data-now=true]{color:var(--accent-text)}
+.mwt-chg .l2{margin-top:2px;color:var(--fg-2);font-size:12px;line-height:18px;font-variant-numeric:tabular-nums}
+.mwt-chg .q{margin-top:4px;color:var(--fg-3);font-size:12px;line-height:18px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
+.mwt-chg a{color:var(--accent-text);text-decoration:none}
+.mwt-chg a:hover{text-decoration:underline;text-underline-offset:3px}
+.mwt-chg .ft{display:grid;gap:2px;padding:8px 16px 12px;border-top:1px solid var(--rule-soft);color:var(--fg-3);font-size:12px;line-height:18px;font-variant-numeric:tabular-nums}
+.mwt-tpls{display:grid;gap:8px;margin-bottom:20px}
+.mwt-tpl{appearance:none;display:flex;align-items:flex-start;gap:12px;width:100%;padding:12px 14px;border:1px solid var(--rule);border-radius:8px;background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
+.mwt-tpl:hover{border-color:var(--fg-3)}
+.mwt-tpl[disabled]{opacity:.5;cursor:default}
+.mwt-tpl b{display:block;font-size:14px;line-height:20px;font-weight:600}
+.mwt-tpl .p{display:block;margin-top:2px;color:var(--fg-3);font-size:12px;line-height:18px}
+.mwt-tpl-or{margin:0 0 8px;color:var(--fg-3);font-size:12px;line-height:16px}
 .mwt-today .none{padding:6px 16px 4px;color:var(--fg-3);font-size:13px;line-height:20px}
 .mwt-today .foot{display:grid;gap:2px;margin-top:8px;padding:8px 16px 12px;border-top:1px solid var(--rule-soft);color:var(--fg-3);font-size:12px;line-height:18px;font-variant-numeric:tabular-nums}
 /* 资料 › 主动程度: three segments; the open one on --bubble-focus. */
@@ -2079,14 +2157,183 @@ function makeComponents(ctx, t) {
         h('button', { type: 'button', className: 'mwt-act mute', disabled: busy, onClick: remove }, t('ruleRemove'))))
   }
 
-  /** 例行 · 标题 · 没有变化 · HH:MM (several in a row: · n 次（first–last）); opens the routine in 资料. */
+  /**
+   * 例行 · 标题 · 没有变化 · HH:MM (several in a row: · n 次（first–last）); opens the routine in 资料. A precheck's
+   * receipt says what it looked at: 例行 · 查下线和调价 · 看过 1310 · 没有动到在用的 · 没读到 1 (the titles on hover).
+   */
   function QuietLine({ group, onOpen }) {
     const first = group[0]
     const last = group[group.length - 1]
     const title = last.routineTitle || last.title || t('routineWord')
     const end = last.finishedAt || last.createdAt
     const when = group.length > 1 ? t('quietTimes').replace('{n}', String(group.length)) + '（' + imTime(first.createdAt, t('yesterday')) + '–' + hhmm(end) + '）' : imTime(end, t('yesterday'))
+    const pc = last.precheck
+    if (pc) {
+      const unread = Array.isArray(pc.unreadable) ? pc.unreadable : []
+      const head = pc.empty ? t('quietPreEmpty') : pc.baseline ? t('quietPreBase') : t('quietPre')
+      const words = [head.replace('{t}', title).replace('{n}', String(pc.checked || 0)), unread.length ? t('quietPreUnread').replace('{n}', String(unread.length)) : '', when].filter(Boolean).join(' · ')
+      return h('button', { type: 'button', className: 'mwt-note', title: unread.map((u) => u.title + '：' + u.reason).join('\n') || t('routines'), onClick: onOpen }, words)
+    }
     return h('button', { type: 'button', className: 'mwt-note', title: t('routines'), onClick: onOpen }, t('quietLine').replace('{t}', title) + ' · ' + when)
+  }
+
+  /** 生效 words of a change: 10/22 生效，还有 14 天 · 09/10 已生效 · 今天生效 · 已生效. */
+  const whenOf = (x) => {
+    const d = x.effective ? x.effective.slice(5).replace('-', '/') : ''
+    if (x.days === null || x.days === undefined) return d
+    if (!d) return x.days <= 0 ? t('whenIn') : ''
+    return x.days < 0 ? t('whenPast').replace('{d}', d) : x.days === 0 ? t('whenToday') : t('whenLeft').replace('{d}', d).replace('{n}', String(x.days))
+  }
+  /** Base64 of bytes, in slices (String.fromCharCode.apply has a stack limit). */
+  const b64 = (bytes) => { let s = ''; for (let i = 0; i < bytes.length; i += 32768) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 32768)); return btoa(s) }
+  const UPLOAD_PIECE = 150 * 1024
+  /** One file into the teammate's 材料/, in pieces of 150 KB (the API takes ≤256 KB a request); resolves its path. */
+  async function uploadFile(mateId, file) {
+    const bytes = new Uint8Array(await file.arrayBuffer())
+    let path = ''
+    for (let i = 0; i < Math.max(1, bytes.length); i += UPLOAD_PIECE) {
+      const piece = b64(bytes.subarray(i, i + UPLOAD_PIECE))
+      const r = await api('/mates/upload', path ? { id: mateId, path, data: piece } : { id: mateId, name: file.name, data: piece })
+      path = r.path
+    }
+    return path
+  }
+
+  /**
+   * 上岗卡 (EDITIONS.md 3): a template teammate's first question under its greeting — drop or pick files (they go to
+   * 材料/), write a few words, 交给它 (POST /mates/onboard). Done, it shows what was handed over and when.
+   */
+  function OnboardCard({ run, e, mate, onDone }) {
+    const [files, setFiles] = React.useState([])
+    const [text, setText] = React.useState('')
+    const [over, setOver] = React.useState(false)
+    const [busy, setBusy] = React.useState('')
+    const [err, setErr] = React.useState('')
+    const pick = React.useRef(null)
+    const add = (list) => { const next = [...files]; for (const f of Array.from(list || [])) if (!next.some((x) => x.name === f.name && x.size === f.size)) next.push(f); setFiles(next.slice(0, 20)); setErr('') }
+    if (e.done) {
+      const shown = (e.files || []).map((f) => String(f).replace(/^材料\//, ''))
+      return h('div', { className: 'mwt-card mwt-ob' },
+        h('div', { className: 'mwt-card-h' }, e.title),
+        e.question ? h('div', { className: 'q' }, e.question) : null,
+        shown.length ? h('div', { className: 'mwt-files' }, shown.map((n) => h('span', { key: n, className: 'mwt-file' }, icon('file', { size: 12 }), h('span', { className: 'n' }, n)))) : null,
+        e.note ? h('div', { className: 'hint' }, e.note) : null,
+        h('div', { className: 'mwt-acts' }, h('span', { className: 'msg' }, t('obDone').replace('{t}', hhmm(e.doneAt)))))
+    }
+    const go = async () => {
+      if (busy) return
+      if (!files.length && !text.trim()) { setErr(t('obNeed')); return }
+      setErr('')
+      try {
+        const paths = []
+        for (let i = 0; i < files.length; i++) { setBusy(t('obUploading').replace('{n}', (i + 1) + '/' + files.length)); paths.push(await uploadFile(mate.id, files[i])) }
+        setBusy('…')
+        await api('/mates/onboard', { id: mate.id, runId: run.id, entryId: e.id, files: paths, text: text.trim() })
+        if (onDone) onDone()
+      } catch (x) { setErr(t('obFailed').replace('{e}', (x && x.message) || String(x))) } finally { setBusy('') }
+    }
+    return h('div', { className: 'mwt-card mwt-ob', 'aria-busy': busy ? 'true' : undefined },
+      h('div', { className: 'mwt-card-h' }, e.title),
+      e.question ? h('div', { className: 'q' }, '1　' + e.question) : null,
+      e.hint ? h('div', { className: 'hint' }, e.hint) : null,
+      h('div', {
+        className: 'mwt-drop', role: 'button', tabIndex: 0, 'data-over': over ? 'true' : undefined,
+        onClick: () => pick.current && pick.current.click(),
+        onKeyDown: (ev) => { if ((ev.key === 'Enter' || ev.key === ' ') && pick.current) { ev.preventDefault(); pick.current.click() } },
+        onDragOver: (ev) => { ev.preventDefault(); setOver(true) }, onDragLeave: () => setOver(false),
+        onDrop: (ev) => { ev.preventDefault(); setOver(false); add(ev.dataTransfer && ev.dataTransfer.files) },
+      }, t('obDrop') + ' ', h('b', null, t('obPick')),
+      h('input', { ref: pick, type: 'file', multiple: true, hidden: true, onChange: (ev) => { add(ev.target.files); ev.target.value = '' } })),
+      files.length ? h('div', { className: 'mwt-files' }, files.map((f, i) => h('span', { key: f.name + i, className: 'mwt-file' },
+        icon('file', { size: 12 }), h('span', { className: 'n', title: f.name }, f.name), h('span', { className: 's' }, fmtSize(f.size)),
+        h('button', { type: 'button', 'aria-label': t('remove') + ' ' + f.name, onClick: () => setFiles(files.filter((_, j) => j !== i)) }, icon('x', { size: 12 }))))) : null,
+      h('textarea', { className: 'mwt-input', rows: 2, value: text, placeholder: e.placeholder || '', 'aria-label': e.question || t('obGo'), onChange: (ev) => setText(ev.target.value) }),
+      h('div', { className: 'mwt-acts' },
+        h('span', { className: 'msg' + (err ? ' err' : ''), role: err ? 'alert' : undefined }, err || busy || ''),
+        h('button', { type: 'button', className: 'mwt-btn primary', disabled: !!busy, onClick: go }, t('obGo'))))
+  }
+
+  /**
+   * 清单确认卡: what mywork_list_write wrote — the first 10 rows of 清单.csv (对象 · 哪里在用 · 怎么知道的), 「还有 n 行」
+   * opens the file; 对，就这些 (POST /mates/listok) or 改一下 (the composer, 「把 清单.csv 里 」).
+   */
+  function ListCheckCard({ run, e, mate, onDone, onEdit, onOpenPath }) {
+    const [table, setTable] = React.useState(null)
+    const [busy, setBusy] = React.useState(false)
+    React.useEffect(() => {
+      let on = true
+      api('/mates/file?id=' + encodeURIComponent(mate.id) + '&path=' + encodeURIComponent(e.file || '清单.csv')).then((d) => (d && typeof d.text === 'string' ? tableOf(d.text, ',') : null)).catch(() => null)
+        .then((x) => { if (on) setTable(x || { header: [], rows: [] }) })
+      return () => { on = false }
+    }, [mate.id, e.file, e.rows, mate.lastAt || ''])
+    const rows = table ? table.rows.filter((r) => r.some((c) => String(c).trim())) : []
+    const col = (names) => (table ? table.header.findIndex((x) => names.includes(String(x).trim())) : -1)
+    const nameI = Math.max(0, col(['名称', '对象', '名字']))
+    const idI = col(['模型ID或版本', '模型ID'])
+    const whereI = col(['哪里在用', '在哪用'])
+    const howI = col(['怎么知道的', '来源'])
+    const ok = () => { if (busy) return; setBusy(true); api('/mates/listok', { id: mate.id, runId: run.id, entryId: e.id }).then(() => { if (onDone) onDone() }).catch(() => {}).finally(() => setBusy(false)) }
+    return h('div', { className: 'mwt-card mwt-lc' },
+      h('div', { className: 'mwt-card-h' }, t('lcTitle').replace('{n}', String(rows.length || e.rows || 0))),
+      !table ? h('div', { style: { padding: '12px 16px 0' } }, h(Skeleton, { rows: 2 }))
+        : h('div', { className: 'tb' }, h('table', null,
+          h('thead', null, h('tr', null, h('th', null, t('lcName')), whereI >= 0 ? h('th', null, t('lcWhere')) : null, howI >= 0 ? h('th', null, t('lcHow')) : null)),
+          h('tbody', null, rows.slice(0, 10).map((r, i) => {
+            const id = idI >= 0 ? String(r[idI] || '').trim() : ''
+            const name = String(r[nameI] || '').trim()
+            const where = whereI >= 0 ? String(r[whereI] || '').trim() : ''
+            return h('tr', { key: i },
+              h('td', { className: 'id' }, name + (id && id !== name && !/^\d/.test(id) ? ' · ' + id : id && /^\d/.test(id) ? ' ' + id : '')),
+              whereI >= 0 ? h('td', { className: where ? undefined : 'empty' }, where || t('lcEmpty')) : null,
+              howI >= 0 ? h('td', { className: 'src' }, r[howI]) : null)
+          })))),
+      rows.length > 10 ? h('button', { type: 'button', className: 'more', onClick: () => onOpenPath && onOpenPath(e.file || '清单.csv') }, t('rowsMore').replace('{n}', String(rows.length - 10))) : null,
+      e.confirmed
+        ? h('div', { className: 'mwt-acts' }, h('span', { className: 'msg' }, t('lcConfirmed').replace('{t}', hhmm(e.confirmedAt))))
+        : h('div', { className: 'mwt-acts' }, h('span', { className: 'msg' }),
+          h('button', { type: 'button', className: 'mwt-btn', onClick: onEdit }, t('lcEdit')),
+          h('button', { type: 'button', className: 'mwt-btn primary', disabled: busy, onClick: ok }, t('lcOk'))))
+  }
+
+  /** 它会主动做的 (PROACTIVE.md 12): the items it will do unasked, ticked by default per the template; 交给它 makes them its routines. */
+  function SubscribeCard({ run, e, mate, onDone }) {
+    const [on, setOn] = React.useState(() => Object.fromEntries((e.items || []).map((x) => [x.id, x.on !== false])))
+    const [busy, setBusy] = React.useState(false)
+    const [err, setErr] = React.useState('')
+    const go = () => { if (busy) return; setBusy(true); setErr(''); api('/mates/subscribe', { id: mate.id, runId: run.id, entryId: e.id, items: on }).then(() => { if (onDone) onDone() }).catch((x) => setErr((x && x.message) || String(x))).finally(() => setBusy(false)) }
+    return h('div', { className: 'mwt-card mwt-sub' },
+      h('div', { className: 'mwt-card-h' }, e.title),
+      (e.items || []).map((x) => {
+        const checked = e.done ? x.on !== false : !!on[x.id]
+        return h('div', { key: x.id, className: 'it' },
+          h('button', { type: 'button', role: 'checkbox', className: 'mwt-check', 'aria-checked': checked, 'aria-label': x.label, disabled: !!e.done, onClick: () => setOn({ ...on, [x.id]: !on[x.id] }) }, checked ? icon('check', { size: 12, strokeWidth: 3 }) : null),
+          h('span', null, x.label, x.note ? h('span', { className: 'note' }, x.note) : null))
+      }),
+      e.quiet ? h('div', { className: 'quiet' }, e.quiet) : null,
+      e.done
+        ? h('div', { className: 'mwt-acts' }, h('span', { className: 'msg' }, t('subDone').replace('{t}', hhmm(e.doneAt))))
+        : h('div', { className: 'mwt-acts' }, h('span', { className: 'msg' + (err ? ' err' : '') }, err), h('button', { type: 'button', className: 'mwt-btn primary', disabled: busy, onClick: go }, t('subGo'))))
+  }
+
+  /**
+   * 变化卡 (EDITIONS.md 4.2, 9.3): a precheck's changes, built by code — per row: what, its tier (立刻 / 到点), where it is
+   * used, when it takes effect, the monthly delta when the list has the spend, the source (and the quote), the
+   * replacement. The foot: how much it looked at, and what it could not read.
+   */
+  function ChangeCard({ e }) {
+    const items = e.items || []
+    const unread = e.unreadable || []
+    return h('div', { className: 'mwt-card mwt-chg mwt-today' },
+      h('div', { className: 'hd' }, h('b', null, t('chgTitle').replace('{n}', String(items.length))), e.baseline ? h('span', null, t('chgBaseline')) : null),
+      items.map((x) => h('div', { key: x.key, className: 'it' },
+        h('div', { className: 'l1' }, h('span', { className: 's', title: x.subject }, x.subject), h('span', { className: 'w' }, x.summary),
+          h('span', { className: 'tier', 'data-now': x.tier === 'now' ? 'true' : undefined }, x.tier === 'now' ? t('tierNow') : t('tierDigest'))),
+        h('div', { className: 'l2' }, [x.where ? t('chgUsed').replace('{w}', x.where) : t('chgWhereNone'), whenOf(x), x.monthly, x.replacement && x.replacement.length ? t('chgReplace').replace('{s}', x.replacement.join('、')) : ''].filter(Boolean).join(' · ')),
+        h('div', { className: 'l2' }, x.source, x.also && x.also.length ? '（' + t('chgAlso').replace('{s}', x.also.join('、')) + '）' : '', x.url ? h(React.Fragment, null, ' · ', h('a', { href: x.url, target: '_blank', rel: 'noopener noreferrer' }, t('chgOpen'))) : null),
+        x.quote ? h('div', { className: 'q', title: x.quote }, '「' + x.quote + '」') : null)),
+      h('div', { className: 'ft' },
+        h('span', null, t('chgFoot').replace('{n}', String(e.checked || 0)).replace('{m}', String(e.related || 0))),
+        unread.length ? h('span', { title: unread.map((u) => u.title + '：' + u.reason).join('\n') }, t('chgUnread').replace('{n}', String(unread.length)).replace('{s}', unread.map((u) => u.title).join('、'))) : null))
   }
 
   /**
@@ -2099,12 +2346,12 @@ function makeComponents(ctx, t) {
     const mateOf = (id) => (mates || []).find((m) => m.id === id) || { id, name: '' }
     const kindOf = { ask: [t('kAsk'), 'warn'], remind: [t('kRemind'), undefined], failed: [t('kFailed'), 'danger'], file: [t('kFile'), undefined], routine: ['', undefined] }
     const row = (x) => {
-      const [word, tone] = kindOf[x.kind] || ['', undefined]
-      const right = x.late ? t('todayLate') + ' ' + hhmm(x.at) : x.more ? t('todayMore').replace('{n}', String(x.more)) : word
+      const [word, tone] = x.kind === 'watch' ? (x.tier === 'now' ? [t('tierNow'), 'accent'] : [t('tierDigest'), undefined]) : kindOf[x.kind] || ['', undefined]
+      const right = x.kind === 'watch' ? [word, x.late ? t('todayLate') + ' ' + hhmm(x.at) : ''].filter(Boolean).join(' · ') : x.late ? t('todayLate') + ' ' + hhmm(x.at) : x.more ? t('todayMore').replace('{n}', String(x.more)) : word
       return h('button', { key: x.kind + ':' + x.runId + ':' + x.at, type: 'button', className: 'row', onClick: () => onOpen(x.mateId, x.runId) },
         h('span', { className: 'who' }, h(Avatar, { mate: mateOf(x.mateId), size: 16 }), x.mateName),
         h('span', { className: 'tx', title: x.text }, x.text),
-        h('span', { className: 'k', 'data-tone': x.late ? undefined : tone }, right))
+        h('span', { className: 'k', 'data-tone': x.late && x.kind !== 'watch' ? undefined : tone }, right))
     }
     const quiet = (card.quiet || []).map((q) => q.mateName + ' ' + q.n).join(' · ')
     const nothing = !card.needs.length && !card.changes.length
@@ -2127,7 +2374,7 @@ function makeComponents(ctx, t) {
     React.useEffect(() => { if (th.loaded && !th.error) threadCache.set(mate.id, { runs: th.runs, nextBefore: th.nextBefore }) }, [th.runs, th.nextBefore])
     const [bump, setBump] = React.useState(0)
     const working = mate.state === 'working'
-    const key = [mate.lastAt || '', mate.state || '', mate.step || '', mate.ask && mate.ask.id ? mate.ask.id : '', working ? Math.floor(Date.now() / FAST_MS) : 0, bump].join('|')
+    const key = [mate.lastAt || '', mate.checkedAt || '', mate.state || '', mate.step || '', mate.ask && mate.ask.id ? mate.ask.id : '', working ? Math.floor(Date.now() / FAST_MS) : 0, bump].join('|')
     React.useEffect(() => {
       let on = true
       const started = Date.now()
@@ -2423,6 +2670,10 @@ function makeComponents(ctx, t) {
           for (const d of e.ds || [e.d]) add('mate', { ...e, key: e.key + ':' + d.id }, () => h(DocCard, { d, compact: fold, arrive, onOpen: openDoc }), { card: true })
         } else if (e.kind === 'ask') add('mate', e, () => h(AskCard, { e, onAnswer: answer(run.id), onTakeover: takeover }), { card: true })
         else if (e.kind === 'remind') add('mate', e, () => h(RemindCard, { e, onAck: ack }), { card: true })
+        else if (e.kind === 'onboard') add('mate', e, () => h(OnboardCard, { run, e: e.e, mate, onDone: () => { th.reload(); kick() } }), { card: true })
+        else if (e.kind === 'listcheck') add('mate', e, () => h(ListCheckCard, { run, e: e.e, mate, onDone: () => { th.reload(); kick() }, onEdit: () => editInThread(e.e.file || '清单.csv'), onOpenPath: (p) => openFile({ path: p }) }), { card: true })
+        else if (e.kind === 'subscribe') add('mate', e, () => h(SubscribeCard, { run, e: e.e, mate, onDone: () => { th.reload(); kick() } }), { card: true })
+        else if (e.kind === 'changes') add('mate', e, () => h(ChangeCard, { e: e.e }), { card: true })
         else if (e.kind === 'failed') add('mate', e, bubble('danger', false, t('failedTitle') + ' · ' + e.reason))
         else if (e.kind === 'thinking') add('status', e, null, { parts: [t('working'), e.step, elapsedOf(run)], live: true })
         else if (e.kind === 'queued') add('status', e, null, { parts: [t('queued')] })
@@ -2716,7 +2967,7 @@ function makeComponents(ctx, t) {
     const [busy, setBusy] = React.useState(false)
     const listRef = React.useRef(null)
     const load = React.useCallback(() => api('/routines?mate=' + encodeURIComponent(mate.id)).then((d) => setItems((d.items || []).filter((r) => !r.mateId || r.mateId === mate.id))).catch(() => setItems((p) => p || [])), [mate.id])
-    React.useEffect(() => { load() }, [load, mate.lastAt || '', mate.routineCount])
+    React.useEffect(() => { load() }, [load, mate.lastAt || '', mate.checkedAt || '', mate.routineCount])
     React.useEffect(() => { if (expand) setOpen(expand) }, [expand, seq])
     React.useEffect(() => {
       if (!expand || !items || !listRef.current) return
@@ -3097,6 +3348,18 @@ function makeComponents(ctx, t) {
     const [err, setErr] = React.useState('')
     const ref = React.useRef(null)
     React.useEffect(() => { if (ref.current) ref.current.focus() }, [])
+    // 从模板建 (EDITIONS.md 9.5): a ready-made teammate with its job, list, rules and onboarding card; one click.
+    const [tpls, setTpls] = React.useState([])
+    React.useEffect(() => { let on = true; api('/templates').then((d) => { if (on) setTpls((d && d.items) || []) }).catch(() => {}); return () => { on = false } }, [])
+    const created = (x) => {
+      const m = x && x.mate
+      // The new teammate joins the snapshot now, so its page opens on it (not on the default) before the next poll.
+      if (m && m.id && !state.mates.some((y) => y.id === m.id)) setState({ mates: [...state.mates, { ...m, addedAt: Date.now() }] })
+      // Nav moves to the new teammate before any refetch, so no snapshot in between can fall back to another one.
+      if (m && m.id) { openMate(m.id); onCreated(m) }
+      kick()
+    }
+    const fromTemplate = (id) => { if (busy) return; setBusy(true); setErr(''); api('/mates/create', { template: id }).then(created).catch((e) => setErr(e.message || String(e))).finally(() => setBusy(false)) }
     const ready = !!description.trim() && !!cleanType(type)
     const submit = () => {
       const d = description.trim()
@@ -3105,19 +3368,16 @@ function makeComponents(ctx, t) {
       if (!cleanType(type)) { setErr(t('typeNeeded')); return }
       setBusy(true); setErr('')
       api('/mates/create', { description: d, group: cleanType(type), avatar: look, ...(name.trim() ? { name: name.trim() } : {}) })
-        .then((x) => {
-          setDescription(''); setName('')
-          const m = x && x.mate
-          // The new teammate joins the snapshot now, so its page opens on it (not on the default) before the next poll.
-          if (m && m.id && !state.mates.some((y) => y.id === m.id)) setState({ mates: [...state.mates, { ...m, addedAt: Date.now() }] })
-          // Nav moves to the new teammate before any refetch, so no snapshot in between can fall back to another one.
-          if (m && m.id) { openMate(m.id); onCreated(m) }
-          kick()
-        })
+        .then((x) => { setDescription(''); setName(''); created(x) })
         .catch((e) => setErr(e.message || String(e))).finally(() => setBusy(false))
     }
     const fill = (v) => { setDescription(v); setTimeout(() => { const el = ref.current; if (el) { el.focus(); el.setSelectionRange(v.length, v.length) } }, 0) }
     return h('div', null,
+      tpls.length ? h('div', { className: 'mwt-field' }, h('span', null, t('tplHead')),
+        h('div', { className: 'mwt-tpls' }, tpls.map((x) => h('button', { key: x.id, type: 'button', className: 'mwt-tpl', disabled: busy, onClick: () => fromTemplate(x.id) },
+          h(Avatar, { mate: { id: 'tpl-' + x.id, name: x.name, avatar: x.avatar }, size: 28 }),
+          h('span', null, h('b', null, x.name), x.pitch ? h('span', { className: 'p' }, x.pitch) : null)))),
+        h('p', { className: 'mwt-tpl-or' }, t('tplOr'))) : null,
       h('label', { className: 'mwt-field' }, h('span', null, t('dutyAsk')),
         h('textarea', { ref, className: 'mwt-input', rows: 4, value: description, placeholder: t('dutyPh'), required: true, onChange: (e) => setDescription(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); submit() } } })),
       h('div', { className: 'mwt-examples' }, [t('dutyEx1'), t('dutyEx2'), t('dutyEx3')].map((x) => h('button', { key: x, type: 'button', className: 'mwt-choice small', onClick: () => fill(x) }, x))),

@@ -17,7 +17,7 @@
 import { createReadStream, copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync, appendFileSync } from 'node:fs'
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
 import { homedir } from 'node:os'
-import { dirname, extname, join, relative, resolve } from 'node:path'
+import { dirname, extname, isAbsolute, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { ASK_TEXT, bad, createEngine, hashOf, mateSessionId, notFound } from './engine.js'
 import { configSchema, defineRawTool, rejectUntrusted } from './harness.js'
@@ -28,6 +28,9 @@ import {
   pendingAsk, plainLine, plainText, SeenStore, TaskStore, ts,
 } from './store.js'
 import { describeSchedule, parseSchedule, routineLastAt, RoutineStore, routineView } from './routines.js'
+import { changePrompt, changesEntry, LIST_HEADER, parseCsv, precheck as aiPrecheck, pushOf, toCsv } from './aiwatch.js'
+import { mergeRows, scanDir, scanFiles } from './inventory.js'
+import { getText } from './net.js'
 
 export const name = 'dsh-mywork-tasks'
 export const inject = ['tools', 'agents', 'sessions', 'workspaceRegistry', 'agentDefaultModel', 'agentPresets', 'permissionPresets']
@@ -62,6 +65,34 @@ export function cleanAskFirst(list) {
 /** 主动程度 (PROACTIVE.md §6.1): ask (只在我问时) | default | more (多做一点). */
 export const PROACTIVE_LEVELS = ['ask', 'default', 'more']
 
+/**
+ * Teammate templates (EDITIONS.md 9.5), one folder each under templates/: template.json (name, title, group, avatar,
+ * pitch, intro, onboard card, subscription items, routine, precheck), duty.md (the job), seed/ (清单.csv, 判断.csv,
+ * AGENTS.md copied into a new teammate's folder; {date} becomes today) and sources.json (the precheck's vendor pages).
+ */
+export function loadTemplates(root) {
+  const out = new Map()
+  let names = []
+  try { names = readdirSync(root) } catch { return out }
+  for (const n of names) {
+    const dir = join(root, n)
+    try {
+      const t = JSON.parse(readFileSync(join(dir, 'template.json'), 'utf8'))
+      if (!t || !t.id) continue
+      t.dir = dir
+      t.duty = existsSync(join(dir, 'duty.md')) ? readFileSync(join(dir, 'duty.md'), 'utf8').trim() : ''
+      t.sources = existsSync(join(dir, 'sources.json')) ? JSON.parse(readFileSync(join(dir, 'sources.json'), 'utf8')) : []
+      out.set(t.id, t)
+    } catch {}
+  }
+  return out
+}
+/** Prechecks by name: async ({ listText, state, sources, options, fetchText, now }) → { state, changes, checked, related, unreadable, … } */
+export const PRECHECKS = { 'ai-watch': aiPrecheck }
+/** A file handed over in pieces may grow to this size (材料/). */
+const UPLOAD_MAX = 20 * 1024 * 1024
+const MATERIAL_DIR = '材料'
+
 // ── the teammate's generated preset ─────────────────────────────────────────
 
 /** The persona of one teammate plus MyWork's working rules: the preset's persona prefix. */
@@ -82,7 +113,7 @@ export function personaPrefix(mate) {
     ...(askFirst.length ? [`- 例外：下面这几类事，做之前先用 mywork_ask（askKind approval）问用户，用户允许了再做——${askFirst.join('；')}。`] : []),
     '- 网站要登录时：用户给过你账号和密码就直接登录；没给过，用 mywork_ask（askKind takeover）请用户在电脑上的浏览器里登录，或者问用户要账号。登录状态会留在浏览器里。',
     '- 用户说带时间的事（每天 / 每周 / 工作日 / 几点 / 多久之后 / 提醒我），用 mywork_routine_create 安排成你的例行（这样用户在 MyWork 里看得见、管得着），一件事只安排一次；mywork_routines 查看，mywork_routine_cancel 取消。例行到点时你会收到「这是例行任务…」开头的消息，照要求做完回话；例行运行时没人在等着回答，不要用 mywork_ask。',
-    '- 你盯的东西（股票、在用的模型和依赖、课题、竞品……）记在你文件夹里的 清单.csv：一行一个对象，第一列是对象名，其余列你定，中文表头，只往后加列。用户说出的看法、假设和决定记在 判断.csv，表头固定为 编号,类型,内容,依据,重看条件,状态,日期（编号从 J-01 起；类型是 看法 / 假设 / 决定 / 前提；状态是 有效 / 动摇 / 已改 / 撤回）。用户在右边的资料栏里看这两张表。改用户的判断时写清新的状态和理由；你自己的看法在内容前标「同事的：」。',
+    '- 你盯的东西（股票、在用的模型和依赖、课题、竞品……）记在你文件夹里的 清单.csv：一行一个对象，第一列是对象名，其余列你定，中文表头，只往后加列；已经有表头的照表头写，用 mywork_list_write 写（按表头合并，用户能撤销）。用户说出的看法、假设和决定记在 判断.csv，表头固定为 编号,类型,内容,依据,重看条件,状态,日期（编号从 J-01 起；类型是 看法 / 假设 / 决定 / 前提；状态是 有效 / 动摇 / 已改 / 撤回）。用户在右边的资料栏里看这两张表。改用户的判断时写清新的状态和理由；你自己的看法在内容前标「同事的：」。',
     '- 用户纠正你，或说了长期的偏好和口径（称呼、格式、数据只用哪种来源），用 mywork_remember 记一条规矩；它写进你文件夹里的 AGENTS.md，以后每一轮都会读到，用户能在资料栏里改和删。一次性的事不要记。',
     '- 用户在你干活时插话，是在改这件事的要求，接着做，按最新的话为准。',
     ...(mate.proactive === 'ask' ? ['- 主动程度：只在用户问时。只做用户叫你做的事和你的例行，不要额外多查、多备、多做。'] : []),
@@ -140,7 +171,9 @@ export function mateComposition(baseText, mate) {
  * Everything but the cordis wiring. `ctx` is the dsh plugin context (or a fake), `home` the DSH_HOME, `controller()`
  * the session controller, `hostEmit(payload)` where 'mywork/task' events go.
  */
-export function createMyWork({ ctx, config = {}, home, log = () => {}, controller = () => null, hostEmit = () => {} }) {
+export function createMyWork({ ctx, config = {}, home, log = () => {}, controller = () => null, hostEmit = () => {}, fetchText, templates: givenTemplates }) {
+  const templates = givenTemplates instanceof Map ? givenTemplates : loadTemplates(join(dirname(fileURLToPath(import.meta.url)), '..', 'templates'))
+  const fetchSource = typeof fetchText === 'function' ? fetchText : (url) => getText(url, { timeoutMs: 25000 }).then((r) => r.text)
   const dshHome = home || process.env.DSH_HOME || join(homedir(), '.dsh')
   const dir = join(dshHome, 'mywork')
   const presetRoot = join(dshHome, '.agent-presets')
@@ -184,6 +217,7 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
       deliverables: list.map((d) => ({ ...deliverableSummary(d), excerpt: excerptOf(d.markdown) })),
       verification: t.verification || null, verifying: !!t.verifying,
       ask: ask ? askView(ask) : null, error: t.error || '', quiet: !!t.quiet, migrated: !!t.migrated, remind: t.remind ? remindOfRun(t) : null,
+      watch: t.watch ? { tier: t.watch.tier, headline: t.watch.headline, n: t.watch.n, now: t.watch.now, push: t.watch.push || '' } : null,
       step: t.status === 'running' ? currentStepOf(t) : '',
       createdAt: t.createdAt, startedAt: t.startedAt || '', finishedAt: t.finishedAt || '',
     }
@@ -218,7 +252,9 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
       lastAt: lastAt || m.createdAt, preview, unread: seen.unread(m.id, attentionAt), unreadCount, attentionAt,
       state, step, since: running ? (running.startedAt || running.createdAt) : live.length ? live[0].createdAt : pending ? pending.at : '',
       ask: pending ? { ...askView(pending), runId: waiting.id } : null,
-      routineCount: routines.forMate(m.id).length, dir: m.dir,
+      routineCount: routines.forMate(m.id).length, dir: m.dir, template: m.template || '',
+      // When a precheck last settled (a quiet one leaves only a receipt): the page re-reads the thread and routines on it.
+      checkedAt: routines.forMate(m.id).reduce((acc, r) => (r.precheck && r.runs && r.runs[0] && r.runs[0].settledAt ? later(acc, r.runs[0].settledAt) : acc), ''),
       askFirst: cleanAskFirst(m.askFirst), proactive: PROACTIVE_LEVELS.includes(m.proactive) ? m.proactive : 'default', readTime: m.isDefault ? (READ_TIME.test(m.readTime || '') ? m.readTime : DEFAULT_READ_TIME) : '',
     }
   }
@@ -347,7 +383,7 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
 
   const engine = createEngine({
     ctx, store, deliverables, mates, routines, scenarios, log, emit, controller, presetFor, workRecord,
-    afterTurn: (mateId) => { if (stalePresets.delete(mateId)) relink(mateId) },
+    afterTurn: (mateId) => { if (stalePresets.delete(mateId)) relink(mateId); try { onboardAfterIntro(mateId) } catch (e) { log('onboard: ' + (e && e.message)) } },
     config: {
       concurrency: Number(config.concurrency) || 2, timeoutMs: Math.max(1, Number(config.timeoutMinutes) || 20) * 60000,
       permission: String(config.permission || 'workspace-write'), agentPreset: config.agentPreset === '' ? undefined : (config.agentPreset || 'standard'),
@@ -372,13 +408,19 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
 
   // ── teammates ──
   function createMate(b) {
-    const description = String((b && b.description) || '').trim()
+    const tpl = b && b.template ? templates.get(String(b.template)) : null
+    if (b && b.template && !tpl) throw bad('没有这个模板。')
+    const description = tpl ? tpl.duty || tpl.pitch || tpl.name : String((b && b.description) || '').trim()
     if (!description) throw bad('写一句它负责什么。')
-    const mate = mates.create({ description, name: b.name, title: b.title })
-    if (b.group !== undefined || b.pinned !== undefined || b.avatar !== undefined) mates.update(mate.id, { group: String(b.group || '').trim().slice(0, 12), pinned: !!b.pinned, avatar: avatarOf(b.avatar) })
+    const mate = mates.create({ description, name: b.name || (tpl ? tpl.name : ''), title: b.title !== undefined ? b.title : tpl ? tpl.title : '' })
+    if (tpl) mates.update(mate.id, { template: tpl.id, group: String(b.group || tpl.group || '').trim().slice(0, 12), avatar: avatarOf(b.avatar || tpl.avatar), pinned: !!b.pinned })
+    else if (b.group !== undefined || b.pinned !== undefined || b.avatar !== undefined) mates.update(mate.id, { group: String(b.group || '').trim().slice(0, 12), pinned: !!b.pinned, avatar: avatarOf(b.avatar) })
     try { mkdirSync(mate.dir, { recursive: true }) } catch {}
+    if (tpl) seedFolder(tpl, mate.dir)
     // The hidden intro run: it names itself when it has no name, sets up a timed duty, and says how it understood its job.
+    // A template's intro says its own lines; the onboarding card follows it (onboardAfterIntro).
     const intro = store.create({ mateId: mate.id, trigger: 'system', input: '', title: '自我介绍' })
+    if (tpl) store.update(intro.id, { template: tpl.id, prompt: '（这句话是 MyWork 在你刚被创建时替用户发的，用户看不到它，只看得到你的回复。）\n' + (tpl.intro || '用两三句话向用户介绍自己。') })
     log(`teammate ${mate.id} created (${mate.name || 'unnamed'})`)
     emit('mate', null, { mateId: mate.id })
     emit('queued', intro)
@@ -471,7 +513,16 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
       if (r.trigger === 'system' && r.status === 'done' && !r.error && !(r.activity || []).some(isThreadEntry) && !(index.get(r.id) || []).length) return false
       return true
     }
-    const runs = store.forMate(m.id).filter(visible).map((r, i) => ({ r, i })).sort((a, b) => (ts(a.r.createdAt) - ts(b.r.createdAt)) || (a.i - b.i)).map((x) => x.r)
+    // A precheck that found nothing made no run: its receipt on the routine is drawn as the same grey line.
+    const receipts = []
+    for (const rt of routines.forMate(m.id)) {
+      if (!rt.precheck) continue
+      for (const x of rt.runs || []) {
+        if (!x.precheck || x.taskId || x.precheck.running) continue
+        receipts.push({ id: 'pc-' + rt.id + '-' + ts(x.at), mateId: m.id, trigger: 'routine', routineId: rt.id, routineTitle: rt.title, status: 'done', quiet: true, receipt: true, precheck: x.precheck, error: '', input: '', activity: [], deliverableIds: [], createdAt: x.at, startedAt: x.at, finishedAt: x.settledAt || x.at })
+      }
+    }
+    const runs = [...store.forMate(m.id).filter(visible), ...receipts].map((r, i) => ({ r, i })).sort((a, b) => (ts(a.r.createdAt) - ts(b.r.createdAt)) || (a.i - b.i)).map((x) => x.r)
     const b = String(before || '').trim()
     if (b && !Number.isFinite(Date.parse(b))) throw bad('before must be an ISO date')
     const cut = b ? ts(b) : Infinity
@@ -480,7 +531,8 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     let start = Math.max(0, eligible.length - n)
     while (start > 0 && ts(eligible[start - 1].createdAt) === ts(eligible[start].createdAt)) start -= 1
     const page = eligible.slice(start)
-    return { runs: page.map((r) => liteRun(runView(r, index.get(r.id) || []))), nextBefore: start > 0 && page.length ? page[0].createdAt : null }
+    const viewOf = (r) => (r.receipt ? { ...runView(r, []), receipt: true, precheck: r.precheck } : liteRun(runView(r, index.get(r.id) || [])))
+    return { runs: page.map(viewOf), nextBefore: start > 0 && page.length ? page[0].createdAt : null }
   }
   /**
    * The thread's copy of a run: tool calls leave the activity of a run that is not live (the 过程 fold fetches them from
@@ -620,6 +672,7 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     const r = routines.get(String(id || ''))
     if (!r) throw notFound('routine not found')
     const mateId = mates.get(r.mateId) ? r.mateId : DEFAULT_MATE_ID
+    if (r.precheck && PRECHECKS[r.precheck]) return startPrecheck(r)
     if (r.kind === 'remind') {
       routines.fire(r.id)
       const at = routines.get(r.id).fired[0].at
@@ -844,6 +897,8 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
         if (isQuietRun(t)) { q += 1; continue }
         if (t.error) { if (t.error !== '已停止。') needs.push(item('failed', t.finishedAt, (t.routineTitle ? t.routineTitle + ' · ' : '') + t.error)); continue }
         if (t.trigger === 'system') continue
+        // A precheck's change: its headline and the tier code gave it (立刻 · pushed at HH:MM / 到点).
+        if (t.watch) { mine.push({ ...item('watch', t.finishedAt, t.watch.headline + (t.watch.n > 1 ? ` 等 ${t.watch.n} 条` : '')), tier: t.watch.tier }); continue }
         const docs = index.get(t.id) || []
         // Something you asked for counts only when it left a file you have not opened yet; a routine's result always.
         if (t.trigger !== 'routine' && !(docs.length && seen.unread(m.id, t.finishedAt))) continue
@@ -851,16 +906,258 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
         const text = docs.length ? docs[docs.length - 1].title : reply ? plainLine(reply.text) : t.summary
         if (text) mine.push(item(t.trigger === 'routine' ? 'routine' : 'file', t.finishedAt, (t.trigger === 'routine' && t.routineTitle && !docs.length ? t.routineTitle + '：' : '') + text))
       }
-      mine.sort((a, b) => ts(b.at) - ts(a.at))
+      for (const rt of routines.forMate(m.id)) if (rt.precheck) for (const x of rt.runs || []) if (x.precheck && !x.taskId && !x.precheck.running && ts(x.settledAt || x.at) >= since) q += 1
+      mine.sort((a, b) => (a.tier === 'now' ? 0 : 1) - (b.tier === 'now' ? 0 : 1) || ts(b.at) - ts(a.at))
       if (mine.length) changes.push(...mine.slice(0, 3).map((x, i) => (i === 2 && mine.length > 3 ? { ...x, more: mine.length - 3 } : x)))
       if (q) quiet.push({ mateId: m.id, mateName: name, n: q })
     }
     const order = { ask: 0, failed: 1, remind: 2 }
     needs.sort((a, b) => (order[a.kind] - order[b.kind]) || (ts(b.at) - ts(a.at)))
+    // 立刻 changes first, across teammates (EDITIONS.md 4.4); the rest keep their teammate order.
+    changes.sort((a, b) => (a.tier === 'now' ? 0 : 1) - (b.tier === 'now' ? 0 : 1))
     // One screen: at most 12 rows in all (需要你 first); what does not fit is counted, and each teammate's thread has it.
     const room = Math.max(3, TODAY_ROWS - needs.length)
     const hidden = Math.max(0, changes.length - room)
     return { ...base, ready: true, needs, changes: changes.slice(0, room), hidden, did, quiet, updatedAt: now.toISOString() }
+  }
+
+  // ── templates, 上岗, 在用清单, 预检 (EDITIONS.md 3, 4.1, 9.3; PROACTIVE.md 12) ──
+  const cardId = (p) => p + '-' + Date.now().toString(36) + randomBytes(3).toString('hex')
+  const dayStr = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') }
+  const templateView = (tp) => ({ id: tp.id, name: tp.name, title: tp.title || '', group: tp.group || '', avatar: tp.avatar || null, pitch: tp.pitch || '' })
+  /** A template's seed files into a new teammate's folder (never over a file that is already there). */
+  function seedFolder(tp, dir) {
+    const from = join(tp.dir, 'seed')
+    let names = []
+    try { names = readdirSync(from) } catch { return }
+    for (const n of names) {
+      const to = join(dir, n)
+      if (existsSync(to)) continue
+      try { writeFileSync(to, readFileSync(join(from, n), 'utf8').replace(/\{date\}/g, dayStr())) } catch (e) { log(`seed ${n}: ${e && e.message}`) }
+    }
+  }
+  /** The card a run carries (kind, and id when given), or a 404. */
+  function cardOf(runId, entryId, kind) {
+    const run = store.get(String(runId || ''))
+    if (!run) throw notFound('run not found')
+    const e = [...(run.activity || [])].reverse().find((a) => a && a.kind === kind && (!entryId || a.id === entryId))
+    if (!e) throw notFound('没有这张卡。')
+    return { run, e }
+  }
+  /** After a template teammate's intro turn: the onboarding card (上岗卡) under its greeting, once. */
+  function onboardAfterIntro(mateId) {
+    const m = mates.get(mateId)
+    const tp = m && m.template ? templates.get(m.template) : null
+    if (!tp || !tp.onboard) return
+    const intro = store.forMate(m.id).find((r) => r.trigger === 'system' && r.template)
+    if (!intro || intro.status !== 'done' || (intro.activity || []).some((a) => a && a.kind === 'onboard')) return
+    const o = tp.onboard
+    store.activity(intro.id, { kind: 'onboard', id: cardId('ob'), template: tp.id, title: o.title || '开工 · ' + tp.name, question: o.question || '', hint: o.hint || '', placeholder: o.placeholder || '', done: false })
+    emit('mate', null, { mateId: m.id })
+  }
+  /** A new name in 材料/ for a file handed over (never over an existing one). */
+  function materialPath(m, name) {
+    const base = String(name || 'file').replace(/[\\/:*?"<>|\u0000-\u001f]+/g, ' ').replace(/^\.+/, '').trim().slice(0, 120) || 'file'
+    mkdirSync(join(m.dir, MATERIAL_DIR), { recursive: true })
+    const ext = extname(base)
+    const stem = ext ? base.slice(0, -ext.length) : base
+    let candidate = base
+    for (let i = 2; existsSync(join(m.dir, MATERIAL_DIR, candidate)); i += 1) candidate = `${stem} (${i})${ext}`
+    return MATERIAL_DIR + '/' + candidate
+  }
+  /** POST /mates/upload { id, name, data (base64) } → a new file in 材料/; { path, data } appends the next piece to it. */
+  function upload(b) {
+    const m = mates.get(String((b && b.id) || ''))
+    if (!m) throw notFound('同事不存在。')
+    const data = Buffer.from(String(b.data || ''), 'base64')
+    let rel = String(b.path || '')
+    if (rel) {
+      const full = resolve(m.dir, rel)
+      const inside = relative(resolve(m.dir, MATERIAL_DIR), full)
+      if (!inside || inside.startsWith('..') || isAbsolute(inside)) throw bad('只能续写 材料/ 里的文件。')
+      rel = relative(resolve(m.dir), full).split('\\').join('/')
+    } else rel = materialPath(m, b.name)
+    const full = join(m.dir, rel)
+    const before = b.path && existsSync(full) ? statSync(full).size : 0
+    if (before + data.length > UPLOAD_MAX) throw bad('文件太大了：一个最多 20 MB。')
+    if (b.path) appendFileSync(full, data); else writeFileSync(full, data)
+    return { path: rel, size: before + data.length }
+  }
+  /**
+   * The onboarding card's 「交给它」: files already in 材料/ plus what you wrote. Code reads candidates first (dependency
+   * files, gateway configs, bills, folders the text names); the teammate checks them and writes 清单.csv.
+   */
+  function onboard(b) {
+    const m = mates.get(String((b && b.id) || ''))
+    if (!m) throw notFound('同事不存在。')
+    const { run: introRun, e } = cardOf(b.runId, b.entryId, 'onboard')
+    if (e.done) throw bad('已经交给它了。')
+    const files = (Array.isArray(b.files) ? b.files : []).map((x) => String(x || '').trim()).filter(Boolean).slice(0, 20)
+    const text = String(b.text || '').trim().slice(0, 4000)
+    if (!files.length && !text) throw bad('给它一个文件，或者写几句你们在用什么。')
+    const texts = []
+    for (const f of files) { try { texts.push({ name: f.replace(/^材料\//, ''), text: readFileSync(folderPath(m.id, f).full, 'utf8').slice(0, 5 * 1024 * 1024) }) } catch {} }
+    if (text) texts.push({ name: '你写的', text })
+    const scan = scanFiles(texts)
+    const dirs = []
+    for (const raw of text.match(/(?:~|\/)[^\s，。；、"'`]+/g) || []) { const p = raw.startsWith('~') ? join(homedir(), raw.slice(1)) : raw; try { if (statSync(p).isDirectory() && !dirs.includes(p)) dirs.push(p) } catch {} }
+    let rows = scan.rows
+    for (const d of dirs.slice(0, 3)) { const s = scanDir(d); rows = mergeRows([...rows, ...s.rows]); scan.read.push({ name: d, kind: '代码目录', n: s.rows.length }) }
+    const at = new Date().toISOString()
+    store.update(introRun.id, () => { e.done = true; e.doneAt = at; e.files = files; e.note = clip(text, 120) })
+    const shown = files.map((f) => f.replace(/^材料\//, ''))
+    const visible = [shown.length ? '我们在用的东西放在 材料/ 里：' + shown.join('、') + '。' : '', text].filter(Boolean).join('\n')
+    const cols = ['类型', '名称', '供应商', '模型ID或版本', '月用量或花费', '怎么知道的']
+    const extra = [
+      '',
+      '（以下是 MyWork 替用户附上的，用户看不到。）',
+      rows.length ? `程序先从这些材料里读出了 ${rows.length} 行候选（「怎么知道的」已写好）：\n` + toCsv(cols, rows.slice(0, 200).map((r) => cols.map((c) => r[c] || ''))) : '程序没从材料里读出候选：你自己读一遍材料（材料/ 下），或者问用户。',
+      scan.skipped.length ? '程序不认识的：' + scan.skipped.map((x) => x.name).join('、') + '（你自己看）。' : '',
+      dirs.length ? `用户给的代码目录（程序扫过一遍）：${dirs.join('、')}。` : '',
+      '你要做：核对这些候选（去掉不是在用的、合并重复的、SDK 和模型分开），能确定的列补上；用户写到的哪里在用、负责人、月花费照填，用户没说的「哪里在用」留空，不要猜。然后调用 mywork_list_write（confirm: true，rows 的键用 清单.csv 的表头）写进清单，再用两三句话告诉用户：读到了几行、哪几行的「哪里在用」还空着、还缺什么（比如账单）。不要交付文件，不要建例行。',
+    ].filter((x) => x !== '').join('\n')
+    const run = store.create({ mateId: m.id, trigger: 'user', input: visible })
+    store.update(run.id, { promptExtra: extra })
+    emit('mate', null, { mateId: m.id })
+    emit('queued', store.get(run.id))
+    engine.pump()
+    return { runId: run.id, candidates: rows.length, read: scan.read }
+  }
+  /**
+   * 清单.csv by its header: a model row is keyed by 模型ID或版本 (else 名称), an SDK row by 名称; an existing row takes the
+   * non-empty cells it is given; a column the header lacks is added at the end. The file is snapshotted for 撤销 first.
+   * confirm → the list card (前 10 行 + 对，就这些 / 改一下) under the run's reply.
+   */
+  function writeList(mate, runId, rows, { replace, confirm } = {}) {
+    const file = join(mate.dir, '清单.csv')
+    const existing = existsSync(file) ? parseCsv(readFileSync(file, 'utf8')) : []
+    const header = existing.length ? existing[0].map((x) => String(x).trim()) : mate.template === 'watch-ai' ? LIST_HEADER.slice() : []
+    const keyOf = (o) => {
+      const sdk = /sdk|框架|库|framework|library/i.test(String(o['类型'] || ''))
+      const v = String((sdk ? o['名称'] : o['模型ID或版本'] || o['名称']) || (header[0] ? o[header[0]] : '') || '').trim().toLowerCase()
+      return v ? (sdk ? 'sdk:' : 'm:') + v : ''
+    }
+    const body = replace ? [] : existing.slice(1).filter((c) => c.some((x) => String(x).trim())).map((cells) => Object.fromEntries(header.map((h, i) => [h, String(cells[i] === undefined ? '' : cells[i])])))
+    let added = 0
+    let updated = 0
+    for (const raw of rows) {
+      if (!raw || typeof raw !== 'object') continue
+      const o = {}
+      for (const [k, v] of Object.entries(raw)) { const kk = String(k).trim().slice(0, 20); if (kk) o[kk] = String(v === undefined || v === null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, 300) }
+      for (const k of Object.keys(o)) if (!header.includes(k)) header.push(k)
+      const k = keyOf(o)
+      const hit = k ? body.find((x) => keyOf(x) === k) : null
+      if (hit) { for (const [kk, v] of Object.entries(o)) if (v) hit[kk] = v; updated += 1 } else { body.push(o); added += 1 }
+    }
+    if (!header.length) throw new Error('清单还没有表头：rows 里至少要有一个键。')
+    mkdirSync(mate.dir, { recursive: true })
+    if (runId) engine.recordFileChange(runId, mate, file)
+    writeFileSync(file, toCsv(header, body.map((o) => header.map((h) => o[h] || ''))))
+    if (confirm && runId) store.activity(runId, { kind: 'listcheck', id: cardId('lc'), file: '清单.csv', rows: body.length, added, updated, confirmed: false })
+    emit('mate', null, { mateId: mate.id })
+    return { rows: body.length, added, updated, header }
+  }
+  /** 「对，就这些」 on the list card; a template teammate's subscription card (它会主动做的) follows, once. */
+  function listOk(b) {
+    const m = mates.get(String((b && b.id) || ''))
+    if (!m) throw notFound('同事不存在。')
+    const { run, e } = cardOf(b.runId, b.entryId, 'listcheck')
+    store.update(run.id, () => { e.confirmed = true; e.confirmedAt = new Date().toISOString() })
+    const tp = m.template ? templates.get(m.template) : null
+    const asked = store.forMate(m.id).some((r) => (r.activity || []).some((a) => a && a.kind === 'subscribe'))
+    if (tp && Array.isArray(tp.subscribe) && tp.subscribe.length && !asked) {
+      store.activity(run.id, { kind: 'subscribe', id: cardId('sb'), title: '它会主动做的 · ' + (m.name || tp.name), items: tp.subscribe.map((x) => ({ id: String(x.id), label: String(x.label || ''), note: String(x.note || ''), on: x.on !== false })), quiet: tp.quiet || '', done: false })
+    }
+    emit('mate', null, { mateId: m.id })
+    return { run: runView(store.get(run.id)) }
+  }
+  /** 「交给它」 on the subscription card: the ticked items become its routines, and the first check (the baseline) runs now. */
+  function subscribe(b) {
+    const m = mates.get(String((b && b.id) || ''))
+    if (!m) throw notFound('同事不存在。')
+    const tp = m.template ? templates.get(m.template) : null
+    if (!tp) throw bad('这位同事不是用模板建的。')
+    const { run, e } = cardOf(b.runId, b.entryId, 'subscribe')
+    if (e.done) throw bad('已经交给它了。')
+    const on = (id) => (b.items && typeof b.items === 'object' && id in b.items ? !!b.items[id] : !!((e.items || []).find((x) => x.id === id) || {}).on)
+    let routine = null
+    if (on('precheck') && tp.routine && tp.precheck) {
+      routine = routines.forMate(m.id).find((r) => r.precheck === tp.precheck) || null
+      if (!routine) {
+        routine = routines.create({ mateId: m.id, kind: 'task', title: tp.routine.title, input: tp.routine.input, schedule: { type: 'interval', everyMinutes: Number(tp.routine.everyMinutes) || 360 }, precheck: tp.precheck, options: { sdk: on('sdk') } })
+        store.activity(run.id, { kind: 'routine', action: 'created', routineId: routine.id, title: routine.title, scheduleLabel: describeSchedule(routine.schedule) })
+        store.activity(run.id, { kind: 'did', id: didId(), act: 'routine', routineId: routine.id, title: routine.title, undoable: true })
+        emit('routine', null, { mateId: m.id, routine: rview(routine) })
+      } else routines.update(routine.id, (r) => { r.options = { ...(r.options || {}), sdk: on('sdk') } })
+    }
+    const at = new Date().toISOString()
+    store.update(run.id, () => { e.done = true; e.doneAt = at; e.items = (e.items || []).map((x) => ({ ...x, on: on(x.id) })) })
+    emit('mate', null, { mateId: m.id })
+    // 马上出基线: the first check runs now, not in six hours.
+    if (routine) startPrecheck(routines.get(routine.id))
+    return { routine: routine ? rview(routines.get(routine.id)) : null }
+  }
+
+  /**
+   * A routine with a precheck: the script runs first (no model). Nothing touched a row in use → a receipt on the routine
+   * (drawn as one grey line, no run, no unread, no push). Changes → a routine run whose prompt carries them, the change
+   * card (activity 'changes') built by code, and `watch` (tier, headline, push text) for the 今天卡 and the IM push.
+   */
+  const prechecking = new Map() // routineId → Promise
+  function startPrecheck(r) {
+    if (prechecking.has(r.id)) return { routine: rview(r), precheck: true, running: true }
+    routines.ran(r.id, { precheck: { running: true } })
+    const receiptAt = routines.get(r.id).runs[0].at
+    const p = runPrecheck(r.id, receiptAt)
+      .catch((e) => {
+        log(`precheck ${r.id}: ${e && e.message}`)
+        try { routines.markRun(r.id, receiptAt, { precheck: { checked: 0, related: 0, unreadable: [{ title: '预检', reason: clip(String((e && e.message) || e), 80) }], failed: true }, changed: false }) } catch {}
+        emit('mate', null, { mateId: r.mateId })
+        return { changes: 0, error: String((e && e.message) || e) }
+      })
+      .finally(() => prechecking.delete(r.id))
+    prechecking.set(r.id, p)
+    return { routine: rview(routines.get(r.id)), precheck: true }
+  }
+  async function runPrecheck(routineId, receiptAt) {
+    const r = routines.get(routineId)
+    const mate = r ? mates.get(r.mateId) : null
+    if (!r || !mate) return { changes: 0 }
+    const tp = (mate.template && templates.get(mate.template)) || [...templates.values()].find((x) => x.precheck === r.precheck) || null
+    const stateFile = join(mate.dir, '.mywork', 'precheck', routineId + '.json')
+    let state = {}
+    try { state = JSON.parse(readFileSync(stateFile, 'utf8')) } catch {}
+    let listText = ''
+    try { listText = readFileSync(join(mate.dir, '清单.csv'), 'utf8') } catch {}
+    const result = await PRECHECKS[r.precheck]({ listText, state, sources: tp ? tp.sources : [], options: r.options || {}, fetchText: fetchSource, now: new Date() })
+    mkdirSync(dirname(stateFile), { recursive: true })
+    writeFileSync(stateFile, JSON.stringify(result.state, null, 1))
+    const summary = { checked: result.checked || 0, related: result.related || 0, unreadable: (result.unreadable || []).slice(0, 8), baseline: !!result.baseline, empty: !!result.empty, sources: (result.sources || []).length }
+    // 立刻 first: the card's order, the headline (今天卡) and the push all lead with what cannot wait.
+    const loud = (result.changes || []).filter((c) => c.tier !== 'seen').sort((a, b) => (a.tier === 'now' ? 0 : 1) - (b.tier === 'now' ? 0 : 1))
+    if (!loud.length) {
+      routines.markRun(routineId, receiptAt, { precheck: summary, changed: false })
+      log(`precheck ${routineId}: nothing touched a row in use (${summary.checked} looked at)`)
+      emit('mate', null, { mateId: mate.id })
+      return { changes: 0 }
+    }
+    const res = { ...result, changes: loud }
+    const now = loud.filter((c) => c.tier === 'now').length
+    const run = store.create({ mateId: mate.id, trigger: 'routine', routineId, routineTitle: r.title, input: r.input })
+    store.update(run.id, { prompt: changePrompt(r, res), watch: { tier: now ? 'now' : 'digest', headline: loud[0].headline, n: loud.length, now, push: pushOf(mate.name, loud) } })
+    store.activity(run.id, { ...changesEntry(res), id: cardId('chg') })
+    routines.markRun(routineId, receiptAt, { taskId: run.id, precheck: summary })
+    log(`precheck ${routineId}: ${loud.length} change(s), ${now} now → run ${run.id}`)
+    emit('queued', store.get(run.id))
+    engine.pump()
+    return { changes: loud.length, now, runId: run.id }
+  }
+  /** Run a routine's precheck now and wait for it (tests; 现在跑一次 does not wait). */
+  function precheckNow(id) {
+    const r = routines.get(String(id || ''))
+    if (!r || !r.precheck) throw notFound('routine not found')
+    startPrecheck(r)
+    return prechecking.get(r.id) || Promise.resolve({ changes: 0 })
   }
 
   // ── tools ──
@@ -965,6 +1262,46 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
       render: (_a, v) => [{ type: 'text', text: '已记下规矩：' + v.line }],
     },
     {
+      name: 'mywork_list_write',
+      description: '把行写进你文件夹里的 清单.csv（只在 MyWork 同事的会话里可用）。按表头合并：模型按「模型ID或版本」、SDK 按「名称」对上已有的行，只补非空的列；表头没有的列加在最后；用户在对话里能一键撤销。confirm: true 时对话里出一张清单确认卡（前 10 行 + 「对，就这些 / 改一下」）：第一次建清单、或用户给了新材料后用。',
+      parameters: {
+        rows: { type: 'array', required: true, items: { type: 'object' }, description: '一行一个对象，键是 清单.csv 的表头，例如 { 类型: "模型", 名称: "deepseek-chat", 供应商: "DeepSeek", 模型ID或版本: "deepseek-chat", 哪里在用: "客服机器人", 月用量或花费: "¥5,000", 怎么知道的: "网关渠道「客服」" }' },
+        replace: { type: 'boolean', description: 'true = 整张换掉（默认合并）' },
+        confirm: { type: 'boolean', description: 'true = 对话里出清单确认卡' },
+      },
+      execute(args, exec) {
+        const c = mateOnly(exec, 'mywork_list_write')
+        const rows = Array.isArray(args.rows) ? args.rows : []
+        if (!rows.length && !args.replace) throw new Error('rows 不能为空。')
+        return writeList(c.mate, c.run ? c.run.id : '', rows, { replace: !!args.replace, confirm: !!args.confirm })
+      },
+      render: (_a, v) => [{ type: 'text', text: `清单写好了：共 ${v.rows} 行（新加 ${v.added}，更新 ${v.updated}）。` }],
+    },
+    {
+      name: 'mywork_inventory_scan',
+      description: '用程序读出「我们在用什么」的候选行（只在 MyWork 同事的会话里可用）。给文件或目录的路径（相对你的文件夹，或绝对路径，~ 是用户主目录）。认得 package.json、requirements*.txt、pyproject.toml、go.mod、new-api / one-api 渠道导出、LiteLLM 配置、账单 CSV，以及代码里加了引号的模型 ID。返回候选行和「怎么知道的」，不写文件；核对后用 mywork_list_write 写进清单。',
+      parameters: { paths: { type: 'array', required: true, items: { type: 'string' }, description: '文件或目录的路径' } },
+      execute(args, exec) {
+        const c = mateOnly(exec, 'mywork_inventory_scan')
+        const files = []
+        const rows = []
+        const read = []
+        const skipped = []
+        for (const raw of (Array.isArray(args.paths) ? args.paths : []).slice(0, 20)) {
+          const p0 = String(raw || '').trim()
+          if (!p0) continue
+          const p = p0.startsWith('~') ? join(homedir(), p0.slice(1)) : resolve(c.mate.dir, p0)
+          let st
+          try { st = statSync(p) } catch { skipped.push({ name: p0, reason: '不存在' }); continue }
+          if (st.isDirectory()) { const s = scanDir(p); rows.push(...s.rows); read.push({ name: p0, kind: '目录', n: s.rows.length, files: s.files }) }
+          else if (st.size > 8 * 1024 * 1024) skipped.push({ name: p0, reason: '超过 8 MB' })
+          else { try { files.push({ name: p0, text: readFileSync(p, 'utf8') }) } catch (e) { skipped.push({ name: p0, reason: String(e && e.message) }) } }
+        }
+        const s = scanFiles(files)
+        return { rows: mergeRows([...rows, ...s.rows]).slice(0, 300), read: [...read, ...s.read], skipped: [...skipped, ...s.skipped] }
+      },
+    },
+    {
       name: 'mywork_mate_update',
       description: '改你自己的名字或头衔（只在 MyWork 同事的会话里可用）。新同事没有名字时先用它给自己起名：2 到 4 个汉字，贴合职责；title 是一行头衔，可空。',
       parameters: { name: { type: 'string', description: '名字，2 到 4 个汉字' }, title: { type: 'string', description: '一行头衔' } },
@@ -1058,6 +1395,11 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     '/mates/rules/remove': { POST: (_q, b) => { if (!editRule(idOf(b), b.line, null)) throw notFound('没有这条规矩。'); return { removed: true } } },
     '/mates/rules/update': { POST: (_q, b) => { if (!editRule(idOf(b), b.line, b.text)) throw notFound('没有这条规矩。'); return { updated: true } } },
     '/today': { GET: () => todayCard() },
+    '/templates': { GET: () => ({ items: [...templates.values()].map(templateView) }) },
+    '/mates/upload': { POST: (_q, b) => upload(b) },
+    '/mates/onboard': { POST: (_q, b) => onboard(b) },
+    '/mates/listok': { POST: (_q, b) => listOk(b) },
+    '/mates/subscribe': { POST: (_q, b) => subscribe(b) },
   }
   /** One request: { status, body }. `query` is URLSearchParams or a plain object. */
   async function handle(method, path, query, body) {
@@ -1091,7 +1433,7 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     on: (fn) => { listeners.add(fn); return () => listeners.delete(fn) },
   }
 
-  return { store, deliverables, routines, seen, mates, scenarios, engine, api, tools, routes, handle, tick, runView, mateView: mateViewById, listMates, thread, activity, files, search, workRecord, presetFor, createMate, updateMate, removeMate, createRoutine, updateRoutine, runRoutine, ackRoutine, dir, presetRoot }
+  return { store, deliverables, routines, seen, mates, scenarios, engine, api, tools, routes, handle, tick, runView, mateView: mateViewById, listMates, thread, activity, files, search, workRecord, presetFor, createMate, updateMate, removeMate, createRoutine, updateRoutine, runRoutine, ackRoutine, dir, presetRoot, templates, precheckNow, writeList, onboard, listOk, subscribe, upload, todayCard }
 }
 
 export function apply(ctx, config = {}) {

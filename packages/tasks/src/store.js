@@ -68,7 +68,8 @@ export const ACTIVITY_DETAIL_MAX = 240
 export const PREVIEW_MAX = 80
 /** Entries a person reads back as the conversation; everything else (tool calls) is noise that trimming may drop. */
 /** `did`: something the teammate changed or sent (a file it wrote, a message, a rule it recorded), kept for 做了告诉你 and 撤销. */
-export const THREAD_KINDS = new Set(['user', 'text', 'handoff', 'verify', 'ask', 'routine', 'remind', 'did'])
+/** onboard / listcheck / subscribe: the cards of a teammate made from a template (上岗); changes: a precheck's change card. */
+export const THREAD_KINDS = new Set(['user', 'text', 'handoff', 'verify', 'ask', 'routine', 'remind', 'did', 'onboard', 'listcheck', 'subscribe', 'changes'])
 export const isThreadEntry = (a) => !!a && THREAD_KINDS.has(a.kind)
 
 export function myworkDir(home) { return join(home || process.env.DSH_HOME || join(homedir(), '.dsh'), 'mywork') }

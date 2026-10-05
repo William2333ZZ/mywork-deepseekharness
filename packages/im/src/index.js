@@ -82,6 +82,13 @@ export function apply(ctx, config = {}) {
         return
       }
       if (payload.kind !== 'done' || run.remind || run.trigger === 'system') return
+      // A precheck's change (盯在用的 AI): the tier was set by code. 立刻 pushes its own text (rows touched, days left, a
+      // link — never money); 到点 waits for the 今天卡; the teammate finding it was only reworded (quiet) sends nothing.
+      if (run.watch) {
+        if (run.quiet || run.watch.tier !== 'now' || !run.watch.push) return
+        out(run.watch.push + (run.error ? '\n（同事没能确认：' + line(run.error, 40) + '）' : ''), `run ${run.id} change`)
+        return
+      }
       const failed = !!run.error
       if (failed && run.error === '已停止。') return
       if (rule.when === 'failed' && !failed) return

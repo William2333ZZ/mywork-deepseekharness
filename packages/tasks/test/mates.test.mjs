@@ -22,7 +22,7 @@ import { ASK_EXPIRY_MS, pendingAsk } from '../src/store.js'
 const STANDARD = new URL('../presets/mate-base/agent.cordis.yml', import.meta.url).pathname
 const gate = () => { let open; const promise = new Promise((r) => { open = r }); return { promise, open } }
 
-export function harness({ concurrency = 2, verify = false, home } = {}) {
+export function harness({ concurrency = 2, verify = false, home, fetchText } = {}) {
   const dir = home || mkdtempSync(join(tmpdir(), 'mywork-mates-'))
   const sessions = new Map()
   const h = { dir, sessions, scripts: [], verdict: '{"passed": true, "checked": 2, "issues": 0, "notes": "ok"}', verifyGate: null, scriptErrors: [], logs: [], events: [], prompts: [], deduped: [], cancels: [], workspaces: [], created: [], recomposes: [], titles: [], removedItems: [], agents: new Map(), promptFails: false, mw: null }
@@ -138,7 +138,7 @@ export function harness({ concurrency = 2, verify = false, home } = {}) {
   }
   h.controller = controller
   h.ctx = ctx
-  h.mw = createMyWork({ ctx, config: { concurrency, verify, timeoutMinutes: 1 }, home: dir, log: (m) => h.logs.push(m), controller: () => controller, hostEmit: (p) => h.events.push(p) })
+  h.mw = createMyWork({ ctx, config: { concurrency, verify, timeoutMinutes: 1 }, home: dir, log: (m) => h.logs.push(m), controller: () => controller, hostEmit: (p) => h.events.push(p), fetchText: fetchText || (async (url) => { throw new Error('offline: ' + url) }) })
   h.until = async (fn, ms = 3000) => { const t0 = Date.now(); while (!fn()) { if (h.scriptErrors.length) throw h.scriptErrors[0]; if (Date.now() - t0 > ms) throw new Error('timed out waiting for the engine'); await new Promise((r) => setTimeout(r, 5)) } }
   h.call = async (method, path, a) => { const out = await h.mw.handle(method, path, method === 'GET' ? a : undefined, method === 'POST' ? a : undefined); return out }
   h.ok = async (method, path, a) => { const out = await h.call(method, path, a); assert.equal(out.status, 200, JSON.stringify(out.body)); return out.body }
@@ -1099,5 +1099,94 @@ test('先问 and 主动程度 go into the persona; capability lines replace the 
   assert.deepEqual([v.askFirst, v.proactive], [['对外发消息'], 'more'])
   await h.ok('POST', '/mates/update', { id: 'mywork', proactive: 'whatever' })
   assert.equal(h.mw.mateView('mywork').proactive, 'default')
+  h.cleanup()
+})
+
+test('盯在用的 AI from its template: intro → 上岗卡 → files and words → the list (with its card) → 它会主动做的 → the baseline check speaks, the next stays quiet', async () => {
+  const pages = {
+    'https://deprecations.info/v1/deprecations.json': JSON.stringify([]),
+    'https://models.dev/api.json': JSON.stringify({ deepseek: { models: { 'deepseek-chat': { id: 'deepseek-chat', cost: { input: 0.27, output: 1.1 } } } } }),
+    'https://api-docs.deepseek.com/zh-cn/updates': '<p>' + '说明。'.repeat(120) + '</p><h3>时间: 2026-10-01</h3><p>旧模型名 deepseek-chat 仍可调用，但对应模型已下线，请求将由 DeepSeek-V4.1-Flash 提供服务。</p>',
+    'https://api-docs.deepseek.com/zh-cn/quick_start/pricing': '<p>' + '价格说明。'.repeat(120) + '</p>',
+    'https://registry.npmjs.org/openai/latest': JSON.stringify({ version: '4.60.0' }),
+  }
+  const h = harness({ fetchText: async (url) => { if (url in pages) return pages[url]; throw new Error('HTTP 404') } })
+  const { items: tpls } = await h.ok('GET', '/templates')
+  assert.ok(tpls.some((x) => x.id === 'watch-ai' && x.name === '盯在用的 AI' && x.group === 'AI'))
+  h.scripts.push((t) => { assert.match(t.texts[0], /盯在用的 AI/); assert.doesNotMatch(t.texts[0], /mywork_mate_update/); t.say('我盯你们在用的模型和依赖，只在动到在用的时候开口。先在下面告诉我你们在用什么。') })
+  const { mate } = await h.ok('POST', '/mates/create', { template: 'watch-ai' })
+  assert.deepEqual([mate.name, mate.title, mate.group, mate.template], ['盯在用的 AI', '盯模型和依赖', 'AI', 'watch-ai'])
+  const dir = join(h.dir, 'mywork', 'mates', mate.id)
+  assert.match(readFileSync(join(dir, '清单.csv'), 'utf8'), /^类型,名称,供应商,模型ID或版本,哪里在用/)
+  assert.match(readFileSync(join(dir, 'AGENTS.md'), 'utf8'), /- \d{4}-\d{2}-\d{2} （来源）/)
+  await h.until(() => h.runsOf(mate.id).some((r) => (r.activity || []).some((a) => a.kind === 'onboard')))
+  const intro = h.runsOf(mate.id).find((r) => r.trigger === 'system')
+  const card = intro.activity.find((a) => a.kind === 'onboard')
+  assert.equal(card.title, '开工 · 盯在用的 AI'); assert.equal(card.done, false)
+  // the card's thread entry comes after the greeting
+  const order = intro.activity.filter((a) => a.kind === 'text' || a.kind === 'onboard').map((a) => a.kind)
+  assert.deepEqual(order, ['text', 'onboard'])
+
+  // a file handed over in two pieces, then 交给它
+  const pkg = JSON.stringify({ dependencies: { openai: '^4.52.0' } })
+  const half = Math.floor(pkg.length / 2)
+  const up = await h.ok('POST', '/mates/upload', { id: mate.id, name: 'package.json', data: Buffer.from(pkg.slice(0, half)).toString('base64') })
+  assert.equal(up.path, '材料/package.json')
+  await h.ok('POST', '/mates/upload', { id: mate.id, path: up.path, data: Buffer.from(pkg.slice(half)).toString('base64') })
+  assert.equal(readFileSync(join(dir, '材料', 'package.json'), 'utf8'), pkg)
+  assert.equal((await h.call('POST', '/mates/upload', { id: mate.id, path: '../AGENTS.md', data: '' })).status, 400)
+  h.scripts.push((t) => {
+    assert.match(t.texts[0], /材料\/ 里：package\.json/); assert.match(t.texts[0], /SDK,openai,OpenAI,4\.52\.0,,package\.json/); assert.match(t.texts[0], /mywork_list_write/)
+    t.tool('mywork_list_write', { confirm: true, rows: [
+      { 类型: '模型', 名称: 'deepseek-chat', 供应商: 'DeepSeek', 模型ID或版本: 'deepseek-chat', 哪里在用: '客服机器人', 月用量或花费: '¥5,000', 怎么知道的: '你写的' },
+      { 类型: 'SDK', 名称: 'openai', 供应商: 'OpenAI', 模型ID或版本: '4.52.0', 怎么知道的: 'package.json' },
+    ] })
+    t.say('读到 2 行。openai SDK 的「哪里在用」还空着。')
+  })
+  const ob = await h.ok('POST', '/mates/onboard', { id: mate.id, runId: intro.id, entryId: card.id, files: [up.path], text: '客服用 deepseek-chat，每月大概 ¥5,000' })
+  assert.equal(ob.candidates >= 2, true)
+  assert.equal((await h.call('POST', '/mates/onboard', { id: mate.id, runId: intro.id, entryId: card.id, text: 'x' })).status, 400) // once
+  await h.until(() => h.run(ob.runId).status === 'done')
+  const listRun = h.run(ob.runId)
+  assert.equal(listRun.input, '我们在用的东西放在 材料/ 里：package.json。\n客服用 deepseek-chat，每月大概 ¥5,000')
+  const lc = listRun.activity.find((a) => a.kind === 'listcheck')
+  assert.deepEqual([lc.rows, lc.added, lc.confirmed], [2, 2, false])
+  assert.ok(listRun.activity.some((a) => a.kind === 'did' && a.act === 'file' && a.path === '清单.csv' && a.undoable))
+  const csv = readFileSync(join(dir, '清单.csv'), 'utf8').trim().split('\n')
+  assert.equal(csv.length, 3); assert.match(csv[1], /^模型,deepseek-chat,DeepSeek,deepseek-chat,客服机器人,,"¥5,000"/)
+
+  // 对，就这些 → 它会主动做的 → 交给它: the routine, and the baseline check runs at once
+  await h.ok('POST', '/mates/listok', { id: mate.id, runId: listRun.id, entryId: lc.id })
+  const sub = h.run(listRun.id).activity.find((a) => a.kind === 'subscribe')
+  assert.deepEqual(sub.items.map((x) => [x.id, x.on]), [['precheck', true], ['sdk', true]])
+  h.scripts.push((t) => { assert.match(t.texts[0], /预检脚本/); assert.match(t.texts[0], /\[立刻\] deepseek-chat 改名或重定向/); t.say('确认了：DeepSeek 更新日志里 deepseek-chat 背后已换成 V4.1 Flash，客服机器人在用。\n变化：有') })
+  const { routine } = await h.ok('POST', '/mates/subscribe', { id: mate.id, runId: listRun.id, entryId: sub.id, items: { precheck: true, sdk: false } })
+  assert.deepEqual([routine.precheck, routine.options.sdk, routine.scheduleLabel], ['ai-watch', false, '每 6 小时'])
+  assert.ok(h.run(listRun.id).activity.some((a) => a.kind === 'did' && a.act === 'routine' && a.routineId === routine.id))
+  await h.until(() => h.runsOf(mate.id).some((r) => r.routineId === routine.id && r.status === 'done'))
+  const change = h.runsOf(mate.id).find((r) => r.routineId === routine.id)
+  assert.equal(change.quiet, false)
+  const view = h.mw.runView(change)
+  assert.equal(view.watch.tier, 'now'); assert.match(view.watch.push, /deepseek-chat/); assert.doesNotMatch(view.watch.push, /¥/)
+  const entry = view.activity.find((a) => a.kind === 'changes')
+  assert.equal(entry.baseline, true); assert.deepEqual(entry.items.map((x) => [x.subject, x.category, x.tier, x.where]), [['deepseek-chat', '改名重定向', 'now', '客服机器人']])
+  assert.equal(h.mw.routines.get(routine.id).runs[0].taskId, change.id)
+
+  // the next check finds nothing: a receipt, drawn as one grey line, no run
+  const runsBefore = h.runsOf(mate.id).length
+  const again = await h.mw.precheckNow(routine.id)
+  assert.equal(again.changes, 0)
+  assert.equal(h.runsOf(mate.id).length, runsBefore)
+  const { runs } = await h.ok('GET', '/mates/thread', { id: mate.id, limit: 20 })
+  const receipt = runs[runs.length - 1]
+  assert.equal(receipt.receipt, true); assert.equal(receipt.quiet, true); assert.equal(receipt.routineId, routine.id)
+  assert.equal(receipt.precheck.baseline, false); assert.ok(receipt.precheck.checked > 0)
+
+  // the 今天卡 carries the change with its tier
+  await h.ok('POST', '/mates/update', { id: 'mywork', readTime: '00:00' })
+  const today = await h.ok('GET', '/today')
+  const row = today.changes.find((x) => x.mateId === mate.id)
+  assert.equal(row.kind, 'watch'); assert.equal(row.tier, 'now'); assert.match(row.text, /deepseek-chat/)
+  assert.ok(today.quiet.some((q) => q.mateId === mate.id && q.n >= 1))
   h.cleanup()
 })

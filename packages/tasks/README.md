@@ -45,6 +45,25 @@ MyWork Kit v2 的核心成员：**同事模型**。设计见 [design/v2/TEAMMATE
 
 `POST /mates/create { description, name?, title? }` 建好同事后排一次**隐藏的自我介绍运行**（`trigger: 'system'`，线程里不显示它的用户行，只显示回复）：没有名字时先 `mywork_mate_update` 给自己起 2–4 个汉字的名字；职责里带时间就 `mywork_routine_create` 建好例行；然后两三句话说它怎么理解职责、需要什么。
 
+## 模板：「盯在用的 AI」（EDITIONS.md 3、4.1、9.3；PROACTIVE.md 12）
+
+模板在 `templates/<id>/`：`template.json`（名字、头衔、类型、头像、一句话、自我介绍的话、上岗卡、「它会主动做的」、例行、预检名）、`duty.md`（职责）、`seed/`（建同事时拷进它的文件夹：`清单.csv`、`判断.csv` 的表头，`AGENTS.md` 初始规矩，`{date}` 换成当天）、`sources.json`（预检要读的厂商页面）。现在只有 `watch-ai`。
+
+走法（每一步都在对话里，没有新页面）：
+
+1. **建**：`POST /mates/create { template: 'watch-ai' }`。名字、头衔、类型、头像来自模板；自我介绍用模板的话（`run.prompt`），不建例行。
+2. **上岗卡**：自我介绍那一轮结束后，引擎在它下面挂一张 `{ kind: 'onboard' }` 卡：拖文件或选文件（`POST /mates/upload`，分块 ≤150 KB，进 `材料/`，同名不覆盖，单个 ≤20 MB），写几句，「交给它」（`POST /mates/onboard`）。程序先读出候选行（`src/inventory.js`：package.json、requirements*.txt、pyproject.toml、go.mod、new-api / one-api 渠道导出、LiteLLM 配置、账单 CSV、文字里提到的代码目录里加了引号的模型 ID），连同「怎么知道的」附在这句话后面（用户看不到），同事核对后用 `mywork_list_write`（confirm）写进 `清单.csv`。
+3. **清单确认卡**：`{ kind: 'listcheck' }`，前 10 行（对象 · 哪里在用 · 怎么知道的），「对，就这些」（`POST /mates/listok`）或「改一下」（输入框填「把 清单.csv 里 」）。
+4. **它会主动做的**：确认后出 `{ kind: 'subscribe' }`，逐项可勾；「交给它」（`POST /mates/subscribe`）建例行「查下线和调价」（每 6 小时，`precheck: 'ai-watch'`，`options.sdk`），并**马上跑第一次**（基线）。
+
+**预检**（`src/aiwatch.js`，只用 Node，不叫模型）：读 `清单.csv` 里启用的行，查 deprecations.info（海外各家的下线日期）、models.dev（价格、弃用标记）、OpenRouter（供应商是 OpenRouter 的行）、模板的厂商页（按句子判断哪个模型是主语：「A 将于 7/24 停止使用，指向 B」只算 A），以及在用 SDK 的 npm / PyPI 版本。经代理还是直连按域名定（`src/net.js`：国内厂商先直连，其余先走 HTTPS_PROXY，失败换另一条）。状态存在同事文件夹的 `.mywork/precheck/<routineId>.json`；同一件事只说一次（`said`）。
+
+- **档位由代码定**：下线 / 涨价 / 改名或重定向 / 改计费 / 限区域 / 停用 / 下架，碰到在用的行（精确对上，不是别名对快照），离生效 ≤14 天（或已生效）→ 立刻；其余到点；SDK 小版本不说。旧闻（30 天前的升级、价格说明）不说，**在用模型的下线永远说**。
+- **没变化**：不建运行，例行上记一条回执 `{ at, precheck: { checked, related, unreadable, baseline }, changed: false }`；`/mates/thread` 把它画成一行灰字「例行 · 查下线和调价 · 看过 999 · 没有动到在用的」。
+- **有变化**：建一次 `trigger: 'routine'` 的运行，`run.prompt` 带着变化（同事去一手出处确认、说清哪里在用、月费、离生效几天、要改什么、替代；全是换了说法就回「变化：无」），`activity` 里一张代码拼的变化卡 `{ kind: 'changes', items[], checked, related, unreadable }`，`run.watch = { tier, headline, n, now, push }`。今天卡把它列进变化并标「立刻 / 到点」；IM（dsh-mywork-im）只推立刻档，推送正文不带金额。
+
+工具：`mywork_list_write({ rows, replace?, confirm? })`（按表头合并：模型按「模型ID或版本」、SDK 按「名称」；写前留快照，能撤销）、`mywork_inventory_scan({ paths })`（读候选行，不写文件）。
+
 ## 例行
 
 例行属于一位同事（`mateId`），结果回到它的对话。到点（调度器每 30 秒）：
@@ -126,4 +145,4 @@ GET  /today                         → { ready, readTime, at, date, needs, chan
 
 ## 测试
 
-`pnpm --filter dsh-mywork-tasks test`。`test/mates.test.mjs` 用一个假的 dsh 宿主跑完整流程（它照 dsh 的收件箱语义：queue 进下一轮、steer 并进当前轮、cancel 保留收件箱）。
+`pnpm --filter dsh-mywork-tasks test`。`test/aiwatch.test.mjs` 用固定的页面和 JSON 测预检和清单读法（不联网）。`test/mates.test.mjs` 用一个假的 dsh 宿主跑完整流程（它照 dsh 的收件箱语义：queue 进下一轮、steer 并进当前轮、cancel 保留收件箱）。

@@ -1,0 +1,22 @@
+{
+  "id": "watch-ai",
+  "name": "盯在用的 AI",
+  "title": "盯模型和依赖",
+  "group": "AI",
+  "avatar": { "color": "teal", "shape": "hex" },
+  "pitch": "你们在用的模型和工具出事，只在动到你的时候告诉你，并说清要改什么。",
+  "intro": "你是用模板建的「盯在用的 AI」，名字已经有了。用两三句话向用户打招呼：你只在下线、调价、改名或重定向、改计费、封号碰到在用清单里的某一行时才开口，新模型发布不算；有没有变化先由脚本判，不花模型的钱。最后一句请用户在下面的卡片里给你在用的东西（依赖文件、网关配置、上月账单，或者直接粘贴），不必一次给全。不要建例行（下面的卡片会建），不要调用 mywork_ask，不要交付文件，不要写清单。",
+  "onboard": {
+    "title": "开工 · 盯在用的 AI",
+    "question": "你们在用什么",
+    "hint": "拖进来 package.json、requirements.txt、pyproject.toml、go.mod、网关配置（one-api / new-api / LiteLLM）、上月账单 CSV，或者直接粘贴；也可以写一个代码目录的路径，它自己去找。",
+    "placeholder": "比如：客服用 deepseek-chat，摘要用 qwen-max，每月大概 ¥5,000；代码在 ~/work/bot"
+  },
+  "subscribe": [
+    { "id": "precheck", "label": "每 6 小时查各家的下线公告、更新日志、定价页和模型列表", "note": "只跑脚本，没动到在用的只出一行灰字", "on": true },
+    { "id": "sdk", "label": "在用的 SDK 出了大版本时告诉我", "note": "和上面一起查，到点汇总", "on": true }
+  ],
+  "quiet": "动到在用、离生效 14 天以内的才立刻推（不带金额）；其余到点汇总。22:00–07:30 不推。",
+  "routine": { "title": "查下线和调价", "input": "查各家的下线公告、更新日志、定价页和模型列表，只报动到在用清单的变化。", "everyMinutes": 360 },
+  "precheck": "ai-watch"
+}

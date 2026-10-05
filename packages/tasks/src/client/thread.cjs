@@ -24,6 +24,11 @@
  *                                              that opens it; the caller reads its current name from the roster)
  *   remind    { routineId, title, acked }      a reminder card (activity { kind:'remind' }, or a whole synthetic remind run)
  *   auto      {}                               the 24 h resume (the user line with auto: true): one muted line
+ *   onboard   { e }                            a template teammate's 上岗卡 (activity { kind:'onboard' })
+ *   listcheck { e }                            the list card mywork_list_write left (前 10 行 · 对，就这些 / 改一下)
+ *   subscribe { e }                            「它会主动做的」: the subscription card
+ *   changes   { e }                            a precheck's change card (built by code; the tier is code's)
+ *                                              these four close their segment, after the teammate's reply
  *   thinking  { step }                         one line while the run works (status running, not queued); the caller adds the time
  *   queued    {}                               the run has not started: it waits behind the teammate's current run
  *   stopped   {}                               a done run you stopped (error 已停止 / 已取消): a centred 「已停止」, not a failure
@@ -114,6 +119,7 @@ function threadOf(run, deliverables) {
     const end = last ? Infinity : time(segs[i + 1].at)
     if (seg.bubble) out.push({ kind: 'user', key: 'u' + i, at: seg.at, text: seg.text, ...(seg.via ? { via: seg.via } : {}) })
     const body = []
+    const cards = []
     // Deliverables of this segment: the first also takes anything stamped before its own line (clock skew, trimmed history).
     const mine = docs.filter((d) => { const c = time(d.createdAt); return (i === 0 || c >= start) && c < end })
     const asks = seg.entries.filter((e) => e.kind === 'ask')
@@ -132,6 +138,7 @@ function threadOf(run, deliverables) {
       else if (e.kind === 'routine' && (e.action === 'created' || !e.action)) body.push({ kind: 'scheduled', key: 's' + (e.routineId || seq++), at: str(e.at), routineId: str(e.routineId || e.id), title: str(e.title), scheduleLabel: str(e.scheduleLabel) })
       else if (e.kind === 'remind') body.push({ kind: 'remind', key: 'm' + seq++, at: str(e.at), routineId: str(e.routineId || e.id), title: str(e.title || e.text), acked: !!(e.acked || e.ackedAt) })
       else if (e.kind === 'mate' && e.action === 'created' && str(e.mateId)) body.push({ kind: 'newMate', key: 'n' + e.mateId, at: str(e.at), mateId: str(e.mateId), name: str(e.name) })
+      else if (e.kind === 'onboard' || e.kind === 'listcheck' || e.kind === 'subscribe' || e.kind === 'changes') cards.push({ kind: e.kind, key: e.kind + ':' + (e.id || seq++), at: str(e.at), e })
     }
     // Text before the segment's last deliverable or question is narration (过程); what comes after it is the reply.
     const cut = Math.max(mine.length ? time(mine[mine.length - 1].createdAt) : -Infinity, asks.length ? time(asks[asks.length - 1].at) : -Infinity)
@@ -152,6 +159,7 @@ function threadOf(run, deliverables) {
     }
     // In time order; entries stamped at the same moment keep the order above.
     body.map((e, n) => ({ e, n, at: time(e.at) })).sort((a, b) => a.at - b.at || a.n - b.n).forEach((x) => out.push(x.e))
+    for (const c of cards) out.push(c)
   })
 
   if (!done && !waiting) {

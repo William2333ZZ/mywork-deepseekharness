@@ -344,6 +344,8 @@ export function createEngine({ ctx, store, deliverables, mates, routines, scenar
   /** The prompt a run is dispatched with: an answer / resume text, the intro, the routine's prompt, or the user's line. */
   function promptFor(run, mate) {
     if (run.pendingText) return run.pendingText
+    // A prompt the host wrote for this run (a template's intro, a precheck's changes); a line you add while it waits follows it.
+    if (run.prompt) return run.promptExtra ? run.prompt + '\n' + run.promptExtra : run.prompt
     if (run.trigger === 'system') return introPrompt(mate)
     if (run.trigger === 'routine' && run.routineId && routines) {
       const routine = routines.get(run.routineId)
@@ -442,34 +444,41 @@ export function createEngine({ ctx, store, deliverables, mates, routines, scenar
    * calls are trimmed). A file is copied to <folder>/.mywork/undo/<runId>/ before its first change in the run, so 撤销
    * can put it back (a new file: undo deletes it); a message or a page action is recorded as 撤不回.
    */
+  /**
+   * A file about to change in a run (a tool the model called, or a host tool such as mywork_list_write): copied to
+   * <folder>/.mywork/undo/<runId>/ before its first change in the run (a new file: undo deletes it). False when the run is gone.
+   */
+  function recordFileChange(runId, mate, abs) {
+    const didId = () => 'did-' + Date.now().toString(36) + rand().slice(0, 4)
+    const run = store.get(runId)
+    if (!run) return false
+    const hit = (run.activity || []).find((a) => a && a.kind === 'did' && a.act === 'file' && a.abs === abs)
+    if (hit) { store.update(runId, () => { hit.n = (Number(hit.n) || 1) + 1; hit.at = new Date().toISOString() }); return true }
+    let existed = false
+    let size = 0
+    try { const st = statSync(abs); existed = st.isFile(); size = st.size } catch {}
+    let snap = ''
+    if (existed && size <= UNDO_MAX_BYTES) {
+      try {
+        const dir = join(mate.dir, '.mywork', 'undo', runId)
+        mkdirSync(dir, { recursive: true })
+        const n = (run.activity || []).filter((a) => a && a.kind === 'did' && a.act === 'file').length + 1
+        snap = join(dir, n + extname(abs))
+        copyFileSync(abs, snap)
+      } catch (e) { snap = ''; log(`undo copy ${abs}: ${errorText(e)}`) }
+    }
+    const inside = relative(resolve(mate.dir), abs)
+    const shown = inside && !inside.startsWith('..') && !isAbsolute(inside) ? inside : abs
+    store.activity(runId, { kind: 'did', id: didId(), act: 'file', path: shown, abs, existed, snap, undoable: !existed || !!snap, n: 1 })
+    return true
+  }
+
   function recordDid(runId, mate, tool, rawArgs) {
     const didId = () => 'did-' + Date.now().toString(36) + rand().slice(0, 4)
     // dsh hands the model's arguments over as the JSON text it wrote; tests and other callers may pass the object.
     let args = rawArgs
     if (typeof args === 'string') { try { args = JSON.parse(args) } catch { args = {} } }
-    for (const p of filesTouched(tool, args)) {
-      const abs = isAbsolute(p) ? p : resolve(mate.dir, p)
-      const run = store.get(runId)
-      if (!run) return
-      const hit = (run.activity || []).find((a) => a && a.kind === 'did' && a.act === 'file' && a.abs === abs)
-      if (hit) { store.update(runId, () => { hit.n = (Number(hit.n) || 1) + 1; hit.at = new Date().toISOString() }); continue }
-      let existed = false
-      let size = 0
-      try { const st = statSync(abs); existed = st.isFile(); size = st.size } catch {}
-      let snap = ''
-      if (existed && size <= UNDO_MAX_BYTES) {
-        try {
-          const dir = join(mate.dir, '.mywork', 'undo', runId)
-          mkdirSync(dir, { recursive: true })
-          const n = (run.activity || []).filter((a) => a && a.kind === 'did' && a.act === 'file').length + 1
-          snap = join(dir, n + extname(abs))
-          copyFileSync(abs, snap)
-        } catch (e) { snap = ''; log(`undo copy ${abs}: ${errorText(e)}`) }
-      }
-      const inside = relative(resolve(mate.dir), abs)
-      const shown = inside && !inside.startsWith('..') && !isAbsolute(inside) ? inside : abs
-      store.activity(runId, { kind: 'did', id: didId(), act: 'file', path: shown, abs, existed, snap, undoable: !existed || !!snap, n: 1 })
-    }
+    for (const p of filesTouched(tool, args)) { if (!recordFileChange(runId, mate, isAbsolute(p) ? p : resolve(mate.dir, p))) return }
     const out = outwardAct(tool)
     const a = args && typeof args === 'object' ? args : {}
     if (out === 'send') store.activity(runId, { kind: 'did', id: didId(), act: 'send', target: clipTo(a.target, 40), text: clipTo(a.text, 120), undoable: false })
@@ -998,5 +1007,7 @@ export function createEngine({ ctx, store, deliverables, mates, routines, scenar
     try { if (h) h.dispose() } catch {}
   }
 
-  return { pump, repair, recover, say, answer, stop, ask, deliver, caller, expireAsks, onSessionEvent, forget, activeRun, ensureSession, isLive: (runId) => live.has(runId), isVerifying: (runId) => verifying.has(runId) }
+  /** After a host tool wrote a file the run had snapshotted: stamp what it looks like now (undo refuses a later change). */
+  function settleFile(runId, abs) { store.update(runId, (x) => { for (const a of x.activity || []) if (a && a.kind === 'did' && a.act === 'file' && a.abs === abs) a.after = hashOf(abs) }) }
+  return { pump, repair, recover, say, answer, stop, ask, deliver, caller, expireAsks, onSessionEvent, forget, activeRun, ensureSession, recordFileChange, settleFile, isLive: (runId) => live.has(runId), isVerifying: (runId) => verifying.has(runId) }
 }

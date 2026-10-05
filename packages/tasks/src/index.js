@@ -14,12 +14,12 @@
  *
  * createMyWork() holds everything that does not need cordis (tests drive it with a fake host); apply() wires it into dsh.
  */
-import { createReadStream, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync, appendFileSync } from 'node:fs'
+import { createReadStream, copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync, appendFileSync } from 'node:fs'
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
 import { homedir } from 'node:os'
 import { dirname, extname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { ASK_TEXT, bad, createEngine, mateSessionId, notFound } from './engine.js'
+import { ASK_TEXT, bad, createEngine, hashOf, mateSessionId, notFound } from './engine.js'
 import { configSchema, defineRawTool, rejectUntrusted } from './harness.js'
 import { BUILTIN_SCENARIOS, createScenarioRegistry } from './scenarios.js'
 import {
@@ -32,20 +32,42 @@ import { describeSchedule, parseSchedule, routineLastAt, RoutineStore, routineVi
 export const name = 'dsh-mywork-tasks'
 export const inject = ['tools', 'agents', 'sessions', 'workspaceRegistry', 'agentDefaultModel', 'agentPresets', 'permissionPresets']
 
-/** Config (all optional): concurrency (teammates working at once), timeoutMinutes (per run), permission, agentPreset (base of the verifier), tools, verify */
-export const Config = configSchema({ concurrency: 2, timeoutMinutes: 20, permission: 'workspace-write', agentPreset: 'standard', tools: true, verify: false })
+/**
+ * Config (all optional): concurrency (teammates working at once), timeoutMinutes (per run), permission, agentPreset (base
+ * of the verifier), tools, verify. Capability is not limited (PROACTIVE.md §5.4): four teammates at once, an hour a run,
+ * full disk access without approval prompts.
+ */
+export const Config = configSchema({ concurrency: 4, timeoutMinutes: 60, permission: 'danger-full-access', agentPreset: 'standard', tools: true, verify: false })
 
 const PACKAGE_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const MEMORY_FILE = 'AGENTS.md'
 export const REMEMBER_MAX = 300
 const THREAD_LIMIT = 8
 const THREAD_LIMIT_MAX = 100
+/** When the 今天卡 is put together (MyWork's 读的时间, changeable in its 资料). */
+export const DEFAULT_READ_TIME = '08:30'
+/** The 今天卡 fits one screen: 12 rows at most. */
+const TODAY_ROWS = 12
+const READ_TIME = /^([01]\d|2[0-3]):[0-5]\d$/
+/** 先问 (PROACTIVE.md §6.2): the kinds of action a teammate asks about first; empty by default. ≤12 lines × ≤40 characters. */
+export function cleanAskFirst(list) {
+  const out = []
+  for (const x of Array.isArray(list) ? list : []) {
+    const s = String(x === undefined || x === null ? '' : x).replace(/\s+/g, ' ').trim().slice(0, 40)
+    if (s && !out.includes(s)) out.push(s)
+    if (out.length >= 12) break
+  }
+  return out
+}
+/** 主动程度 (PROACTIVE.md §6.1): ask (只在我问时) | default | more (多做一点). */
+export const PROACTIVE_LEVELS = ['ask', 'default', 'more']
 
 // ── the teammate's generated preset ─────────────────────────────────────────
 
 /** The persona of one teammate plus MyWork's working rules: the preset's persona prefix. */
 export function personaPrefix(mate) {
   const who = mate.name ? `你是「${mate.name}」` : '你是一位刚加入的同事（还没有名字）'
+  const askFirst = cleanAskFirst(mate.askFirst)
   const lines = [
     `${who}，在 MyWork 里替用户干活${mate.title ? '，头衔：' + mate.title : ''}。你和用户在一条长期的对话里共事：用户说一句，你就做，做完用中文简短回话，像同事说话，不铺垫、不用客套。`,
     '',
@@ -55,11 +77,16 @@ export function personaPrefix(mate) {
     '工作规矩：',
     '- 你的工作目录是你自己的文件夹（你的电脑），产出的文件放在这里。',
     '- 做出一份成果（报告、清单、比较、方案、表格、文档）时，用 deliver 交付：title 一句话，markdown 先结论后依据；正文里有数字、清单或表格时必须同时给 summary（2 到 6 行 { label, value }，value 只放数字和最短的限定词）。交付后用一两句话回话，不要把正文再贴一遍。回答问题就直接说，不用交付。',
-    '- 默认按合理假设把事做完，假设写进结果。只在四种情况用 mywork_ask 停下来问：缺关键信息且没法合理假设 / 必须由用户拍板 / 动作有后果（发消息、付费、删除、对外提交）/ 需要密码、验证码或扫码。每一轮最多问 2 次，一次只问一件事，问完立刻结束这一轮；用户的回答以「回答：」开头送回来。',
-    '- 网站要登录时，用 mywork_ask（askKind takeover）请用户在电脑上的浏览器里自己登录，登录状态会留在浏览器里；不要让用户把密码、cookie、token 或验证码发给你。',
-    '- 用户说带时间的事（每天 / 每周 / 工作日 / 几点 / 多久之后 / 提醒我），用 mywork_routine_create 安排成你的例行，一件事只安排一次；mywork_routines 查看，mywork_routine_cancel 取消。不要用 schedule_create、reminder_* 或 automation_* 这些别的定时工具。例行到点时你会收到「这是例行任务…」开头的消息，照要求做完回话；那时不要提问，也不要再建例行。',
-    '- 用户告诉你的长期偏好或事实（称呼、口味、固定的格式、常用的账号名），用 mywork_remember 记一行；它写进你文件夹里的 AGENTS.md，以后每一轮都会读到。一次性的事不要记。',
+    '- 你的能力不设限：发消息、花钱、删改文件、在网页上提交、用用户给你的账号登录，都直接做，不用先问。做完在回话里用一句话说清做了什么：发给了谁、改了哪个文件、花了多少；撤不回的事说明撤不回。用户在 MyWork 里看得到你做过的每件事，你改过的文件能一键撤销。',
+    '- 默认按合理假设把事做完，假设写进结果。只在两种情况用 mywork_ask 停下来问：缺关键信息且没法合理假设 / 这件事必须由用户拍板。一次只问一件事，问完立刻结束这一轮；用户的回答以「回答：」开头送回来。',
+    ...(askFirst.length ? [`- 例外：下面这几类事，做之前先用 mywork_ask（askKind approval）问用户，用户允许了再做——${askFirst.join('；')}。`] : []),
+    '- 网站要登录时：用户给过你账号和密码就直接登录；没给过，用 mywork_ask（askKind takeover）请用户在电脑上的浏览器里登录，或者问用户要账号。登录状态会留在浏览器里。',
+    '- 用户说带时间的事（每天 / 每周 / 工作日 / 几点 / 多久之后 / 提醒我），用 mywork_routine_create 安排成你的例行（这样用户在 MyWork 里看得见、管得着），一件事只安排一次；mywork_routines 查看，mywork_routine_cancel 取消。例行到点时你会收到「这是例行任务…」开头的消息，照要求做完回话；例行运行时没人在等着回答，不要用 mywork_ask。',
+    '- 你盯的东西（股票、在用的模型和依赖、课题、竞品……）记在你文件夹里的 清单.csv：一行一个对象，第一列是对象名，其余列你定，中文表头，只往后加列。用户说出的看法、假设和决定记在 判断.csv，表头固定为 编号,类型,内容,依据,重看条件,状态,日期（编号从 J-01 起；类型是 看法 / 假设 / 决定 / 前提；状态是 有效 / 动摇 / 已改 / 撤回）。用户在右边的资料栏里看这两张表。改用户的判断时写清新的状态和理由；你自己的看法在内容前标「同事的：」。',
+    '- 用户纠正你，或说了长期的偏好和口径（称呼、格式、数据只用哪种来源），用 mywork_remember 记一条规矩；它写进你文件夹里的 AGENTS.md，以后每一轮都会读到，用户能在资料栏里改和删。一次性的事不要记。',
     '- 用户在你干活时插话，是在改这件事的要求，接着做，按最新的话为准。',
+    ...(mate.proactive === 'ask' ? ['- 主动程度：只在用户问时。只做用户叫你做的事和你的例行，不要额外多查、多备、多做。'] : []),
+    ...(mate.proactive === 'more' ? ['- 主动程度：多做一点。和你职责有关、用户多半用得上的事（先查、先备、先整理）可以不等用户开口就做，做完在回话里交代一句。'] : []),
   ]
   // MyWork (the default teammate) is the one who finds a long-running job its own teammate.
   if (mate.isDefault) lines.push('- 你是用户的总助理：长期、反复、要专门盯着的事（每周看几家公司在招什么、每天盯某类消息、定期跟进一个项目或主题）应该交给一位专门的同事，不要都揽成你自己的例行。用户交来这类事时，先用 mywork_mates 看有没有同事已经在做，有就告诉用户去找它；没有就用 mywork_ask（askKind choice，选项「新建同事」「你来做就行」）问一句要不要给它找一位专门的同事。用户选「新建同事」，用 mywork_mate_create 建好（能马上出第一份的，把第一件事写进 first），告诉用户它叫什么、在左边的同事列表里，这件事以后由它做，你不再做；选「你来做就行」，再安排成你的例行。这条优先于「带时间的事安排成例行」那一条。晨报、日报、周报、提醒这类本来就归你的事照常自己做；一次性的事你自己做；用户直接要你新建同事时不用再问。')
@@ -192,6 +219,7 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
       state, step, since: running ? (running.startedAt || running.createdAt) : live.length ? live[0].createdAt : pending ? pending.at : '',
       ask: pending ? { ...askView(pending), runId: waiting.id } : null,
       routineCount: routines.forMate(m.id).length, dir: m.dir,
+      askFirst: cleanAskFirst(m.askFirst), proactive: PROACTIVE_LEVELS.includes(m.proactive) ? m.proactive : 'default', readTime: m.isDefault ? (READ_TIME.test(m.readTime || '') ? m.readTime : DEFAULT_READ_TIME) : '',
     }
   }
   const mateViewById = (id) => { const m = mates.get(id); return m ? mateView(m) : null }
@@ -339,21 +367,8 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
       } catch (e) { log(`preset ${m.id} not checked: ${e && e.message}`) }
     }
   })
-  // MyWork ships with a daily morning brief. Created once and remembered in defaults.json, so a deleted brief stays deleted.
-  queueMicrotask(() => {
-    try {
-      const file = join(dir, 'defaults.json')
-      const done = existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : {}
-      if (done.morningBrief) return
-      if (!routines.forMate(DEFAULT_MATE_ID).some((r) => /晨报/.test(r.title + r.input))) {
-        createRoutine({
-          mateId: DEFAULT_MATE_ID, title: '晨报', schedule: { type: 'daily', time: '08:40' },
-          input: '每天早上 8:40 给我一份晨报：先列今天的会（时间、会议、要准备什么）；再从同事们昨天以来交来的东西里挑最值得我看的 3 条，和今天的会有关的排在前面，每条一句话说为什么要看；最后列出等我拍板的事。没有的部分就写「无」，不要编。',
-        })
-      }
-      writeFileSync(file, JSON.stringify({ ...done, morningBrief: true }, null, 2))
-    } catch (e) { log('default morning brief: ' + (e && e.message)) }
-  })
+  // MyWork's morning report is the 今天卡, put together by code at 读的时间 (EDITIONS.md 4.4, GET /today); a model-written
+  // 晨报 routine is no longer created (one made by an earlier version stays until the person removes it).
 
   // ── teammates ──
   function createMate(b) {
@@ -416,7 +431,11 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     if (b.notify !== undefined) patch.notify = !!b.notify
     if (b.group !== undefined) patch.group = String(b.group || '').replace(/\s+/g, ' ').trim().slice(0, 12) // the teammate's type (sidebar section); '' = 其他
     if (b.avatar !== undefined) patch.avatar = avatarOf(b.avatar)
-    const identity = ['name', 'title', 'description'].some((k) => k in patch && patch[k] !== m[k])
+    if (b.askFirst !== undefined) patch.askFirst = cleanAskFirst(b.askFirst)
+    if (b.proactive !== undefined) patch.proactive = PROACTIVE_LEVELS.includes(b.proactive) ? b.proactive : 'default'
+    if (b.readTime !== undefined) { const v = String(b.readTime || '').trim(); if (v && !READ_TIME.test(v)) throw bad('读的时间写成 08:30 这样。'); patch.readTime = v }
+    // The persona carries the name, title, job, 先问 and 主动程度: any of them changing rewrites the preset.
+    const identity = ['name', 'title', 'description', 'askFirst', 'proactive'].some((k) => k in patch && JSON.stringify(patch[k]) !== JSON.stringify(m[k]))
     const nameChanged = 'name' in patch && patch.name !== m.name
     mates.update(m.id, patch)
     if (identity) refreshPreset(mates.get(m.id), nameChanged)
@@ -447,8 +466,8 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     const m = mates.get(String(id || ''))
     if (!m) throw notFound('同事不存在。')
     const index = docsIndex()
+    // A quiet routine run stays: the thread draws it as one grey line (例行 · 标题 · 没有变化), runs in a row merged.
     const visible = (r) => {
-      if (isQuietRun(r)) return false
       if (r.trigger === 'system' && r.status === 'done' && !r.error && !(r.activity || []).some(isThreadEntry) && !(index.get(r.id) || []).length) return false
       return true
     }
@@ -710,6 +729,140 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     return { mate: mateViewById(mate.id), first }
   }
 
+  // ── 做了告诉你 / 撤销 / 规矩 / 今天卡 ──
+  const didId = () => 'did-' + Date.now().toString(36) + randomBytes(2).toString('hex')
+  /** The person-facing copy of a did entry: no absolute path, no snapshot location. */
+  const didView = ({ abs: _a, snap: _s, after: _h, ...rest }) => rest
+  /** Everything a teammate changed or sent, newest first (资料 › 它做过的): its did entries with their run. */
+  function didList(id, limit) {
+    const m = mates.get(String(id || ''))
+    if (!m) throw notFound('同事不存在。')
+    const n = Math.max(1, Math.min(200, Math.floor(Number(limit)) || 50))
+    const out = []
+    for (const t of store.forMate(m.id)) {
+      const title = t.trigger === 'routine' ? t.routineTitle || t.title : t.title || plainLine(t.input)
+      for (const a of t.activity || []) if (a && a.kind === 'did') out.push({ ...didView(a), runId: t.id, runTitle: clip(title, 40), trigger: t.trigger })
+    }
+    out.sort((a, b) => ts(b.at) - ts(a.at))
+    return { items: out.slice(0, n) }
+  }
+  /** The rules file's bullet whose text (after the date) is `text`; returns [lines, index] or [lines, -1]. */
+  const ruleIndex = (lines, text) => {
+    const want = String(text || '').replace(/\s+/g, ' ').trim()
+    for (let i = lines.length - 1; i >= 0; i -= 1) {
+      const m = lines[i].trim().match(/^[-*]\s+(?:\d{4}-\d{2}-\d{2}\s+)?(.+)$/)
+      if (m && m[1].replace(/\s+/g, ' ').trim() === want) return i
+    }
+    return -1
+  }
+  function editRule(mateId, text, next) {
+    const m = mates.get(String(mateId || ''))
+    if (!m) throw notFound('同事不存在。')
+    const file = join(m.dir, MEMORY_FILE)
+    if (!existsSync(file)) return false
+    const lines = readFileSync(file, 'utf8').split('\n')
+    const i = ruleIndex(lines, text)
+    if (i < 0) return false
+    if (next === null) lines.splice(i, 1)
+    else {
+      const v = String(next || '').replace(/\s+/g, ' ').trim()
+      if (!v) throw bad('规矩不能为空。')
+      if (v.length > REMEMBER_MAX) throw bad(`太长了：一条 ≤${REMEMBER_MAX} 字。`)
+      const date = (lines[i].match(/^\s*[-*]\s+(\d{4}-\d{2}-\d{2})\s+/) || [])[1]
+      lines[i] = '- ' + (date ? date + ' ' : '') + v
+    }
+    writeFileSync(file, lines.join('\n'))
+    emit('mate', null, { mateId: m.id })
+    return true
+  }
+  /**
+   * 撤销 one did entry (didId) or every one of a run. A file goes back to its copy from before the run's first change
+   * (a file the run created is deleted) unless someone changed it again since the run ended; a rule leaves AGENTS.md; a
+   * routine is removed. A message or a page action cannot be taken back.
+   */
+  function undo(runId, didIdWanted) {
+    const t = store.get(String(runId || ''))
+    if (!t) throw notFound('run not found')
+    const list = (t.activity || []).filter((a) => a && a.kind === 'did' && !a.undoneAt && (!didIdWanted || a.id === didIdWanted))
+    if (!list.length) throw bad('没有可以撤销的。')
+    const undone = []
+    const conflicts = []
+    const kept = []
+    for (const a of list) {
+      if (a.act === 'file') {
+        if (!a.undoable) { kept.push(a.path); continue }
+        if (a.after !== undefined && hashOf(a.abs) !== a.after) { conflicts.push(a.path); continue }
+        try { if (a.existed) copyFileSync(a.snap, a.abs); else if (existsSync(a.abs)) rmSync(a.abs) } catch (e) { log(`undo ${a.abs}: ${e && e.message}`); conflicts.push(a.path); continue }
+        undone.push(a)
+      } else if (a.act === 'rule') {
+        if (editRule(t.mateId, a.line, null)) undone.push(a); else kept.push(a.line)
+      } else if (a.act === 'routine') {
+        if (routines.get(a.routineId)) { routines.remove(a.routineId); emit('routine', null, { mateId: t.mateId, routine: null, removedRoutineId: a.routineId }) }
+        undone.push(a)
+      } else kept.push(a.act)
+    }
+    if (undone.length) { const at = new Date().toISOString(); store.update(t.id, () => { for (const a of undone) a.undoneAt = at }) }
+    emit('mate', null, { mateId: t.mateId })
+    return { undone: undone.length, conflicts, kept, run: runView(store.get(t.id)) }
+  }
+
+  /** 读的时间 as today's Date. */
+  function readAt(now) {
+    const mw = mates.get(DEFAULT_MATE_ID) || {}
+    const time = READ_TIME.test(mw.readTime || '') ? mw.readTime : DEFAULT_READ_TIME
+    const [hh, mm] = time.split(':').map(Number)
+    return { time, at: new Date(now.getFullYear(), now.getMonth(), now.getDate(), hh, mm, 0, 0) }
+  }
+  /**
+   * 今天卡 (EDITIONS.md 4.4): MyWork's morning message, put together by code (no model) from the last 24 hours before
+   * 读的时间 and whatever came after it (marked late, 「补」): what needs you (open questions, reminders, failures),
+   * what changed (routine results, files you have not opened), how many things they did, how much they looked at and
+   * kept quiet about. Before 读的时间 there is no card for today.
+   */
+  function todayCard() {
+    const now = new Date()
+    const { time, at } = readAt(now)
+    const week = '日一二三四五六'[at.getDay()]
+    const base = { readTime: time, at: at.toISOString(), date: (at.getMonth() + 1) + '/' + at.getDate() + ' 周' + week }
+    if (now < at) return { ...base, ready: false }
+    const since = at.getTime() - 86400000
+    const index = docsIndex()
+    const needs = []
+    const changes = []
+    const quiet = []
+    let did = 0
+    for (const m of mates.items) {
+      const name = m.name || '新同事'
+      let q = 0
+      const mine = []
+      for (const t of store.forMate(m.id)) {
+        const item = (kind, iso, text) => ({ mateId: m.id, mateName: name, runId: t.id, kind, at: iso, text: clip(text, 70), late: ts(iso) > at.getTime() })
+        for (const a of t.activity || []) if (a && a.kind === 'did' && !a.undoneAt && ts(a.at) >= since) did += 1
+        if (t.status === 'waiting') { const a = pendingAsk(t); if (a) needs.push(item('ask', a.at, plainLine(a.question))); continue }
+        if (t.remind) { for (const a of t.activity || []) if (a.kind === 'remind' && !a.acked) needs.push(item('remind', a.at, a.title || t.routineTitle)); continue }
+        if (t.status !== 'done' || !(ts(t.finishedAt) >= since)) continue
+        if (isQuietRun(t)) { q += 1; continue }
+        if (t.error) { if (t.error !== '已停止。') needs.push(item('failed', t.finishedAt, (t.routineTitle ? t.routineTitle + ' · ' : '') + t.error)); continue }
+        if (t.trigger === 'system') continue
+        const docs = index.get(t.id) || []
+        // Something you asked for counts only when it left a file you have not opened yet; a routine's result always.
+        if (t.trigger !== 'routine' && !(docs.length && seen.unread(m.id, t.finishedAt))) continue
+        const reply = [...(t.activity || [])].reverse().find((a) => a && a.kind === 'text')
+        const text = docs.length ? docs[docs.length - 1].title : reply ? plainLine(reply.text) : t.summary
+        if (text) mine.push(item(t.trigger === 'routine' ? 'routine' : 'file', t.finishedAt, (t.trigger === 'routine' && t.routineTitle && !docs.length ? t.routineTitle + '：' : '') + text))
+      }
+      mine.sort((a, b) => ts(b.at) - ts(a.at))
+      if (mine.length) changes.push(...mine.slice(0, 3).map((x, i) => (i === 2 && mine.length > 3 ? { ...x, more: mine.length - 3 } : x)))
+      if (q) quiet.push({ mateId: m.id, mateName: name, n: q })
+    }
+    const order = { ask: 0, failed: 1, remind: 2 }
+    needs.sort((a, b) => (order[a.kind] - order[b.kind]) || (ts(b.at) - ts(a.at)))
+    // One screen: at most 12 rows in all (需要你 first); what does not fit is counted, and each teammate's thread has it.
+    const room = Math.max(3, TODAY_ROWS - needs.length)
+    const hidden = Math.max(0, changes.length - room)
+    return { ...base, ready: true, needs, changes: changes.slice(0, room), hidden, did, quiet, updatedAt: now.toISOString() }
+  }
+
   // ── tools ──
   const callerOf = (exec) => engine.caller(exec && exec.agent && exec.agent.session ? String(exec.agent.session.id) : '')
   const mateOnly = (exec, tool) => { const c = callerOf(exec); if (!c) throw new Error(`${tool} 只在 MyWork 同事的会话里可用。`); return c }
@@ -750,13 +903,15 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     },
     {
       name: 'mywork_routine_create',
-      description: '给自己安排一件例行的事或一个提醒（只在 MyWork 同事的会话里可用；例行归你，结果回到你和用户的对话里）。「每天 9 点…」「每周一 8:30…」「工作日 18 点…」「每 2 小时…」是例行（到点你会收到一条「这是例行任务…」的消息，照做后回话，第一段先说变化）；「提醒我喝水 / 开会 / 交周报」这类只有用户自己能做的事是提醒（到点在对话里出提醒卡、发通知，你不会被叫醒）；「提醒我写周报 / 整理 / 汇总…」这类你自己能做的事不是提醒，到点你做完交给用户（周报、日报会拿到所有同事这段时间的工作记录当素材）。时间用自然语言写在 input 里，分类由解析器决定，返回值里的 kind 告诉你结果。例行运行时不能用。',
+      description: '给自己安排一件例行的事或一个提醒（只在 MyWork 同事的会话里可用；例行归你，结果回到你和用户的对话里；例行运行时也可以用）。「每天 9 点…」「每周一 8:30…」「工作日 18 点…」「每 2 小时…」是例行（到点你会收到一条「这是例行任务…」的消息，照做后回话，第一段先说变化）；「提醒我喝水 / 开会 / 交周报」这类只有用户自己能做的事是提醒（到点在对话里出提醒卡、发通知，你不会被叫醒）；「提醒我写周报 / 整理 / 汇总…」这类你自己能做的事不是提醒，到点你做完交给用户（周报、日报会拿到所有同事这段时间的工作记录当素材）。时间用自然语言写在 input 里，分类由解析器决定，返回值里的 kind 告诉你结果。',
       parameters: { input: { type: 'string', required: true, description: '含时间的一句话，例如"每天 9 点给我一份 Node 生态简报"或"明天 8 点提醒我交周报"' }, title: { type: 'string', description: '可选标题' } },
       execute(args, exec) {
         const c = mateOnly(exec, 'mywork_routine_create')
-        if (c.run && c.run.trigger === 'routine') throw new Error('例行运行时不能新建例行。')
         const r = createRoutine({ mateId: c.mate.id, input: args.input, title: args.title })
-        if (c.run) store.activity(c.run.id, { kind: 'routine', action: 'created', routineId: r.id, title: r.title, scheduleLabel: r.scheduleLabel })
+        if (c.run) {
+          store.activity(c.run.id, { kind: 'routine', action: 'created', routineId: r.id, title: r.title, scheduleLabel: r.scheduleLabel })
+          store.activity(c.run.id, { kind: 'did', id: didId(), act: 'routine', routineId: r.id, title: r.title, undoable: true })
+        }
         return { id: r.id, kind: r.kind, title: r.title, schedule: r.scheduleLabel, nextRunAt: r.nextRunAt }
       },
       render: (_a, v) => [{ type: 'text', text: v.kind === 'remind' ? `已安排提醒「${v.title}」：${v.schedule}，下次 ${v.nextRunAt ? new Date(v.nextRunAt).toLocaleString() : '—'}，到点在对话里出提醒卡并通知用户。直接回话，不要再加别的提醒。` : `已安排例行「${v.title}」：${v.schedule}，下次 ${v.nextRunAt ? new Date(v.nextRunAt).toLocaleString() : '—'}。到点你会收到这条例行，做完交给用户；不需要再加提醒，直接回话。` }],
@@ -791,8 +946,8 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     },
     {
       name: 'mywork_remember',
-      description: '记住一条用户的长期偏好或事实（只在 MyWork 同事的会话里可用）：写成一行追加到你文件夹里的 AGENTS.md，以后每一轮都会读到。≤300 字，一次一条；一次性的事不要记。',
-      parameters: { fact: { type: 'string', required: true, description: '要记住的一句话，例如「周报用表格，按项目分」' } },
+      description: '记一条规矩（只在 MyWork 同事的会话里可用）：用户纠正你、或说了长期的偏好和口径时用。写成一行追加到你文件夹里的 AGENTS.md，以后每一轮都会读到；用户在资料栏里能改能删，对话里会出一行「记下了」。≤300 字，一次一条；一次性的事不要记。',
+      parameters: { fact: { type: 'string', required: true, description: '这条规矩，一句话，例如「周报用表格，按项目分」「财务数字只用年报原文，研报里的数标为券商估计」' } },
       execute(args, exec) {
         const c = mateOnly(exec, 'mywork_remember')
         const fact = String(args.fact || '').replace(/\s+/g, ' ').trim()
@@ -800,13 +955,14 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
         if (fact.length > REMEMBER_MAX) throw new Error(`太长了（${fact.length} 字）：一条 ≤${REMEMBER_MAX} 字。`)
         const file = join(c.mate.dir, MEMORY_FILE)
         mkdirSync(c.mate.dir, { recursive: true })
-        if (!existsSync(file)) writeFileSync(file, `# ${c.mate.name || '同事'} 记住的事\n\n用户的长期偏好与事实，一行一条（mywork_remember 追加）。\n\n`)
+        if (!existsSync(file)) writeFileSync(file, `# ${c.mate.name || '同事'}的规矩\n\n口径、来源、格式、教训，一行一条（mywork_remember 追加；用户在资料栏里改和删）。\n\n`)
         const d = new Date()
         const line = `- ${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${fact}`
         appendFileSync(file, line + '\n')
+        if (c.run) store.activity(c.run.id, { kind: 'did', id: didId(), act: 'rule', line: fact, undoable: true })
         return { remembered: true, line }
       },
-      render: (_a, v) => [{ type: 'text', text: '已记住：' + v.line }],
+      render: (_a, v) => [{ type: 'text', text: '已记下规矩：' + v.line }],
     },
     {
       name: 'mywork_mate_update',
@@ -849,7 +1005,6 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
       },
       execute(args, exec) {
         const c = myworkOnly(exec, 'mywork_mate_create')
-        if (c.run && c.run.trigger !== 'user') throw new Error('例行运行时不能新建同事。')
         const { mate, first } = handOver({ description: args.description, name: args.name, title: args.title, group: args.group, first: args.first })
         if (c.run) store.activity(c.run.id, { kind: 'mate', action: 'created', mateId: mate.id, name: mate.named ? mate.name : '' })
         return { created: true, id: mate.id, name: mate.named ? mate.name : '', group: mate.group, first }
@@ -898,6 +1053,11 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
       },
     },
     '/search': { GET: (q) => search(q.get('q')) },
+    '/mates/did': { GET: (q) => didList(q.get('id'), q.get('limit')) },
+    '/undo': { POST: (_q, b) => undo(b.runId, b.didId ? String(b.didId) : '') },
+    '/mates/rules/remove': { POST: (_q, b) => { if (!editRule(idOf(b), b.line, null)) throw notFound('没有这条规矩。'); return { removed: true } } },
+    '/mates/rules/update': { POST: (_q, b) => { if (!editRule(idOf(b), b.line, b.text)) throw notFound('没有这条规矩。'); return { updated: true } } },
+    '/today': { GET: () => todayCard() },
   }
   /** One request: { status, body }. `query` is URLSearchParams or a plain object. */
   async function handle(method, path, query, body) {

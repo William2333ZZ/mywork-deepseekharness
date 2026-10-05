@@ -27,8 +27,9 @@ Stop = controller.cancel (keeps the inbox) of the bound run; with no run bound, 
  * No imports from @deepseek-ai/* here: this package is `link:`ed into the profile, so those specifiers do not resolve
  * from its real path. The two helpers dsh-automation imports (createUserMessage, installModelSelection) are inlined.
  */
-import { existsSync, mkdirSync } from 'node:fs'
-import { randomUUID } from 'node:crypto'
+import { copyFileSync, existsSync, mkdirSync, readFileSync, statSync } from 'node:fs'
+import { createHash, randomUUID } from 'node:crypto'
+import { extname, isAbsolute, join, relative, resolve } from 'node:path'
 import { ACTIVITY_DETAIL_MAX, ASK_DETAIL_MAX, ASK_EXPIRY_MS, ASK_KINDS, ASK_MAX_PER_TASK, ASK_OPTION_MAX, ASK_OPTIONS_MAX, ASK_OPTIONS_MIN, ASK_QUESTION_MAX, MATE_SESSION_PREFIX, pendingAsk, titleOf, ts } from './store.js'
 import { defaultVerifyPrompt, parseVerdict, stepNameFor } from './scenarios.js'
 import { changedVerdict, parseSchedule, recordDays, routinePrompt, stripVerdict, wantsRecord, wantsSchedule } from './routines.js'
@@ -102,6 +103,35 @@ export function resultPreview(event) {
   const text = blocks.filter((b) => b && b.type === 'text' && typeof b.text === 'string').map((b) => b.text).join(' ').replace(/\s+/g, ' ').trim()
   return text.length > ACTIVITY_DETAIL_MAX ? text.slice(0, ACTIVITY_DETAIL_MAX - 1) + '…' : text
 }
+
+/**
+ * 做了告诉你 (PROACTIVE.md §5.2): what a tool call changes. filesTouched → the paths a file tool writes (write / edit /
+ * multi_edit with file_path, apply_patch by its 「*** Update File:」 lines); outwardAct → 'send' (an IM message) or 'web'
+ * (a click, typing or a form on a page) — things that leave the computer and cannot be taken back.
+ */
+export function filesTouched(tool, args) {
+  const a = args && typeof args === 'object' ? args : {}
+  const name = String(tool || '')
+  if (/^(write|edit|multi_edit|multiedit|write_file|create_file)$/i.test(name)) {
+    const p = a.file_path || a.path || a.filePath
+    return typeof p === 'string' && p.trim() ? [p.trim()] : []
+  }
+  if (/^apply_patch$/i.test(name)) {
+    const text = typeof a.patch === 'string' ? a.patch : typeof a.input === 'string' ? a.input : ''
+    return [...text.matchAll(/^\*\*\* (?:Add|Update|Delete) File: (.+)$/gm)].map((m) => m[1].trim()).filter(Boolean)
+  }
+  return []
+}
+export function outwardAct(tool) {
+  const name = String(tool || '')
+  if (name === 'im_send') return 'send'
+  if (/browser_(click|type|fill_form|fill|select_option|press_key|file_upload|drag|handle_dialog)$/.test(name)) return 'web'
+  return ''
+}
+/** A file larger than this is not copied before a change: its line says 撤不回. */
+export const UNDO_MAX_BYTES = 2 * 1024 * 1024
+/** The content hash of a file (null when it is not there): undo refuses a file changed again since. */
+export function hashOf(file) { try { return createHash('sha1').update(readFileSync(file)).digest('hex') } catch { return null } }
 
 /** Human error for a turn/end reason. */
 export function reasonError(reason) {
@@ -259,7 +289,7 @@ export function createEngine({ ctx, store, deliverables, mates, routines, scenar
         if (!/exist|already|owned/i.test(errorText(e))) throw e
         log(`session ${sessionId} exists already; resuming it`)
       }
-      mates.update(mate.id, { sessionId })
+      mates.update(mate.id, { sessionId, permission: config.permission })
       log(`teammate ${mate.id} session ${sessionId} ready`)
       return sessionId
     })()
@@ -394,6 +424,63 @@ export function createEngine({ ctx, store, deliverables, mates, routines, scenar
     } finally { pumping = false }
   }
 
+  /**
+   * A session made before the permission default changed keeps its old preset: after its next turn it moves to
+   * config.permission (once; the preset is a durable session fact). Deferred past the event being published (dsh
+   * refuses an append from inside another append) and never mid-turn.
+   */
+  function applyPermission(mateId) {
+    const m = mates.get(mateId)
+    if (!m || m.permission === config.permission || !ctx.permissionPresets || typeof ctx.permissionPresets.set !== 'function') return
+    const agent = liveAgent(mateId)
+    if (!agent || !agent.session) return
+    try { ctx.permissionPresets.set(agent.session, config.permission); mates.update(mateId, { permission: config.permission }); log(`teammate ${mateId} permission → ${config.permission}`) } catch (e) { log(`permission ${mateId}: ${errorText(e)}`) }
+  }
+
+  /**
+   * 做了告诉你: a tool call that changes something becomes a `did` entry of the run (a thread entry, kept when the tool
+   * calls are trimmed). A file is copied to <folder>/.mywork/undo/<runId>/ before its first change in the run, so 撤销
+   * can put it back (a new file: undo deletes it); a message or a page action is recorded as 撤不回.
+   */
+  function recordDid(runId, mate, tool, rawArgs) {
+    const didId = () => 'did-' + Date.now().toString(36) + rand().slice(0, 4)
+    // dsh hands the model's arguments over as the JSON text it wrote; tests and other callers may pass the object.
+    let args = rawArgs
+    if (typeof args === 'string') { try { args = JSON.parse(args) } catch { args = {} } }
+    for (const p of filesTouched(tool, args)) {
+      const abs = isAbsolute(p) ? p : resolve(mate.dir, p)
+      const run = store.get(runId)
+      if (!run) return
+      const hit = (run.activity || []).find((a) => a && a.kind === 'did' && a.act === 'file' && a.abs === abs)
+      if (hit) { store.update(runId, () => { hit.n = (Number(hit.n) || 1) + 1; hit.at = new Date().toISOString() }); continue }
+      let existed = false
+      let size = 0
+      try { const st = statSync(abs); existed = st.isFile(); size = st.size } catch {}
+      let snap = ''
+      if (existed && size <= UNDO_MAX_BYTES) {
+        try {
+          const dir = join(mate.dir, '.mywork', 'undo', runId)
+          mkdirSync(dir, { recursive: true })
+          const n = (run.activity || []).filter((a) => a && a.kind === 'did' && a.act === 'file').length + 1
+          snap = join(dir, n + extname(abs))
+          copyFileSync(abs, snap)
+        } catch (e) { snap = ''; log(`undo copy ${abs}: ${errorText(e)}`) }
+      }
+      const inside = relative(resolve(mate.dir), abs)
+      const shown = inside && !inside.startsWith('..') && !isAbsolute(inside) ? inside : abs
+      store.activity(runId, { kind: 'did', id: didId(), act: 'file', path: shown, abs, existed, snap, undoable: !existed || !!snap, n: 1 })
+    }
+    const out = outwardAct(tool)
+    const a = args && typeof args === 'object' ? args : {}
+    if (out === 'send') store.activity(runId, { kind: 'did', id: didId(), act: 'send', target: clipTo(a.target, 40), text: clipTo(a.text, 120), undoable: false })
+    else if (out === 'web') {
+      const run = store.get(runId)
+      const hit = run && (run.activity || []).find((x) => x && x.kind === 'did' && x.act === 'web')
+      if (hit) store.update(runId, () => { hit.n = (Number(hit.n) || 1) + 1; hit.at = new Date().toISOString() })
+      else store.activity(runId, { kind: 'did', id: didId(), act: 'web', n: 1, undoable: false })
+    }
+  }
+
   // ── session events ───────────────────────────────────────────────────────
 
   const turnOf = (mateId) => { let t = turns.get(mateId); if (!t) { t = { n: 0, runId: null, discard: false, pending: [] }; turns.set(mateId, t) } return t }
@@ -506,6 +593,7 @@ export function createEngine({ ctx, store, deliverables, mates, routines, scenar
           const tool = data.name ? String(data.name) : ''
           store.step(run.id, stepNameFor(tool, stepMap()), tool)
           store.activity(run.id, { kind: 'tool', name: tool, detail: argsPreview(data.arguments) })
+          try { recordDid(run.id, mates.get(mateId), tool, data.arguments) } catch (e) { log('did: ' + errorText(e)) }
           emit('step', store.get(run.id))
           return
         }
@@ -534,6 +622,7 @@ export function createEngine({ ctx, store, deliverables, mates, routines, scenar
           else if (runId) finishRun(runId, data.reason)
           turns.set(mateId, { n: turn.n, runId: null, discard: false, pending: [] })
           recheckHanded(mateId)
+          { const t = setTimeout(() => applyPermission(mateId), 0); if (t && typeof t.unref === 'function') t.unref() }
           if (typeof afterTurn === 'function') { try { afterTurn(mateId) } catch (e) { log('afterTurn: ' + errorText(e)) } }
           pump()
           return
@@ -559,6 +648,8 @@ export function createEngine({ ctx, store, deliverables, mates, routines, scenar
     for (const [mateId, turn] of turns) if (turn.runId === runId) turns.set(mateId, { n: turn.n, runId: null, discard: false, pending: turn.pending })
     if (!run || run.status === 'done') return
     store.endSteps(runId)
+    // What each changed file looks like now: 撤销 later refuses a file someone changed again since.
+    if ((run.activity || []).some((a) => a && a.kind === 'did' && a.act === 'file')) store.update(runId, (x) => { for (const a of x.activity || []) if (a && a.kind === 'did' && a.act === 'file') a.after = hashOf(a.abs) })
     const error = state.stopped ? STOPPED : state.timedOut ? '超过最长运行时间。' : reasonError(reason)
     const ask = pendingAsk(run)
     if (!error && ask) {

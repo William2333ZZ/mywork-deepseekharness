@@ -24,7 +24,7 @@ MyWork Kit v2 的核心成员：**同事模型**。设计见 [design/v2/TEAMMATE
 ## 引擎（`src/engine.js`）
 
 - **一个同事一条会话** `mywork-mate-<id>`。第一次用时 `agents.create`：cwd = 同事文件夹（注册为工作区，名字是同事名），preset = `mate-<id>`，钉住当前默认模型，权限预设 `workspace-write`，审批 `never`。之后每句话都走 `sessionController.prompt`（冷会话由 controller 按 id 恢复）。
-- **preset**：取 dsh 自带的 `standard`（`agentPresets.resolve('standard')` 的文件；读不到时用包里的 `presets/mate-base/` 副本），把 persona 行换成这位同事的（名字、头衔、职责 + MyWork 的工作规矩：用 deliver 交付并给 summary、只在四种情况用 mywork_ask、用 mywork_routine_create 建例行、用 mywork_remember 记长期偏好），去掉 dsh 的 `ask_user`（它会挂住一轮等客户端）。其余行（agent-instructions、bash、fs、jobs、skills、计划、压缩、子代理、todo、web、present …）照搬。改名字 / 头衔 / 职责时重写，并用 `agentPresets.recompose(agent.ctx, 'mate-<id>')` 把活着的会话换到新一代（dsh 的 preset 挂载按文件戳换代，已加入的会话不会自己换；同事的会话整个进程都活着）：空闲时立刻换，正在一轮里就等这一轮结束。所以新同事在自我介绍里给自己起的名字、右栏改的职责，下一轮就生效。改名字时同事的 dsh 工作区标题一起改（`Workspace.setTitle`）。
+- **preset**：取 dsh 自带的 `standard`（`agentPresets.resolve('standard')` 的文件；读不到时用包里的 `presets/mate-base/` 副本），把 persona 行换成这位同事的（名字、头衔、职责 + MyWork 的工作规矩：能力不设限、直接做、做完说清做了什么；用 deliver 交付并给 summary；只在缺关键信息或必须由用户拍板时用 mywork_ask，外加用户标的「先问」几类；用 mywork_routine_create 建例行；清单.csv / 判断.csv 的写法；用 mywork_remember 记规矩；主动程度），去掉 dsh 的 `ask_user`（它会挂住一轮等客户端）。其余行（agent-instructions、bash、fs、jobs、skills、计划、压缩、子代理、todo、web、present …）照搬。改名字 / 头衔 / 职责 / 先问 / 主动程度时重写，并用 `agentPresets.recompose(agent.ctx, 'mate-<id>')` 把活着的会话换到新一代（dsh 的 preset 挂载按文件戳换代，已加入的会话不会自己换；同事的会话整个进程都活着）：空闲时立刻换，正在一轮里就等这一轮结束。所以新同事在自我介绍里给自己起的名字、右栏改的职责，下一轮就生效。改名字时同事的 dsh 工作区标题一起改（`Workspace.setTitle`）。
 - **一次运行 = 会话里的一轮**：全局监听 `session/event`，只看 `mywork-mate-` 前缀，任何时候都听（不再只在「在跑」时听）。`turn/start … turn/end` 是一次运行；我们发出的每句话 requestId 带运行 id（`mywork-run-<runId>.<n>`），`user/message` 靠它把这一轮绑到运行上；`tool/call` → 步骤与活动，`assistant/message` → 回复，`deliver` / `mywork_ask` 找这位同事当前的运行。别处（dsh 会话页）直接打进同事会话的话也成为一次运行；AGENTS.md 之类的上下文消息不算。
 - **说一句话**（`POST /mates/say`）：
   - 它正在做**用户**的运行 → `mode: 'steer'` 插进这一轮，不另起运行（用户行记在这次运行的 activity 里）；
@@ -39,7 +39,7 @@ MyWork Kit v2 的核心成员：**同事模型**。设计见 [design/v2/TEAMMATE
 - **停**（`POST /mates/stop`）：有绑定到当前一轮的运行 → `controller.cancel`（保留收件箱：排在它后面的话照样会跑）。没有绑定的运行（排在并发上限后面、排在例行后面、会话正在冷恢复）→ 这位同事排着的运行都以「已停止。」收尾：已经交进收件箱的用 `controller.updateQueue({ action: { kind: 'remove' } })` 取回，取不回（还在路上）就记 `run.stopped`，它那一轮一开始就被取消、什么都不记。等你答的运行一并收尾。
 - **重启**：分两步。`repair()` 在 `createMyWork()` 里同步跑（任何路由和派发之前）：还在一轮里的运行收尾为「服务重启，这一轮中断。」，核验中的盖「核验被服务重启打断」，记下重启前已经交进会话收件箱的运行。3 秒后 `recover()` 只处理这些：用运行上存的同一个 requestId 以 `mode: 'queue'` 重发（controller 认得收件箱或日志里已有的 requestId，不会重复；崩溃窗口里丢了的会补回），再用一句 steer 唤醒（dsh 不会自己启动恢复的 agent）。其余排队的照常派发。
 - **丢了的消息**：每次 `turn/end` 检查这位同事已交出、还没开跑的运行，它的 requestId 不在 agent 的收件箱里就重新派发（新 requestId），不会永远「排队」。没带我们 requestId 的一轮（别处打进来的话、dsh 自己的提醒）永远是它自己的一次运行，不会被猜成排着的那次；已经结束的运行不会再被绑上一轮。
-- **找人**：`mywork_ask` 写一条 pending 的 ask、结束本轮 → 运行 `waiting`。每次运行最多问 2 次；例行运行、自我介绍不能问。回答（卡片按钮 `POST /answer` 或直接在对话里说）把问题标为 answered、用户的话记进这次运行、以「回答：…」重新交给同一会话，同一次运行接着做。24 小时没人答：问题过期，运行里多一条 `{ kind: 'user', auto: true, askId, text }`（一行灰字，不是气泡），按合理假设继续。
+- **找人**：`mywork_ask` 写一条 pending 的 ask、结束本轮 → 运行 `waiting`。问几次不设上限；例行运行、自我介绍不能问（没人在等着答）。回答（卡片按钮 `POST /answer` 或直接在对话里说）把问题标为 answered、用户的话记进这次运行、以「回答：…」重新交给同一会话，同一次运行接着做。24 小时没人答：问题过期，运行里多一条 `{ kind: 'user', auto: true, askId, text }`（一行灰字，不是气泡），按合理假设继续。
 
 ## 新同事
 
@@ -62,7 +62,7 @@ MyWork Kit v2 的核心成员：**同事模型**。设计见 [design/v2/TEAMMATE
 | `mywork_ask({ question, askKind?, options?, detail? })` | 停下来问，结束本轮 |
 | `mywork_routine_create({ input, title? })` | 给自己建例行 / 提醒；在当前运行里写 `{ kind: 'routine', action: 'created', routineId, title, scheduleLabel, at }` |
 | `mywork_routines()` / `mywork_routine_cancel({ id \| title })` | 看 / 删自己的例行 |
-| `mywork_remember({ fact })` | 往自己文件夹的 `AGENTS.md` 追加一行 `- YYYY-MM-DD <fact>`（≤300 字） |
+| `mywork_remember({ fact })` | 记一条规矩：往自己文件夹的 `AGENTS.md` 追加一行 `- YYYY-MM-DD <fact>`（≤300 字），运行里记一条 `did`（对话里出「记下了规矩 · 改 · 删」） |
 | `mywork_mate_update({ name?, title? })` | 改自己的名字 / 头衔（会重写 preset） |
 
 已移除：`mywork_task_create`、`mywork_task_say`、`mywork_tasks`、交办行、「交给后台」的系统提示段、今日助理与 `mywork-assistant` preset、`/today`、`/today/say`、`/feed`、`/create`、`/tasks`、`/task`、`/say`、`/cancel`、`/rerun`、`/verify`、`/rename`、`/remove`、`/scenarios`、`/deliverables`。
@@ -87,9 +87,17 @@ GET  /files?mate=&q=&since=         → { items: Deliverable[] }
 GET  /deliverable?id=               → { deliverable, run } · POST /rate { id, rating }
 POST /seen          { id | ids }    → { id, ids, seenAt }
 GET  /search?q=                     → { mates, messages: [{ mateId, runId, at, text }], files, routines }
+GET  /mates/did?id=&limit=          → { items: [{ id, act: file|send|web|rule|routine, path?, existed?, n?, target?, text?, line?, routineId?, undoable, undoneAt?, at, runId, runTitle }] }   它做过的
+POST /undo          { runId, didId? } → { undone, conflicts: [path], kept: [..], run }   撤销一条或整次运行
+POST /mates/rules/update { id, line, text } · /mates/rules/remove { id, line }   资料 › 规矩
+GET  /today                         → { ready, readTime, at, date, needs, changes, hidden, did, quiet, updatedAt }   （一屏：需要你 + 变化 ≤ 12 行，多的计入 hidden）   MyWork 的今天卡
 ```
 
-**Mate** = `{ id, name, named, title, description, glyph, pinned, isDefault, notify, createdAt, lastAt, preview, unread, attentionAt, state: idle|working|waiting, step, since, ask: (askView + runId)|null, routineCount, dir }`
+**做了告诉你 / 撤销**（PROACTIVE.md §5.2）：引擎在 `tool/call` 时把改动记成运行里的 `did` 条目（线程条目，工具调用被裁掉时也留着）。文件工具（write / edit / multi_edit / apply_patch）在本次运行第一次改某个文件前，把它复制到 `<文件夹>/.mywork/undo/<runId>/`（≤2 MB；新建的文件记 `existed: false`，撤销就删掉）；运行结束时记下文件现在的哈希，撤销时文件之后又被改过就不动它，报在 `conflicts` 里。`im_send` 和网页上的点击、输入、提交记为 `undoable: false`（撤不回）。`mywork_remember` 记 `act: 'rule'`（撤销 = 从 AGENTS.md 删掉这行），`mywork_routine_create` 记 `act: 'routine'`（撤销 = 删掉例行）。
+
+**今天卡**：MyWork 的晨报不再由模型写。`GET /today` 在 MyWork 的「读的时间」（`readTime`，默认 08:30）之后，用代码从昨天读的时间起的记录拼出：需要你（没答的问题、没点的提醒、失败）、变化（例行的结果、你还没打开的文件，每位同事最多 3 条）、它们做了几件、哪些例行看过没出声。读的时间之后才来的标 `late`（卡上写「补 HH:MM」）。
+
+**Mate** = `{ id, name, named, title, description, glyph, pinned, isDefault, notify, createdAt, lastAt, preview, unread, attentionAt, state: idle|working|waiting, step, since, ask: (askView + runId)|null, routineCount, dir, askFirst: string[], proactive: ask|default|more, readTime (MyWork) }`；`POST /mates/update` 也收 `askFirst`、`proactive`、`readTime`。
 
 - `name` 没起名时是「新同事」（`named: false`）。`glyph` 是名字的第一个字（MyWork 是 M）。
 - 顺序：置顶的在前（默认同事第一，其余按创建时间），其余按 `lastAt` 倒序；状态不改变顺序。
@@ -114,7 +122,7 @@ GET  /search?q=                     → { mates, messages: [{ mateId, runId, at,
 
 ## 配置
 
-`concurrency`（2，同时在干活的同事数）、`timeoutMinutes`（20，单次运行）、`permission`（workspace-write）、`agentPreset`（standard，核验会话用）、`tools`（true）、`verify`（true）。
+`concurrency`（4，同时在干活的同事数）、`timeoutMinutes`（60，单次运行）、`permission`（danger-full-access：全盘读写、不弹审批；之前用 workspace-write 建的会话在下一轮开始时换过来）、`agentPreset`（standard，核验会话用）、`tools`（true）、`verify`（true）。
 
 ## 测试
 

@@ -132,6 +132,22 @@ const zh = {
   download: '下载', editInThread: '在对话里改', editPrefix: '把 {name} 里 ', rowsCount: '{n} 行', truncated: '只显示前 512 KB', fileEmpty: '文件是空的',
   openInBrowser: '在浏览器里打开', openingInBrowser: '正在浏览器里打开…', openedInBrowser: '已在浏览器里打开', openFailed: '没能在浏览器里打开：{e}', downloadFailed: '没能下载：{e}', imageFailed: '图片没加载出来',
   dutyEx1: '每天早上 8 点按信源整理 AI 技术动态，只报和我有关的', dutyEx2: '帮我管日程，记在一张表里，每天 8:30 给我今日安排', dutyEx3: '盯竞品的定价页和更新日志，有变化就告诉我',
+  did: '已做', undo: '撤销', undone: '已撤销', irrev: '撤不回', look: '看', laterAsk: '以后这类先问',
+  didFile: '改了 {p}', didFileNew: '新建 {p}', didSend: '发了消息 → {t}', didWeb: '在网页上操作 {n} 次', didRoutine: '建了例行「{t}」', didRuleLabel: '记规矩「{t}」',
+  undoConflict: '{n} 个文件之后又被改过，没动它', undoFailed: '没能撤销：{e}', undoNone: '没有可以撤销的',
+  ruleNoted: '记下了规矩', ruleEdit: '改', ruleRemove: '删', ruleRemoved: '已删',
+  quietLine: '例行 · {t} · 没有变化', quietTimes: '{n} 次',
+  hoDelivered: '交了 {n} 份', hoNeeds: '需要你 {n}', hoDid: '自己做了 {n} 件', hoQuiet: '看过没出声 {n} 次', hoFailed: '失败 {n}',
+  todayTitle: '今天 · {d}', todayNeeds: '需要你 {n}', todayChanges: '变化 {n}', todayDid: '它们做了 {n} 件', todayQuiet: '没开口：{s}', todayLate: '补', todayNone: '昨天以来没有要你看的。', todayMore: '还有 {n} 条', todayUpdated: '{t} 更新',
+  kAsk: '等你答', kRemind: '提醒', kFailed: '失败', kFile: '没打开',
+  proactive: '主动程度', pAsk: '只在我问时', pDefault: '默认', pMore: '多做一点', proactiveHint: '管它不等你开口时做多少。能做什么不设限。',
+  listSec: '清单', listEmpty: '还没有清单。跟它说你要它盯什么，它会记在 清单.csv 里。',
+  judgeSec: '判断', judgeEmpty: '还没有判断。你说出的看法、假设和决定，它会记在 判断.csv 里。', toReview: '待重看 {n}',
+  rules: '规矩', rulesEmpty: '还没有规矩。纠正它一次，或说一句「以后都……」，它会记一条。',
+  askFirst: '先问', askFirstEmpty: '还没标。标了的那类事，它做之前先问你；没标的直接做，做完告诉你。', askFirstAdd: '标一类', askFirstPh: '例如：对外发消息', askFirstSuggest: '建议标',
+  didSec: '它做过的', didEmpty: '它还没改过、发过什么。',
+  readTime: '读的时间', readTimeHint: '今天卡在这个时间拼好。',
+  rowsMore: '还有 {n} 行', itemsMore: '还有 {n} 条',
 }
 const en = {
   mate: 'Teammate', files: 'Files',
@@ -165,6 +181,22 @@ const en = {
   download: 'Download', editInThread: 'Edit in conversation', editPrefix: 'In {name}, ', rowsCount: '{n} rows', truncated: 'Showing the first 512 KB', fileEmpty: 'The file is empty',
   openInBrowser: 'Open in browser', openingInBrowser: 'Opening in the browser…', openedInBrowser: 'Opened in the browser', openFailed: 'Could not open it in the browser: {e}', downloadFailed: 'Could not download: {e}', imageFailed: 'The image did not load',
   dutyEx1: 'Every morning at 8, gather AI tech news from my sources and report only what concerns me', dutyEx2: 'Run my calendar in one sheet and send me today’s plan every day at 8:30', dutyEx3: 'Watch competitors’ pricing pages and changelogs and tell me when something changes',
+  did: 'Done', undo: 'Undo', undone: 'Undone', irrev: 'Cannot undo', look: 'View', laterAsk: 'Ask first next time',
+  didFile: 'changed {p}', didFileNew: 'created {p}', didSend: 'sent a message → {t}', didWeb: '{n} actions on a web page', didRoutine: 'set up the routine “{t}”', didRuleLabel: 'rule “{t}”',
+  undoConflict: '{n} file(s) changed again since, left alone', undoFailed: 'Could not undo: {e}', undoNone: 'Nothing to undo',
+  ruleNoted: 'Rule noted', ruleEdit: 'Edit', ruleRemove: 'Delete', ruleRemoved: 'Deleted',
+  quietLine: 'Routine · {t} · no change', quietTimes: '{n} times',
+  hoDelivered: '{n} file(s) delivered', hoNeeds: '{n} need you', hoDid: '{n} things done on its own', hoQuiet: 'checked quietly {n} times', hoFailed: '{n} failed',
+  todayTitle: 'Today · {d}', todayNeeds: 'Needs you {n}', todayChanges: 'Changes {n}', todayDid: 'They did {n} things', todayQuiet: 'Quiet: {s}', todayLate: 'late', todayNone: 'Nothing for you since yesterday.', todayMore: '{n} more', todayUpdated: 'updated {t}',
+  kAsk: 'waiting', kRemind: 'reminder', kFailed: 'failed', kFile: 'unopened',
+  proactive: 'Initiative', pAsk: 'Only when asked', pDefault: 'Default', pMore: 'A bit more', proactiveHint: 'How much it does before you ask. What it can do is not limited.',
+  listSec: 'Watchlist', listEmpty: 'No watchlist yet. Tell it what to watch; it keeps 清单.csv.',
+  judgeSec: 'Judgments', judgeEmpty: 'No judgments yet. Your views, hypotheses and decisions go into 判断.csv.', toReview: '{n} to review',
+  rules: 'Rules', rulesEmpty: 'No rules yet. Correct it once, or say “from now on…”, and it notes one.',
+  askFirst: 'Ask first', askFirstEmpty: 'Nothing marked. What you mark, it asks about first; the rest it does and tells you.', askFirstAdd: 'Mark a kind', askFirstPh: 'e.g. sending messages out', askFirstSuggest: 'Suggested',
+  didSec: 'What it did', didEmpty: 'It has not changed or sent anything yet.',
+  readTime: 'Reading time', readTimeHint: 'Today’s card is put together at this time.',
+  rowsMore: '{n} more rows', itemsMore: '{n} more',
 }
 
 const STYLE = `
@@ -596,6 +628,73 @@ textarea.mwt-input{resize:vertical;min-height:80px;line-height:1.75}
 .mwt-toast b [data-tone=warn]{color:var(--warn)}
 .mwt-toast b [data-tone=danger]{color:var(--danger)}
 .mwt-toast .sub{display:block;color:var(--fg-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/*
+ * 做了告诉你 (PROACTIVE.md §5.2): one line under a run's messages — what it changed or sent, 12 at 68 % on a 5 % ground;
+ * 撤不回 a quiet tag; 看 / 撤销 at its end. 记下了规矩 is a bare line. 交班 is one centred line under 「以下是新的」.
+ */
+.mwt-did{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;max-width:600px;padding:6px 12px;border-radius:8px;background:var(--rule-soft);color:var(--fg-2);font-size:12px;line-height:18px}
+.mwt-did>svg{flex:none;color:var(--fg-3)}
+.mwt-did .txt{min-width:0;word-break:break-word}
+.mwt-did .acts{display:inline-flex;gap:12px;margin-left:auto}
+.mwt-did .irrev,.mwt-irrev{padding:0 6px;border:1px solid var(--rule);border-radius:4px;color:var(--fg-3);font-size:11px;line-height:16px;white-space:nowrap}
+.mwt-did .msg{flex-basis:100%;color:var(--fg-3)}
+.mwt-did[data-undone=true] .txt{text-decoration:line-through;text-decoration-color:var(--fg-3)}
+.mwt-act{appearance:none;padding:0;border:0;background:transparent;color:var(--accent-text);font:inherit;font-size:12px;line-height:18px;cursor:pointer;white-space:nowrap}
+.mwt-act.mute{color:var(--fg-3)}
+.mwt-act:hover{color:var(--fg);text-decoration:underline;text-underline-offset:3px}
+.mwt-act[disabled]{opacity:.5;cursor:default;text-decoration:none}
+span.mwt-act{cursor:default}
+span.mwt-act:hover{color:var(--fg-3);text-decoration:none}
+.mwt-rule{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;max-width:600px;color:var(--fg-3);font-size:12px;line-height:18px}
+.mwt-rule>svg{flex:none}
+.mwt-rule .x{color:var(--fg-2);word-break:break-word}
+.mwt-rule[data-undone=true] .x{text-decoration:line-through}
+.mwt-handover{margin-top:-8px;color:var(--fg-2);font-size:12px;line-height:18px;text-align:center;font-variant-numeric:tabular-nums}
+/* 今天卡: MyWork's morning message (a card 560 wide): a head, 需要你 in --warn, 变化, a foot of counts. Rows open the run. */
+.mwt-today{width:560px;max-width:100%}
+.mwt-today .hd{display:flex;align-items:baseline;gap:8px;padding:14px 16px 2px}
+.mwt-today .hd b{font-size:15px;line-height:22px;font-weight:600}
+.mwt-today .hd span{margin-left:auto;color:var(--fg-3);font-size:12px;line-height:16px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.mwt-today .sec{padding:10px 16px 4px;color:var(--fg-3);font-size:12px;line-height:16px}
+.mwt-today .sec.need{color:var(--warn)}
+.mwt-today .row{appearance:none;display:grid;grid-template-columns:104px minmax(0,1fr) auto;column-gap:12px;align-items:center;width:100%;min-height:32px;padding:4px 16px;border:0;background:transparent;color:var(--fg);font:inherit;font-size:13px;line-height:20px;text-align:left;cursor:pointer}
+.mwt-today .row:hover{background:var(--rule-soft)}
+.mwt-today .who{display:flex;align-items:center;gap:6px;min-width:0;color:var(--fg-2);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mwt-today .tx{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mwt-today .k{color:var(--fg-3);font-size:11px;line-height:16px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.mwt-today .k[data-tone=warn]{color:var(--warn)}
+.mwt-today .k[data-tone=danger]{color:var(--danger)}
+.mwt-today .none{padding:6px 16px 4px;color:var(--fg-3);font-size:13px;line-height:20px}
+.mwt-today .foot{display:grid;gap:2px;margin-top:8px;padding:8px 16px 12px;border-top:1px solid var(--rule-soft);color:var(--fg-3);font-size:12px;line-height:18px;font-variant-numeric:tabular-nums}
+/* 资料 › 主动程度: three segments; the open one on --bubble-focus. */
+.mwt-seg{display:flex;padding:2px;border:1px solid var(--rule);border-radius:8px;background:var(--rule-soft)}
+.mwt-seg button{appearance:none;flex:1;height:26px;padding:0 8px;border:0;border-radius:6px;background:transparent;color:var(--fg-3);font:inherit;font-size:12px;line-height:16px;cursor:pointer;white-space:nowrap}
+.mwt-seg button:hover{color:var(--fg)}
+.mwt-seg button[aria-checked=true]{background:var(--bubble-focus);color:var(--fg)}
+.mwt-seg+.mwt-hint{margin-top:8px}
+/* 资料 rows (清单, 判断, 规矩, 它做过的): an id or time 11, the text 13, the right 11; actions show on hover. */
+.mwt-prow{display:flex;align-items:baseline;gap:8px;min-height:28px;padding:4px 0;font-size:13px;line-height:20px}
+.mwt-prow .id{flex:none;min-width:32px;color:var(--fg-3);font-size:11px;font-variant-numeric:tabular-nums}
+.mwt-prow .x{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mwt-prow button.x{appearance:none;padding:0;border:0;background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
+.mwt-prow button.x:hover{text-decoration:underline;text-decoration-color:var(--fg-3);text-underline-offset:3px}
+.mwt-prow .sub{color:var(--fg-3);font-size:12px}
+.mwt-prow .r{flex:none;color:var(--fg-3);font-size:11px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.mwt-prow .r[data-tone=warn]{color:var(--warn)}
+.mwt-prow .acts{flex:none;display:inline-flex;gap:10px;opacity:0;transition:opacity var(--fast)}
+.mwt-prow:hover .acts,.mwt-prow:focus-within .acts{opacity:1}
+@media (hover:none){.mwt-prow .acts{opacity:1}}
+.mwt-prow .mwt-input{padding:2px 8px;font-size:13px;line-height:20px}
+/* 先问: chips, an add chip, suggestions. */
+.mwt-chips{display:flex;flex-wrap:wrap;gap:6px}
+.mwt-chip{display:inline-flex;align-items:center;gap:2px;height:26px;padding:0 4px 0 10px;border:1px solid var(--rule);border-radius:999px;color:var(--fg);font-size:12px;line-height:16px}
+.mwt-chip button{appearance:none;display:grid;place-items:center;width:20px;height:20px;padding:0;border:0;border-radius:50%;background:transparent;color:var(--fg-3);cursor:pointer}
+.mwt-chip button:hover{color:var(--fg);background:var(--rule-soft)}
+button.mwt-chip.add{appearance:none;padding:0 10px;border-style:dashed;background:transparent;color:var(--fg-3);font:inherit;font-size:12px;cursor:pointer}
+button.mwt-chip.add:hover{color:var(--fg);border-color:var(--fg-3)}
+.mwt-suggest{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:10px;color:var(--fg-3);font-size:11px;line-height:16px}
+.mwt-timein{width:96px;height:28px;padding:0 8px;border:1px solid var(--rule);border-radius:6px;background:transparent;color:var(--fg);font:inherit;font-size:13px;color-scheme:var(--mw-scheme,dark)}
+.mwt-timein:focus{outline:none;border-color:var(--fg-3)}
 @media (max-width:720px){
   .mwt-page{padding:32px 16px 48px}
   .mwt-inner,.mwt-bar-in{padding:0 16px}
@@ -923,6 +1022,7 @@ function rememberSeen(id) {
 }
 /** When a run last asked for attention (the server's attentionOf): finished, a failed verification, a question pending. */
 function attentionMs(r) {
+  if (r.quiet === true && r.trigger === 'routine') return 0
   let best = 0
   if (r.status === 'done') best = Math.max(best, ms(r.finishedAt))
   if (r.verification && r.verification.passed === false) best = Math.max(best, ms(r.verification.at))
@@ -1402,6 +1502,107 @@ function makeComponents(ctx, t) {
         e.acked ? null : h('button', { type: 'button', className: 'mwt-tbtn', disabled: busy || !e.routineId, onClick: () => { setBusy(true); Promise.resolve(onAck(e)).finally(() => setBusy(false)) } }, t('gotIt'))))
   }
 
+  // ---- 做了告诉你, 规矩, 例行没出声, 今天卡 -------------------------------------------------------------------------
+
+  const baseName = (p) => String(p || '').split(/[\\/]/).filter(Boolean).pop() || String(p || '')
+  /** A path inside the teammate's folder (relative): it opens in the reading view. */
+  const insideFolder = (p) => !!p && !/^([\\/]|[A-Za-z]:)/.test(String(p))
+  /** One did entry as words. */
+  const didWords = (e) => e.act === 'file' ? (e.existed ? t('didFile') : t('didFileNew')).replace('{p}', baseName(e.path)) + (Number(e.n) > 1 ? ' ×' + e.n : '')
+    : e.act === 'send' ? t('didSend').replace('{t}', e.target || 'IM')
+      : e.act === 'web' ? t('didWeb').replace('{n}', String(e.n || 1))
+        : e.act === 'routine' ? t('didRoutine').replace('{t}', e.title || '')
+          : e.act === 'rule' ? t('didRuleLabel').replace('{t}', e.line || '') : String(e.act || '')
+  /** A quiet routine run: a routine that checked and found nothing (never unread, drawn as one grey line). */
+  const quietRun = (r) => !!r && r.quiet === true && r.trigger === 'routine' && !r.error
+
+  /**
+   * 做了告诉你: one line under a run's messages — what it changed or sent (files, messages, page actions), 撤不回 when
+   * any of it cannot be taken back, then 看 (the first file it changed, in the reading view) and 撤销 (POST /undo: every
+   * file back to before the run; a file changed again since is left alone, and the line says so).
+   */
+  function DidLine({ run, entries, onOpenPath, onDone }) {
+    const [busy, setBusy] = React.useState(false)
+    const [msg, setMsg] = React.useState('')
+    const undoable = entries.filter((e) => e.undoable)
+    const open = undoable.filter((e) => !e.undoneAt)
+    const allUndone = undoable.length > 0 && !open.length
+    const irreversible = entries.some((e) => !e.undoable)
+    const file = entries.find((e) => e.act === 'file' && !e.undoneAt && insideFolder(e.path))
+    const undo = () => {
+      if (busy) return
+      setBusy(true); setMsg('')
+      api('/undo', { runId: run.id })
+        .then((r) => { if (r && Array.isArray(r.conflicts) && r.conflicts.length) setMsg(t('undoConflict').replace('{n}', String(r.conflicts.length))); if (onDone) onDone(r) })
+        .catch((e) => setMsg(t('undoFailed').replace('{e}', (e && e.message) || String(e))))
+        .finally(() => setBusy(false))
+    }
+    const sent = entries.filter((e) => e.act === 'send' && e.text).map((e) => e.text).join('\n')
+    return h('div', { className: 'mwt-did', 'data-undone': allUndone ? 'true' : undefined, title: sent || undefined },
+      icon('circle-check', { size: 14 }),
+      h('span', { className: 'txt' }, t('did') + ' · ' + entries.map(didWords).join(' · ')),
+      irreversible ? h('span', { className: 'irrev' }, t('irrev')) : null,
+      h('span', { className: 'acts' },
+        file && onOpenPath ? h('button', { type: 'button', className: 'mwt-act', onClick: () => onOpenPath(file.path) }, t('look')) : null,
+        open.length ? h('button', { type: 'button', className: 'mwt-act mute', disabled: busy, onClick: undo }, t('undo'))
+          : allUndone ? h('span', { className: 'mwt-act mute' }, t('undone')) : null),
+      msg ? h('span', { className: 'msg', role: 'status' }, msg) : null)
+  }
+
+  /** 记下了规矩: under the reply that noted it — the rule, 改 (资料 › 规矩) and 删 (POST /undo of that one entry). */
+  function RuleLine({ run, e, onEdit, onDone }) {
+    const [busy, setBusy] = React.useState(false)
+    const gone = !!e.undoneAt
+    const remove = () => { if (busy) return; setBusy(true); api('/undo', { runId: run.id, didId: e.id }).then((r) => { if (onDone) onDone(r) }).catch(() => {}).finally(() => setBusy(false)) }
+    return h('div', { className: 'mwt-rule', 'data-undone': gone ? 'true' : undefined },
+      icon('bookmark', { size: 13 }),
+      h('span', null, t('ruleNoted')),
+      h('span', { className: 'x' }, e.line),
+      gone ? h('span', null, t('ruleRemoved')) : h(React.Fragment, null,
+        onEdit ? h('button', { type: 'button', className: 'mwt-act', onClick: onEdit }, t('ruleEdit')) : null,
+        h('button', { type: 'button', className: 'mwt-act mute', disabled: busy, onClick: remove }, t('ruleRemove'))))
+  }
+
+  /** 例行 · 标题 · 没有变化 · HH:MM (several in a row: · n 次（first–last）); opens the routine in 资料. */
+  function QuietLine({ group, onOpen }) {
+    const first = group[0]
+    const last = group[group.length - 1]
+    const title = last.routineTitle || last.title || t('routineWord')
+    const end = last.finishedAt || last.createdAt
+    const when = group.length > 1 ? t('quietTimes').replace('{n}', String(group.length)) + '（' + imTime(first.createdAt, t('yesterday')) + '–' + hhmm(end) + '）' : imTime(end, t('yesterday'))
+    return h('button', { type: 'button', className: 'mwt-note', title: t('routines'), onClick: onOpen }, t('quietLine').replace('{t}', title) + ' · ' + when)
+  }
+
+  /**
+   * 今天卡 (EDITIONS.md 4.4, GET /today): MyWork's message at 读的时间, put together by code — 需要你 (open questions,
+   * reminders, failures; --warn), 变化 (routine results and files not opened yet, three per teammate), then how many
+   * things they did and how much they checked without speaking. Anything that came after 读的时间 says 「补 HH:MM」.
+   * A row opens that teammate's thread at that run.
+   */
+  function TodayCard({ card, mates, onOpen }) {
+    const mateOf = (id) => (mates || []).find((m) => m.id === id) || { id, name: '' }
+    const kindOf = { ask: [t('kAsk'), 'warn'], remind: [t('kRemind'), undefined], failed: [t('kFailed'), 'danger'], file: [t('kFile'), undefined], routine: ['', undefined] }
+    const row = (x) => {
+      const [word, tone] = kindOf[x.kind] || ['', undefined]
+      const right = x.late ? t('todayLate') + ' ' + hhmm(x.at) : x.more ? t('todayMore').replace('{n}', String(x.more)) : word
+      return h('button', { key: x.kind + ':' + x.runId + ':' + x.at, type: 'button', className: 'row', onClick: () => onOpen(x.mateId, x.runId) },
+        h('span', { className: 'who' }, h(Avatar, { mate: mateOf(x.mateId), size: 16 }), x.mateName),
+        h('span', { className: 'tx', title: x.text }, x.text),
+        h('span', { className: 'k', 'data-tone': x.late ? undefined : tone }, right))
+    }
+    const quiet = (card.quiet || []).map((q) => q.mateName + ' ' + q.n).join(' · ')
+    const nothing = !card.needs.length && !card.changes.length
+    return h('div', { className: 'mwt-card mwt-today' },
+      h('div', { className: 'hd' }, h('b', null, t('todayTitle').replace('{d}', card.date)), h('span', null, [card.readTime, card.updatedAt ? t('todayUpdated').replace('{t}', hhmm(card.updatedAt)) : ''].filter(Boolean).join(' · '))),
+      card.needs.length ? h(React.Fragment, null, h('div', { className: 'sec need' }, t('todayNeeds').replace('{n}', String(card.needs.length))), card.needs.map(row)) : null,
+      card.changes.length ? h(React.Fragment, null, h('div', { className: 'sec' }, t('todayChanges').replace('{n}', String(card.changes.length + (card.hidden || 0)))), card.changes.map(row),
+        card.hidden ? h('div', { className: 'none' }, t('todayMore').replace('{n}', String(card.hidden))) : null) : null,
+      nothing ? h('div', { className: 'none' }, t('todayNone')) : null,
+      card.did || quiet ? h('div', { className: 'foot' },
+        card.did ? h('span', null, t('todayDid').replace('{n}', String(card.did))) : null,
+        quiet ? h('span', null, t('todayQuiet').replace('{s}', quiet)) : null) : null)
+  }
+
   // ---- the mate page ------------------------------------------------------------------------------------------------
 
   /** The loaded runs of one teammate: the newest page on every change of its state, earlier pages on request. */
@@ -1470,10 +1671,12 @@ function makeComponents(ctx, t) {
    */
   function MateView({ mate, mates, nav: n, renderSlot }) {
     const th = useThread(mate)
-    const runs = React.useMemo(() => th.runs.filter((r) => !(r.quiet && r.trigger === 'routine' && !r.error)), [th.runs])
-    const lists = React.useMemo(() => new Map(runs.map((r) => [r.id, threadOf(r)])), [runs])
+    // Every run, quiet routine checks included (drawn as one grey line); `loud` is the rest, for folding and 「以下是新的」.
+    const runs = th.runs
+    const loud = React.useMemo(() => runs.filter((r) => !quietRun(r)), [runs])
+    const lists = React.useMemo(() => new Map(loud.map((r) => [r.id, threadOf(r)])), [loud])
     // Migrated runs and finished runs older than the newest five fold to the user line + one row per deliverable.
-    const folded = React.useMemo(() => foldedRunIds(runs, 5), [runs])
+    const folded = React.useMemo(() => foldedRunIds(loud, 5), [loud])
     const live = activeRun(runs)
     const running = mate.state === 'working' || (!!live && isLive(live))
     useTick(running)
@@ -1487,7 +1690,7 @@ function makeComponents(ctx, t) {
     const keep = React.useRef(null)
     const jump = React.useRef({ id: '', tries: 0 })
     const [jumpSeq, setJumpSeq] = React.useState(0)
-    const arriving = useArrivals(runs, lists, th.loaded)
+    const arriving = useArrivals(loud, lists, th.loaded)
     // The composer's draft outlives the reading view (the dock is not on screen while a file is open).
     const draft = React.useRef('')
 
@@ -1511,13 +1714,45 @@ function makeComponents(ctx, t) {
     // (else the run carrying the teammate's attention time). Captured before this visit marks it seen.
     const [visit] = React.useState(() => ({ unread: mate.unread === true, seenAt: clientSeenAt(mate.id), attentionAt: mate.attentionAt || '' }))
     const firstNew = React.useMemo(() => {
-      if (!visit.unread || !runs.length) return ''
+      if (!visit.unread || !loud.length) return ''
       const since = ms(visit.seenAt)
-      if (since) { const r = runs.find((x) => attentionMs(x) > since); return r ? r.id : '' }
+      if (since) { const r = loud.find((x) => attentionMs(x) > since); return r ? r.id : '' }
       const at = ms(visit.attentionAt)
-      const r = at ? runs.find((x) => attentionMs(x) >= at - 1000) : null
-      return (r || runs[runs.length - 1]).id
-    }, [runs, visit])
+      const r = at ? loud.find((x) => attentionMs(x) >= at - 1000) : null
+      return (r || loud[loud.length - 1]).id
+    }, [loud, visit])
+    // 交班: what happened from 「以下是新的」 on, as one line under it (files, needs you, things done, quiet checks, failures).
+    const handover = React.useMemo(() => {
+      const i = firstNew ? runs.findIndex((r) => r.id === firstNew) : -1
+      if (i < 0) return ''
+      let files = 0; let did = 0; let quiet = 0; let failed = 0; let needs = 0
+      const titles = []
+      for (const r of runs.slice(i)) {
+        if (quietRun(r)) { quiet += 1; continue }
+        for (const d of r.deliverables || []) { files += 1; if (titles.length < 2) titles.push(d.title) }
+        for (const e of r.activity || []) if (e && e.kind === 'did' && !e.undoneAt) did += 1
+        if (r.status === 'waiting') needs += 1
+        if (r.status === 'done' && r.error && !/已停止|已取消/.test(r.error)) failed += 1
+      }
+      return [
+        files ? t('hoDelivered').replace('{n}', String(files)) + '（' + titles.join(' · ') + (files > titles.length ? ' …' : '') + '）' : '',
+        needs ? t('hoNeeds').replace('{n}', String(needs)) : '',
+        did ? t('hoDid').replace('{n}', String(did)) : '',
+        quiet ? t('hoQuiet').replace('{n}', String(quiet)) : '',
+        failed ? t('hoFailed').replace('{n}', String(failed)) : '',
+      ].filter(Boolean).join(' · ')
+    }, [runs, firstNew])
+    // MyWork's 今天卡: read again with every poll of the roster (anyone's run may change it) and once a minute.
+    const [today, setToday] = React.useState(null)
+    const rosterKey = mate.isDefault ? mates.map((m) => (m.lastAt || '') + (m.state || '')).join('|') : ''
+    React.useEffect(() => {
+      if (!mate.isDefault) return undefined
+      let on = true
+      const load = () => api('/today').then((d) => { if (on) setToday(d && d.ready ? d : null) }).catch(() => {})
+      load()
+      const id = setInterval(load, 60000)
+      return () => { on = false; clearInterval(id) }
+    }, [mate.isDefault, rosterKey])
 
     // The right panel: per teammate, mode 'mate' (电脑 · 例行 · 设置) or 'new-mate' (the form).
     const [aside, setAside] = React.useState(() => ({ open: asideMemory(mate.id) === 'open', mode: 'mate', section: '', routineId: '', seq: 0 }))
@@ -1630,7 +1865,7 @@ function makeComponents(ctx, t) {
     const ack = (e) => api('/routines/ack', { id: e.routineId, at: e.at }).then(() => { th.reload(); kick() }).catch(() => {})
     const stop = () => api('/mates/stop', { id: mate.id }).then(() => { th.reload(); kick() }).catch(() => {})
     const takeover = () => showAside(true, { mode: 'mate', section: 'computer' })
-    const textAsk = textAskOf(runs)
+    const textAsk = textAskOf(loud)
     // The example prompts of an empty thread fill the composer.
     const fillRef = React.useRef(null)
     // A file from 电脑 opens in the centre; as a slide-over, the panel steps aside for it (without remembering it closed).
@@ -1676,6 +1911,15 @@ function makeComponents(ctx, t) {
         else if (e.kind === 'thinking') add('status', e, null, { parts: [t('working'), e.step, elapsedOf(run)], live: true })
         else if (e.kind === 'queued') add('status', e, null, { parts: [t('queued')] })
       }
+      // 做了告诉你 and 记下了规矩 close the run's messages (above its working line while it still works).
+      const dids = (Array.isArray(run.activity) ? run.activity : []).filter((x) => x && x.kind === 'did')
+      const tail = []
+      const reload = () => { th.reload(); kick() }
+      for (const x of dids) if (x.act === 'rule') tail.push({ side: 'mate', at: x.at || '', key: 'rule:' + x.id, card: true, make: () => h(RuleLine, { run, e: x, onEdit: () => showAside(true, { mode: 'mate', section: 'rules', routineId: '' }), onDone: reload }) })
+      const shown = dids.filter((x) => x.act !== 'rule' && x.act !== 'routine')
+      if (shown.length) tail.push({ side: 'mate', at: shown[shown.length - 1].at || '', key: 'did:' + run.id, card: true, make: () => h(DidLine, { run, entries: shown, onOpenPath: (p) => openFile({ path: p }), onDone: reload }) })
+      const si = out.findIndex((x) => x.side === 'status')
+      if (si >= 0) out.splice(si, 0, ...tail); else out.push(...tail)
       return out
     }
     const GAP = 5 * 60000
@@ -1721,12 +1965,43 @@ function makeComponents(ctx, t) {
         return h('div', { key: run.id, className: 'mwt-run' + (hl === run.id ? ' hl' : ''), 'data-run': run.id }, blocks.map((b) => (b.grp ? groupNode(b.grp, run) : b.node)))
       }
       const out = []
+      // Quiet routine checks in a row (same routine) are one grey line.
+      let quietBuf = []
+      const flushQuiet = () => {
+        if (!quietBuf.length) return
+        const g = quietBuf
+        quietBuf = []
+        out.push(h(QuietLine, { key: 'q:' + g[0].id, group: g, onOpen: () => showAside(true, { mode: 'mate', section: 'routines', routineId: g[g.length - 1].routineId }) }))
+      }
+      // MyWork's 今天卡 sits at 读的时间 among the messages.
+      let todayPlaced = !today
+      const placeToday = () => {
+        if (todayPlaced) return
+        todayPlaced = true
+        const time = timeNote(today.at, 'today')
+        if (time) out.push(time)
+        out.push(h('div', { key: 'today', className: 'mwt-grp mate' },
+          h('div', { className: 'mwt-grp-av' }, h(Avatar, { mate, size: 32 })),
+          h('div', { className: 'mwt-grp-col' }, h(TodayCard, { card: today, mates, onOpen: (id, runId) => openMate(id, runId) }))))
+      }
       for (const run of runs) {
+        if (!todayPlaced && ms(run.createdAt) > ms(today.at)) { flushQuiet(); placeToday() }
+        if (quietRun(run)) {
+          if (quietBuf.length && quietBuf[0].routineId !== run.routineId) flushQuiet()
+          quietBuf.push(run)
+          continue
+        }
+        flushQuiet()
         const list = lists.get(run.id) || []
         const fold = folded.has(run.id) && list.some((e) => e.kind === 'deliver')
-        if (run.id === firstNew) out.push(h('div', { key: 'new:' + run.id, className: 'mwt-newline', role: 'separator' }, t('newBelow')))
+        if (run.id === firstNew) {
+          out.push(h('div', { key: 'new:' + run.id, className: 'mwt-newline', role: 'separator' }, t('newBelow')))
+          if (handover) out.push(h('div', { key: 'ho:' + run.id, className: 'mwt-handover' }, handover))
+        }
         out.push(runNode(run, itemsOf(run, list, fold), fold))
       }
+      flushQuiet()
+      placeToday()
       if (pending.text) {
         const iso = new Date(pending.at || Date.now()).toISOString()
         out.push(runNode({ id: 'pending' }, [{ side: 'me', at: iso, key: 'pending', make: (first) => h('div', { className: 'mwt-bub' + (first ? ' first' : '') }, pending.text) }], true))
@@ -1755,7 +2030,7 @@ function makeComponents(ctx, t) {
       running || mate.state === 'waiting' ? { icon: 'square', label: t('stop'), run: stop } : null,
       { icon: 'settings', label: t('profile'), run: () => showAside(true, { mode: 'mate', section: 'profile' }) },
     ]
-    const empty = th.loaded && !runs.length && !pending.text
+    const empty = th.loaded && !runs.length && !pending.text && !today
     // The thread header (sticky, 56, blurred): avatar 28 + name + title → 设置; 电脑 and ··· at the right.
     const bar = h('div', { className: 'mwt-bar' },
       h('div', { className: 'mwt-bar-in' },
@@ -2083,7 +2358,7 @@ function makeComponents(ctx, t) {
           : h('p', { className: 'mwt-quiet' }, t('dutyEmpty')))
   }
 
-  /** The bullets of a teammate's AGENTS.md (mywork_remember appends 「- YYYY-MM-DD what」), newest first. */
+  /** The bullets of a teammate's AGENTS.md (mywork_remember appends 「- YYYY-MM-DD the rule」), newest first. */
   function memoryOf(text) {
     return String(text || '').split('\n').map((l) => l.trim()).filter((l) => /^[-*]\s+\S/.test(l)).map((l) => {
       const s = l.replace(/^[-*]\s+/, '')
@@ -2092,25 +2367,154 @@ function makeComponents(ctx, t) {
     }).reverse()
   }
   const MEMORY_N = 5
-  /** 它记住的: what it keeps about you (AGENTS.md in its folder, read every turn), five, then 显示全部; 打开 reads the file. */
-  function MemoryBlock({ mate, onOpenFile }) {
+  /**
+   * 规矩 (AGENTS.md in its folder, read every turn): newest first, five, then 显示全部. It records them itself (no gate);
+   * here you change one in place (改: a field, Enter saves) or take it out (删). 打开 reads the file.
+   */
+  function RulesBlock({ mate, onOpenFile }) {
     const [mem, setMem] = React.useState(null)
     const [all, setAll] = React.useState(false)
+    const [editing, setEditing] = React.useState(null) // { text, draft }
+    const [bump, setBump] = React.useState(0)
     React.useEffect(() => {
       let on = true
       api('/mates/file?id=' + encodeURIComponent(mate.id) + '&path=AGENTS.md').then((d) => (d && typeof d.text === 'string' ? d : null)).catch(() => null)
         .then((d) => { if (on) setMem(d ? { path: d.path || 'AGENTS.md', items: memoryOf(d.text) } : { path: '', items: [] }) })
       return () => { on = false }
-    }, [mate.id, mate.lastAt || ''])
+    }, [mate.id, mate.lastAt || '', bump])
     const items = mem ? mem.items : []
+    const save = () => {
+      const ed = editing
+      if (!ed) return
+      const v = ed.draft.trim()
+      setEditing(null)
+      if (!v || v === ed.text) return
+      api('/mates/rules/update', { id: mate.id, line: ed.text, text: v }).then(() => setBump((n) => n + 1)).catch(() => {})
+    }
+    const remove = (x) => api('/mates/rules/remove', { id: mate.id, line: x.text }).then(() => setBump((n) => n + 1)).catch(() => {})
     return h(React.Fragment, null,
-      h('h2', null, t('memory'), items.length ? h('span', { className: 'n' }, String(items.length)) : null, h('span', { className: 'grow' }),
+      h('h2', null, t('rules'), items.length ? h('span', { className: 'n' }, String(items.length)) : null, h('span', { className: 'grow' }),
         mem && mem.path && onOpenFile ? h('button', { type: 'button', className: 'mwt-link', onClick: () => onOpenFile({ path: mem.path, name: 'AGENTS.md' }) }, t('open')) : null),
       !mem ? h(Skeleton, { rows: 1 })
-        : !items.length ? h('p', { className: 'mwt-quiet' }, t('memoryEmpty'))
+        : !items.length ? h('p', { className: 'mwt-quiet' }, t('rulesEmpty'))
           : h(React.Fragment, null,
-            h('div', { className: 'mwt-alist' }, (all ? items : items.slice(0, MEMORY_N)).map((x, i) => h('div', { key: i, className: 'mwt-mem' }, h('span', { className: 'd' }, x.date), h('span', { className: 'x' }, x.text)))),
+            h('div', { className: 'mwt-alist' }, (all ? items : items.slice(0, MEMORY_N)).map((x, i) => editing && editing.text === x.text
+              ? h('div', { key: i, className: 'mwt-prow' }, h('span', { className: 'id' }, x.date),
+                h('input', { className: 'mwt-input', value: editing.draft, autoFocus: true, 'aria-label': t('rules'), onChange: (e) => setEditing({ ...editing, draft: e.target.value }), onBlur: save, onKeyDown: (e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); save() } else if (e.key === 'Escape') setEditing(null) } }))
+              : h('div', { key: i, className: 'mwt-prow' },
+                h('span', { className: 'id' }, x.date),
+                h('span', { className: 'x', title: x.text }, x.text),
+                h('span', { className: 'acts' },
+                  h('button', { type: 'button', className: 'mwt-act', onClick: () => setEditing({ text: x.text, draft: x.text }) }, t('ruleEdit')),
+                  h('button', { type: 'button', className: 'mwt-act mute', onClick: () => remove(x) }, t('ruleRemove')))))),
             items.length > MEMORY_N ? h('button', { type: 'button', className: 'mwt-more', onClick: () => setAll(!all) }, all ? t('showLess') : t('showAll').replace('{n}', String(items.length))) : null))
+  }
+
+  /** 主动程度 (PROACTIVE.md §6.1): 只在我问时 / 默认 / 多做一点 — how much it does before you ask, never what it can do. */
+  function ProactiveBlock({ mate, update }) {
+    const cur = mate.proactive || 'default'
+    return h(React.Fragment, null,
+      h('h2', null, t('proactive')),
+      h('div', { className: 'mwt-seg', role: 'radiogroup', 'aria-label': t('proactive') },
+        [['ask', t('pAsk')], ['default', t('pDefault')], ['more', t('pMore')]].map(([k, label]) => h('button', { key: k, type: 'button', role: 'radio', 'aria-checked': cur === k, onClick: () => { if (cur !== k) update({ proactive: k }) } }, label))),
+      h('p', { className: 'mwt-hint' }, t('proactiveHint')))
+  }
+
+  /**
+   * 清单 / 判断: the two tables it keeps in its folder (清单.csv, 判断.csv), five rows, then 「还有 n 行」 opening the file.
+   * 判断 shows 编号 · 内容 · 状态 (动摇 in --warn, counted as 待重看).
+   */
+  function TableBlock({ mate, file, title, emptyText, judge, onOpenFile }) {
+    const [table, setTable] = React.useState(null)
+    React.useEffect(() => {
+      let on = true
+      api('/mates/file?id=' + encodeURIComponent(mate.id) + '&path=' + encodeURIComponent(file)).then((d) => (d && typeof d.text === 'string' ? tableOf(d.text, ',') : null)).catch(() => null)
+        .then((x) => { if (on) setTable(x || { header: [], rows: [] }) })
+      return () => { on = false }
+    }, [mate.id, mate.lastAt || '', file])
+    const rows = table ? table.rows.filter((r) => r.some((c) => String(c).trim())) : []
+    const col = (names, fallback) => { const i = table ? table.header.findIndex((h0) => names.includes(String(h0).trim())) : -1; return i >= 0 ? i : fallback }
+    const idI = col(['编号', 'ID', 'id'], judge ? 0 : -1)
+    const textI = judge ? col(['内容', '判断'], 2) : 0
+    const stateI = judge ? col(['状态'], 5) : -1
+    const subI = judge ? -1 : (table && table.header.length > 1 ? 1 : -1)
+    const review = judge ? rows.filter((r) => String(r[stateI] || '').trim() === '动摇').length : 0
+    const open = () => { if (onOpenFile) onOpenFile({ path: file, name: file }) }
+    return h(React.Fragment, null,
+      h('h2', null, title, rows.length ? h('span', { className: 'n' }, String(rows.length)) : null,
+        review ? h('span', { style: { color: 'var(--warn)' } }, t('toReview').replace('{n}', String(review))) : null,
+        h('span', { className: 'grow' }), rows.length && onOpenFile ? h('button', { type: 'button', className: 'mwt-link', onClick: open }, t('open')) : null),
+      !table ? h(Skeleton, { rows: 1 })
+        : !rows.length ? h('p', { className: 'mwt-quiet' }, emptyText)
+          : h(React.Fragment, null,
+            h('div', { className: 'mwt-alist' }, rows.slice(0, 5).map((r, i) => {
+              const state = stateI >= 0 ? String(r[stateI] || '').trim() : ''
+              return h('div', { key: i, className: 'mwt-prow' },
+                idI >= 0 ? h('span', { className: 'id' }, r[idI]) : null,
+                h('span', { className: 'x', title: r.filter(Boolean).join(' · ') }, r[textI], subI >= 0 && String(r[subI] || '').trim() ? h('span', { className: 'sub' }, '  ' + r[subI]) : null),
+                state ? h('span', { className: 'r', 'data-tone': state === '动摇' ? 'warn' : undefined }, state) : null)
+            })),
+            rows.length > 5 ? h('button', { type: 'button', className: 'mwt-more', onClick: open }, t('rowsMore').replace('{n}', String(rows.length - 5))) : null))
+  }
+
+  /**
+   * 先问 (PROACTIVE.md §6.2): the kinds of action it asks you about before doing them; empty by default (everything else
+   * it does and tells you). Chips with ×, 「+ 标一类」 turning into a field, and the suggested kinds not marked yet.
+   */
+  const ASK_FIRST_SUGGESTED = ['对外发消息', '花钱', '删除文件', '替换签收过的东西', '改我的判断']
+  function AskFirstBlock({ mate, update }) {
+    const list = Array.isArray(mate.askFirst) ? mate.askFirst : []
+    const [adding, setAdding] = React.useState(false)
+    const [draft, setDraft] = React.useState('')
+    const add = (v) => { const x = String(v || '').trim(); setDraft(''); setAdding(false); if (x && !list.includes(x)) update({ askFirst: [...list, x] }) }
+    const suggested = ASK_FIRST_SUGGESTED.filter((x) => !list.includes(x))
+    return h(React.Fragment, null,
+      h('h2', null, t('askFirst'), list.length ? h('span', { className: 'n' }, String(list.length)) : null),
+      !list.length ? h('p', { className: 'mwt-quiet', style: { marginBottom: 10 } }, t('askFirstEmpty')) : null,
+      h('div', { className: 'mwt-chips' },
+        list.map((x) => h('span', { key: x, className: 'mwt-chip' }, x, h('button', { type: 'button', 'aria-label': t('remove') + ' ' + x, title: t('remove'), onClick: () => update({ askFirst: list.filter((y) => y !== x) }) }, icon('x', { size: 12 })))),
+        adding
+          ? h('input', { className: 'mwt-input small', style: { width: 180, padding: '2px 10px' }, value: draft, autoFocus: true, maxLength: 40, placeholder: t('askFirstPh'), 'aria-label': t('askFirstAdd'), onChange: (e) => setDraft(e.target.value), onBlur: () => add(draft), onKeyDown: (e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); add(draft) } else if (e.key === 'Escape') { setDraft(''); setAdding(false) } } })
+          : h('button', { type: 'button', className: 'mwt-chip add', onClick: () => setAdding(true) }, '+ ' + t('askFirstAdd'))),
+      suggested.length ? h('div', { className: 'mwt-suggest' }, h('span', null, t('askFirstSuggest')),
+        suggested.map((x) => h('button', { key: x, type: 'button', className: 'mwt-chip add', onClick: () => add(x) }, '+ ' + x))) : null)
+  }
+
+  /**
+   * 它做过的 (GET /mates/did): what it changed or sent, newest first, eight; a row jumps to its run; 撤销 on what can be
+   * taken back, 已撤销 / 撤不回 on the rest.
+   */
+  function DidBlock({ mate, onJump }) {
+    const [items, setItems] = React.useState(null)
+    const [all, setAll] = React.useState(false)
+    const [bump, setBump] = React.useState(0)
+    React.useEffect(() => {
+      let on = true
+      api('/mates/did?id=' + encodeURIComponent(mate.id) + '&limit=40').then((d) => { if (on) setItems((d && d.items) || []) }).catch(() => { if (on) setItems((p) => p || []) })
+      return () => { on = false }
+    }, [mate.id, mate.lastAt || '', mate.state || '', bump])
+    const undo = (x) => api('/undo', { runId: x.runId, didId: x.id }).then(() => { setBump((n) => n + 1); kick() }).catch(() => {})
+    const list = items || []
+    return h(React.Fragment, null,
+      h('h2', null, t('didSec'), list.length ? h('span', { className: 'n' }, list.length >= 40 ? '40+' : String(list.length)) : null),
+      !items ? h(Skeleton, { rows: 1 })
+        : !list.length ? h('p', { className: 'mwt-quiet' }, t('didEmpty'))
+          : h(React.Fragment, null,
+            h('div', { className: 'mwt-alist' }, (all ? list : list.slice(0, 8)).map((x) => h('div', { key: x.id, className: 'mwt-prow' },
+              h('span', { className: 'id' }, isToday(x.at) ? hhmm(x.at) : fmtWhen(x.at).split(' ')[0]),
+              h('button', { type: 'button', className: 'x', title: x.runTitle, style: x.undoneAt ? { textDecoration: 'line-through', color: 'var(--fg-3)' } : undefined, onClick: () => onJump && onJump(x.runId) }, didWords(x)),
+              x.undoneAt ? h('span', { className: 'r' }, t('undone'))
+                : x.undoable ? h('button', { type: 'button', className: 'mwt-act mute', onClick: () => undo(x) }, t('undo'))
+                  : h('span', { className: 'r' }, t('irrev'))))),
+            list.length > 8 ? h('button', { type: 'button', className: 'mwt-more', onClick: () => setAll(!all) }, all ? t('showLess') : t('showAll').replace('{n}', String(list.length))) : null))
+  }
+
+  /** MyWork only: 读的时间 (when the 今天卡 is put together), a time field saved on change. */
+  function ReadTimeBlock({ mate, update }) {
+    const [v, setV] = React.useState(mate.readTime || '08:30')
+    React.useEffect(() => { setV(mate.readTime || '08:30') }, [mate.readTime])
+    return h('div', { className: 'mwt-switch-row' }, h('span', null, t('readTime')),
+      h('input', { type: 'time', className: 'mwt-timein', value: v, 'aria-label': t('readTime'), title: t('readTimeHint'), onChange: (e) => setV(e.target.value), onBlur: () => { if (/^\d{2}:\d{2}$/.test(v) && v !== mate.readTime) update({ readTime: v }) } }))
   }
 
   /**
@@ -2143,9 +2547,15 @@ function makeComponents(ctx, t) {
             mate.isDefault ? null : h('div', { className: 'type' }, h('span', null, t('group')),
               h(TypeField, { key: mate.id, inline: true, value: mate.group || '', mates, onChange: (v) => { if (cleanType(v) !== (mate.group || '')) update({ group: cleanType(v) }) } })))),
         picking ? h(AvatarPicker, { look, bare: true, onChange: (next) => { setLook(next); update({ avatar: next }) } }) : null),
+      mate.isDefault ? h('section', { className: 'mwt-sec', 'data-sec': 'readtime' }, h(ReadTimeBlock, { mate, update })) : null,
+      h('section', { className: 'mwt-sec', 'data-sec': 'proactive' }, h(ProactiveBlock, { mate, update })),
       h('section', { className: 'mwt-sec', 'data-sec': 'duty' }, h(DutyBlock, { mate, update })),
+      mate.isDefault ? null : h('section', { className: 'mwt-sec', 'data-sec': 'list' }, h(TableBlock, { mate, file: '清单.csv', title: t('listSec'), emptyText: t('listEmpty'), onOpenFile })),
+      mate.isDefault ? null : h('section', { className: 'mwt-sec', 'data-sec': 'judge' }, h(TableBlock, { mate, file: '判断.csv', title: t('judgeSec'), emptyText: t('judgeEmpty'), judge: true, onOpenFile })),
+      h('section', { className: 'mwt-sec', 'data-sec': 'rules' }, h(RulesBlock, { mate, onOpenFile })),
+      h('section', { className: 'mwt-sec', 'data-sec': 'askfirst' }, h(AskFirstBlock, { mate, update })),
+      h('section', { className: 'mwt-sec', 'data-sec': 'did' }, h(DidBlock, { mate, onJump })),
       h('section', { className: 'mwt-sec', 'data-sec': 'routines' }, h(MateRoutines, { mate, expand: routineId, seq, onJump })),
-      h('section', { className: 'mwt-sec', 'data-sec': 'memory' }, h(MemoryBlock, { mate, onOpenFile })),
       h('section', { className: 'mwt-sec', 'data-sec': 'prefs' },
         sw('pinned', t('pinned'), pinnedOn),
         sw('notify', t('notify'), mate.notify !== false),

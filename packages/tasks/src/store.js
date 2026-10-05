@@ -49,7 +49,8 @@ export const ASK_OPTION_MAX = 12
 export const ASK_OPTIONS_MIN = 2
 export const ASK_OPTIONS_MAX = 4
 export const ASK_DETAIL_MAX = 500
-export const ASK_MAX_PER_TASK = 2
+/** No cap on questions per run (PROACTIVE.md §5.4: capability is not limited; the person decides what to answer). */
+export const ASK_MAX_PER_TASK = Infinity
 export const ASK_EXPIRY_MS = 24 * 3600000
 const MAX_RUNS = 2000
 const MAX_DELIVERABLES = 2000
@@ -66,7 +67,8 @@ export const ACTIVITY_DETAIL_MAX = 240
 /** The second line of a sidebar row. */
 export const PREVIEW_MAX = 80
 /** Entries a person reads back as the conversation; everything else (tool calls) is noise that trimming may drop. */
-export const THREAD_KINDS = new Set(['user', 'text', 'handoff', 'verify', 'ask', 'routine', 'remind'])
+/** `did`: something the teammate changed or sent (a file it wrote, a message, a rule it recorded), kept for 做了告诉你 and 撤销. */
+export const THREAD_KINDS = new Set(['user', 'text', 'handoff', 'verify', 'ask', 'routine', 'remind', 'did'])
 export const isThreadEntry = (a) => !!a && THREAD_KINDS.has(a.kind)
 
 export function myworkDir(home) { return join(home || process.env.DSH_HOME || join(homedir(), '.dsh'), 'mywork') }

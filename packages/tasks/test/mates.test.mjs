@@ -304,26 +304,28 @@ test('POST /answer answers from the card; 400 for nothing pending, a stale askId
   h.cleanup()
 })
 
-test('ask rules: at most two per run, never in routine or intro runs, never outside a teammate session', async () => {
+test('ask rules: no cap per run (capability is not limited), never in routine or intro runs, never outside a teammate session', async () => {
   const h = harness()
   const refusals = {}
   h.scripts.push((t) => {
     const a = t.tool('mywork_ask', { question: '第一个' })
     const b = t.tool('mywork_ask', { question: '要哪个？', askKind: 'choice', options: ['A', 'B'] })
-    refusals.third = t.tool('mywork_ask', { question: '第三个' }).error
-    assert.ok(a.asked && b.asked)
+    const c = t.tool('mywork_ask', { question: '第三个' })
+    refusals.third = c.error
+    assert.ok(a.asked && b.asked && c.asked)
   })
   const { runId } = await h.ok('POST', '/mates/say', { id: 'mywork', text: 'x' })
   await h.until(() => h.run(runId).status === 'waiting')
-  assert.equal(refusals.third, ASK_TEXT.limit)
-  assert.deepEqual(h.run(runId).activity.filter((a) => a.kind === 'ask').map((a) => a.status), ['superseded', 'pending'])
+  assert.equal(refusals.third, undefined)
+  assert.deepEqual(h.run(runId).activity.filter((a) => a.kind === 'ask').map((a) => a.status), ['superseded', 'superseded', 'pending'])
   await h.ok('POST', '/mates/stop', { id: 'mywork' })
   assert.equal(h.run(runId).status, 'done'); assert.equal(h.run(runId).error, STOPPED); assert.equal(pendingAsk(h.run(runId)), null)
   const { routine } = await h.ok('POST', '/routines/create', { mateId: 'mywork', input: '每天 9 点给我一份简报' })
-  h.scripts.push((t) => { refusals.routine = t.tool('mywork_ask', { question: '？' }).error; refusals.nested = t.tool('mywork_routine_create', { input: '每天 10 点再来一份' }).error; t.say('简报\n变化：有') })
+  h.scripts.push((t) => { refusals.routine = t.tool('mywork_ask', { question: '？' }).error; refusals.nested = t.tool('mywork_routine_create', { input: '每天 10 点再来一份' }); t.say('简报\n变化：有') })
   const ran = await h.ok('POST', '/routines/run', { id: routine.id })
   await h.until(() => h.run(ran.runId).status === 'done')
-  assert.equal(refusals.routine, ASK_TEXT.routine); assert.match(refusals.nested, /例行运行时不能新建例行/)
+  // A routine run may set up another routine now; it still may not ask (nobody is there to answer).
+  assert.equal(refusals.routine, ASK_TEXT.routine); assert.equal(refusals.nested.error, undefined); assert.ok(refusals.nested.id)
   h.scripts.push((t) => { refusals.system = t.tool('mywork_ask', { question: '？' }).error; t.tool('mywork_mate_update', { name: '小助' }); t.say('你好') })
   const { mate } = await h.ok('POST', '/mates/create', { description: '帮我盯邮件' })
   await h.until(() => h.runsOf(mate.id).every((r) => r.status === 'done'))
@@ -393,14 +395,17 @@ test('a preset written by an older version is rewritten at start, so a new worki
   h.cleanup()
 })
 
-test('MyWork may not create a teammate from a routine run; without a first job the teammate only introduces itself', async () => {
+test('MyWork may create a teammate from a routine run too; without a first job the teammate only introduces itself', async () => {
   const h = harness()
   const got = {}
   const { routine } = await h.ok('POST', '/routines/create', { mateId: 'mywork', input: '每天 9 点给我一份简报' })
-  h.scripts.push((t) => { got.refused = t.tool('mywork_mate_create', { description: '盯邮件' }).error; t.say('简报\n变化：有') })
+  h.scripts.push((t) => { got.fromRoutine = t.tool('mywork_mate_create', { description: '盯邮件' }); t.say('简报\n变化：有') })
+  h.scripts.push((t) => { t.tool('mywork_mate_update', { name: '信差' }); t.say('我是信差。') })
   const ran = await h.ok('POST', '/routines/run', { id: routine.id })
-  await h.until(() => h.run(ran.runId).status === 'done')
-  assert.match(got.refused, /例行运行时不能新建同事/)
+  await h.until(() => h.run(ran.runId).status === 'done' && h.mw.store.items.every((r) => r.status === 'done'))
+  assert.equal(got.fromRoutine.error, undefined); assert.equal(got.fromRoutine.created, true)
+  assert.equal(h.mw.mates.items.length, 2)
+  await h.ok('POST', '/mates/remove', { id: got.fromRoutine.id })
   assert.equal(h.mw.mates.items.length, 1)
   h.scripts.push((t) => { got.made = t.tool('mywork_mate_create', { description: '帮我盯邮件，重要的告诉我' }); t.say('建好了。') })
   h.scripts.push((t) => { t.tool('mywork_mate_update', { name: '邮差' }); t.say('我是邮差。') })
@@ -440,14 +445,14 @@ test('stop cancels the active run (inbox kept): a queued message still runs afte
   h.cleanup()
 })
 
-test('routine runs: a quiet run stays in the routine record but not in the thread; a reminder posts a remind card without running the teammate', async () => {
+test('routine runs: a quiet run stays in the routine record and in the thread (one grey line), never unread; a reminder posts a remind card without running the teammate', async () => {
   const h = harness()
   const { routine } = await h.ok('POST', '/routines/create', { mateId: 'mywork', input: '每天 9 点给我一份 Node 简报' })
   h.scripts.push((t) => { t.tool('deliver', { title: '简报', markdown: '变化：无' }); t.say('没什么新的。\n变化：无') })
   const quiet = await h.ok('POST', '/routines/run', { id: routine.id })
   await h.until(() => h.run(quiet.runId).status === 'done')
   assert.equal(h.run(quiet.runId).quiet, true)
-  assert.deepEqual((await h.ok('GET', '/mates/thread', { id: 'mywork' })).runs, [])
+  assert.deepEqual((await h.ok('GET', '/mates/thread', { id: 'mywork' })).runs.map((r) => [r.id, r.quiet]), [[quiet.runId, true]])
   assert.equal(h.mw.routines.get(routine.id).runs[0].changed, false)
   let m = h.mw.mateView('mywork'); assert.deepEqual([m.unread, m.preview], [false, ''])
   // 日报 is never quiet, and its prompt carries every teammate's record of the day.
@@ -468,7 +473,7 @@ test('routine runs: a quiet run stays in the routine record but not in the threa
   assert.deepEqual(card.remind, { routineId: remind.id, title: '交周报', at: card.activity[0].at, acked: false })
   assert.deepEqual(card.activity.map((a) => [a.kind, a.title, a.acked]), [['remind', '交周报', false]])
   assert.equal(card.activity[0].at, h.mw.routines.get(remind.id).fired[0].at)
-  assert.deepEqual((await h.ok('GET', '/mates/thread', { id: 'mywork' })).runs.map((r) => r.id), [rep.runId, fired.runId])
+  assert.deepEqual((await h.ok('GET', '/mates/thread', { id: 'mywork' })).runs.map((r) => r.id), [quiet.runId, rep.runId, fired.runId])
   m = h.mw.mateView('mywork'); assert.deepEqual([m.unread, m.preview], [true, '提醒 · 交周报'])
   assert.deepEqual((await h.ok('GET', '/activity')).needs.map((x) => [x.kind, x.text]), [['remind', '交周报']])
   assert.ok(h.events.some((e) => e.kind === 'remind' && e.routine && e.routine.id === remind.id && e.run.id === fired.runId))
@@ -598,9 +603,10 @@ test('migration to the teammate model is idempotent', () => {
   const h2 = harness({ home: dir })
   assert.deepEqual(['tasks.json', 'routines.json', 'deliverables.json', 'mates.json'].map((f) => readFileSync(join(my, f), 'utf8')), files)
   assert.ok(!h2.logs.some((l) => /migrated/.test(l))); assert.ok(h1.logs.some((l) => /migrated 6 records/.test(l)))
-  // Old tasks read as runs of MyWork: the thread shows them, the quiet routine run excepted.
+  // Old tasks read as runs of MyWork: the thread shows them, the quiet routine run as a quiet one.
   const thread = h2.mw.thread('mywork')
-  assert.deepEqual(thread.runs.map((r) => r.id), ['task-1', 'task-2', 'task-4'])
+  assert.deepEqual(thread.runs.map((r) => r.id), ['task-1', 'task-2', 'task-3', 'task-4'])
+  assert.equal(thread.runs[2].quiet, true)
   assert.equal(thread.runs[0].deliverables[0].runId, 'task-1')
   rmSync(dir, { recursive: true, force: true })
 })
@@ -642,10 +648,10 @@ test('memory, routine tools and the thread page', async () => {
   const { runId } = await h.ok('POST', '/mates/say', { id: 'mywork', text: '记住：周报用表格。30 分钟后提醒我喝水' })
   await h.until(() => h.run(runId).status === 'done')
   const memory = readFileSync(join(h.dir, 'mywork', 'mates', 'mywork', 'AGENTS.md'), 'utf8')
-  assert.match(memory, /^# MyWork 记住的事/); assert.match(memory, /\n- \d{4}-\d{2}-\d{2} 周报用表格，按项目分\n$/)
-  // MyWork's default morning brief (晨报) is there from the start; the rest are what this run created.
+  assert.match(memory, /^# MyWork的规矩/); assert.match(memory, /\n- \d{4}-\d{2}-\d{2} 周报用表格，按项目分\n$/)
+  // No model-written 晨报 any more (the 今天卡 replaced it); what is listed is what this run created.
   const own = (list) => list.filter((r) => r.title !== '晨报')
-  assert.equal(listed.items.filter((r) => r.title === '晨报').length, 1)
+  assert.equal(listed.items.filter((r) => r.title === '晨报').length, 0)
   assert.deepEqual(own(listed.items).map((r) => r.kind), ['remind', 'task'])
   assert.deepEqual(own(h.mw.routines.forMate('mywork')).map((r) => r.title), ['喝水'])
   assert.deepEqual(h.run(runId).activity.filter((a) => a.kind === 'routine').map((a) => a.title), ['喝水', '给我一份简报'])
@@ -964,13 +970,31 @@ test('the removal event names the teammate that was removed', async () => {
   h.cleanup()
 })
 
-test('MyWork ships with a daily morning brief, created once; deleting it is remembered', async () => {
+test('MyWork has no model-written 晨报: the 今天卡 is put together by code at 读的时间', async () => {
   const h = harness()
-  await h.until(() => h.mw.routines.forMate('mywork').some((r) => r.title === '晨报'))
-  const brief = h.mw.routines.forMate('mywork').find((r) => r.title === '晨报')
-  assert.deepEqual(brief.schedule, { type: 'daily', time: '08:40' })
-  assert.match(brief.input, /今天的会/)
-  assert.ok(existsSync(join(h.dir, 'mywork', 'defaults.json')))
+  await new Promise((r) => setTimeout(r, 20))
+  assert.equal(h.mw.routines.forMate('mywork').some((r) => r.title === '晨报'), false)
+  // 读的时间 lives on MyWork; a bad one is refused.
+  assert.equal((await h.call('POST', '/mates/update', { id: 'mywork', readTime: '8点半' })).status, 400)
+  await h.ok('POST', '/mates/update', { id: 'mywork', readTime: '00:00' })
+  assert.equal(h.mw.mateView('mywork').readTime, '00:00')
+  // A routine result, a quiet run and an open question since yesterday's 读的时间 land on the card.
+  const { routine } = await h.ok('POST', '/routines/create', { mateId: 'mywork', input: '每天 9 点给我一份 Node 简报' })
+  h.scripts.push((t) => { t.tool('deliver', { title: 'Node 简报', markdown: '有新版本' }); t.say('出了新版本。\n变化：有') })
+  const a = await h.ok('POST', '/routines/run', { id: routine.id })
+  await h.until(() => h.run(a.runId).status === 'done')
+  h.scripts.push((t) => { t.say('没什么新的。\n变化：无') })
+  const b = await h.ok('POST', '/routines/run', { id: routine.id })
+  await h.until(() => h.run(b.runId).status === 'done')
+  h.scripts.push((t) => { t.tool('mywork_ask', { question: '用哪个账号？' }) })
+  const c = await h.ok('POST', '/mates/say', { id: 'mywork', text: '帮我发个帖' })
+  await h.until(() => h.run(c.runId).status === 'waiting')
+  const card = await h.ok('GET', '/today')
+  assert.equal(card.ready, true); assert.equal(card.readTime, '00:00')
+  assert.deepEqual(card.needs.map((x) => [x.kind, x.text]), [['ask', '用哪个账号？']])
+  assert.deepEqual(card.changes.map((x) => [x.kind, x.text]), [['routine', 'Node 简报']])
+  assert.deepEqual(card.quiet.map((x) => [x.mateId, x.n]), [['mywork', 1]])
+  h.cleanup()
 })
 
 test('any file in a teammate folder opens by a signed link; tampered or escaping links are refused; HTML is sandboxed', async () => {
@@ -1005,4 +1029,75 @@ test('a teammate folder lists the tables it keeps however many newer files there
   const { items } = await h.ok('GET', '/mates/folder', { id: 'mywork' })
   assert.ok(items.some((f) => f.name === '信源表.csv'), 'the table older than 40 fresh files is still listed')
   assert.equal(items.filter((f) => /\.html$/.test(f.name)).length, 30)
+})
+
+test('做了告诉你 and 撤销: a file goes back to before the run, a new one goes away, a rule leaves AGENTS.md, a message stays; a file changed again is not touched', async () => {
+  const h = harness()
+  const dir = join(h.dir, 'mywork', 'mates', 'mywork')
+  mkdirSync(dir, { recursive: true })
+  writeFileSync(join(dir, '清单.csv'), '对象,备注\n宁德时代,持仓\n')
+  h.scripts.push((t) => {
+    // dsh passes the arguments as the JSON text the model wrote.
+    t.tool('edit', JSON.stringify({ file_path: '清单.csv', old_string: '持仓', new_string: '清仓' }))
+    writeFileSync(join(dir, '清单.csv'), '对象,备注\n宁德时代,清仓\n')
+    t.tool('write', { file_path: join(dir, '判断.csv'), content: '编号,类型,内容\n' })
+    writeFileSync(join(dir, '判断.csv'), '编号,类型,内容\n')
+    t.tool('edit', { file_path: '清单.csv', old_string: '清仓', new_string: '减仓' })
+    writeFileSync(join(dir, '清单.csv'), '对象,备注\n宁德时代,减仓\n')
+    t.tool('im_send', { target: '投研群', text: '晨会要点' })
+    t.tool('mywork_remember', { fact: '储能出货只用公告口径' })
+    t.say('改了清单，建了判断表，发了群，记了一条规矩。')
+  })
+  const { runId } = await h.ok('POST', '/mates/say', { id: 'mywork', text: '整理一下' })
+  await h.until(() => h.run(runId).status === 'done')
+  const did = h.run(runId).activity.filter((a) => a.kind === 'did')
+  assert.deepEqual(did.map((a) => [a.act, a.path || a.target || a.line || '', a.n || 1, a.undoable]), [
+    ['file', '清单.csv', 2, true], ['file', '判断.csv', 1, true], ['send', '投研群', 1, false], ['rule', '储能出货只用公告口径', 1, true],
+  ])
+  // The thread keeps them (thread entries), with no absolute path or snapshot location in what the page gets.
+  const listed = await h.ok('GET', '/mates/did', { id: 'mywork' })
+  assert.equal(listed.items.length, 4); assert.ok(listed.items.every((x) => !('abs' in x) && !('snap' in x) && x.runId === runId))
+  // Undo one file only, then the rest of the run.
+  const one = await h.ok('POST', '/undo', { runId, didId: did[1].id })
+  assert.equal(one.undone, 1); assert.equal(existsSync(join(dir, '判断.csv')), false)
+  writeFileSync(join(dir, 'other.txt'), 'x')
+  const rest = await h.ok('POST', '/undo', { runId })
+  assert.deepEqual([rest.undone, rest.conflicts, rest.kept], [2, [], ['send']])
+  assert.equal(readFileSync(join(dir, '清单.csv'), 'utf8'), '对象,备注\n宁德时代,持仓\n')
+  assert.doesNotMatch(readFileSync(join(dir, 'AGENTS.md'), 'utf8'), /储能出货/)
+  assert.equal((await h.call('POST', '/undo', { runId, didId: did[0].id })).status, 400)
+  // A file someone changed again after the run is left alone.
+  h.scripts.push((t) => { t.tool('write', { file_path: '清单.csv', content: 'v2' }); writeFileSync(join(dir, '清单.csv'), 'v2'); t.say('好') })
+  const second = await h.ok('POST', '/mates/say', { id: 'mywork', text: '再改' })
+  await h.until(() => h.run(second.runId).status === 'done')
+  writeFileSync(join(dir, '清单.csv'), 'v3 by hand')
+  const refused = await h.ok('POST', '/undo', { runId: second.runId })
+  assert.deepEqual([refused.undone, refused.conflicts], [0, ['清单.csv']])
+  assert.equal(readFileSync(join(dir, '清单.csv'), 'utf8'), 'v3 by hand')
+  // Rules are edited and removed from 资料.
+  h.scripts.push((t) => { t.tool('mywork_remember', { fact: '金额到亿元' }); t.say('记下了') })
+  const third = await h.ok('POST', '/mates/say', { id: 'mywork', text: '记住金额到亿元' })
+  await h.until(() => h.run(third.runId).status === 'done')
+  await h.ok('POST', '/mates/rules/update', { id: 'mywork', line: '金额到亿元', text: '金额到亿元，一位小数' })
+  assert.match(readFileSync(join(dir, 'AGENTS.md'), 'utf8'), /- \d{4}-\d{2}-\d{2} 金额到亿元，一位小数\n/)
+  await h.ok('POST', '/mates/rules/remove', { id: 'mywork', line: '金额到亿元，一位小数' })
+  assert.doesNotMatch(readFileSync(join(dir, 'AGENTS.md'), 'utf8'), /金额到亿元/)
+  h.cleanup()
+})
+
+test('先问 and 主动程度 go into the persona; capability lines replace the old ask-first rules', async () => {
+  const { personaPrefix } = await import('../src/index.js')
+  const base = personaPrefix({ name: '覆盖研究', description: '跟 12 只票' })
+  assert.match(base, /你的能力不设限/); assert.doesNotMatch(base, /动作有后果（发消息、付费、删除、对外提交）/); assert.doesNotMatch(base, /不要让用户把密码/)
+  assert.doesNotMatch(base, /例外：/); assert.doesNotMatch(base, /主动程度/)
+  const marked = personaPrefix({ name: '覆盖研究', description: '跟 12 只票', askFirst: ['对外发消息', '对外发消息', '花钱超过 20 元'], proactive: 'ask' })
+  assert.match(marked, /例外：下面这几类事，做之前先用 mywork_ask（askKind approval）问用户，用户允许了再做——对外发消息；花钱超过 20 元。/)
+  assert.match(marked, /主动程度：只在用户问时/)
+  const h = harness()
+  await h.ok('POST', '/mates/update', { id: 'mywork', askFirst: ['对外发消息', ''], proactive: 'more' })
+  const v = h.mw.mateView('mywork')
+  assert.deepEqual([v.askFirst, v.proactive], [['对外发消息'], 'more'])
+  await h.ok('POST', '/mates/update', { id: 'mywork', proactive: 'whatever' })
+  assert.equal(h.mw.mateView('mywork').proactive, 'default')
+  h.cleanup()
 })

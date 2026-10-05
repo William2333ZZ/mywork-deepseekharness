@@ -49,18 +49,11 @@ const EXTRA_ICONS = {
   monitor: ['M4 3h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z', 'M8 21h8', 'M12 17v4'],
   square: ['M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z'],
   file: ['M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z', 'M14 2v4a2 2 0 0 0 2 2h4'],
-  'book-open': ['M12 7v14', 'M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z'],
   paperclip: ['m16 6-8.414 8.586a2 2 0 0 0 2.829 2.829l8.414-8.586a4 4 0 1 0-5.657-5.657l-8.379 8.551a6 6 0 1 0 8.485 8.485l8.379-8.551'],
   ellipsis: ['M12 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2z', 'M19 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2z', 'M5 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2z'],
-  newspaper: ['M15 18h-5', 'M18 14h-8', 'M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-4 0v-9a2 2 0 0 1 2-2h2', 'M11 6h6a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-6a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1z'],
-  flask: ['M14 2v6a2 2 0 0 0 .245.96l5.51 10.08A2 2 0 0 1 18 22H6a2 2 0 0 1-1.755-2.96l5.51-10.08A2 2 0 0 0 10 8V2', 'M6.453 15h11.094', 'M8.5 2h7'],
-  'folder-code': ['M10 10.5 8 13l2 2.5', 'm14 10.5 2 2.5-2 2.5', 'M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2z'],
-  'file-text': ['M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z', 'M14 2v4a2 2 0 0 0 2 2h4', 'M10 9H8', 'M16 13H8', 'M16 17H8'],
 }
 if (icons.PATHS) for (const k of Object.keys(EXTRA_ICONS)) if (!icons.PATHS[k]) icons.PATHS[k] = EXTRA_ICONS[k]
 const icon = (name, opts) => icons.icon(name, { strokeWidth: 1.5, ...(opts || {}) })
-/** The work benches a template can have beside the thread (template.json `panel.id`; design/v2/AI-WORKERS.md). */
-const BENCHES = new Set(['wiki', 'papers', 'experiments', 'projects', 'paper'])
 
 const h = React.createElement
 const PLUGIN = 'dsh-mywork-tasks'
@@ -156,18 +149,13 @@ const zh = {
   didSec: '它做过的', didEmpty: '它还没改过、发过什么。',
   readTime: '读的时间', readTimeHint: '今天卡在这个时间拼好。',
   rowsMore: '还有 {n} 行', itemsMore: '还有 {n} 条',
-  tplHead: '给 AI 研究和工程的同事', tplOr: '或者，写一句它负责什么',
+  newMateHint: '说说你要它做什么。MyWork 会照从业者的做法给你配一位，配好后它先问你一件事。', askMyWork: '让 MyWork 配', groupOptional: '类型（可以不填）', pinnedFiles: '它常看的', reviewed: '审过了', reviewHint: '你看过这份报告了：把「未经你审」改成「审过」和今天的日期',
   obDrop: '把文件拖到这里，或', obPick: '选文件', obGo: '交给它', obDone: '已交给它 · {t}', obUploading: '在传 {n}…', obNeed: '写几句，或者给它一个文件。', obFailed: '没传上：{e}',
   subGo: '交给它', subDone: '已交给它 · {t}',
   didFilesNew: '新建 {n} 个文件', didFilesChanged: '改了 {n} 个文件', didFilesGone: '删了 {n} 个文件',
-  wikiTab: '知识库', wikiSearch: '搜索知识库', wikiStats: '{p} 页 · {s} 份原始资料', wikiUnread: '你还没看的改动 {n}', wikiHealth: '体检', wikiOrphans: '孤立 {n}', wikiBroken: '断链 {n}', wikiUnindexed: '没进索引 {n}', wikiHealthy: '链接和索引没有问题',
-  wikiRecent: '最近', wikiIndex: '打开索引', wikiLog: '打开日志', wikiEmpty: '库还是空的。在对话里丢资料或贴链接，它会收进来。', wikiNoHit: '没搜到。', wikiBacklinks: '被这些页提到', wikiNoBacklinks: '还没有别的页提到这一页。', wikiMissing: '库里还没有「{n}」这一页。',
+  wikiBacklinks: '被这些页提到', wikiNoBacklinks: '还没有别的页提到这一页。', wikiMissing: '库里还没有「{n}」这一页。',
   attach: '附上文件', attachSay: '我放了文件在 {dir}/：{files}', attaching: '在传 {n}…', dropHere: '放到这里，交给 {name}',
-  papersEmpty: '还没有取过表。订了分类之后，每个工作日中午程序取当天的全表。', papersDay: '哪一天', papersTriage: '打开它的分流', papersCounts: '新 {a} · 交叉 {b} · 更新 {c}', papersNoTriage: '它还没过完这一天的表。', papersMust: '必读', papersWorth: '值得看', papersAll: '全部（arXiv 原序）', papersFilter: '在这一天的表里找', papersHanded: '已收进知识库', papersToWiki: '收进知识库', papersNoWiki: '还没有知识库同事', papersAsk: '问一问', papersAskSay: '讲讲 [{id}] {t}', papersHandedTo: '交给了{n}',
-  ledgerTab: '实验', ledgerChart: '最好成绩的走势', ledgerKeep: '保留', ledgerDiscard: '丢弃', ledgerCrash: '崩溃', ledgerLoop: '连续跑到 {t} · 第 {n} 轮', ledgerLoopStop: '停下', ledgerLastLoop: '上次连续跑 {a}–{b}，{n} 轮（{w}）', ledgerNoLoop: '没在连续跑。', ledgerLoopStart: '跑到明早 7 点', ledgerEmpty: 'results.tsv 还没有记录。开工后它先跑一次基线。', ledgerMetric: '指标', ledgerBest: '最好', ledgerHigher: '越高越好', ledgerLower: '越低越好', ledgerBase: '基线', ledgerCounts: '{n} 次 · 保留 {k} · 丢弃 {d} · 崩溃 {c}', ledgerLast: '最近几次',
-  projEmpty: '还没有项目。在对话里给它一个问题。', projDoing: '进行中', projUnreviewed: '未经你审', projReviewed: '审过', projCounts: '进行中 {a} · 未经你审 {b} · 审过 {c}', projReview: '审过了',
-  paperClaims: '论点', paperNoClaims: '还没有论点。开工后它先把结果压成几条。', paperCheck: '核引用', paperCheckSay: '核一遍引用（投稿前）', paperChecking: '在查…', paperCheckRun: '核一遍引用', paperDraft: '稿子 {n} 个文件 · {e} 条参考文献 · {c} 处引用', paperNoDraft: '稿子/ 里还没有文件。把 .tex / .bib / .md 拖进对话。', paperNever: '还没核过。投稿前点一次：程序到 arXiv 和 Crossref 逐条查。', paperCounts: '{t} 条 · 核实 {ok} · 不符 {mm} · 查无 {ms} · 待查 {p}', paperReport: '打开报告',
-  loopRounds: '第 {a}–{b} 轮', loopRound: '第 {n} 轮', loopLine: '连续跑 · {r}', viaMate: '{n} 转交',
+  loopRounds: '第 {a}–{b} 轮', loopRound: '第 {n} 轮', loopLine: '连续跑 · {r}', loopBar: '连续跑到 {t} · 第 {n} 轮', viaMate: '{n} 转交',
 }
 const en = {
   mate: 'Teammate', files: 'Files',
@@ -217,18 +205,13 @@ const en = {
   didSec: 'What it did', didEmpty: 'It has not changed or sent anything yet.',
   readTime: 'Reading time', readTimeHint: 'Today’s card is put together at this time.',
   rowsMore: '{n} more rows', itemsMore: '{n} more',
-  tplHead: 'Teammates for AI research and engineering', tplOr: 'Or write its job in a sentence',
+  newMateHint: 'Say what it should do. MyWork makes you one after a practitioner’s way of working; once made, it asks you one thing first.', askMyWork: 'Ask MyWork', groupOptional: 'Type (optional)', pinnedFiles: 'Files it keeps', reviewed: 'Reviewed', reviewHint: 'You have read this report: mark it reviewed with today’s date',
   obDrop: 'Drop files here, or', obPick: 'choose files', obGo: 'Hand it over', obDone: 'Handed over · {t}', obUploading: 'Uploading {n}…', obNeed: 'Write a few words, or give it a file.', obFailed: 'Upload failed: {e}',
   subGo: 'Hand it over', subDone: 'Handed over · {t}',
   didFilesNew: '{n} files created', didFilesChanged: '{n} files changed', didFilesGone: '{n} files deleted',
-  wikiTab: 'Wiki', wikiSearch: 'Search the wiki', wikiStats: '{p} pages · {s} sources', wikiUnread: '{n} changes you have not read', wikiHealth: 'Health', wikiOrphans: '{n} orphans', wikiBroken: '{n} broken links', wikiUnindexed: '{n} not in the index', wikiHealthy: 'Links and index are fine',
-  wikiRecent: 'Recent', wikiIndex: 'Open the index', wikiLog: 'Open the log', wikiEmpty: 'The wiki is empty. Drop sources or links in the conversation and it files them.', wikiNoHit: 'No match.', wikiBacklinks: 'Linked from', wikiNoBacklinks: 'No other page links here yet.', wikiMissing: 'There is no page “{n}” yet.',
+  wikiBacklinks: 'Linked from', wikiNoBacklinks: 'No other page links here yet.', wikiMissing: 'There is no page “{n}” yet.',
   attach: 'Attach files', attachSay: 'I put files in {dir}/: {files}', attaching: 'Uploading {n}…', dropHere: 'Drop here for {name}',
-  papersEmpty: 'No list fetched yet. Once categories are set, code fetches the whole day every weekday at noon.', papersDay: 'Day', papersTriage: 'Open its triage', papersCounts: '{a} new · {b} cross-listed · {c} updated', papersNoTriage: 'It has not finished this day’s list yet.', papersMust: 'Must read', papersWorth: 'Worth a look', papersAll: 'All (arXiv order)', papersFilter: 'Find in this day’s list', papersHanded: 'In the wiki', papersToWiki: 'Add to the wiki', papersNoWiki: 'No wiki teammate yet', papersAsk: 'Ask about it', papersAskSay: 'Tell me about [{id}] {t}', papersHandedTo: 'Handed to {n}',
-  ledgerTab: 'Experiments', ledgerChart: 'Best so far', ledgerKeep: 'kept', ledgerDiscard: 'discarded', ledgerCrash: 'crashed', ledgerLoop: 'Running until {t} · round {n}', ledgerLoopStop: 'Stop', ledgerLastLoop: 'Last run {a}–{b}, {n} rounds ({w})', ledgerNoLoop: 'Not running continuously.', ledgerLoopStart: 'Run until 7 am', ledgerEmpty: 'results.tsv has no rows yet. It runs a baseline first.', ledgerMetric: 'metric', ledgerBest: 'best', ledgerHigher: 'higher is better', ledgerLower: 'lower is better', ledgerBase: 'Baseline', ledgerCounts: '{n} runs · {k} kept · {d} discarded · {c} crashed', ledgerLast: 'Latest',
-  projEmpty: 'No projects yet. Give it a question in the conversation.', projDoing: 'in progress', projUnreviewed: 'not reviewed', projReviewed: 'reviewed', projCounts: '{a} in progress · {b} not reviewed · {c} reviewed', projReview: 'Mark reviewed',
-  paperClaims: 'Claims', paperNoClaims: 'No claims yet. It distils the results into a few first.', paperCheck: 'Citations', paperCheckSay: 'Check the citations (before submitting)', paperChecking: 'Checking…', paperCheckRun: 'Check citations', paperDraft: '{n} draft files · {e} references · {c} citations', paperNoDraft: 'Nothing in 稿子/ yet. Drop .tex / .bib / .md into the conversation.', paperNever: 'Not checked yet. Before submitting, run it once: code looks each reference up on arXiv and Crossref.', paperCounts: '{t} refs · {ok} verified · {mm} mismatched · {ms} not found · {p} pending', paperReport: 'Open the report',
-  loopRounds: 'rounds {a}–{b}', loopRound: 'round {n}', loopLine: 'Running · {r}', viaMate: 'Handed over by {n}',
+  loopRounds: 'rounds {a}–{b}', loopRound: 'round {n}', loopLine: 'Running · {r}', loopBar: 'Running until {t} · round {n}', viaMate: 'Handed over by {n}',
 }
 
 const STYLE = `
@@ -279,6 +262,7 @@ html body .mwt textarea:focus,html body .mwt input:focus{outline:none}
 .mwt-ibtn svg{display:block}
 /* Text links: the words, underlined at 50 %. */
 .mwt-tbtn{appearance:none;padding:0;border:0;background:transparent;color:inherit;font:inherit;cursor:pointer;text-decoration:underline;text-decoration-color:var(--fg-3);text-underline-offset:3px}
+.mwt-tbtn.accent{color:var(--accent-text)}
 .mwt-tbtn:hover{color:var(--fg)}
 /* Choices: 40px text buttons with a 1px rule, stacked (a question's options, an empty thread's examples). */
 .mwt-choices{display:grid;gap:8px;max-width:480px}
@@ -720,70 +704,7 @@ span.mwt-act:hover{color:var(--fg-3);text-decoration:none}
 .mwt-check[disabled]{cursor:default;opacity:.55}
 .mwt-sub .note{display:block;color:var(--fg-3);font-size:12px;line-height:18px}
 .mwt-sub .quiet{padding:10px 16px 0;color:var(--fg-3);font-size:12px;line-height:18px}
-.mwt-tpls{display:grid;gap:8px;margin-bottom:20px}
-.mwt-wiki .stat{margin:8px 0 0;color:var(--fg-3);font-size:12px;line-height:18px;font-variant-numeric:tabular-nums}
-.mwt-wiki .stat b{color:var(--accent-text);font-weight:400}
-.mwt-wiki .hl{appearance:none;display:block;width:100%;margin:10px 0 0;padding:0;border:0;background:transparent;color:var(--fg-2);font:inherit;font-size:12px;line-height:18px;text-align:left;cursor:pointer}
-.mwt-wiki .hl:hover{color:var(--fg)}
-.mwt-wiki .hlist{margin:6px 0 0;padding:0 0 0 12px;border-left:1px solid var(--rule)}
-.mwt-wiki .cat{appearance:none;display:flex;align-items:center;gap:6px;width:100%;margin:0;padding:6px 0;border:0;background:transparent;color:var(--fg);font:inherit;font-size:13px;line-height:20px;font-weight:600;text-align:left;cursor:pointer}
-.mwt-wiki .cat .n{color:var(--fg-3);font-weight:400}
-.mwt-wiki .cat svg{color:var(--fg-3);transition:transform var(--fast)}
-.mwt-wiki .cat[aria-expanded=false] svg{transform:rotate(-90deg)}
-.mwt-wiki .pg{appearance:none;display:flex;align-items:baseline;gap:8px;width:100%;margin:0;padding:4px 0 4px 18px;border:0;background:transparent;color:var(--fg-2);font:inherit;font-size:12.5px;line-height:18px;text-align:left;cursor:pointer;min-width:0}
-.mwt-wiki .pg:hover{color:var(--fg)}
-.mwt-wiki .pg .t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mwt-wiki .pg .r{margin-left:auto;flex:none;color:var(--fg-3);font-size:11px;font-variant-numeric:tabular-nums}
-.mwt-wiki .pg .dot{flex:none;width:6px;height:6px;border-radius:50%;background:var(--accent);align-self:center}
-.mwt-wiki .snip{display:block;color:var(--fg-3);font-size:11.5px;line-height:16px;white-space:normal}
-.mwt-wiki .log{display:flex;gap:8px;padding:3px 0;font-size:12px;line-height:18px;color:var(--fg-2);min-width:0}
-.mwt-wiki .log .d{flex:none;color:var(--fg-3);font-variant-numeric:tabular-nums}
-.mwt-wiki .log .x{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mwt-papers .mwt-pphead{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.mwt-papers .mwt-pphead b{font-size:13px;line-height:20px;font-weight:600;font-variant-numeric:tabular-nums}
-.mwt-papers .mwt-pphead select{width:auto;min-width:0}
-.mwt-papers .pp{border-radius:6px}
-.mwt-papers .pp[data-open=true]{background:var(--rule-soft)}
-.mwt-papers .pt,.mwt-projects .pt{appearance:none;display:block;width:100%;margin:0;padding:6px 8px;border:0;background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
-.mwt-papers .pt .t,.mwt-projects .pt .t{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:12.5px;line-height:18px}
-.mwt-papers .pt .m,.mwt-projects .pt .m{display:block;margin-top:2px;color:var(--fg-3);font-size:11px;line-height:16px;font-variant-numeric:tabular-nums}
-.mwt-papers .pt:hover .t,.mwt-projects .pt:hover .t{color:var(--fg)}
-.mwt-papers .pd{padding:0 8px 10px}
-.mwt-papers .au{color:var(--fg-3);font-size:11.5px;line-height:16px}
-.mwt-papers .ab{margin:6px 0 0;color:var(--fg-2);font-size:12px;line-height:19px}
-.mwt-papers .pa{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:8px}
-.mwt-papers .mwt-input.small{margin:8px 0 4px}
-.mwt-ledger .loop{display:flex;align-items:center;gap:8px;color:var(--fg-2);font-size:12px;line-height:18px}
-.mwt-ledger .loop>span:nth-last-child(2),.mwt-ledger .loop>span:only-child{flex:1;min-width:0}
-.mwt-ledger .loop[data-on=true]{color:var(--fg)}
-.mwt-ledger .pulse{flex:none;width:6px;height:6px;border-radius:50%;background:var(--accent)}
-.mwt-ledger .big{display:flex;flex-direction:column;gap:2px}
-.mwt-ledger .big .v{font-size:28px;line-height:34px;font-weight:600;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
-.mwt-ledger .big .k{color:var(--fg-3);font-size:12px;line-height:16px}
-.mwt-chart{display:block;width:100%;height:auto;margin-top:12px;overflow:visible}
-.mwt-chart circle{fill:var(--fg-3);opacity:.5}
-.mwt-chart circle[data-k=true]{fill:var(--accent);opacity:1}
-.mwt-chart path{fill:none;stroke:var(--accent);stroke-width:1.5;vector-effect:non-scaling-stroke}
-.mwt-ledger .lr{display:grid;grid-template-columns:36px 64px 40px minmax(0,1fr);gap:8px;padding:3px 0;font-size:12px;line-height:18px;color:var(--fg-2);font-variant-numeric:tabular-nums}
-.mwt-ledger .lr .n,.mwt-ledger .lr .s{color:var(--fg-3)}
-.mwt-ledger .lr[data-s=keep] .s{color:var(--accent-text)}
-.mwt-ledger .lr[data-s=crash] .s{color:var(--danger)}
-.mwt-ledger .lr .x{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mwt-ledger .links,.mwt-paper .links,.mwt-projects .links{display:flex;flex-wrap:wrap;gap:4px 16px;margin-top:8px}
-.mwt-projects .pj{display:flex;align-items:flex-start;gap:8px;border-radius:6px}
-.mwt-projects .pj .pt{flex:1;min-width:0}
-.mwt-projects .pj .mwt-act{flex:none;margin-top:7px}
-.mwt-projects .pj .g{display:block;margin-top:2px;color:var(--fg-2);font-size:12px;line-height:18px}
-.mwt-projects .pj[data-s=unreviewed] .m{color:var(--accent-text)}
-.mwt-paper .cl{padding:6px 0}
-.mwt-paper .cl .c{display:flex;gap:8px;font-size:12.5px;line-height:19px;color:var(--fg)}
-.mwt-paper .cl .i{flex:none;width:16px;color:var(--fg-3);font-variant-numeric:tabular-nums}
-.mwt-paper .cl .e,.mwt-paper .cl .l{padding-left:24px;color:var(--fg-3);font-size:11.5px;line-height:17px}
-.mwt-paper .pg .w{flex:none;min-width:64px;color:var(--fg-3);font-size:11px}
-.mwt-paper .pg[data-s=missing] .w,.mwt-paper .pg[data-s=undefined] .w{color:var(--danger)}
-.mwt-paper .pg[data-s=mismatch] .w{color:var(--accent-text)}
 .mwt-bar .ttl[data-loop=true]{color:var(--accent-text)}
-.mwt-wiki .links{display:flex;gap:16px;margin-top:10px}
 .mwt .mwt-md a.md-wiki{color:var(--accent-text);text-decoration:none;border-bottom:1px dotted color-mix(in srgb,var(--accent-text) 55%,transparent);cursor:pointer}
 .mwt .mwt-md a.md-wiki:hover{border-bottom-style:solid}
 .mwt-backlinks{margin:32px 0 8px;padding-top:16px;border-top:1px solid var(--rule-soft)}
@@ -796,12 +717,6 @@ span.mwt-act:hover{color:var(--fg-3);text-decoration:none}
 .mwt-attach[disabled]{opacity:.4;cursor:default}
 .mwt-say-up{display:block;margin:6px 4px 0;color:var(--fg-3);font-size:12px;line-height:16px}
 .mwt-mate[data-dragging=true] .mwt-say{outline:2px dashed var(--accent);outline-offset:4px}
-.mwt-tpl{appearance:none;display:flex;align-items:flex-start;gap:12px;width:100%;padding:12px 14px;border:1px solid var(--rule);border-radius:8px;background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
-.mwt-tpl:hover{border-color:var(--fg-3)}
-.mwt-tpl[disabled]{opacity:.5;cursor:default}
-.mwt-tpl b{display:block;font-size:14px;line-height:20px;font-weight:600}
-.mwt-tpl .p{display:block;margin-top:2px;color:var(--fg-3);font-size:12px;line-height:18px}
-.mwt-tpl-or{margin:0 0 8px;color:var(--fg-3);font-size:12px;line-height:16px}
 .mwt-today .none{padding:6px 16px 4px;color:var(--fg-3);font-size:13px;line-height:20px}
 .mwt-today .foot{display:grid;gap:2px;margin-top:8px;padding:8px 16px 12px;border-top:1px solid var(--rule-soft);color:var(--fg-3);font-size:12px;line-height:18px;font-variant-numeric:tabular-nums}
 /* 资料 › 主动程度: three segments; the open one on --bubble-focus. */
@@ -1374,13 +1289,16 @@ function makeComponents(ctx, t) {
    */
   function FileView({ mate, path, backLabel, onBack, onEdit, onOpenPath }) {
     const [data, setData] = React.useState(null)
-    // A 知识库 page: what links back to it, and that you read it (its unread dot goes).
+    // A wiki page (any teammate's wiki/): what links back to it.
     const wikiPage = /^wiki\/.+\.md$/.test(String(path))
     const [back, setBack] = React.useState(null)
+    const url = '/mates/file?id=' + encodeURIComponent(mate.id) + '&path=' + encodeURIComponent(path)
+    // 审过了 (Simon Willison: nobody's review, no publishing): a report that says 「> 未经你审」 under its title.
+    const [reviewing, setReviewing] = React.useState(false)
+    const review = () => { if (reviewing) return; setReviewing(true); api('/mates/review', { id: mate.id, path }).then(() => api(url)).then((x) => setData(x)).catch(() => {}).finally(() => setReviewing(false)) }
     React.useEffect(() => {
       let on = true
       setData(null)
-      const url = '/mates/file?id=' + encodeURIComponent(mate.id) + '&path=' + encodeURIComponent(path)
       // A later read that fails keeps what is on screen; the same text keeps the same object (no re-render).
       const load = () => api(url).then((x) => { if (on) setData((p) => (p && !p.error && p.text === x.text && p.modifiedAt === x.modifiedAt ? p : x)) })
         .catch((e) => { if (on) setData((p) => (p && !p.error ? p : { error: (e && e.message) || String(e) })) })
@@ -1394,7 +1312,6 @@ function makeComponents(ctx, t) {
       if (!wikiPage || !stamp) return undefined
       let on = true
       api('/mates/wiki/page?id=' + encodeURIComponent(mate.id) + '&path=' + encodeURIComponent(path)).then((d) => { if (on) setBack((d && d.backlinks) || []) }).catch(() => { if (on) setBack([]) })
-      api('/mates/wiki/seen', { id: mate.id, path }).catch(() => {})
       return () => { on = false }
     }, [mate.id, path, stamp])
     const name = (data && data.name) || String(path).split('/').pop() || path
@@ -1412,6 +1329,7 @@ function makeComponents(ctx, t) {
       data.truncated ? h('span', { key: 'tr' }, t('truncated')) : null,
       h('button', { key: 'dl', type: 'button', className: 'mwt-tbtn', onClick: () => download(name, text, type + ';charset=utf-8') }, t('download')),
       h('button', { key: 'ed', type: 'button', className: 'mwt-tbtn', onClick: () => onEdit(title) }, t('editInThread')),
+      kind === 'markdown' && /^>\s*未经你审/m.test(text) ? h('button', { key: 'rv', type: 'button', className: 'mwt-tbtn accent', disabled: reviewing, title: t('reviewHint'), onClick: review }, t('reviewed')) : null,
     ] : []
     const body = !ok ? null
       : !text.trim() ? h('div', { className: 'mwt-empty' }, t('fileEmpty'))
@@ -1733,7 +1651,7 @@ function makeComponents(ctx, t) {
     // 连续跑 · 第 3–14 轮 · 23:01–02:10
     if (last.loop) {
       const rounds = group.length > 1 ? t('loopRounds').replace('{a}', String(first.loop.n)).replace('{b}', String(last.loop.n)) : t('loopRound').replace('{n}', String(last.loop.n))
-      return h('button', { type: 'button', className: 'mwt-note', title: t('ledgerTab'), onClick: onOpen }, t('loopLine').replace('{r}', rounds) + ' · ' + (group.length > 1 ? imTime(first.createdAt, t('yesterday')) + '–' + hhmm(end) : imTime(end, t('yesterday'))))
+      return h('button', { type: 'button', className: 'mwt-note', title: t('computer'), onClick: onOpen }, t('loopLine').replace('{r}', rounds) + ' · ' + (group.length > 1 ? imTime(first.createdAt, t('yesterday')) + '–' + hhmm(end) : imTime(end, t('yesterday'))))
     }
     const title = last.routineTitle || last.title || t('routineWord')
     const when = group.length > 1 ? t('quietTimes').replace('{n}', String(group.length)) + '（' + imTime(first.createdAt, t('yesterday')) + '–' + hhmm(end) + '）' : imTime(end, t('yesterday'))
@@ -1807,247 +1725,6 @@ function makeComponents(ctx, t) {
       h('div', { className: 'mwt-acts' },
         h('span', { className: 'msg' + (err ? ' err' : ''), role: err ? 'alert' : undefined }, err || busy || ''),
         h('button', { type: 'button', className: 'mwt-btn primary', disabled: !!busy, onClick: go }, t('obGo'))))
-  }
-
-  /**
-   * 知识库 (Karpathy, "LLM Wiki": the model writes the wiki, you read it — his Obsidian side): search, how many pages
-   * from how many sources and how many changed since you read them, 体检 by code (孤立 / 断链 / 没进索引, each opens),
-   * the latest log entries, the pages by category (most linked first; a dot on what changed since you read it), the
-   * index and the log. A page opens in the reading view, where [[链接]] lead on and 被这些页提到 lists the backlinks.
-   */
-  function WikiPanel({ mate, openPath, onOpenFile }) {
-    const [data, setData] = React.useState(null)
-    const [q, setQ] = React.useState('')
-    const [hits, setHits] = React.useState(null)
-    const [shut, setShut] = React.useState({})
-    const [health, setHealth] = React.useState(false)
-    React.useEffect(() => {
-      let on = true
-      api('/mates/wiki?id=' + encodeURIComponent(mate.id)).then((d) => { if (on) setData(d) }).catch(() => { if (on) setData((p) => p || { error: true }) })
-      return () => { on = false }
-    }, [mate.id, mate.lastAt || '', mate.state || '', mate.step || '', openPath || ''])
-    React.useEffect(() => {
-      const v = q.trim()
-      if (!v) { setHits(null); return undefined }
-      let on = true
-      const id = setTimeout(() => { api('/mates/wiki/search?id=' + encodeURIComponent(mate.id) + '&q=' + encodeURIComponent(v)).then((d) => { if (on) setHits((d && d.items) || []) }).catch(() => { if (on) setHits([]) }) }, 200)
-      return () => { on = false; clearTimeout(id) }
-    }, [q, mate.id])
-    const open = (path) => { if (onOpenFile && path) onOpenFile({ path }) }
-    if (!data) return h('section', { className: 'mwt-sec' }, h(Skeleton, { rows: 4 }))
-    if (data.error) return h('section', { className: 'mwt-sec' }, h('p', { className: 'mwt-quiet' }, t('loadFailed')))
-    const hl = data.health || { orphans: [], broken: [], unindexed: [] }
-    const problems = hl.orphans.length + hl.broken.length + hl.unindexed.length
-    const titleOf = (path) => { for (const c of data.categories || []) for (const pg of c.pages) if (pg.path === path) return pg.title; return path.replace(/^wiki\//, '').replace(/\.md$/, '') }
-    const row = (path, label, key) => h('button', { key: key || path, type: 'button', className: 'pg', title: path, onClick: () => open(path) }, h('span', { className: 't' }, label))
-    return h('div', { className: 'mwt-wiki' },
-      h('section', { className: 'mwt-sec', 'data-sec': 'wiki' },
-        h('input', { className: 'mwt-input small', type: 'search', value: q, placeholder: t('wikiSearch'), 'aria-label': t('wikiSearch'), onChange: (e) => setQ(e.target.value) }),
-        h('p', { className: 'stat' }, t('wikiStats').replace('{p}', String(data.pages)).replace('{s}', String(data.sources)), data.unread ? h(React.Fragment, null, ' · ', h('b', null, t('wikiUnread').replace('{n}', String(data.unread)))) : null),
-        !hits && data.pages ? h('button', { type: 'button', className: 'hl', 'aria-expanded': health, onClick: () => setHealth(!health) },
-          t('wikiHealth') + '：' + (problems ? [hl.orphans.length ? t('wikiOrphans').replace('{n}', String(hl.orphans.length)) : '', hl.broken.length ? t('wikiBroken').replace('{n}', String(hl.broken.length)) : '', hl.unindexed.length ? t('wikiUnindexed').replace('{n}', String(hl.unindexed.length)) : ''].filter(Boolean).join(' · ') : t('wikiHealthy'))) : null,
-        !hits && health && problems ? h('div', { className: 'hlist' },
-          hl.orphans.map((p) => row(p, t('wikiOrphans').replace('{n}', '').trim() + ' · ' + titleOf(p), 'o:' + p)),
-          hl.broken.map((b, i) => row(b.from, titleOf(b.from) + ' → [[' + b.target + ']]', 'b:' + i)),
-          hl.unindexed.map((p) => row(p, t('wikiUnindexed').replace('{n}', '').trim() + ' · ' + titleOf(p), 'u:' + p))) : null),
-      hits ? h('section', { className: 'mwt-sec' }, hits.length ? hits.map((x) => h('button', { key: x.path, type: 'button', className: 'pg', onClick: () => open(x.path) },
-        h('span', { className: 't', style: { whiteSpace: 'normal' } }, x.title, x.snippet ? h('span', { className: 'snip' }, x.snippet) : null))) : h('p', { className: 'mwt-quiet' }, t('wikiNoHit')))
-        : !data.pages ? h('section', { className: 'mwt-sec' }, h('p', { className: 'mwt-quiet' }, t('wikiEmpty')))
-          : h(React.Fragment, null,
-            data.log && data.log.length ? h('section', { className: 'mwt-sec' }, h('h2', null, t('wikiRecent')),
-              data.log.slice(0, 5).map((x, i) => h('div', { key: i, className: 'log' }, h('span', { className: 'd' }, x.date.slice(5).replace('-', '/')), h('span', { className: 'x', title: x.title }, x.op + ' · ' + x.title)))) : null,
-            h('section', { className: 'mwt-sec' },
-              (data.categories || []).map((c) => h(React.Fragment, { key: c.name },
-                h('button', { type: 'button', className: 'cat', 'aria-expanded': !shut[c.name], onClick: () => setShut({ ...shut, [c.name]: !shut[c.name] }) }, icon('chevron-down', { size: 14 }), c.name, h('span', { className: 'n' }, String(c.pages.length))),
-                shut[c.name] ? null : c.pages.map((pg) => h('button', { key: pg.path, type: 'button', className: 'pg', title: pg.path, onClick: () => open(pg.path) },
-                  pg.unread ? h('span', { className: 'dot', 'aria-label': t('wikiUnread').replace('{n}', '') }) : null,
-                  h('span', { className: 't' }, pg.title), pg.inbound ? h('span', { className: 'r' }, '← ' + pg.inbound) : null)))),
-              h('div', { className: 'links' },
-                h('button', { type: 'button', className: 'mwt-link', onClick: () => open('wiki/index.md') }, t('wikiIndex')),
-                h('button', { type: 'button', className: 'mwt-link', onClick: () => open('wiki/log.md') }, t('wikiLog'))))))
-  }
-
-  /**
-   * 论文 (每日论文, 苏剑林's daily sweep): one day of arXiv in its own order, fetched by code; the teammate's 必读 and
-   * 值得看 on top (from the arXiv ids in its triage), then the whole list (filterable). A paper opens to its abstract;
-   * 收进知识库 hands it to the 知识库 teammate, 问一问 puts a question about it in the composer.
-   */
-  function PapersPanel({ mate, onOpenFile, onFill }) {
-    const [date, setDate] = React.useState('')
-    const [data, setData] = React.useState(null)
-    const [openId, setOpenId] = React.useState('')
-    const [detail, setDetail] = React.useState(null)
-    const [all, setAll] = React.useState(false)
-    const [q, setQ] = React.useState('')
-    const [busy, setBusy] = React.useState('')
-    const [msg, setMsg] = React.useState('')
-    React.useEffect(() => {
-      let on = true
-      api('/mates/papers?id=' + encodeURIComponent(mate.id) + (date ? '&date=' + encodeURIComponent(date) : '')).then((d) => { if (on) setData(d) }).catch(() => { if (on) setData((p) => p || { error: true }) })
-      return () => { on = false }
-    }, [mate.id, mate.lastAt || '', mate.state || '', date])
-    React.useEffect(() => {
-      if (!openId || !data || !data.date) { setDetail(null); return undefined }
-      let on = true
-      api('/mates/papers/item?id=' + encodeURIComponent(mate.id) + '&date=' + encodeURIComponent(data.date) + '&pid=' + encodeURIComponent(openId)).then((d) => { if (on) setDetail(d) }).catch(() => { if (on) setDetail(null) })
-      return () => { on = false }
-    }, [openId, data && data.date])
-    if (!data) return h('section', { className: 'mwt-sec' }, h(Skeleton, { rows: 4 }))
-    if (data.error) return h('section', { className: 'mwt-sec' }, h('p', { className: 'mwt-quiet' }, t('loadFailed')))
-    if (!data.date) return h('section', { className: 'mwt-sec' }, h('p', { className: 'mwt-quiet' }, t('papersEmpty')))
-    const toWiki = (p) => {
-      if (busy) return
-      setBusy(p.id); setMsg('')
-      api('/mates/papers/wiki', { id: mate.id, date: data.date, pid: p.id })
-        .then((r) => { setMsg(t('papersHandedTo').replace('{n}', r.wiki.name)); setData((d) => ({ ...d, items: d.items.map((x) => (x.id === p.id ? { ...x, handed: true } : x)) })) })
-        .catch((e) => setMsg((e && e.message) || String(e))).finally(() => setBusy(''))
-    }
-    const row = (p) => h('div', { key: p.id, className: 'pp', 'data-open': openId === p.id ? 'true' : undefined },
-      h('button', { type: 'button', className: 'pt', 'aria-expanded': openId === p.id, onClick: () => setOpenId(openId === p.id ? '' : p.id) },
-        h('span', { className: 't' }, p.title),
-        h('span', { className: 'm' }, [p.id, p.cats.join(' '), p.type !== 'new' ? p.typeWord : ''].filter(Boolean).join(' · '))),
-      openId === p.id ? h('div', { className: 'pd' },
-        h('div', { className: 'au' }, p.authors),
-        detail && detail.id === p.id ? h('p', { className: 'ab' }, detail.abstract) : h(Skeleton, { rows: 2 }),
-        h('div', { className: 'pa' },
-          p.handed ? h('span', { className: 'mwt-act mute' }, t('papersHanded'))
-            : data.wiki ? h('button', { type: 'button', className: 'mwt-act', disabled: busy === p.id, onClick: () => toWiki(p) }, t('papersToWiki')) : h('span', { className: 'mwt-act mute', title: t('papersNoWiki') }, t('papersNoWiki')),
-          onFill ? h('button', { type: 'button', className: 'mwt-act', onClick: () => onFill(t('papersAskSay').replace('{id}', p.id).replace('{t}', p.title)) }, t('papersAsk')) : null,
-          h('a', { className: 'mwt-act', href: 'https://arxiv.org/abs/' + p.id, target: '_blank', rel: 'noopener noreferrer' }, 'arXiv'),
-          h('a', { className: 'mwt-act', href: 'https://arxiv.org/pdf/' + p.id, target: '_blank', rel: 'noopener noreferrer' }, 'PDF'))) : null)
-    const must = data.items.filter((p) => p.pick === 'must')
-    const worth = data.items.filter((p) => p.pick === 'worth')
-    const needle = q.trim().toLowerCase()
-    const listed = needle ? data.items.filter((p) => (p.title + ' ' + p.authors + ' ' + p.id).toLowerCase().includes(needle)) : data.items
-    const c = data.counts || {}
-    return h('div', { className: 'mwt-wiki mwt-papers' },
-      h('section', { className: 'mwt-sec' },
-        h('div', { className: 'mwt-pphead' },
-          data.days.length > 1 ? h('select', { className: 'mwt-input small', value: data.date, 'aria-label': t('papersDay'), onChange: (e) => { setOpenId(''); setDate(e.target.value) } }, data.days.map((d) => h('option', { key: d, value: d }, d))) : h('b', null, data.date),
-          data.triage ? h('button', { type: 'button', className: 'mwt-link', onClick: () => onOpenFile && onOpenFile({ path: data.triage }) }, t('papersTriage')) : null),
-        h('p', { className: 'stat' }, (data.cats || []).join(', ') + ' · ' + t('papersCounts').replace('{a}', String(c.new || 0)).replace('{b}', String(c.cross || 0)).replace('{c}', String((c.replace || 0) + (c['replace-cross'] || 0)))),
-        msg ? h('p', { className: 'stat', role: 'status' }, h('b', null, msg)) : null),
-      !data.triage ? h('section', { className: 'mwt-sec' }, h('p', { className: 'mwt-quiet' }, t('papersNoTriage'))) : null,
-      must.length ? h('section', { className: 'mwt-sec' }, h('h2', null, t('papersMust'), h('span', { className: 'n' }, String(must.length))), must.map(row)) : null,
-      worth.length ? h('section', { className: 'mwt-sec' }, h('h2', null, t('papersWorth'), h('span', { className: 'n' }, String(worth.length))), worth.map(row)) : null,
-      h('section', { className: 'mwt-sec' },
-        h('button', { type: 'button', className: 'cat', 'aria-expanded': all, onClick: () => setAll(!all) }, icon('chevron-down', { size: 14 }), t('papersAll'), h('span', { className: 'n' }, String(data.items.length))),
-        all ? h(React.Fragment, null,
-          h('input', { className: 'mwt-input small', type: 'search', value: q, placeholder: t('papersFilter'), 'aria-label': t('papersFilter'), onChange: (e) => setQ(e.target.value) }),
-          listed.slice(0, 400).map(row),
-          listed.length > 400 ? h('p', { className: 'mwt-quiet' }, t('itemsMore').replace('{n}', String(listed.length - 400))) : null) : null))
-  }
-
-  /** The best-so-far line of 实验 (autoresearch's progress.png): every scored run a dot (kept ones in the accent), the best a step line. */
-  function LedgerChart({ points, frontier, dir }) {
-    const scored = (points || []).filter((p) => p.metric !== null && p.status !== 'crash')
-    if (scored.length < 2) return null
-    const W = 300
-    const H = 72
-    const xs = scored.map((p) => p.n)
-    const ys = scored.map((p) => p.metric)
-    const x0 = Math.min(...xs); const x1 = Math.max(...xs)
-    // The frontier decides the scale (a wild discard would flatten it); outliers sit on the edge.
-    const fy = (frontier || []).map((p) => p.metric)
-    const lo = Math.min(...fy, ...ys.filter((y) => y <= Math.max(...fy) * 1.02 + 1e-9)); const hi = Math.max(...fy) + (Math.max(...fy) - lo || Math.abs(lo) * 0.01 || 1) * 0.15
-    const X = (n) => 4 + ((n - x0) / Math.max(1, x1 - x0)) * (W - 8)
-    const Y = (v) => { const y = 4 + (1 - (v - lo) / Math.max(1e-12, hi - lo)) * (H - 8); return Math.max(2, Math.min(H - 2, dir === 'higher' ? y : H - y)) }
-    let path = ''
-    ;(frontier || []).forEach((p, i) => { path += (i ? ' H' + X(p.n).toFixed(1) + ' V' : 'M' + X(p.n).toFixed(1) + ' ') + Y(p.metric).toFixed(1) })
-    if (frontier && frontier.length) path += ' H' + X(x1).toFixed(1)
-    return h('svg', { className: 'mwt-chart', viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': t('ledgerChart') },
-      scored.map((p) => h('circle', { key: p.n, cx: X(p.n).toFixed(1), cy: Y(p.metric).toFixed(1), r: p.status === 'keep' ? 2.4 : 1.6, 'data-k': p.status === 'keep' ? 'true' : undefined })),
-      h('path', { d: path }))
-  }
-
-  /**
-   * 实验 (Karpathy's autoresearch): the numbers code reads from results.tsv — best so far against the baseline, how many
-   * runs kept, discarded, crashed, the best-so-far line, the latest rows — and 连续跑 (until when, which round; 停下).
-   */
-  function LedgerPanel({ mate, onOpenFile }) {
-    const [data, setData] = React.useState(null)
-    const [busy, setBusy] = React.useState(false)
-    const load = () => api('/mates/ledger?id=' + encodeURIComponent(mate.id)).then(setData).catch(() => setData((p) => p || { error: true }))
-    React.useEffect(() => { load() }, [mate.id, mate.lastAt || '', mate.state || '', mate.step || '', mate.loop ? mate.loop.rounds : -1])
-    if (!data) return h('section', { className: 'mwt-sec' }, h(Skeleton, { rows: 4 }))
-    if (data.error) return h('section', { className: 'mwt-sec' }, h('p', { className: 'mwt-quiet' }, t('loadFailed')))
-    const loop = (b) => { if (busy) return; setBusy(true); api('/mates/loop', { id: mate.id, ...b }).then(() => { load(); kick() }).catch(() => {}).finally(() => setBusy(false)) }
-    const fmt = (v) => (v === null || v === undefined ? '—' : String(Number(Number(v).toPrecision(6))))
-    const STATUS = { keep: t('ledgerKeep'), discard: t('ledgerDiscard'), crash: t('ledgerCrash') }
-    return h('div', { className: 'mwt-wiki mwt-ledger' },
-      h('section', { className: 'mwt-sec' },
-        data.loop
-          ? h('div', { className: 'loop', 'data-on': 'true' }, h('span', { className: 'pulse', 'aria-hidden': 'true' }), h('span', null, t('ledgerLoop').replace('{t}', hhmm(data.loop.until)).replace('{n}', String(data.loop.rounds))), h('button', { type: 'button', className: 'mwt-act mute', disabled: busy, onClick: () => loop({ stop: true }) }, t('ledgerLoopStop')))
-          : h('div', { className: 'loop' }, h('span', null, data.lastLoop ? t('ledgerLastLoop').replace('{a}', hhmm(data.lastLoop.startedAt)).replace('{b}', hhmm(data.lastLoop.endedAt)).replace('{n}', String(data.lastLoop.rounds)).replace('{w}', data.lastLoop.why || '') : t('ledgerNoLoop')), data.total ? h('button', { type: 'button', className: 'mwt-act', disabled: busy, onClick: () => loop({ until: '07:00' }) }, t('ledgerLoopStart')) : null)),
-      !data.total ? h('section', { className: 'mwt-sec' }, h('p', { className: 'mwt-quiet' }, t('ledgerEmpty')))
-        : h(React.Fragment, null,
-          h('section', { className: 'mwt-sec' },
-            h('div', { className: 'big' }, h('span', { className: 'v' }, fmt(data.best && data.best.metric)), h('span', { className: 'k' }, (data.metric || t('ledgerMetric')) + ' · ' + t('ledgerBest') + ' · ' + (data.dir === 'higher' ? t('ledgerHigher') : t('ledgerLower')))),
-            data.baseline && data.best && data.baseline.n !== data.best.n ? h('p', { className: 'stat' }, t('ledgerBase') + ' ' + fmt(data.baseline.metric) + ' → ' + fmt(data.best.metric) + (data.best.description ? ' · ' + data.best.description : '')) : null,
-            h('p', { className: 'stat' }, t('ledgerCounts').replace('{n}', String(data.total)).replace('{k}', String(data.keep)).replace('{d}', String(data.discard)).replace('{c}', String(data.crash))),
-            h(LedgerChart, { points: data.points, frontier: data.frontier, dir: data.dir })),
-          h('section', { className: 'mwt-sec' }, h('h2', null, t('ledgerLast')),
-            (data.last || []).map((r) => h('div', { key: r.n, className: 'lr', 'data-s': r.status },
-              h('span', { className: 'n' }, '#' + r.n), h('span', { className: 'v' }, r.status === 'crash' ? '—' : fmt(r.metric)), h('span', { className: 's' }, STATUS[r.status] || r.status), h('span', { className: 'x', title: r.description }, r.description))))),
-      h('section', { className: 'mwt-sec' }, h('div', { className: 'links' }, (data.files || []).map((f) => h('button', { key: f, type: 'button', className: 'mwt-link', onClick: () => onOpenFile && onOpenFile({ path: f }) }, f)))))
-  }
-
-  /** 项目 (Simon Willison's research repo): one row per question folder — 进行中 / 未经你审 / 审过, its one-line answer; 审过了. */
-  function ProjectsPanel({ mate, onOpenFile }) {
-    const [data, setData] = React.useState(null)
-    const [busy, setBusy] = React.useState('')
-    React.useEffect(() => {
-      let on = true
-      api('/mates/projects?id=' + encodeURIComponent(mate.id)).then((d) => { if (on) setData(d) }).catch(() => { if (on) setData((p) => p || { error: true }) })
-      return () => { on = false }
-    }, [mate.id, mate.lastAt || '', mate.state || ''])
-    if (!data) return h('section', { className: 'mwt-sec' }, h(Skeleton, { rows: 4 }))
-    if (data.error) return h('section', { className: 'mwt-sec' }, h('p', { className: 'mwt-quiet' }, t('loadFailed')))
-    if (!data.items.length) return h('section', { className: 'mwt-sec' }, h('p', { className: 'mwt-quiet' }, t('projEmpty')))
-    const review = (f) => { if (busy) return; setBusy(f); api('/mates/projects/review', { id: mate.id, folder: f }).then(setData).catch(() => {}).finally(() => setBusy('')) }
-    const WORD = { doing: t('projDoing'), unreviewed: t('projUnreviewed'), reviewed: t('projReviewed') }
-    return h('div', { className: 'mwt-wiki mwt-projects' },
-      h('section', { className: 'mwt-sec' }, h('p', { className: 'stat' }, t('projCounts').replace('{a}', String(data.counts.doing)).replace('{b}', String(data.counts.unreviewed)).replace('{c}', String(data.counts.reviewed)))),
-      h('section', { className: 'mwt-sec' }, data.items.map((p) => h('div', { key: p.folder, className: 'pj', 'data-s': p.state },
-        h('button', { type: 'button', className: 'pt', onClick: () => onOpenFile && onOpenFile({ path: p.path }) },
-          h('span', { className: 't' }, p.title),
-          p.gist ? h('span', { className: 'g' }, p.gist) : null,
-          h('span', { className: 'm' }, [p.date, WORD[p.state]].filter(Boolean).join(' · '))),
-        p.state === 'unreviewed' ? h('button', { type: 'button', className: 'mwt-act', disabled: busy === p.folder, onClick: () => review(p.folder) }, t('projReview')) : null))))
-  }
-
-  /**
-   * 论文 (the writing teammate): its claims from 论点.md (Neel Nanda's distill — each with evidence, limits, status),
-   * and 核引用 (ARIS, ICLR 2026): the last check's counts and its problems; 核一遍引用 asks the teammate in the thread.
-   */
-  function PaperPanel({ mate, onOpenFile, onSay }) {
-    const [data, setData] = React.useState(null)
-    React.useEffect(() => {
-      let on = true
-      api('/mates/paper?id=' + encodeURIComponent(mate.id)).then((d) => { if (on) setData(d) }).catch(() => { if (on) setData((p) => p || { error: true }) })
-      return () => { on = false }
-    }, [mate.id, mate.lastAt || '', mate.state || '', mate.step || ''])
-    if (!data) return h('section', { className: 'mwt-sec' }, h(Skeleton, { rows: 4 }))
-    if (data.error) return h('section', { className: 'mwt-sec' }, h('p', { className: 'mwt-quiet' }, t('loadFailed')))
-    const c = data.check && data.check.counts
-    const busy = data.checking || mate.state === 'working'
-    return h('div', { className: 'mwt-wiki mwt-paper' },
-      h('section', { className: 'mwt-sec' }, h('h2', null, t('paperClaims'), data.claims.length ? h('span', { className: 'n' }, String(data.claims.length)) : null),
-        data.claims.length ? data.claims.map((x, i) => h('div', { key: i, className: 'cl' },
-          h('div', { className: 'c' }, h('span', { className: 'i' }, String(i + 1)), x.claim),
-          x.evidence ? h('div', { className: 'e' }, x.evidence) : null,
-          x.limits || x.status ? h('div', { className: 'l' }, [x.status, x.limits].filter(Boolean).join(' · ')) : null))
-          : h('p', { className: 'mwt-quiet' }, t('paperNoClaims')),
-        h('div', { className: 'links' }, h('button', { type: 'button', className: 'mwt-link', onClick: () => onOpenFile && onOpenFile({ path: '论点.md' }) }, '论点.md'))),
-      h('section', { className: 'mwt-sec' }, h('h2', null, t('paperCheck'), h('span', { className: 'grow' }),
-        onSay ? h('button', { type: 'button', className: 'mwt-act', disabled: busy, onClick: () => onSay(t('paperCheckSay')) }, data.checking ? t('paperChecking') : t('paperCheckRun')) : null),
-        h('p', { className: 'stat' }, data.files.length ? t('paperDraft').replace('{n}', String(data.files.length)).replace('{e}', String(data.entries)).replace('{c}', String(data.cites)) : t('paperNoDraft')),
-        !data.check ? h('p', { className: 'mwt-quiet' }, t('paperNever'))
-          : h(React.Fragment, null,
-            h('p', { className: 'stat' }, data.check.date + ' · ' + t('paperCounts').replace('{t}', String(c.total)).replace('{ok}', String(c.ok)).replace('{mm}', String(c.mismatch)).replace('{ms}', String(c.missing + (c.undefined || 0))).replace('{p}', String(c.pending))),
-            data.check.problems.map((x) => h('button', { key: x.key + x.status, type: 'button', className: 'pg', 'data-s': x.status, onClick: () => onOpenFile && onOpenFile({ path: data.check.report }) },
-              h('span', { className: 'w' }, x.word), h('span', { className: 't' }, x.key + (x.title ? ' · ' + x.title : '')))),
-            h('div', { className: 'links' }, h('button', { type: 'button', className: 'mwt-link', onClick: () => onOpenFile && onOpenFile({ path: data.check.report }) }, t('paperReport'))))))
   }
 
   /** 它会主动做的 (PROACTIVE.md 12): the items it will do unasked, ticked by default per the template; 交给它 makes them its routines. */
@@ -2253,9 +1930,7 @@ function makeComponents(ctx, t) {
 
     // The right panel: per teammate, mode 'mate' (电脑 · 例行 · 设置) or 'new-mate' (the form).
     // A 知识库 teammate opens with its wiki beside the conversation (Karpathy: the agent on one side, the wiki on the other).
-    // A template's work bench (知识库 · 论文 · 实验 · 项目) opens beside the conversation (Karpathy: the agent on one side, the wiki on the other).
-    const bench = mate.panel && BENCHES.has(mate.panel.id) ? mate.panel : null
-    const [aside, setAside] = React.useState(() => ({ open: bench ? asideMemory(mate.id) !== 'closed' : asideMemory(mate.id) === 'open', mode: 'mate', section: bench ? bench.id : '', routineId: '', seq: 0 }))
+    const [aside, setAside] = React.useState(() => ({ open: asideMemory(mate.id) === 'open', mode: 'mate', section: '', routineId: '', seq: 0 }))
     const [flash, setFlash] = React.useState('')
     React.useEffect(() => { if (!flash) return undefined; const id = setTimeout(() => setFlash(''), 3000); return () => clearTimeout(id) }, [flash])
     const [dragging, setDragging] = React.useState(false)
@@ -2356,14 +2031,6 @@ function makeComponents(ctx, t) {
       setAside((a) => (a.open ? a : { ...a, open: true, mode: 'mate', section: 'computer', seq: a.seq + 1 }))
     }, [!!screen, running])
     const split = box.w >= SPLIT_MIN
-    // The bench opens by default only beside the conversation: where it would slide over it (a narrow window), it waits
-    // for its button, so an onboarding card is never under it. Opened or closed by you is remembered as before.
-    const benchByDefault = React.useRef(!!bench && asideMemory(mate.id) === undefined)
-    React.useEffect(() => {
-      if (!benchByDefault.current || !box.w) return
-      benchByDefault.current = false
-      if (!split) setAside((a) => (a.open && a.mode === 'mate' ? { ...a, open: false, seq: a.seq + 1 } : a))
-    }, [box.w])
     const shown = aside.open
     React.useEffect(() => {
       if (!shown || split) return undefined
@@ -2485,7 +2152,7 @@ function makeComponents(ctx, t) {
         if (!quietBuf.length) return
         const g = quietBuf
         quietBuf = []
-        out.push(h(QuietLine, { key: 'q:' + g[0].id, group: g, onOpen: () => (g[0].loop && bench ? showAside(true, { mode: 'mate', section: bench.id, routineId: '' }) : showAside(true, { mode: 'mate', section: 'routines', routineId: g[g.length - 1].routineId })) }))
+        out.push(h(QuietLine, { key: 'q:' + g[0].id, group: g, onOpen: () => (g[0].loop ? showAside(true, { mode: 'mate', section: 'computer', routineId: '' }) : showAside(true, { mode: 'mate', section: 'routines', routineId: g[g.length - 1].routineId })) }))
       }
       // MyWork's 今天卡 sits at 读的时间 among the messages.
       let todayPlaced = !today
@@ -2528,7 +2195,6 @@ function makeComponents(ctx, t) {
     const panelMode = aside.mode === 'new-mate' ? 'new-mate' : tabOf(aside.section)
     const settingsOpen = shown && panelMode === 'profile'
     const computerOpen = shown && panelMode === 'computer'
-    const benchOpen = !!bench && shown && panelMode === bench.id
     // [[链接]] anywhere on the page (a reply, a wiki page): the page it names opens in the reading view.
     const onWikiLink = (ev) => {
       const a = ev.target && typeof ev.target.closest === 'function' ? ev.target.closest('a.md-wiki') : null
@@ -2540,15 +2206,15 @@ function makeComponents(ctx, t) {
         .then((d) => openFile({ path: d.path })).catch(() => setFlash(t('wikiMissing').replace('{n}', name)))
     }
     const toggleSettings = () => showAside(!settingsOpen, { mode: 'mate', section: 'profile', routineId: '' })
-    const title = panelMode === 'new-mate' ? t('newMate') : panelMode === 'profile' ? t('profile') : bench && panelMode === bench.id ? bench.tab : t('computer')
+    const title = panelMode === 'new-mate' ? t('newMate') : panelMode === 'profile' ? t('profile') : t('computer')
     const asideBody = () => aside.mode === 'new-mate'
       ? h(NewMateForm, { mates, onCreated: (m) => { setAside((a) => ({ ...a, open: false, mode: 'mate', seq: a.seq + 1 })); if (getNav().mateId !== m.id) openMate(m.id) } })
-      : h(MatePanel, { mate, mates, live, screen, renderSlot, section: aside.section, routineId: aside.routineId, seq: aside.seq, openPath: reading && reading.kind === 'file' ? reading.path : '', onOpenFile: openFile, onFill: (text) => { if (fillRef.current) fillRef.current(text) }, onSay: (text) => api('/mates/say', { id: mate.id, text }).then(() => { atBottom.current = true; th.reload(); kick() }).catch(() => {}), onJump: (runId) => { backTo.current = null; setReading(null); jump.current = { id: runId, tries: 0 }; setJumpSeq((x) => x + 1) } })
+      : h(MatePanel, { mate, mates, live, screen, renderSlot, section: aside.section, routineId: aside.routineId, seq: aside.seq, openPath: reading && reading.kind === 'file' ? reading.path : '', onOpenFile: openFile, onJump: (runId) => { backTo.current = null; setReading(null); jump.current = { id: runId, tries: 0 }; setJumpSeq((x) => x + 1) } })
     const asidePanel = (mode) => h('aside', { className: 'mwt-aside ' + mode, 'data-open': mode === 'over' ? shown : undefined, 'aria-label': title, 'aria-hidden': mode === 'over' && !shown ? 'true' : undefined, style: mode === 'col' && box.h ? { height: box.h } : undefined },
       h('div', { className: 'mwt-aside-head' },
         panelMode === 'new-mate' ? h('span', { className: 'title' }, title)
           : h('div', { className: 'mwt-ptabs', role: 'tablist', 'aria-label': mate.name },
-            [...(bench ? [[bench.id, bench.tab]] : []), ['profile', t('profile')], ['computer', t('computer')]].map(([k, label]) => h('button', { key: k, type: 'button', role: 'tab', 'aria-selected': panelMode === k, onClick: () => showAside(true, { mode: 'mate', section: k, routineId: '' }) }, label))),
+            [['profile', t('profile')], ['computer', t('computer')]].map(([k, label]) => h('button', { key: k, type: 'button', role: 'tab', 'aria-selected': panelMode === k, onClick: () => showAside(true, { mode: 'mate', section: k, routineId: '' }) }, label))),
         h('button', { type: 'button', className: 'mwt-ibtn', 'aria-label': t('close'), title: t('close'), onClick: () => showAside(false) }, icon('x', { size: 16 }))),
       shown ? h('div', { className: 'mwt-aside-body' }, asideBody()) : null)
     const menu = [
@@ -2561,9 +2227,8 @@ function makeComponents(ctx, t) {
       h('div', { className: 'mwt-bar-in' },
         h('button', { type: 'button', className: 'mwt-who', 'aria-expanded': settingsOpen, title: t('profile'), onClick: toggleSettings },
           h(Avatar, { mate, size: 28, working: running }),
-          h('span', { className: 'who' }, h('span', { className: 'name' }, mate.name), mate.loop ? h('span', { className: 'ttl', 'data-loop': 'true' }, t('ledgerLoop').replace('{t}', hhmm(mate.loop.until)).replace('{n}', String(mate.loop.rounds))) : mate.title ? h('span', { className: 'ttl' }, mate.title) : null))),
+          h('span', { className: 'who' }, h('span', { className: 'name' }, mate.name), mate.loop ? h('span', { className: 'ttl', 'data-loop': 'true' }, t('loopBar').replace('{t}', hhmm(mate.loop.until)).replace('{n}', String(mate.loop.rounds))) : mate.title ? h('span', { className: 'ttl' }, mate.title) : null))),
       h('div', { className: 'mwt-bar-acts' },
-        bench ? h('button', { type: 'button', className: 'mwt-ibtn', 'aria-label': bench.tab, 'aria-pressed': benchOpen, title: bench.tab, onClick: () => showAside(!benchOpen, { mode: 'mate', section: bench.id, routineId: '' }) }, icon(bench.icon || 'book-open', { size: 16 })) : null,
         h('button', { type: 'button', className: 'mwt-ibtn', 'aria-label': t('computer'), 'aria-pressed': computerOpen, title: t('computer'), onClick: () => showAside(!computerOpen, { mode: 'mate', section: 'computer', routineId: '' }) }, icon('monitor', { size: 16 })),
         h(Menu, { items: menu })))
     const thread = () => h(React.Fragment, null,
@@ -2669,9 +2334,9 @@ function makeComponents(ctx, t) {
   // ---- the right panel: 资料 · 电脑 -----------------------------------------------------------------------------------
 
   /** Which tab a panel section opens: 电脑 (the screen and the folder) or 资料 (who it is, its job, routines, memory). */
-  const tabOf = (section) => (BENCHES.has(section) ? section : !section || section === 'computer' || section === 'folder' ? 'computer' : 'profile')
+  const tabOf = (section) => (!section || section === 'computer' || section === 'folder' ? 'computer' : 'profile')
 
-  function MatePanel({ mate, mates, live, screen, renderSlot, section, routineId, seq, openPath, onOpenFile, onFill, onSay, onJump }) {
+  function MatePanel({ mate, mates, live, screen, renderSlot, section, routineId, seq, openPath, onOpenFile, onJump }) {
     const ref = React.useRef(null)
     React.useEffect(() => {
       if (!section || !ref.current) return
@@ -2679,12 +2344,7 @@ function makeComponents(ctx, t) {
       if (el && typeof el.scrollIntoView === 'function') { try { el.scrollIntoView({ block: 'start' }) } catch {} }
     }, [seq])
     const tab = tabOf(section)
-    return h('div', { ref }, tab === 'wiki' ? h(WikiPanel, { key: mate.id, mate, openPath, onOpenFile })
-      : tab === 'papers' ? h(PapersPanel, { key: mate.id, mate, onOpenFile, onFill })
-      : tab === 'experiments' ? h(LedgerPanel, { key: mate.id, mate, onOpenFile })
-      : tab === 'projects' ? h(ProjectsPanel, { key: mate.id, mate, onOpenFile })
-      : tab === 'paper' ? h(PaperPanel, { key: mate.id, mate, onOpenFile, onSay })
-      : tab === 'computer' ? h(MateComputer, { mate, live, screen, renderSlot, openPath, onOpenFile })
+    return h('div', { ref }, tab === 'computer' ? h(MateComputer, { mate, live, screen, renderSlot, openPath, onOpenFile })
         : h(MateProfile, { key: mate.id, mate, mates, routineId, seq, onOpenFile, onJump }))
   }
 
@@ -2712,15 +2372,16 @@ function makeComponents(ctx, t) {
    */
   function MateFiles({ mate, openPath, onOpen }) {
     const [items, setItems] = React.useState(null)
+    const [pins, setPins] = React.useState([])
     const [all, setAll] = React.useState(false)
     React.useEffect(() => {
       let on = true
-      api('/mates/folder?id=' + encodeURIComponent(mate.id)).then((d) => (d && Array.isArray(d.items) ? d.items : [])).catch(() => []).then((rows) => { if (on) setItems(rows) })
+      api('/mates/folder?id=' + encodeURIComponent(mate.id)).then((d) => d || {}).catch(() => ({})).then((d) => { if (!on) return; setItems(Array.isArray(d.items) ? d.items : []); setPins(Array.isArray(d.pins) ? d.pins : []) })
       return () => { on = false }
     }, [mate.id, mate.lastAt || '', mate.state || ''])
     const head = (n) => h('h2', null, t('folder'), n ? h('span', { className: 'n' }, n >= 30 ? '30+' : String(n)) : null)
     if (!items) return h(React.Fragment, null, head(0), h(Skeleton, { rows: 2 }))
-    if (!items.length) return h(React.Fragment, null, head(0), h('p', { className: 'mwt-quiet' }, t('folderEmpty')))
+    if (!items.length && !pins.length) return h(React.Fragment, null, head(0), h('p', { className: 'mwt-quiet' }, t('folderEmpty')))
     const isTable = (f) => fileKindOf(f.name) === 'table'
     const tables = items.filter(isTable)
     const rest = items.filter((f) => !isTable(f))
@@ -2737,7 +2398,10 @@ function makeComponents(ctx, t) {
         : h('div', { key: f.path || f.name, className: 'mwt-frow static', title: tip || undefined }, kids)
     }
     return h(React.Fragment, null,
-      head(items.length),
+      head(items.length + pins.length),
+      // 它常看的: the files MyWork named when it made this teammate (its wiki's index, results.tsv, today's triage …).
+      pins.length ? h('div', { className: 'mwt-flabel' }, t('pinnedFiles')) : null,
+      pins.length ? h('div', { className: 'mwt-alist' }, pins.map(row)) : null,
       tables.length ? h('div', { className: 'mwt-flabel' }, t('ownTables')) : null,
       tables.length ? h('div', { className: 'mwt-alist' }, tables.map(row)) : null,
       rest.length ? h('div', { className: 'mwt-flabel' }, t('recentFiles')) : null,
@@ -3128,58 +2792,44 @@ function makeComponents(ctx, t) {
   }
 
   /**
-   * 新同事, in this order: 「它负责什么」 (required; three examples under it fill it), 「类型」 (required; the most used type
-   * by default, or a new one), 名字 (optional), 「头像」 (8 colours × 4 shapes, a live preview; a random pick to start),
-   * 创建. Created, its thread opens; its intro run comes when the server has it.
+   * 新同事 goes to MyWork, which generates the teammate (design/v2/AI-WORKERS.md): 「它负责什么」 (required; the examples
+   * under it are the playbooks' — each one practitioner's way of doing that work), 类型, 名字 and 头像 (optional; they
+   * ride along to the teammate MyWork makes), 让 MyWork 配. MyWork's thread opens on your line; the new teammate shows
+   * up in the column when MyWork has made it, and asks its first question there.
    */
   function NewMateForm({ mates, onCreated }) {
     const [description, setDescription] = React.useState('')
     const [name, setName] = React.useState('')
-    const [type, setType] = React.useState(() => typesOf(mates).top)
+    const [type, setType] = React.useState('')
     const [look, setLook] = React.useState(() => ({ color: AV_COLOR_KEYS[Math.floor(Math.random() * AV_COLOR_KEYS.length)], shape: AV_SHAPE_KEYS[Math.floor(Math.random() * AV_SHAPE_KEYS.length)] }))
     const [busy, setBusy] = React.useState(false)
     const [err, setErr] = React.useState('')
     const ref = React.useRef(null)
     React.useEffect(() => { if (ref.current) ref.current.focus() }, [])
-    // 从模板建 (EDITIONS.md 9.5): a ready-made teammate with its job, list, rules and onboarding card; one click.
-    const [tpls, setTpls] = React.useState([])
-    React.useEffect(() => { let on = true; api('/templates').then((d) => { if (on) setTpls((d && d.items) || []) }).catch(() => {}); return () => { on = false } }, [])
-    const created = (x) => {
-      const m = x && x.mate
-      // The new teammate joins the snapshot now, so its page opens on it (not on the default) before the next poll.
-      if (m && m.id && !state.mates.some((y) => y.id === m.id)) setState({ mates: [...state.mates, { ...m, addedAt: Date.now() }] })
-      // Nav moves to the new teammate before any refetch, so no snapshot in between can fall back to another one.
-      if (m && m.id) { openMate(m.id); onCreated(m) }
-      kick()
-    }
-    const fromTemplate = (id) => { if (busy) return; setBusy(true); setErr(''); api('/mates/create', { template: id }).then(created).catch((e) => setErr(e.message || String(e))).finally(() => setBusy(false)) }
-    const ready = !!description.trim() && !!cleanType(type)
+    const [examples, setExamples] = React.useState([])
+    React.useEffect(() => { let on = true; api('/playbooks').then((d) => { if (on) setExamples(((d && d.items) || []).map((x) => x.example).filter(Boolean)) }).catch(() => {}); return () => { on = false } }, [])
+    const ready = !!description.trim()
     const submit = () => {
       const d = description.trim()
-      if (busy) return
-      if (!d) return
-      if (!cleanType(type)) { setErr(t('typeNeeded')); return }
+      if (busy || !d) return
       setBusy(true); setErr('')
-      api('/mates/create', { description: d, group: cleanType(type), avatar: look, ...(name.trim() ? { name: name.trim() } : {}) })
-        .then((x) => { setDescription(''); setName(''); created(x) })
+      api('/mates/ask-mywork', { description: d, avatar: look, ...(cleanType(type) ? { group: cleanType(type) } : {}), ...(name.trim() ? { name: name.trim() } : {}) })
+        .then((x) => { setDescription(''); setName(''); openMate(x.mateId || 'mywork'); onCreated({ id: x.mateId || 'mywork' }); kick() })
         .catch((e) => setErr(e.message || String(e))).finally(() => setBusy(false))
     }
     const fill = (v) => { setDescription(v); setTimeout(() => { const el = ref.current; if (el) { el.focus(); el.setSelectionRange(v.length, v.length) } }, 0) }
+    const chips = examples.length ? examples : [t('dutyEx1'), t('dutyEx2'), t('dutyEx3')]
     return h('div', null,
-      tpls.length ? h('div', { className: 'mwt-field' }, h('span', null, t('tplHead')),
-        h('div', { className: 'mwt-tpls' }, tpls.map((x) => h('button', { key: x.id, type: 'button', className: 'mwt-tpl', disabled: busy, onClick: () => fromTemplate(x.id) },
-          h(Avatar, { mate: { id: 'tpl-' + x.id, name: x.name, avatar: x.avatar }, size: 28 }),
-          h('span', null, h('b', null, x.name), x.pitch ? h('span', { className: 'p' }, x.pitch) : null)))),
-        h('p', { className: 'mwt-tpl-or' }, t('tplOr'))) : null,
+      h('p', { className: 'mwt-quiet', style: { marginBottom: 16 } }, t('newMateHint')),
       h('label', { className: 'mwt-field' }, h('span', null, t('dutyAsk')),
         h('textarea', { ref, className: 'mwt-input', rows: 4, value: description, placeholder: t('dutyPh'), required: true, onChange: (e) => setDescription(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); submit() } } })),
-      h('div', { className: 'mwt-examples' }, [t('dutyEx1'), t('dutyEx2'), t('dutyEx3')].map((x) => h('button', { key: x, type: 'button', className: 'mwt-choice small', onClick: () => fill(x) }, x))),
-      h('div', { className: 'mwt-field' }, h('span', null, t('group')), h(TypeField, { value: type, mates, required: true, live: true, onChange: (v) => { setType(v); setErr('') } })),
+      h('div', { className: 'mwt-examples' }, chips.map((x) => h('button', { key: x, type: 'button', className: 'mwt-choice small', onClick: () => fill(x) }, x))),
+      h('div', { className: 'mwt-field' }, h('span', null, t('groupOptional')), h(TypeField, { value: type, mates, live: true, onChange: (v) => { setType(v); setErr('') } })),
       h('label', { className: 'mwt-field' }, h('span', null, t('name')),
         h('input', { className: 'mwt-input', value: name, placeholder: t('namePh'), onChange: (e) => setName(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); submit() } } })),
       h('div', { className: 'mwt-field' }, h('span', null, t('avatar')), h(AvatarPicker, { look, onChange: setLook })),
       err ? h('div', { className: 'mwt-field-err' }, err) : null,
-      h('button', { type: 'button', className: 'mwt-btn primary', disabled: busy || !ready, onClick: submit }, t('create')))
+      h('button', { type: 'button', className: 'mwt-btn primary', disabled: busy || !ready, onClick: submit }, t('askMyWork')))
   }
 
   // ---- 文件 -----------------------------------------------------------------------------------------------------------

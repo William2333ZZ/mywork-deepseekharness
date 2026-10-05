@@ -1,15 +1,15 @@
 /**
- * The code halves of the teammates made for AI work (design/v2/AI-WORKERS.md), without a host: the arXiv list,
- * results.tsv, the code-research projects, 核引用 against a fake arXiv / Crossref.
+ * What code does for teammates doing AI work (design/v2/AI-WORKERS.md), without a host: the arXiv list, results.tsv,
+ * 未经你审 → 审过, 核引用 against a fake arXiv / Crossref.
  */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { categoriesOf, parseFeed, picksOf, titleLines } from '../src/arxiv.js'
+import { categoriesOf, parseFeed, titleLines } from '../src/arxiv.js'
 import { directionOf, ledgerLine, metricName, parseResults, summarize } from '../src/results.js'
-import { markReviewed, scanProjects } from '../src/projects.js'
+import { isUnreviewed, markReviewed } from '../src/projects.js'
 import { arxivIdOf, checkEntries, citesIn, firstFamily, parseBib, readDraft, reportMarkdown, titleOverlap } from '../src/cite.js'
 import { BIB, fakeScholar, RSS, TEX } from './fakes.mjs'
 
@@ -29,8 +29,7 @@ test('arXiv: the whole day in its order, the type of each, entities decoded; the
   assert.match(titleLines(day.items.slice(0, 1)), /^1\. \[2610\.00001\] Sparse Attention & Long Context（cs\.CL · 新）$/)
   assert.deepEqual(categoriesOf('## 订阅\n\n- 分类：（开张时写，arXiv 分类代号，例如 cs.CL, cs.LG）\n'), [])
   assert.deepEqual(categoriesOf('- 分类：cs.CL, cs.LG（主）、stat.ML'), ['cs.CL', 'cs.LG', 'stat.ML'])
-  const picks = picksOf('# 2026-10-05\n\n## 必读\n\n### [2610.00001] Sparse …\n- 做了什么：比 2610.09999 快。\n\n[2610.00003] Plain line\n\n## 值得看\n- [2610.00002v2] KV …\n1. 2610.00004 numbered\n\n## 今天的面貌\n- 2610.00005 扎堆\n过了 2 篇')
-  assert.deepEqual([...picks], [['2610.00001', 'must'], ['2610.00003', 'must'], ['2610.00002', 'worth'], ['2610.00004', 'worth']])
+  assert.deepEqual(categoriesOf('- 分类：（开张时写，例如 cs.CL, cs.LG）\n\n## 这位用户的要求\n- 分类：cs.AI'), ['cs.AI'])
 })
 
 test('results.tsv: rows, keep / discard / crash, best so far against the baseline, for one night; the placeholder is no direction', () => {
@@ -41,31 +40,27 @@ test('results.tsv: rows, keep / discard / crash, best so far against the baselin
   assert.deepEqual(summarize(rows).frontier.map((p) => p.metric), [0.9979, 0.9932, 0.9901])
   assert.equal(ledgerLine(night, 'val_bpb'), '3 次：保留 1 · 丢弃 1 · 崩溃 1；val_bpb 0.9932 → 0.9901（e5）')
   assert.equal(summarize(parseResults('commit\tacc\tmem\tstatus\tdescription\nx\t0.71\t1\tkeep\tbase\ny\t0.74\t1\tkeep\tmore data\n'), 'higher').best.commit, 'y')
-  const seed = readFileSync(new URL('../templates/experiments/seed/program.md', import.meta.url), 'utf8')
+  const seed = readFileSync(new URL('../playbooks/experiments/seed/program.md', import.meta.url), 'utf8')
   assert.deepEqual([directionOf(seed), metricName(seed)], ['lower', ''])
   assert.deepEqual([directionOf('- 指标：acc\n- 方向：越高越好'), metricName('- 指标：acc\n')], ['higher', 'acc'])
   assert.equal(ledgerLine(summarize([]), 'x'), '还没有实验记录。')
 })
 
-test('code research: one folder per question — 进行中 without a report, 未经你审 until marked, then 审过 with the date', () => {
+test('未经你审: 审过了 replaces the line with the date (added under the title when missing); only a .md inside the folder', () => {
   const dir = tmp()
   mkdirSync(join(dir, '2026-10-04-markdown-libs'))
-  writeFileSync(join(dir, '2026-10-04-markdown-libs', 'README.md'), '# 哪个 Markdown 库最快\n\n> 未经你审\n\n## 结论\n\ncmarkgfm 最快，比 markdown-it-py 快 9 倍。\n\n## 怎么验证的\n…\n')
-  mkdirSync(join(dir, '2026-10-05-pyodide'))
-  writeFileSync(join(dir, '2026-10-05-pyodide', 'notes.md'), '# notes\n- 试了 emscripten\n')
-  mkdirSync(join(dir, '材料'))
-  writeFileSync(join(dir, '材料', 'notes.md'), 'x')
-  const list = scanProjects(dir)
-  assert.deepEqual(list.map((p) => [p.folder, p.state]), [['2026-10-05-pyodide', 'doing'], ['2026-10-04-markdown-libs', 'unreviewed']])
-  assert.equal(list[1].gist, 'cmarkgfm 最快，比 markdown-it-py 快 9 倍。')
-  writeFileSync(join(dir, '2026-10-04-markdown-libs', 'README.md'), '# 哪个最快\n\n> 未经你审\n\n## 结论\n\n1. **最快的是 `marshal.dumps`**：见 [图](chart.png)。\n')
-  assert.equal(scanProjects(dir).find((p) => p.folder === '2026-10-04-markdown-libs').gist, '最快的是 marshal.dumps：见 图。')
-  assert.equal(list[1].title, '哪个 Markdown 库最快')
-  markReviewed(dir, '2026-10-04-markdown-libs', '2026-10-05')
-  assert.match(readFileSync(join(dir, '2026-10-04-markdown-libs', 'README.md'), 'utf8'), /^> 审过：2026-10-05$/m)
-  assert.equal(scanProjects(dir).find((p) => p.folder === '2026-10-04-markdown-libs').state, 'reviewed')
-  assert.throws(() => markReviewed(dir, '../x', '2026-10-05'))
-  assert.throws(() => markReviewed(dir, '2026-10-05-pyodide', '2026-10-05'), /还没有报告/)
+  const f = join(dir, '2026-10-04-markdown-libs', 'README.md')
+  writeFileSync(f, '# 哪个 Markdown 库最快\n\n> 未经你审\n\n## 结论\n\ncmarkgfm 最快。\n')
+  assert.equal(isUnreviewed(readFileSync(f, 'utf8')), true)
+  assert.deepEqual(markReviewed(dir, '2026-10-04-markdown-libs/README.md', '2026-10-05'), { path: '2026-10-04-markdown-libs/README.md', state: 'reviewed' })
+  assert.match(readFileSync(f, 'utf8'), /^# 哪个 Markdown 库最快\n\n> 审过：2026-10-05\n/)
+  assert.equal(isUnreviewed(readFileSync(f, 'utf8')), false)
+  writeFileSync(join(dir, 'plain.md'), '# 报告\n\n正文\n')
+  markReviewed(dir, 'plain.md', '2026-10-06')
+  assert.match(readFileSync(join(dir, 'plain.md'), 'utf8'), /^# 报告\n\n> 审过：2026-10-06\n\n正文/)
+  assert.throws(() => markReviewed(dir, '../x.md', '2026-10-05'))
+  assert.throws(() => markReviewed(dir, 'nope.md', '2026-10-05'))
+  assert.throws(() => markReviewed(dir, '2026-10-04-markdown-libs', '2026-10-05'))
   rmSync(dir, { recursive: true, force: true })
 })
 

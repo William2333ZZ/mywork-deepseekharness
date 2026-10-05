@@ -10,11 +10,10 @@
  *   fetchDaily(cats, { fetch }) → { date, cats, items: Paper[] }
  *   Paper = { id, title, authors, abstract, cats: [], type: 'new' | 'cross' | 'replace' | 'replace-cross', link }
  */
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 export const DAILY_DIR = '每日'
-export const FAVS_FILE = '收藏.md'
 const UA = 'MyWork/0.1 (research teammate; https://github.com/William2333ZZ/mywork-deepseekharness)'
 const CAT_RE = /^[a-z-]+(?:\.[A-Za-z-]+)?$/
 export const TYPE_WORDS = { new: '新', cross: '交叉', replace: '更新', 'replace-cross': '交叉更新' }
@@ -29,12 +28,14 @@ function dayOf(rfc) {
   return m && MONTHS[m[2]] ? `${m[3]}-${MONTHS[m[2]]}-${m[1].padStart(2, '0')}` : ''
 }
 
-/** The categories in AGENTS.md: a line 「分类：cs.CL, cs.LG」 (or 「categories: …」). */
+/** The categories in AGENTS.md: the first 「分类：cs.CL, cs.LG」 line that names any (the seed's placeholder names none). */
 export function categoriesOf(text) {
-  const m = String(text || '').match(/^\s*[-*]?\s*(?:分类|categories)\s*[:：]\s*(.+)$/im)
-  if (!m) return []
-  // 「（开张时写，例如 cs.CL, cs.LG）」 is the seed's placeholder, not a subscription.
-  return [...new Set(m[1].replace(/（[^）]*）|\([^)]*\)/g, ' ').split(/[\s,，、;；+]+/).map((x) => x.trim()).filter((x) => CAT_RE.test(x)))].slice(0, 12)
+  for (const m of String(text || '').matchAll(/^\s*[-*]?\s*(?:分类|categories)\s*[:：]\s*(.+)$/gim)) {
+    // 「（开张时写，例如 cs.CL, cs.LG）」 is the seed's placeholder, not a subscription.
+    const cats = [...new Set(m[1].replace(/（[^）]*）|\([^)]*\)/g, ' ').split(/[\s,，、;；+]+/).map((x) => x.trim()).filter((x) => CAT_RE.test(x)))].slice(0, 12)
+    if (cats.length) return cats
+  }
+  return []
 }
 
 /** arXiv's RSS for one or more categories → { date, items }. */
@@ -67,42 +68,11 @@ export async function fetchDaily(cats, { fetch: f = globalThis.fetch, timeoutMs 
   } finally { if (timer) clearTimeout(timer) }
 }
 
-/**
- * The ids the teammate named in its triage, by the section they sit under (必读 / 值得看 / 跳过). A paper is a line that
- * starts with its id — a list item, a plain line or a heading (「### [2610.02404] 标题」); an id mentioned inside a
- * sentence is not a pick. A heading that names no section and no paper (「## 今天的面貌」) ends the picks above it.
- */
-const LEAD_ID = /^\s*(?:#{1,6}\s*|[-*+]\s+|\d+[.)]\s+)?(?:\*\*)?\[?(\d{4}\.\d{4,5})(?:v\d+)?\]?/
-export function picksOf(md) {
-  const out = new Map()
-  let section = ''
-  for (const line of String(md || '').split('\n')) {
-    const h = line.match(/^(#{1,6})\s*(.+)$/)
-    if (h) {
-      const t = h[2]
-      if (/必读/.test(t)) section = 'must'
-      else if (/值得|可看|可以看/.test(t)) section = 'worth'
-      else if (/跳过|略过/.test(t)) section = 'skip'
-      else if (!LEAD_ID.test(line)) section = 'other'
-    }
-    if (section === 'other') continue
-    const m = line.match(LEAD_ID)
-    if (m && !out.has(m[1])) out.set(m[1], section || 'worth')
-  }
-  return out
-}
-
 /** Numbered titles for the prompt: 「12. [2610.02293] Title（cs.CL · 新）」. */
 export function titleLines(items) {
   return items.map((p, i) => `${i + 1}. [${p.id}] ${p.title}（${p.cats.slice(0, 3).join(' ')} · ${TYPE_WORDS[p.type] || p.type}）`).join('\n')
 }
 
-/** The saved days, newest first. */
-export function savedDays(dir) {
-  let names = []
-  try { names = readdirSync(join(dir, DAILY_DIR)) } catch { return [] }
-  return names.map((n) => (n.match(/^(\d{4}-\d{2}-\d{2})\.json$/) || [])[1]).filter(Boolean).sort().reverse()
-}
 export function readDay(dir, date) {
   try { return JSON.parse(readFileSync(join(dir, DAILY_DIR, date + '.json'), 'utf8')) } catch { return null }
 }

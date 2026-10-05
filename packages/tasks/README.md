@@ -43,39 +43,45 @@ MyWork Kit v2 的核心成员：**同事模型**。设计见 [design/v2/TEAMMATE
 
 ## 新同事
 
-`POST /mates/create { description, name?, title? }` 建好同事后排一次**隐藏的自我介绍运行**（`trigger: 'system'`，线程里不显示它的用户行，只显示回复）：没有名字时先 `mywork_mate_update` 给自己起 2–4 个汉字的名字；职责里带时间就 `mywork_routine_create` 建好例行；然后两三句话说它怎么理解职责、需要什么。
+`POST /mates/create { description, name?, title? }`（不经 MyWork 直接建，接口保留）建好同事后排一次**隐藏的自我介绍运行**（`trigger: 'system'`，线程里不显示它的用户行，只显示回复）：没有名字时先 `mywork_mate_update` 给自己起 2–4 个汉字的名字；职责里带时间就 `mywork_routine_create` 建好例行；然后两三句话说它怎么理解职责、需要什么。
 
-## 模板与「知识库」（Karpathy, "LLM Wiki"）
+## 同事由 MyWork 配：做法（playbooks）
 
-模板在 `templates/<id>/`：`template.json`（名字、头衔、类型、`order`、头像、`panel` 工作台、一句话、自我介绍的话、`dropDir` 交来的文件放哪、上岗卡、「它会主动做的」各项及其例行和规矩）、`duty.md`（职责）、`seed/`（建同事时连目录一起拷进它的文件夹，`{date}` 换成当天）。新同事表单先列模板（「给 AI 研究和工程的同事」）：每日论文、知识库、实验、代码研究、论文——每位照一位从业者公开的做法（design/v2/AI-WORKERS.md），见下一节。
+没有固定的同事库，也没有固定的右栏：「+ 新同事」把你写的一句话（和你选的名字、类型、头像）交给 MyWork（`POST /mates/ask-mywork` → MyWork 对话里一句「帮我配一位同事：…」，选项挂在那次运行上），MyWork 照最近的从业者做法生成这位同事（`mywork_playbooks` 看做法 → `mywork_mate_create`）。
 
-知识库照 Karpathy 的 LLM Wiki 做：三层——`原始资料/`（你给的原文，只读）、`wiki/`（同事写的页：`index.md`、`log.md`、`来源/`、`概念/`、`人和机构/`、`综述与对比/`）、`AGENTS.md`（schema：库怎么组织、收资料 / 回答 / 体检各怎么做，你和同事一起改）；三个动作——收资料、回答（好的回答存回库里）、体检。
+做法在 `playbooks/<id>/`：`playbook.json`（名字、头衔、类型、`order`、头像、一句话、`source` 照谁、`fits` 适合什么、`example` 一句用户会说的话（新同事页的例子）、`tools`、`dropDir`、`ask` 开工问题、`onboardPrompt`、`offers` 它会主动做的、`quiet`、`pins` 它常看的文件）、`duty.md`、`seed/`（建同事时连目录一起拷进它的文件夹，`{date}` 换成当天）。现在七种，每种照一位公开写过自己流程的从业者（design/v2/AI-WORKERS.md，原文提取在 docs/research/ai-workers-2026-10/）：
 
-1. **建**：`POST /mates/create { template: 'wiki' }`。自我介绍用模板的话（`run.prompt`），完了挂上岗卡（`{ kind: 'onboard' }`）。
-2. **上岗卡**：说这个库是关于什么的，丢第一批资料（`POST /mates/upload` 分块进 `原始资料/`），「交给它」（`POST /mates/onboard`）。你的话成为一句用户话，模板的开张指示跟在后面（用户看不到）：写进 AGENTS.md、存网页、按流程收资料、建索引、记日志。
-3. **它会主动做的**：开张那一轮结束后出（`{ kind: 'subscribe' }`），「交给它」（`POST /mates/subscribe`）：「好的回答存回库里」「资料多时一次收一批」写成 AGENTS.md 里的规矩，「每周一 9 点体检」建成例行（`lint: 'wiki'`）；每一项在对话里留一行，能撤销。
-4. **平时**：任何同事的输入框都能附文件（回形针，或把文件拖到页面上），文件进它的 `dropDir`（知识库是 `原始资料/`，其余是 `材料/`），输入框里填好「收进知识库：…」；同事改了哪些页在「做了告诉你」那一行，能整次撤销。
+| 做法 | 照谁 | 用到的代码能力 |
+|---|---|---|
+| 每日论文 `papers` | 苏剑林每天刷 arXiv 全表；zotero-arxiv-daily；dailypaper-skills | `mywork_arxiv_today`、`mywork_hand_to` |
+| 知识库 `wiki` | Karpathy「LLM Wiki」 | `mywork_wiki_check` |
+| 实验 `experiments` | Karpathy autoresearch；Anthropic「Long-running Claude」；Ethan Perez | `mywork_loop`、`mywork_results` |
+| 代码研究 `code-research` | Simon Willison 的异步代码研究 | 未经你审 → 审过 |
+| 论文 `paper` | Neel Nanda 的 Distill；ARIS citation-audit；ICLR 2026 幻觉引用 | `mywork_cite_check` |
+| 评测 `evals` | Hamel Husain；Shreya Shankar「Who Validates the Validators?」；Eugene Yan | （跑代码、表格） |
+| 前沿 `frontier` | nilenso 的 Atharva Raykar「How I keep up with AI progress」 | （浏览器） |
 
-**代码读库**（`src/wiki.js`）：`[[页名]]` / `[[页名|显示]]` / 指向 `.md` 的链接，正反向链接，孤立页、断链、没进索引的页，日志最近几条，全文搜索（不含索引和日志）。体检例行的提示里先附上这些（`lintFindings`），同事接着查矛盾、过时、缺页和空白。
+`mywork_mate_create { description, name?, title?, group?, basedOn?, rules?, files?, pins?, ask?, offers?, dropDir?, first? }`：`basedOn` 拷做法的文件；`rules` 写进它 AGENTS.md 的「这位用户的要求」；`files` 是 MyWork 替它写的文件（只能在它文件夹里）；`ask` 是开工卡上的一个问题（不给用做法的，`false` 就不出开工卡）；`offers` 是做法里的 id 或 `{ label, note, on, rule, routine（带时间的一句话）, until }`。这些存成同事的 `spec`：
 
-**界面**：知识库同事的右栏默认开着「知识库」：搜索；`n 页 · m 份原始资料 · 你还没看的改动 k`；体检（孤立 / 断链 / 没进索引，点开能去）；最近的日志；按类别的页（被链得多的在前，改过而你没看的带点）；打开索引、打开日志。页在阅读视图里打开，`[[链接]]` 能点（对话里同事回答中的链接也能点），文末列「被这些页提到」。
+1. **建**：自我介绍（有开工问题的，用 `introWithCard`：它是谁、照谁的做法、最后请用户回答卡片上的问题），完了挂上岗卡（`{ kind: 'onboard' }`）。
+2. **上岗卡**：回答、丢资料（`POST /mates/upload` 分块进它的 `dropDir`），「交给它」（`POST /mates/onboard`）：你的话成为一句用户话，做法的开工指示跟在后面（用户看不到）。
+3. **它会主动做的**：开工那一轮结束后出（没有开工卡的，自我介绍后就出），「交给它」（`POST /mates/subscribe`）：勾上的规矩写进 AGENTS.md，例行建好（做法里的带计划；MyWork 写的是一句带时间的话；`until` → 连续跑到那个时间；`runNow` 交给它就先跑一次）；每一项在对话里留一行，能撤销。
+4. **电脑 › 它常看的**：`GET /mates/folder` 多返回 `pins`（`spec.pins` 里的路径；以 `/` 结尾的是那个文件夹里最新的一份），排在「它维护的表」前面。
+5. **以前用模板建的同事**启动时迁成 `spec`（`basedOn` = 原模板），收文件的文件夹和常看的文件不变。
 
-路由：`GET /templates`、`POST /mates/upload`、`POST /mates/onboard`、`POST /mates/subscribe`、`GET /mates/wiki?id=`、`GET /mates/wiki/page?id=&path= | &name=&from=`（解析链接、反向链接）、`POST /mates/wiki/seen { id, path }`、`GET /mates/wiki/search?id=&q=`。
+**知识库**（Karpathy 的 LLM Wiki）：`原始资料/`（只读）→ `wiki/`（`index.md`、`log.md`、`来源/`、`概念/`、`人和机构/`、`综述与对比/`）→ `AGENTS.md`（schema）。代码读库（`src/wiki.js`）：`[[页名]]` 链接正反向、孤立页、断链、没进索引的页、日志；`mywork_wiki_check` 把这些交给同事。任何同事的回答和 wiki 页里的 `[[链接]]` 都能点（`GET /mates/wiki/page?id=&path= | &name=&from=` 解析链接、给反向链接）。
 
-## 给 AI 工作者的同事（`src/benches.js`，design/v2/AI-WORKERS.md）
+## 给 AI 工作的代码能力（`src/capabilities.js`）
 
-模板的 `panel.id` 定它右栏的工作台（有工作台的同事，窗口够宽时工作台默认开在对话旁边；窄窗口时不盖住对话，等你点头部按钮）。程序给事实，模型做判断：
+程序给事实，模型做判断。都是工具，任何同事都能调：
 
-| 同事 | 照谁 | 程序做的 | 工作台（`panel.id`） |
-|---|---|---|---|
-| 每日论文 `papers` | 苏剑林每天刷 arXiv 全表；zotero-arxiv-daily；dailypaper-skills | 例行 `prep: 'arxiv'`：运行前按 AGENTS.md 的「分类：」取当天 RSS 全表（新 / 交叉 / 更新），存 `每日/日期.json` 和标题清单，再排运行；没有新表、或这一天已经过过，只留一行灰字（`quiet`），不叫模型 | `papers`：一天的全表按 arXiv 原序，必读 / 值得看按它分流里行首的 arXiv 号标出；论文展开看摘要，「收进知识库」把摘要存进知识库同事的 `原始资料/`、记进 `收藏.md`、在知识库那边排一句「收进知识库：…」（`via: 'mate:每日论文'`，显示「每日论文 转交」） |
-| 实验 `experiments` | Karpathy autoresearch；Anthropic「Long-running Claude」；Ethan Perez | 读 `results.tsv`（commit / 指标 / 显存 / keep·discard·crash / 说明）和 `program.md` 的「指标：」「越低/越高越好」；**连续跑**：`mate.loop` 到点前，每轮结束后由程序排下一轮（`trigger: 'system'`，`loop`、`loopRound`，`quiet`，对话里合成一行灰字），到点、连续 3 轮没有新行、连续 2 轮出错、200 轮、或你停下就结束，结束时程序写一行成绩；例行 `loopUntil: '07:00'`（过夜实验，它的运行是第一轮）、`prep: 'ledger'`（实验早报，程序算好的数字跟在例行提示后面） | `experiments`：最好成绩、基线、次数、最好成绩走势、最近几次、连续跑状态（停下 / 跑到明早 7 点） |
-| 代码研究 `code-research` | Simon Willison「Code research projects with async coding agents」 | 扫每个题目文件夹：没有 README.md 是进行中，README 里有「> 未经你审」是未审，「> 审过：日期」是审过；「审过了」由程序改这一行 | `projects` |
-| 论文 `paper` | Neel Nanda 的 Distill；ARIS citation-audit；ICLR 2026 幻觉引用 | `mywork_cite_check`：读 `稿子/` 的 .bib 和 .tex / .md，抽每处引用和原句；arXiv 号一次批量查，DOI 和标题走 Crossref（再不行查 arXiv 标题）；结果分核实 / 元数据不符 / 查无此文（疑似）/ 待查（请求失败，不算查无）/ 网页或软件；写 `核引用/日期.md` 和 `.json`（含查到的摘要，模型据此判断是否支持原句） | `paper`：`论点.md` 表里的论点，上次核引用的计数和问题条目，「核一遍引用」 |
-
-工具：`mywork_loop({ until? \| minutes? \| stop? })`（只给实验）、`mywork_cite_check()`（只给论文）。MyWork 的 `mywork_mate_create` 多了 `template`：长期的事有对口模板就从模板建（它先请用户填上岗卡，不排第一件事）。
-
-路由：`GET /mates/papers?id=&date=`、`GET /mates/papers/item?id=&date=&pid=`、`POST /mates/papers/wiki { id, date, pid }`、`GET /mates/ledger?id=`、`POST /mates/loop { id, until \| minutes \| stop }`（`POST /mates/stop` 也会结束连续跑）、`GET /mates/projects?id=`、`POST /mates/projects/review { id, folder }`、`GET /mates/paper?id=`。没有那个工作台的同事一律 400。
+- `mywork_arxiv_today({ categories? })`：按 AGENTS.md 里第一行写了分类的「分类：」（或传入的）取当天 arXiv RSS 全表（新 / 交叉 / 更新），存 `每日/日期.json`、`每日/日期.标题.txt`、`每日/日期.更新.txt`；返回篇数、文件、不长时的标题清单；周末和美国假日说「没有新表」，这一天已经过过也会说。
+- `mywork_cite_check({ dir? })`：读一个文件夹（默认 `稿子/`）的 .bib 和 .tex / .md，抽每处引用和原句；arXiv 号一次批量查，DOI 和标题走 Crossref（再不行查 arXiv 标题）；分核实 / 元数据不符 / 查无此文（疑似）/ 待查（请求失败，不算查无）/ 网页或软件；写 `核引用/日期.md` 和 `.json`（含查到的摘要，模型据此判断是否支持原句）。
+- `mywork_loop({ until? | minutes? | stop? })`：**连续跑**。`mate.loop` 到点前，每轮结束后由程序排下一轮（`trigger: 'system'`，`loop`、`loopRound`，`quiet`，对话里合成一行灰字「连续跑 · 第 3–14 轮」）；到点、连续 3 轮没有新结果（results.tsv 没加行；没有这个文件就是没改文件）、连续 2 轮出错、200 轮、或你停下（`POST /mates/stop`）就结束，结束时程序写一行（有 results.tsv 的带成绩）。例行带 `loopUntil`（`mywork_routine_create` 的 `until`）时，到点那一轮就是第一轮。头部名字下面显示「连续跑到 07:00 · 第 n 轮」。
+- `mywork_results()`：`results.tsv`（commit / 指标 / 显存 / keep·discard·crash / 说明）和 `program.md`（「指标：」「越低/越高越好」）算好的成绩：几次、留几次、最好和基线、最近几次、上一次连续跑。
+- `mywork_wiki_check()`：wiki 的页数、原始资料数、孤立页、断链、没进索引的页、最近的日志。
+- `mywork_hand_to({ to, text, files? })`：交给另一位同事；文件拷进它的 `dropDir`；它那边排一句用户话（`fromMate`，显示「<名字> 转交」）。
+- **未经你审**（Simon Willison）：报告标题下有「> 未经你审」时，阅读视图里多一个「审过了」（`POST /mates/review { id, path }`，只改它文件夹里的 .md），换成「> 审过：日期」。
 
 ## 例行
 
@@ -158,4 +164,4 @@ GET  /today                         → { ready, readTime, at, date, needs, chan
 
 ## 测试
 
-`pnpm --filter dsh-mywork-tasks test`。`test/wiki.test.mjs` 测代码读库（链接、孤立、断链、索引、日志、搜索）。`test/benches.test.mjs` 测工作台的代码部分（arXiv 全表、分流里的论文号、results.tsv、代码研究的项目、核引用对假的 arXiv / Crossref：找到、不符、查无、待查、网页），假数据在 `test/fakes.mjs`。`test/mates.test.mjs` 用一个假的 dsh 宿主跑完整流程（它照 dsh 的收件箱语义：queue 进下一轮、steer 并进当前轮、cancel 保留收件箱）。
+`pnpm --filter dsh-mywork-tasks test`。`test/wiki.test.mjs` 测代码读库（链接、孤立、断链、索引、日志、搜索）。`test/capabilities.test.mjs` 测给同事的代码能力（arXiv 全表、results.tsv、未经你审 → 审过、核引用对假的 arXiv / Crossref：找到、不符、查无、待查、网页），假数据在 `test/fakes.mjs`。`test/mates.test.mjs` 用一个假的 dsh 宿主跑完整流程（它照 dsh 的收件箱语义：queue 进下一轮、steer 并进当前轮、cancel 保留收件箱）。

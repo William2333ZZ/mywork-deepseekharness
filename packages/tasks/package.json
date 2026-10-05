@@ -12,7 +12,7 @@
     "./cordis.patch.yml": "./cordis.patch.yml",
     "./package.json": "./package.json"
   },
-  "files": ["src", "lib", "presets", "templates", "cordis.patch.yml", "README.md"],
+  "files": ["src", "lib", "presets", "playbooks", "cordis.patch.yml", "README.md"],
   "scripts": {
     "build": "node ../../scripts/build-client.mjs .",
     "check": "node --check src/index.js && node --check src/store.js && node --check src/engine.js && node --check src/scenarios.js && node --check src/routines.js && node --check src/harness.js && node --check src/wiki.js && node --check src/client/thread.cjs && node --check src/client/index.js",

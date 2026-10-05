@@ -164,12 +164,12 @@ export class RoutineStore extends JsonList {
   /** Drop the run receipts that pointed at a task the user deleted. */
   forgetTask(taskId) { let n = 0; for (const r of this.items) { const before = (r.runs || []).length; r.runs = (r.runs || []).filter((x) => x.taskId !== taskId); n += before - r.runs.length } if (n) this.save(); return n }
   /** `lint` names a code check whose findings go into the run's prompt (知识库体检: 'wiki'). */
-  create({ mateId, kind, title, input, schedule, lint, prep, loopUntil }) {
+  create({ mateId, kind, title, input, schedule, lint, loopUntil }) {
     const text = String(input || '').trim()
     if (!text) throw new Error('input is required')
     if (!schedule || !schedule.type) throw new Error('schedule is required')
     const next = nextRun(schedule)
-    return this.add({ id: newId('rt'), mateId: mateId || 'mywork', kind: kind === 'remind' ? 'remind' : 'task', title: String(title || '').trim() || titleOf(text), input: text, schedule, enabled: true, createdAt: new Date().toISOString(), lastRunAt: '', nextRunAt: next ? next.toISOString() : '', runs: [], fired: [], ...(lint ? { lint: String(lint) } : {}), ...(prep ? { prep: String(prep) } : {}), ...(loopUntil ? { loopUntil: String(loopUntil) } : {}) })
+    return this.add({ id: newId('rt'), mateId: mateId || 'mywork', kind: kind === 'remind' ? 'remind' : 'task', title: String(title || '').trim() || titleOf(text), input: text, schedule, enabled: true, createdAt: new Date().toISOString(), lastRunAt: '', nextRunAt: next ? next.toISOString() : '', runs: [], fired: [], ...(lint ? { lint: String(lint) } : {}), ...(loopUntil ? { loopUntil: String(loopUntil) } : {}) })
   }
   /** Change what the routine says and, when given, its schedule / kind / title; the next run is recomputed from the schedule. */
   edit(id, { input, schedule, kind, title }) {

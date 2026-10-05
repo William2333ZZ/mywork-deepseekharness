@@ -15,7 +15,7 @@
  * The third axis (does the cited work say what the sentence says) is the model's: each citation keeps where it is cited
  * and the sentence, and a found work keeps its abstract.
  */
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
 
 export const DRAFT_DIR = '稿子'
@@ -232,9 +232,9 @@ export async function checkEntries(entries, cites, { fetch: f = globalThis.fetch
   return { entries: results, undefinedKeys, unused, counts }
 }
 
-/** The draft folder's .bib and citing files (.tex .md), and what is cited where. */
-export function readDraft(dir) {
-  const root = join(dir, DRAFT_DIR)
+/** A draft folder's .bib and citing files (.tex .md), and what is cited where (`sub`: the folder, 稿子/ by default). */
+export function readDraft(dir, sub = DRAFT_DIR) {
+  const root = join(dir, sub)
   const files = []
   const walk = (d, depth) => {
     let names = []
@@ -259,8 +259,6 @@ export function readDraft(dir) {
   return { files: files.map((p) => relative(dir, p).split('\\').join('/')), entries, cites }
 }
 
-const STATUS_WORDS = { ok: '核实', mismatch: '元数据不符', missing: '查无此文（疑似）', pending: '待查（请求失败）', web: '网页或软件', nometa: '条目缺标题' }
-export const statusWord = (s) => STATUS_WORDS[s] || s
 
 /** The report, for the person and the model: problems first, each with where it is cited. */
 export function reportMarkdown(res, date) {
@@ -286,11 +284,3 @@ export function saveCheck(dir, date, res) {
   writeFileSync(join(dir, CHECK_DIR, date + '.md'), reportMarkdown(res, date))
   return { json: CHECK_DIR + '/' + date + '.json', md: CHECK_DIR + '/' + date + '.md' }
 }
-export function lastCheck(dir) {
-  let names = []
-  try { names = readdirSync(join(dir, CHECK_DIR)) } catch { return null }
-  const day = names.map((n) => (n.match(/^(\d{4}-\d{2}-\d{2})\.json$/) || [])[1]).filter(Boolean).sort().pop()
-  if (!day) return null
-  try { return JSON.parse(readFileSync(join(dir, CHECK_DIR, day + '.json'), 'utf8')) } catch { return null }
-}
-export const hasDraft = (dir) => existsSync(join(dir, DRAFT_DIR))

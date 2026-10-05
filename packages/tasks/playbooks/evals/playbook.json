@@ -1,0 +1,29 @@
+{
+  "id": "evals",
+  "name": "评测",
+  "title": "看数据、归类失败、管住 judge",
+  "group": "研究",
+  "order": 6,
+  "avatar": { "color": "teal", "shape": "squircle" },
+  "pitch": "照 Hamel Husain 的做法：先看真实 trace、逐条写备注、归类失败，再把每类失败变成代码断言或对齐过的 LLM judge；judge 当分类器验，看 TPR 和 TNR，换模型或改 prompt 就复查。",
+  "source": "Hamel Husain「Your AI Product Needs Evals」（2024-03-29）、「A Field Guide to Rapidly Improving AI Products」（2025-03-24）、「Using LLM-as-a-Judge For Evaluation: A Complete Guide」（2024-10-29）：看大量数据、二元判定加评语、错误分析、judge 对齐；Shreya Shankar 等「Who Validates the Validators?」（UIST 2024）：标准会漂移，断言要和人的判定对齐；Eugene Yan「Task-Specific LLM Evals that Do & Don't Work」「Evaluating the Effectiveness of LLM-Evaluators」（2024）：按任务选指标，recall / precision 分开看",
+  "fits": "用户在做一个 LLM 应用或 agent，想知道它哪里坏、改了之后有没有变好，想要靠得住的评测而不是凭感觉",
+  "example": "帮我给我们的客服 agent 做评测：先看一批真实对话，归类它在哪些地方出错",
+  "tools": [],
+  "dropDir": "traces",
+  "dropSay": "这些是要评的数据：{files}",
+  "ask": {
+    "question": "评的是什么系统、数据在哪、谁来判对错",
+    "hint": "一两句话说系统做什么、谁在用、你最担心哪类错；trace 或对话日志在哪（导出文件丢进来，或者写路径、数据库、LangSmith 之类）；谁来判对错（你自己，还是某位领域专家）。",
+    "placeholder": "房产助手，帮经纪人查房源、约看房。最担心日期弄错、该转人工没转。对话日志导出在 ~/exports/convos.jsonl，我自己判。"
+  },
+  "onboardPrompt": "（以下是 MyWork 替用户附上的，用户看不到。）这是评测同事开工的第一件事，照 AGENTS.md 做：\n1. 把系统做什么、谁在用、最担心的错、数据在哪、谁来判写进 AGENTS.md「这个系统」一节。\n2. 读数据（要导出、要连库就去做），抽 30 条（不够就全部；真实的优先，随机抽，再补几条你觉得可能出错的）放进 标注/第一批.csv，列：编号,输入,输出,上下文,判定,备注——判定和备注留空，那是用户的事。\n3. 回话：抽了多少条、从哪抽的、怎么判（每条只判 pass 或 fail，备注写为什么，详细到新人看得懂）；告诉用户可以在对话里一条条说（「3 fail：日期算错」），也可以下载表格填好再丢回来。",
+  "offers": [
+    {"id": "weekly", "label": "每周一抽 30 条新数据给你判", "note": "随机抽，再补几条可能出错的；Hamel：起步时全看，之后抽样，看到学不到新东西为止", "on": true, "routine": {"title": "这周要判的", "input": "从数据里抽 30 条上周的新 trace（随机的为主，再补几条你判断可能出错的），放进 标注/日期.csv（列：编号,输入,输出,上下文,判定,备注，判定和备注留空），一句话告诉用户有多少条、从哪抽的。没有新数据就只回一句，最后一行写「变化：无」。", "schedule": {"type": "weekly", "weekday": 1, "time": "10:00"}}},
+    {"id": "analysis", "label": "你判完一批，就做一次错误分析", "note": "从你的备注归纳失败类别、给每条贴类别、出透视表，指出最该先修的两三类", "on": true, "rule": "（判完一批）用户判完一批后做错误分析：先从备注开放地归纳失败类别，再给每条 fail 贴一个类别，出透视表（每类多少条、占 fail 的多少），写进 错误分析/日期.md；指出最该先修的两三类和为什么；类别要用户点头才算定下来。"},
+    {"id": "judge", "label": "LLM judge 先对齐再用", "note": "能用代码断言的不用 judge；judge 当分类器验，报 TPR 和 TNR，不只报一致率", "on": true, "rule": "（judge）能用代码断言判的不用 LLM judge；要用 judge 时：用户判过的数据分成 train（10–20%，只当 few-shot）/ dev（迭代 prompt）/ test（冻结 prompt 后只跑一次），judge 先写评语再给 pass/fail，报 TPR 和 TNR（失败少时一致率会虚高）；换模型或改 prompt 就重跑 test。"},
+    {"id": "daily", "label": "每天 9 点跑一遍断言，掉了才说", "note": "测试/ 里的断言和 judge 每天跑，通过率比上次掉了才打扰你", "on": false, "routine": {"title": "每天的断言", "input": "跑一遍 测试/ 里的断言和 judge，结果追加进 测试/通过率.tsv（日期、每项通过率）；比上一次掉了就说哪几项、掉了多少、举两条失败的例子；没掉就只回一句，最后一行写「变化：无」。", "schedule": {"type": "daily", "time": "09:00"}}}
+  ],
+  "quiet": "判定和备注永远是你的；它归纳、计数、写断言、对齐 judge。",
+  "pins": ["错误分析/", "标注/", "AGENTS.md"]
+}

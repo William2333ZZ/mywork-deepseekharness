@@ -6,8 +6,10 @@
  *   • stores: mates.json, tasks.json (runs), deliverables.json, routines.json, seen.json under $DSH_HOME/mywork
  *   • engine (engine.js): one session per teammate, runs from its session events, background verification
  *   • tools (host-level, refused outside teammate sessions): deliver, mywork_ask, mywork_routine_create,
- *     mywork_routines, mywork_routine_cancel, mywork_remember, mywork_mate_update; MyWork only: mywork_mates,
- *     mywork_mate_create (it finds a long-running job its own teammate, with the user's yes)
+ *     mywork_routines, mywork_routine_cancel, mywork_remember, mywork_mate_update, and what code does for AI work
+ *     (capabilities.js: mywork_arxiv_today, mywork_cite_check, mywork_loop, mywork_results, mywork_wiki_check,
+ *     mywork_hand_to); MyWork only: mywork_mates, mywork_playbooks, mywork_mate_create (it generates a teammate for a
+ *     long-running job, from the closest practitioner playbook, with the user's yes)
  *   • HTTP under /mywork-tasks/api: the §9.8 contract (see README)
  *   • events: ctx.emit('mywork/task', { kind, run, mate, deliverable?, routine? }) — kinds queued | started | step | text |
  *     deliverable | verifying | verified | waiting | done | remind | routine | mate
@@ -28,8 +30,8 @@ import {
   pendingAsk, plainLine, plainText, SeenStore, TaskStore, ts,
 } from './store.js'
 import { describeSchedule, parseSchedule, routineLastAt, routinePrompt, RoutineStore, routineView } from './routines.js'
-import { lintFindings, outside, resolvePage, scanWiki, searchWiki } from './wiki.js'
-import { createBenches } from './benches.js'
+import { lintFindings, outside, resolvePage, scanWiki } from './wiki.js'
+import { createCapabilities } from './capabilities.js'
 
 export const name = 'dsh-mywork-tasks'
 export const inject = ['tools', 'agents', 'sessions', 'workspaceRegistry', 'agentDefaultModel', 'agentPresets', 'permissionPresets']
@@ -65,26 +67,45 @@ export function cleanAskFirst(list) {
 export const PROACTIVE_LEVELS = ['ask', 'default', 'more']
 
 /**
- * Teammate templates (EDITIONS.md 9.5), one folder each under templates/: template.json (name, title, group, avatar,
- * pitch, intro, dropDir, onboard card, subscription items with their routines and rules), duty.md (the job) and seed/
- * (files and folders copied into a new teammate's folder; {date} becomes today).
+ * Playbooks (design/v2/AI-WORKERS.md): how practitioners do a kind of AI work, one folder each under playbooks/ —
+ * playbook.json (name, title, group, avatar, pitch, source: whose workflow, fits, example, tools, dropDir, the first
+ * question, what it offers to do unasked, pins: the files it keeps), duty.md and seed/ (files and folders copied into a
+ * teammate's folder; {date} becomes today). MyWork reads them (mywork_playbooks) and generates a teammate from the
+ * closest one, tailored to what the person asked; there is no gallery of fixed teammates.
  */
-export function loadTemplates(root) {
+export function loadPlaybooks(root) {
   const out = new Map()
   let names = []
   try { names = readdirSync(root) } catch { return out }
   for (const n of names) {
     const dir = join(root, n)
     try {
-      const t = JSON.parse(readFileSync(join(dir, 'template.json'), 'utf8'))
+      const t = JSON.parse(readFileSync(join(dir, 'playbook.json'), 'utf8'))
       if (!t || !t.id) continue
       t.dir = dir
       t.duty = existsSync(join(dir, 'duty.md')) ? readFileSync(join(dir, 'duty.md'), 'utf8').trim() : ''
       out.set(t.id, t)
     } catch {}
   }
-  // The new-teammate page lists them by `order` (每日论文, 知识库, 实验, 代码研究, 论文).
   return new Map([...out.entries()].sort((a, b) => (Number(a[1].order) || 99) - (Number(b[1].order) || 99)))
+}
+/** What MyWork reads of a playbook before it makes a teammate from it. */
+export function playbookText(pb) {
+  const seed = []
+  const walk = (rel) => { let names = []; try { names = readdirSync(join(pb.dir, 'seed', rel)) } catch { return } for (const n of names) { if (n.startsWith('.')) continue; const p = rel ? rel + '/' + n : n; try { if (statSync(join(pb.dir, 'seed', p)).isDirectory()) walk(p); else seed.push(p) } catch {} } }
+  walk('')
+  let agents = ''
+  try { agents = readFileSync(join(pb.dir, 'seed', 'AGENTS.md'), 'utf8') } catch {}
+  const offers = (pb.offers || []).map((x) => `- [${x.id}] ${x.label}${x.on === false ? '（默认不勾）' : ''}：${x.note || ''}${x.routine ? `（例行《${x.routine.title}》${x.routine.until ? '，连续跑到 ' + x.routine.until : ''}）` : ''}${x.rule ? '（规矩）' : ''}`)
+  return [
+    `# 做法：${pb.name}（id ${pb.id}）`, '', `一句话：${pb.pitch || ''}`, `照谁：${pb.source || ''}`, `适合：${pb.fits || ''}`, '',
+    '## 职责（duty，给同事的 description 从这里改写成用户的话）', pb.duty || '', '',
+    `## 收文件的文件夹：${pb.dropDir || '材料'}`, `## 它常看的文件（pins）：${(pb.pins || []).join('、') || '无'}`, `## 用到的工具：${(pb.tools || []).join('、') || '无'}`, '',
+    '## 开工卡（ask，按用户已经说过的改写；用户已经说清楚的就不再问）', `问题：${(pb.ask || {}).question || ''}`, `提示：${(pb.ask || {}).hint || ''}`, `示例：${(pb.ask || {}).placeholder || ''}`, '',
+    '## 它会主动做的（offers，用 id 选，或者自己写）', ...offers, '',
+    `## 建好时会拷进它文件夹的文件（basedOn: '${pb.id}'）`, seed.join('、') || '无', '',
+    '## AGENTS.md（它的规矩，会照拷；这位用户特有的要求写进 rules）', agents.trim(),
+  ].join('\n')
 }
 /** A file handed over in pieces may grow to this size (材料/). */
 const UPLOAD_MAX = 20 * 1024 * 1024
@@ -117,7 +138,10 @@ export function personaPrefix(mate) {
     ...(mate.proactive === 'more' ? ['- 主动程度：多做一点。和你职责有关、用户多半用得上的事（先查、先备、先整理）可以不等用户开口就做，做完在回话里交代一句。'] : []),
   ]
   // MyWork (the default teammate) is the one who finds a long-running job its own teammate.
-  if (mate.isDefault) lines.push('- 你是用户的总助理：长期、反复、要专门盯着的事（每天过 arXiv、跑一晚上实验、定期跟进一个课题或几个开源项目、每周看几家实验室发了什么）应该交给一位专门的同事，不要都揽成你自己的例行。用户交来这类事时，先用 mywork_mates 看有没有同事已经在做，有就告诉用户去找它；没有就用 mywork_ask（askKind choice，选项「新建同事」「你来做就行」）问一句要不要给它找一位专门的同事。用户选「新建同事」，用 mywork_mate_create 建好（能马上出第一份的，把第一件事写进 first；有对口模板的从模板建，传 template：每天过 arXiv / 追论文 → papers，整理读过的资料、建知识库 → wiki，夜里跑实验、调参、跑 benchmark → experiments，写代码跑一跑来回答一个问题 → code-research，写论文、改稿、投稿前核引用 → paper），告诉用户它叫什么、在左边的同事列表里，这件事以后由它做，你不再做；选「你来做就行」，再安排成你的例行。这条优先于「带时间的事安排成例行」那一条。晨报、日报、周报、提醒这类本来就归你的事照常自己做；一次性的事你自己做；用户直接要你新建同事时不用再问。')
+  if (mate.isDefault) {
+    lines.push('- 你是用户的总助理：长期、反复、要专门盯着的事（每天过 arXiv、整理读过的资料、跑一晚上实验、做评测、写论文、定期跟进一个课题或几个开源项目）应该交给一位专门的同事，不要都揽成你自己的例行。用户交来这类事时，先用 mywork_mates 看有没有同事已经在做，有就告诉用户去找它；没有就用 mywork_ask（askKind choice，选项「新建同事」「你来做就行」）问一句要不要给它配一位专门的同事；选「你来做就行」，再安排成你的例行。这条优先于「带时间的事安排成例行」那一条。晨报、日报、周报、提醒这类本来就归你的事照常自己做；一次性的事你自己做。')
+    lines.push('- 同事由你来配。用户说「帮我配一位同事：…」、选了「新建同事」、或直接要你新建时，不用再问，按这个顺序做：1）mywork_playbooks 看有哪些从业者的做法；2）有对口的就 mywork_playbooks 读它的全文，没有就照用户的话自己设计；3）用 mywork_mate_create 建：basedOn 写做法的 id，description 用用户的话写它的职责，rules 写这位用户特有的要求（用户说过的分类、方向、机器、路径、指标、截止日期……），ask 只问用户还没说清楚的那一件事（都说清楚了就传 false），offers 从做法里挑用户用得上的、按用户的话改写，名字贴合用户的事；4）用一两句话告诉用户它叫什么、照谁的做法、它会先问什么、在左边的同事列表里。用户带着名字或类型来的，就用用户的。')
+  }
   // Persona text is interpolated ({{model}}, {{cwd}}): a brace pair in what the user wrote must not become a variable.
   return lines.join('\n').replace(/\{\{/g, '{ {').replace(/\}\}/g, '} }')
 }
@@ -168,8 +192,8 @@ export function mateComposition(baseText, mate) {
  * Everything but the cordis wiring. `ctx` is the dsh plugin context (or a fake), `home` the DSH_HOME, `controller()`
  * the session controller, `hostEmit(payload)` where 'mywork/task' events go.
  */
-export function createMyWork({ ctx, config = {}, home, log = () => {}, controller = () => null, hostEmit = () => {}, templates: givenTemplates }) {
-  const templates = givenTemplates instanceof Map ? givenTemplates : loadTemplates(join(dirname(fileURLToPath(import.meta.url)), '..', 'templates'))
+export function createMyWork({ ctx, config = {}, home, log = () => {}, controller = () => null, hostEmit = () => {}, playbooks: givenPlaybooks }) {
+  const playbooks = givenPlaybooks instanceof Map ? givenPlaybooks : loadPlaybooks(join(dirname(fileURLToPath(import.meta.url)), '..', 'playbooks'))
   const dshHome = home || process.env.DSH_HOME || join(homedir(), '.dsh')
   const dir = join(dshHome, 'mywork')
   const presetRoot = join(dshHome, '.agent-presets')
@@ -179,6 +203,12 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
   const seen = new SeenStore(join(dir, 'seen.json'))
   const mates = new MateStore(join(dir, 'mates.json'), { matesDir: join(dir, 'mates') })
   const defaultMate = mates.ensureDefault()
+  // A teammate made from a template (before teammates were generated by MyWork) becomes one based on that playbook.
+  for (const m of mates.items) {
+    if (!m.template || m.spec) continue
+    const pb = playbooks.get(m.template)
+    mates.update(m.id, { spec: { basedOn: pb ? pb.id : '', source: pb ? pb.source || '' : '', dropDir: (pb && pb.dropDir) || '', dropSay: (pb && pb.dropSay) || '', pins: (pb && pb.pins) || [], onboard: pb && pb.ask && pb.ask.question ? { title: '开工 · ' + (m.name || pb.name), ...pb.ask, prompt: pb.onboardPrompt || '' } : null, subscribe: [], quiet: (pb && pb.quiet) || '' } })
+  }
   const migrated = migrate({ runs: store, routines, deliverables, since: (defaultMate && defaultMate.createdAt) || (mates.get(DEFAULT_MATE_ID) || {}).createdAt })
   if (migrated) log(`migrated ${migrated} records to the teammate model`)
   const scenarios = createScenarioRegistry()
@@ -249,12 +279,10 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
       lastAt: lastAt || m.createdAt, preview, unread: seen.unread(m.id, attentionAt), unreadCount, attentionAt,
       state, step, since: running ? (running.startedAt || running.createdAt) : live.length ? live[0].createdAt : pending ? pending.at : '',
       ask: pending ? { ...askView(pending), runId: waiting.id } : null,
-      routineCount: routines.forMate(m.id).length, dir: m.dir, template: m.template || '',
-      // Files you hand over go to the template's drop folder (知识库: 原始资料/), else 材料/; the composer's line for them.
-      drop: (() => { const tp = m.template ? templates.get(m.template) : null; return { dir: (tp && tp.dropDir) || MATERIAL_DIR, say: (tp && tp.dropSay) || '' } })(),
-      // A template's work bench beside the thread (知识库 · 论文 · 实验 · 项目), and a 连续跑 in progress.
-      panel: (() => { const tp = m.template ? templates.get(m.template) : null; return tp && tp.panel ? { id: tp.panel.id, tab: tp.panel.tab || tp.name, icon: tp.panel.icon || '' } : null })(),
-      loop: benches.loopView(m),
+      routineCount: routines.forMate(m.id).length, dir: m.dir, basedOn: (m.spec && m.spec.basedOn) || '',
+      // Files you hand over go to its drop folder (a 知识库's 原始资料/), else 材料/; the composer's line for them.
+      drop: { dir: dropDirOf(m), say: (m.spec && m.spec.dropSay) || '' },
+      loop: caps.loopView(m),
       askFirst: cleanAskFirst(m.askFirst), proactive: PROACTIVE_LEVELS.includes(m.proactive) ? m.proactive : 'default', readTime: m.isDefault ? (READ_TIME.test(m.readTime || '') ? m.readTime : DEFAULT_READ_TIME) : '',
     }
   }
@@ -381,14 +409,14 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     return [opts.schedule ? '今天的会（来自日程表）：\n' + (agenda || '- 日程表里今天没有安排') : '', out.length ? '同事们做过的事（按同事分）：\n' + out.join('\n\n') : '', '现在有效的例行（以此为准，别的说法都过时了）：\n' + (standing.join('\n') || '- 无')].filter(Boolean).join('\n\n')
   }
 
-  // The work benches of the teammates made for AI work (benches.js): arXiv list, 连续跑, results.tsv, projects, 核引用.
-  const benches = createBenches({ store, mates, routines, templates, emit, pump: () => engine.pump(), log, notFound, bad, fetch: config.fetch })
+  // What code does for teammates doing AI work (capabilities.js): arXiv list, 核引用, 连续跑, results.tsv, wiki check, hand-over.
+  const caps = createCapabilities({ store, mates, routines, emit, pump: () => engine.pump(), log, bad, dropDirOf: (m) => dropDirOf(m), fetch: config.fetch })
   const engine = createEngine({
     ctx, store, deliverables, mates, routines, scenarios, log, emit, controller, presetFor, workRecord,
     afterTurn: (mateId) => {
       if (stalePresets.delete(mateId)) relink(mateId)
       try { onboardAfterIntro(mateId); subscribeAfterOnboard(mateId) } catch (e) { log('onboard: ' + (e && e.message)) }
-      try { benches.continueLoop(mateId) } catch (e) { log('loop: ' + (e && e.message)) }
+      try { caps.continueLoop(mateId) } catch (e) { log('loop: ' + (e && e.message)) }
     },
     config: {
       concurrency: Number(config.concurrency) || 2, timeoutMs: Math.max(1, Number(config.timeoutMinutes) || 20) * 60000,
@@ -413,21 +441,29 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
   // 晨报 routine is no longer created (one made by an earlier version stays until the person removes it).
 
   // ── teammates ──
+  /**
+   * A new teammate. Made from a sentence it names itself in its intro and sets up a timed duty; made by MyWork
+   * (mywork_mate_create) it carries what MyWork generated for this person — `b.spec` (specFrom): the playbook it is based
+   * on (its seed files are copied in), where handed files go, the files it keeps (pins), its first question (the 上岗卡
+   * under its greeting) and what it offers to do unasked (它会主动做的) — plus `b.rules` (lines for its AGENTS.md) and
+   * `b.files` (files MyWork wrote for it).
+   */
   function createMate(b) {
-    const tpl = b && b.template ? templates.get(String(b.template)) : null
-    if (b && b.template && !tpl) throw bad('没有这个模板。')
-    const description = tpl ? tpl.duty || tpl.pitch || tpl.name : String((b && b.description) || '').trim()
+    const description = String((b && b.description) || '').trim()
     if (!description) throw bad('写一句它负责什么。')
-    const mate = mates.create({ description, name: b.name || (tpl ? tpl.name : ''), title: b.title !== undefined ? b.title : tpl ? tpl.title : '' })
-    if (tpl) mates.update(mate.id, { template: tpl.id, group: String(b.group || tpl.group || '').trim().slice(0, 12), avatar: avatarOf(b.avatar || tpl.avatar), pinned: !!b.pinned })
-    else if (b.group !== undefined || b.pinned !== undefined || b.avatar !== undefined) mates.update(mate.id, { group: String(b.group || '').trim().slice(0, 12), pinned: !!b.pinned, avatar: avatarOf(b.avatar) })
+    const g = b.spec || null
+    const pb = g && g.basedOn ? playbooks.get(g.basedOn) : null
+    const mate = mates.create({ description, name: b.name || '', title: b.title || '' })
+    mates.update(mate.id, { group: String(b.group || (pb && pb.group) || '').trim().slice(0, 12), pinned: !!b.pinned, avatar: avatarOf(b.avatar || (pb && pb.avatar)), ...(g ? { spec: g } : {}) })
     try { mkdirSync(mate.dir, { recursive: true }) } catch {}
-    if (tpl) seedFolder(tpl, mate.dir)
+    if (pb) seedFolder(pb, mate.dir)
+    if (g) writeGenerated(mates.get(mate.id), b)
     // The hidden intro run: it names itself when it has no name, sets up a timed duty, and says how it understood its job.
-    // A template's intro says its own lines; the onboarding card follows it (onboardAfterIntro).
+    // One MyWork generated greets instead (whose workflow it follows) and leaves its routines to the cards that follow:
+    // its first question (onboardAfterIntro), then what it offers to do (subscribeAfterOnboard).
     const intro = store.create({ mateId: mate.id, trigger: 'system', input: '', title: '自我介绍' })
-    if (tpl) store.update(intro.id, { template: tpl.id, prompt: '（这句话是 MyWork 在你刚被创建时替用户发的，用户看不到它，只看得到你的回复。）\n' + (tpl.intro || '用两三句话向用户介绍自己。') })
-    log(`teammate ${mate.id} created (${mate.name || 'unnamed'})`)
+    if (g) store.update(intro.id, { carded: true, prompt: introWithCard(mates.get(mate.id), pb) })
+    log(`teammate ${mate.id} created (${mate.name || 'unnamed'}${pb ? ', after ' + pb.id : ''})`)
     emit('mate', null, { mateId: mate.id })
     emit('queued', intro)
     engine.pump()
@@ -565,7 +601,14 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     // The tables it keeps (信源表, 情报库) always, however many fresh files a day's scraping leaves; the rest, the newest 30.
     const table = (f) => /\.(csv|tsv)$/i.test(f.name)
     const keep = new Set([...items.filter(table).slice(0, 50), ...items.slice(0, 30)])
-    return { dir: m.dir, items: items.filter((f) => keep.has(f)) }
+    // 它常看的 (the files MyWork named when it made the teammate): a path, or 「每日/」 for the newest file in that folder.
+    const unix = (p) => p.split('\\').join('/')
+    const pins = []
+    for (const p of (m.spec && m.spec.pins) || []) {
+      const hit = p.endsWith('/') ? items.find((f) => unix(f.path).startsWith(p) && !f.name.startsWith('.')) : items.find((f) => unix(f.path) === p)
+      if (hit && !pins.includes(hit)) pins.push(hit)
+    }
+    return { dir: m.dir, pins, items: items.filter((f) => keep.has(f) && !pins.includes(f)) }
   }
 
   /** One text file from a teammate's folder, read-only (tables and notes open in the reading view). Never leaves the folder. */
@@ -634,7 +677,7 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
 
   // ── routines ──
   /** A sentence with a time becomes a routine of one teammate. */
-  function createRoutine({ mateId, input, schedule, kind, title }) {
+  function createRoutine({ mateId, input, schedule, kind, title, until }) {
     const mate = mates.get(String(mateId || DEFAULT_MATE_ID))
     if (!mate) throw notFound('同事不存在。')
     const text = String(input || '').trim()
@@ -643,7 +686,8 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     if (!schedule) { parsed = parseSchedule(text); if (!parsed) throw bad('没看出时间。写法如「每天 9 点…」「每周一 8:30…」「工作日 18 点…」「明天 8 点提醒我…」「30 分钟后提醒我…」') }
     const finalKind = kind || (parsed ? parsed.kind : 'task')
     const finalTitle = finalKind === 'task' ? String(title || '').replace(/(的)?提醒$/, '').trim() : title // 「写周报提醒」 is a report the teammate writes
-    const r = routines.create({ mateId: mate.id, kind: finalKind, title: finalTitle, input: parsed ? parsed.text : text, schedule: schedule || parsed.schedule })
+    const stop = /^([01]?\d|2[0-3])[:：][0-5]\d$/.test(String(until || '').trim()) && finalKind === 'task' ? String(until).trim().replace('：', ':') : undefined
+    const r = routines.create({ mateId: mate.id, kind: finalKind, title: finalTitle, input: parsed ? parsed.text : text, schedule: schedule || parsed.schedule, loopUntil: stop })
     log(`routine ${r.id} (${mate.id}) ${r.kind} ${describeSchedule(r.schedule)}: ${r.title}`)
     emit('routine', null, { mateId: mate.id, routine: rview(r) })
     return rview(r)
@@ -664,15 +708,12 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
    * queued like any other). A reminder does not run the teammate: it fires (fired[] as before) and posts a synthetic
    * done run into the teammate's thread whose activity is one { kind: 'remind', routineId, title, at, acked } entry.
    */
-  function runRoutine(id, opts = {}) {
+  function runRoutine(id) {
     const r = routines.get(String(id || ''))
     if (!r) throw notFound('routine not found')
     const mateId = mates.get(r.mateId) ? r.mateId : DEFAULT_MATE_ID
-    // A bench routine: 过夜实验 starts 连续跑; 今天的 arXiv has code fetch the day's list first (its run comes after).
-    if (r.kind !== 'remind') {
-      const took = benches.runRoutine(r, mateId, opts)
-      if (took) return { routine: rview(routines.get(r.id)), runId: took.runId, preparing: !!took.preparing }
-    }
+    // 过夜实验: a routine with an end time starts 连续跑, its run being round one.
+    if (r.kind !== 'remind' && r.loopUntil) return { routine: rview(routines.get(r.id)), runId: caps.startLoopRoutine(r, mates.get(mateId)) }
     if (r.kind === 'remind') {
       routines.fire(r.id)
       const at = routines.get(r.id).fired[0].at
@@ -685,7 +726,6 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     const run = store.create({ mateId, trigger: 'routine', routineId: r.id, routineTitle: r.title, input: r.input })
     // 知识库体检: code finds orphans, broken links and pages missing from the index first; the model does the rest.
     if (r.lint === 'wiki') { try { store.update(run.id, { prompt: routinePrompt(r, null, '') + '\n\n程序先查到的：\n' + lintFindings(scanWiki(mates.get(mateId).dir)) }) } catch (e) { log(`lint ${r.id}: ${e && e.message}`) } }
-    if (r.prep) { try { const extra = benches.routineFacts(r, mates.get(mateId)); if (extra) store.update(run.id, { promptExtra: extra }) } catch (e) { log(`prep ${r.id}: ${e && e.message}`) } }
     routines.ran(r.id, { taskId: run.id })
     emit('queued', run)
     engine.pump()
@@ -775,7 +815,7 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
    * any, is queued behind the intro as a line handed over by MyWork (run.source 'mywork', shown 「MyWork 转交」).
    */
   function handOver(b) {
-    const mate = createMate(b.template ? { template: b.template } : { description: b.description, name: b.name, title: b.title, group: b.group })
+    const mate = createMate({ description: b.description, name: b.name, title: b.title, group: b.group, avatar: b.avatar, spec: b.spec, rules: b.rules, files: b.files })
     const first = String(b.first || '').trim()
     if (first) {
       const run = store.create({ mateId: mate.id, trigger: 'user', input: first, source: 'mywork' })
@@ -932,22 +972,81 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     return { ...base, ready: true, needs, changes: changes.slice(0, room), hidden, did, quiet, updatedAt: now.toISOString() }
   }
 
-  // ── templates, 上岗, 它会主动做的 (EDITIONS.md 3, 9.5; PROACTIVE.md 12) ──
+  // ── teammates MyWork generates, 上岗, 它会主动做的 (EDITIONS.md 3, 9.5; PROACTIVE.md 12; design/v2/AI-WORKERS.md) ──
   const cardId = (p) => p + '-' + Date.now().toString(36) + randomBytes(3).toString('hex')
   const dayStr = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') }
-  const templateView = (tp) => ({ id: tp.id, name: tp.name, title: tp.title || '', group: tp.group || '', avatar: tp.avatar || null, pitch: tp.pitch || '' })
-  const templateOf = (m) => (m && m.template ? templates.get(m.template) || null : null)
-  /** A template's seed files into a new teammate's folder, folders included (never over a file that is already there). */
-  function seedFolder(tp, dir, sub = '') {
-    const from = join(tp.dir, 'seed', sub)
+  const playbookView = (pb) => ({ id: pb.id, name: pb.name, pitch: pb.pitch || '', example: pb.example || '', source: pb.source || '' })
+  const clean = (v, n) => String(v === undefined || v === null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, n)
+  /** A playbook's seed files into a new teammate's folder, folders included (never over a file that is already there). */
+  function seedFolder(pb, dir, sub = '') {
+    const from = join(pb.dir, 'seed', sub)
     let names = []
     try { names = readdirSync(from) } catch { return }
     for (const n of names) {
       const to = join(dir, sub, n)
-      try { if (statSync(join(from, n)).isDirectory()) { mkdirSync(to, { recursive: true }); seedFolder(tp, dir, join(sub, n)); continue } } catch { continue }
+      try { if (statSync(join(from, n)).isDirectory()) { mkdirSync(to, { recursive: true }); seedFolder(pb, dir, join(sub, n)); continue } } catch { continue }
       if (existsSync(to)) continue
       try { writeFileSync(to, readFileSync(join(from, n), 'utf8').replace(/\{date\}/g, dayStr())) } catch (e) { log(`seed ${n}: ${e && e.message}`) }
     }
+  }
+  /**
+   * What MyWork generated (mywork_mate_create) as the teammate's spec: the playbook it is based on, the drop folder, the
+   * files it keeps, the first question (`ask`, or the playbook's; `false` for none) and what it offers to do unasked
+   * (`offers`: a playbook offer's id, or { label, note?, on?, rule?, routine?: a sentence with its time, until?: HH:MM }).
+   */
+  function specFrom(a, pb) {
+    const ask = a.ask === false || a.ask === null ? null : a.ask && typeof a.ask === 'object' ? a.ask : pb ? pb.ask : null
+    const question = ask ? clean(ask.question, 120) : ''
+    const fromPb = (pb && pb.offers) || []
+    const given = Array.isArray(a.offers) ? a.offers : fromPb
+    const offers = []
+    for (const [i, x] of given.slice(0, 8).entries()) {
+      const o = typeof x === 'string' ? fromPb.find((y) => y.id === x) : x
+      if (!o || typeof o !== 'object' || !clean(o.label, 60)) continue
+      const routine = o.routine && typeof o.routine === 'object' ? { title: clean(o.routine.title || o.label, 60), input: String(o.routine.input || '').trim().slice(0, 2000), schedule: o.routine.schedule, until: clean(o.routine.until, 5), runNow: !!o.routine.runNow }
+        : typeof o.routine === 'string' && o.routine.trim() ? { sentence: o.routine.trim().slice(0, 2000), title: clean(o.label, 60), until: clean(o.until, 5) } : null
+      const item = { id: clean(o.id, 24) || 'o' + (i + 1), label: clean(o.label, 60), note: clean(o.note, 200), on: o.on !== false, ...(o.rule ? { rule: clean(o.rule, 300) } : {}), ...(routine ? { routine } : {}) }
+      if (item.rule || item.routine) offers.push(item)
+    }
+    const pins = (Array.isArray(a.pins) ? a.pins : (pb && pb.pins) || []).map((x) => clean(x, 120)).filter((x) => x && !x.includes('..') && !x.startsWith('/')).slice(0, 8)
+    return {
+      basedOn: pb ? pb.id : '', source: pb ? clean(pb.source, 400) : '',
+      dropDir: clean(a.dropDir, 40).replace(/[\\/]+$/, '') || (pb && pb.dropDir) || '', dropSay: (pb && pb.dropSay) || '',
+      pins,
+      onboard: question ? { title: '开工 · ' + (clean(a.name, 12) || (pb && pb.name) || '新同事'), question, hint: clean(ask.hint, 300), placeholder: clean(ask.placeholder, 200), prompt: clean(a.onboardPrompt, 2000) || (pb && pb.onboardPrompt) || '' } : null,
+      subscribe: offers, quiet: (pb && pb.quiet) || '',
+    }
+  }
+  /** MyWork's rules for this person go under their own heading in AGENTS.md; the files it wrote go in as they are. */
+  function writeGenerated(m, b) {
+    const rules = String(b.rules || '').trim()
+    if (rules) {
+      const file = join(m.dir, MEMORY_FILE)
+      const before = existsSync(file) ? readFileSync(file, 'utf8') : `# ${m.name || '同事'}的规矩\n\n`
+      writeFileSync(file, before.replace(/\n*$/, '\n\n') + '## 这位用户的要求（MyWork 建你时写的）\n\n' + rules + '\n')
+    }
+    for (const f of (Array.isArray(b.files) ? b.files : []).slice(0, 20)) {
+      const rel = String((f && f.path) || '').trim()
+      const full = resolve(m.dir, rel)
+      const inside = relative(resolve(m.dir), full)
+      if (!rel || !inside || inside.startsWith('..') || isAbsolute(inside)) continue
+      try { mkdirSync(dirname(full), { recursive: true }); writeFileSync(full, String((f && f.content) || '')) } catch (e) { log(`generated ${rel}: ${e && e.message}`) }
+    }
+  }
+  /**
+   * The greeting of a teammate MyWork generated: who it is and whose workflow; then the card that follows — its first
+   * question, or (none needed) what it offers to do. It sets up no routine itself: those are the user's ticks.
+   */
+  function introWithCard(m, pb) {
+    const g = m.spec || {}
+    const next = g.onboard ? `最后一句请用户在下面的卡片里回答：「${g.onboard.question}」。`
+      : (g.subscribe || []).length ? '最后一句说下面列了你会主动做的事，请用户勾选要的那些。' : '最后一句说用户现在就可以把第一件事交给你。'
+    return [
+      '（这句话是 MyWork 在你刚被创建时替用户发的，用户看不到它，只看得到你的回复。）',
+      `你是 MyWork 按用户的需要配的同事「${m.name || ''}」${pb ? '，照这些从业者的做法干活：' + (g.source || pb.source || '') : ''}。`,
+      '用两三句话向用户打招呼：你负责什么、照谁的做法、用户做什么、你做什么。',
+      next + '不要建例行（例行由用户在卡片里勾选），不要调用 mywork_ask，不要交付文件，不要改 AGENTS.md。',
+    ].join('\n')
   }
   /** The card a run carries (kind, and id when given), or a 404. */
   function cardOf(runId, entryId, kind) {
@@ -957,19 +1056,18 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     if (!e) throw notFound('没有这张卡。')
     return { run, e }
   }
-  /** After a template teammate's intro turn: the onboarding card (上岗卡) under its greeting, once. */
+  /** After the intro of a teammate with a first question: the onboarding card (上岗卡) under its greeting, once. */
   function onboardAfterIntro(mateId) {
     const m = mates.get(mateId)
-    const tp = templateOf(m)
-    if (!tp || !tp.onboard) return
-    const intro = store.forMate(m.id).find((r) => r.trigger === 'system' && r.template)
+    const o = m && m.spec && m.spec.onboard
+    if (!o) return
+    const intro = store.forMate(m.id).find((r) => r.trigger === 'system' && (r.carded || r.template))
     if (!intro || intro.status !== 'done' || (intro.activity || []).some((a) => a && a.kind === 'onboard')) return
-    const o = tp.onboard
-    store.activity(intro.id, { kind: 'onboard', id: cardId('ob'), template: tp.id, title: o.title || '开工 · ' + tp.name, question: o.question || '', hint: o.hint || '', placeholder: o.placeholder || '', done: false })
+    store.activity(intro.id, { kind: 'onboard', id: cardId('ob'), title: o.title || '开工 · ' + (m.name || ''), question: o.question || '', hint: o.hint || '', placeholder: o.placeholder || '', done: false })
     emit('mate', null, { mateId: m.id })
   }
-  /** Where files handed over go: the template's dropDir (知识库: 原始资料/), else 材料/. */
-  const dropDirOf = (m) => { const tp = templateOf(m); return (tp && tp.dropDir) || MATERIAL_DIR }
+  /** Where files handed over go: its spec's drop folder (a 知识库's 原始资料/), else 材料/. */
+  const dropDirOf = (m) => (m && m.spec && m.spec.dropDir) || MATERIAL_DIR
   /** A new name in the drop folder for a file handed over (never over an existing one). */
   function materialPath(m, name) {
     const dir = dropDirOf(m)
@@ -999,7 +1097,7 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     if (b.path) appendFileSync(full, data); else writeFileSync(full, data)
     return { path: rel, size: before + data.length, dir: dropDirOf(m) }
   }
-  /** The onboarding card's 「交给它」: what you wrote and the files become your line; the template's prompt follows it unseen. */
+  /** The onboarding card's 「交给它」: what you wrote and the files become your line; its opening instructions follow unseen. */
   function onboard(b) {
     const m = mates.get(String((b && b.id) || ''))
     if (!m) throw notFound('同事不存在。')
@@ -1011,24 +1109,28 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     store.update(introRun.id, () => { e.done = true; e.doneAt = new Date().toISOString(); e.files = files; e.note = clip(text, 120) })
     const shown = files.map((f) => f.split('/').pop())
     const visible = [text, shown.length ? `第一批资料（在 ${dropDirOf(m)}/）：${shown.join('、')}` : ''].filter(Boolean).join('\n')
-    const tp = templateOf(m)
+    const o = (m.spec && m.spec.onboard) || {}
+    const prompt = o.prompt || '（以下是 MyWork 替用户附上的，用户看不到。）这是你开工的第一件事：照 AGENTS.md 把用户的回答落到你的文件里（要求写进 AGENTS.md，配置写进对应的文件），用户给了资料就先收好；然后用三五句话告诉用户你接下来怎么做、需要用户再给什么。'
     const run = store.create({ mateId: m.id, trigger: 'user', input: visible })
-    store.update(run.id, { onboardRun: true, ...(tp && tp.onboard && tp.onboard.prompt ? { promptExtra: '\n' + tp.onboard.prompt } : {}) })
+    store.update(run.id, { onboardRun: true, promptExtra: '\n' + prompt })
     emit('mate', null, { mateId: m.id })
     emit('queued', store.get(run.id))
     engine.pump()
     return { runId: run.id }
   }
-  /** After the run the onboarding card started: 「它会主动做的」, once (templates whose subscribeAfter is 'onboard'). */
+  /**
+   * 「它会主动做的」, once, when MyWork gave it things to offer: after the run its onboarding card started, or — made
+   * without a first question (you had said it all) — right under its greeting.
+   */
   function subscribeAfterOnboard(mateId) {
     const m = mates.get(mateId)
-    const tp = templateOf(m)
-    if (!tp || tp.subscribeAfter !== 'onboard' || !Array.isArray(tp.subscribe) || !tp.subscribe.length) return
+    const items = (m && m.spec && m.spec.subscribe) || []
+    if (!items.length) return
     const runs = store.forMate(m.id)
     if (runs.some((r) => (r.activity || []).some((a) => a && a.kind === 'subscribe'))) return
-    const run = runs.find((r) => r.onboardRun && r.status === 'done')
+    const run = m.spec.onboard ? runs.find((r) => r.onboardRun && r.status === 'done') : runs.find((r) => r.trigger === 'system' && r.title === '自我介绍' && r.status === 'done')
     if (!run) return
-    store.activity(run.id, { kind: 'subscribe', id: cardId('sb'), title: '它会主动做的 · ' + (m.name || tp.name), items: tp.subscribe.map((x) => ({ id: String(x.id), label: String(x.label || ''), note: String(x.note || ''), on: x.on !== false })), quiet: tp.quiet || '', done: false })
+    store.activity(run.id, { kind: 'subscribe', id: cardId('sb'), title: '它会主动做的 · ' + (m.name || ''), items: items.map((x) => ({ id: String(x.id), label: String(x.label || ''), note: String(x.note || ''), on: x.on !== false })), quiet: m.spec.quiet || '', done: false })
     emit('mate', null, { mateId: m.id })
   }
   /** A rule line in the teammate's AGENTS.md (- YYYY-MM-DD 规矩); the same file mywork_remember appends to. */
@@ -1046,53 +1148,55 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
   function subscribe(b) {
     const m = mates.get(String((b && b.id) || ''))
     if (!m) throw notFound('同事不存在。')
-    const tp = templateOf(m)
-    if (!tp) throw bad('这位同事不是用模板建的。')
+    const items = (m.spec && m.spec.subscribe) || []
+    if (!items.length) throw bad('这位同事没有要主动做的事。')
     const { run, e } = cardOf(b.runId, b.entryId, 'subscribe')
     if (e.done) throw bad('已经交给它了。')
     const on = (id) => (b.items && typeof b.items === 'object' && id in b.items ? !!b.items[id] : !!((e.items || []).find((x) => x.id === id) || {}).on)
     const made = []
     const now = []
-    for (const x of tp.subscribe || []) {
+    for (const x of items) {
       if (!on(x.id)) continue
-      if (x.routine && x.routine.schedule && !routines.forMate(m.id).some((r) => r.title === x.routine.title)) {
-        const r = routines.create({ mateId: m.id, kind: 'task', title: x.routine.title, input: x.routine.input, schedule: x.routine.schedule, lint: x.routine.lint, prep: x.routine.prep, loopUntil: x.routine.loopUntil })
-        store.activity(run.id, { kind: 'routine', action: 'created', routineId: r.id, title: r.title, scheduleLabel: describeSchedule(r.schedule) })
-        store.activity(run.id, { kind: 'did', id: didId(), act: 'routine', routineId: r.id, title: r.title, undoable: true })
-        emit('routine', null, { mateId: m.id, routine: rview(r) })
-        made.push(r.id)
-        if (x.routine.runNow) now.push(r.id)
+      const rt = x.routine
+      if (rt && !routines.forMate(m.id).some((r) => r.title === rt.title)) {
+        // A playbook's routine has its schedule; one MyWork wrote is a sentence with its time in it.
+        const parsed = rt.schedule ? null : parseSchedule(rt.sentence || rt.input || '')
+        const schedule = rt.schedule || (parsed && parsed.schedule)
+        if (schedule) {
+          const r = routines.create({ mateId: m.id, kind: 'task', title: rt.title, input: rt.schedule ? rt.input : parsed.text, schedule, loopUntil: rt.until || undefined })
+          store.activity(run.id, { kind: 'routine', action: 'created', routineId: r.id, title: r.title, scheduleLabel: describeSchedule(r.schedule) })
+          store.activity(run.id, { kind: 'did', id: didId(), act: 'routine', routineId: r.id, title: r.title, undoable: true })
+          emit('routine', null, { mateId: m.id, routine: rview(r) })
+          made.push(r.id)
+          if (rt.runNow) now.push(r.id)
+        } else log(`subscribe ${m.id}: no time in 「${rt.sentence || rt.input}」`)
       }
       if (x.rule) { rememberLine(m, String(x.rule)); store.activity(run.id, { kind: 'did', id: didId(), act: 'rule', line: String(x.rule), undoable: true }) }
     }
     const at = new Date().toISOString()
     store.update(run.id, () => { e.done = true; e.doneAt = at; e.items = (e.items || []).map((x) => ({ ...x, on: on(x.id) })) })
     emit('mate', null, { mateId: m.id })
-    // 「先过一遍今天的」: a routine the template runs once at once (每日论文's first list), after the card is closed.
-    for (const id of now) { try { runRoutine(id, { manual: true }) } catch (x) { log(`run now ${id}: ${x && x.message}`) } }
+    // 「先过一遍今天的」: an item that runs its routine once at once, after the card is closed.
+    for (const id of now) { try { runRoutine(id) } catch (x) { log(`run now ${id}: ${x && x.message}`) } }
     return { routines: made }
   }
-
-  // ── the 知识库 (Karpathy, "LLM Wiki": 原始资料/ → wiki/ → AGENTS.md) ──
-  const CATEGORY_ORDER = ['来源', '概念', '人和机构', '综述与对比']
   /**
-   * GET /mates/wiki: the wiki for the 知识库 tab — pages by category (most linked first), the latest log entries,
-   * health by code (孤立 / 断链 / 没进索引), how many pages changed since you last opened them.
+   * 「+ 新同事」 goes to MyWork (POST /mates/ask-mywork): your sentence becomes a line in MyWork's thread, and MyWork
+   * generates the teammate (mywork_mate_create), from the closest playbook. The name, type and look you picked ride
+   * along on the run and are used for the teammate it creates.
    */
-  function wikiView(id) {
-    const m = mates.get(String(id || ''))
-    if (!m) throw notFound('同事不存在。')
-    const scan = scanWiki(m.dir)
-    const seenMap = m.wikiSeen || {}
-    const pages = scan.pages.map((p) => ({ path: p.path, title: p.title, category: p.category, inbound: p.inbound.length, links: p.links.length, mtime: p.mtime, words: p.words, unread: !(ts(seenMap[p.path]) >= ts(p.mtime)) }))
-    const groups = new Map()
-    for (const p of pages) { if (p.path === 'wiki/index.md' || p.path === 'wiki/log.md') continue; const k = p.category || '其他'; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(p) }
-    const rank = (k) => { const i = CATEGORY_ORDER.indexOf(k); return i < 0 ? CATEGORY_ORDER.length : i }
-    const categories = [...groups.entries()].sort((a, b) => rank(a[0]) - rank(b[0]) || a[0].localeCompare(b[0], 'zh'))
-      .map(([name, list]) => ({ name, pages: list.sort((a, b) => b.inbound - a.inbound || a.title.localeCompare(b.title, 'zh')) }))
-    const content = pages.filter((p) => p.path !== 'wiki/index.md' && p.path !== 'wiki/log.md')
-    return { pages: content.length, sources: scan.sources, categories, log: scan.log.slice(0, 8), health: { orphans: scan.orphans, broken: scan.broken.slice(0, 50), unindexed: scan.unindexed }, unread: content.filter((p) => p.unread).length, dropDir: dropDirOf(m) }
+  function askMyWork(b) {
+    const d = String((b && b.description) || '').trim()
+    if (!d) throw bad('写一句它负责什么。')
+    const hints = [b.name ? '名字就叫「' + clean(b.name, 12) + '」' : '', b.group ? '放在「' + clean(b.group, 12) + '」这一类' : ''].filter(Boolean).join('，')
+    const run = store.create({ mateId: DEFAULT_MATE_ID, trigger: 'user', input: `帮我配一位同事：${d}${hints ? '（' + hints + '）' : ''}` })
+    store.update(run.id, { pendingMate: { name: clean(b.name, 12), group: clean(b.group, 12), avatar: b.avatar && typeof b.avatar === 'object' ? b.avatar : null } })
+    emit('queued', store.get(run.id))
+    engine.pump()
+    return { runId: run.id, mateId: DEFAULT_MATE_ID }
   }
+
+  // ── wiki links (any teammate with a wiki/ folder; Karpathy, "LLM Wiki") ──
   /** GET /mates/wiki/page: a link target resolved to its page (from the page it is on), and what links back to that page. */
   function wikiPage(id, path, name, from) {
     const m = mates.get(String(id || ''))
@@ -1109,19 +1213,6 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     const titleOf2 = (p0) => { const x = scan.pages.find((y) => y.path === p0); return x ? x.title : p0 }
     return { path: page.path, title: page.title, category: page.category, backlinks: page.inbound.filter((x) => x !== 'wiki/index.md').map((x) => ({ path: x, title: titleOf2(x) })), links: page.links.length }
   }
-  /** POST /mates/wiki/seen: you opened a page (the tab counts pages changed since). */
-  function wikiSeen(id, path) {
-    const m = mates.get(String(id || ''))
-    if (!m) throw notFound('同事不存在。')
-    const p = String(path || '')
-    if (!/^wiki\/.+\.md$/.test(p)) throw bad('不是知识库里的页。')
-    const next = { ...(m.wikiSeen || {}), [p]: new Date().toISOString() }
-    const keys = Object.keys(next)
-    if (keys.length > 3000) for (const k of keys.slice(0, keys.length - 3000)) delete next[k]
-    mates.update(m.id, { wikiSeen: next })
-    return { seen: p }
-  }
-
   // ── tools ──
   const callerOf = (exec) => engine.caller(exec && exec.agent && exec.agent.session ? String(exec.agent.session.id) : '')
   const mateOnly = (exec, tool) => { const c = callerOf(exec); if (!c) throw new Error(`${tool} 只在 MyWork 同事的会话里可用。`); return c }
@@ -1163,10 +1254,10 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     {
       name: 'mywork_routine_create',
       description: '给自己安排一件例行的事或一个提醒（只在 MyWork 同事的会话里可用；例行归你，结果回到你和用户的对话里；例行运行时也可以用）。「每天 9 点…」「每周一 8:30…」「工作日 18 点…」「每 2 小时…」是例行（到点你会收到一条「这是例行任务…」的消息，照做后回话，第一段先说变化）；「提醒我喝水 / 开会 / 交周报」这类只有用户自己能做的事是提醒（到点在对话里出提醒卡、发通知，你不会被叫醒）；「提醒我写周报 / 整理 / 汇总…」这类你自己能做的事不是提醒，到点你做完交给用户（周报、日报会拿到所有同事这段时间的工作记录当素材）。时间用自然语言写在 input 里，分类由解析器决定，返回值里的 kind 告诉你结果。',
-      parameters: { input: { type: 'string', required: true, description: '含时间的一句话，例如"每天 9 点给我一份 Node 生态简报"或"明天 8 点提醒我交周报"' }, title: { type: 'string', description: '可选标题' } },
+      parameters: { input: { type: 'string', required: true, description: '含时间的一句话，例如"每天 9 点给我一份 Node 生态简报"或"明天 8 点提醒我交周报"' }, title: { type: 'string', description: '可选标题' }, until: { type: 'string', description: '可选，HH:MM：到点开始后连续干到这个时间（程序一轮接一轮地叫你），例如每晚 23 点开跑、until 07:00' } },
       execute(args, exec) {
         const c = mateOnly(exec, 'mywork_routine_create')
-        const r = createRoutine({ mateId: c.mate.id, input: args.input, title: args.title })
+        const r = createRoutine({ mateId: c.mate.id, input: args.input, title: args.title, until: args.until })
         if (c.run) {
           store.activity(c.run.id, { kind: 'routine', action: 'created', routineId: r.id, title: r.title, scheduleLabel: r.scheduleLabel })
           store.activity(c.run.id, { kind: 'did', id: didId(), act: 'routine', routineId: r.id, title: r.title, undoable: true })
@@ -1248,34 +1339,62 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
       },
     },
     {
+      name: 'mywork_playbooks',
+      description: '看从业者的做法（只有 MyWork 能用）：给 AI 研究和工程做事的几种成熟做法（每天过 arXiv、知识库、夜里跑实验、代码研究、写论文核引用、做评测……），每种照一位公开写过自己流程的从业者。不给 id 列出全部；给 id 读一种的全文：职责、开工要问什么、它会主动做的、会拷进它文件夹的文件、它的 AGENTS.md。给用户配同事前先看。',
+      parameters: { id: { type: 'string', description: '可选，做法的 id' } },
+      execute(args, exec) {
+        myworkOnly(exec, 'mywork_playbooks')
+        const id = String(args.id || '').trim()
+        if (!id) return { items: [...playbooks.values()].map((pb) => ({ id: pb.id, name: pb.name, pitch: pb.pitch || '', fits: pb.fits || '', source: pb.source || '' })) }
+        const pb = playbooks.get(id)
+        if (!pb) throw new Error('没有这个做法：' + id + '。有：' + [...playbooks.keys()].join(' / '))
+        return { id: pb.id, text: playbookText(pb) }
+      },
+      render: (_a, v) => [{ type: 'text', text: v.text || v.items.map((x) => `- ${x.id}「${x.name}」：${x.pitch}（适合：${x.fits}；照：${x.source.split('：')[0]}）`).join('\n') }],
+    },
+    {
       name: 'mywork_mate_create',
-      description: '给一件长期、反复的事新建一位专门的同事（只有 MyWork 能用）。只在用户同意后调用：用户选了「新建同事」，或直接要你新建。它会出现在用户左边的同事列表里，先自我介绍；职责里带时间的，它会自己安排成例行。之后这件事由它做，你不再做。',
+      description: '给用户配一位专门的同事（只有 MyWork 能用）。只在用户同意后调用：用户选了「新建同事」、说了「帮我配一位同事：…」，或直接要你新建。先用 mywork_playbooks 看有没有对口的做法：有就传 basedOn，并按用户说过的话改写职责、规矩（rules）、开工问题（ask）和它会主动做的（offers）——用户已经说清楚的就别再问；没有就照用户的话自己设计。它会出现在左边的同事列表里，先打招呼，有开工问题的接着出一张开工卡。之后这件事由它做，你不再做。',
       parameters: {
-        description: { type: 'string', required: true, description: '它的职责，一两句话，像用户自己写的：做什么、给谁看、什么格式；定时的事把时间写进去，例如「每天早上 8 点整理 AI 行业的新闻，挑 5 条最值得看的，每条一句话说为什么」' },
-        name: { type: 'string', description: '名字，2 到 4 个汉字，贴合职责；用户说过就用用户的，不给就让它自己起' },
+        description: { type: 'string', required: true, description: '它的职责，几句话，用用户的话写：做什么、照谁的做法、给谁看、什么格式；定时的事把时间写进去' },
+        name: { type: 'string', description: '名字，2 到 4 个汉字，贴合职责；用户说过就用用户的' },
         title: { type: 'string', description: '可选，一行头衔' },
         group: { type: 'string', description: '可选，类型（左边列表的分组），≤12 字；有合适的已有类型就用已有的' },
-        first: { type: 'string', description: '可选，要它马上先做的第一件事，一句话，例如「先出一份今天的」；不给就等到点再做' },
-        template: { type: 'string', description: '可选，从模板建（有对口的模板就用）：papers 每日论文 / wiki 知识库 / experiments 实验 / code-research 代码研究 / paper 论文。用模板时 description 写一句用户的原话即可，它会先请用户填开工卡，first 不用给。' },
+        basedOn: { type: 'string', description: '可选，照哪个做法建（mywork_playbooks 里的 id）：它的文件（AGENTS.md、program.md、wiki/ 等）会拷进新同事的文件夹' },
+        rules: { type: 'string', description: '可选，这位用户特有的要求，几行，写进它的 AGENTS.md（例如订哪几个 arXiv 分类、代码在哪台机器、指标是什么）' },
+        files: { type: 'array', items: { type: 'object' }, description: '可选，你替它写好的文件：[{ path, content }]，相对它的文件夹' },
+        pins: { type: 'array', items: { type: 'string' }, description: '可选，它常看的文件（相对路径，结尾带 / 表示那个文件夹里最新的一份），用户在「电脑」里第一眼看到；不给就用做法里的' },
+        ask: { type: 'object', description: '可选，开工卡上要问用户的一个问题 { question, hint, placeholder }；不给就用做法里的；用户已经说清楚了就传 false，不出开工卡' },
+        offers: { type: 'array', items: {}, description: '可选，开工后它会主动做的事，用户勾了才算：做法里的 id，或 { label, note, on, rule（一条规矩）, routine（带时间的一句话，如「每个工作日 12:30 …」）, until（连续跑到几点，HH:MM）}；不给就用做法里的' },
+        dropDir: { type: 'string', description: '可选，用户交给它的文件放进哪个文件夹（默认 材料）' },
+        first: { type: 'string', description: '可选，没有开工卡时，要它马上先做的第一件事，一句话' },
       },
       execute(args, exec) {
         const c = myworkOnly(exec, 'mywork_mate_create')
-        if (args.template && !templates.has(String(args.template))) throw new Error('没有这个模板：' + args.template + '。可用的：' + [...templates.keys()].join(' / '))
-        const { mate, first } = handOver({ description: args.description, name: args.name, title: args.title, group: args.group, first: args.template ? '' : args.first, template: args.template })
+        const basedOn = String(args.basedOn || '').trim()
+        const pb = basedOn ? playbooks.get(basedOn) : null
+        if (basedOn && !pb) throw new Error('没有这个做法：' + basedOn + '。有：' + [...playbooks.keys()].join(' / '))
+        // What you picked on 「+ 新同事」 (name, type, look) rides on the run that asked MyWork.
+        const p = (c.run && c.run.pendingMate) || {}
+        const name = clean(p.name || args.name || (pb && pb.name) || '', 12)
+        const generated = pb || args.ask || args.offers || args.rules || args.files || args.pins
+        const spec = generated ? specFrom({ ...args, name }, pb) : null
+        // A first job only when no card comes first and none of what it offers runs at once (先过一遍今天的).
+        const first = spec && (spec.onboard || spec.subscribe.some((x) => x.routine && x.routine.runNow)) ? '' : args.first
+        const { mate } = handOver({ description: args.description, name, title: args.title !== undefined ? args.title : pb ? pb.title : '', group: p.group || args.group, avatar: p.avatar, spec, rules: args.rules, files: args.files, first })
         if (c.run) store.activity(c.run.id, { kind: 'mate', action: 'created', mateId: mate.id, name: mate.named ? mate.name : '' })
-        return { created: true, id: mate.id, name: mate.named ? mate.name : '', group: mate.group, first, ...(args.template ? { template: String(args.template) } : {}) }
+        return { created: true, id: mate.id, name: mate.named ? mate.name : '', group: mate.group, first: first || '', ...(pb ? { basedOn: pb.id } : {}), ...(spec && spec.onboard ? { asks: spec.onboard.question } : {}), ...(spec && spec.subscribe.length ? { offers: spec.subscribe.map((x) => x.label) } : {}) }
       },
-      render: (_a, v) => [{ type: 'text', text: `已新建同事${v.name ? '「' + v.name + '」' : '（它会先给自己起名）'}，它正在自我介绍${v.first ? '，接着马上做「' + v.first + '」' : ''}${v.template ? '，然后会请用户填一张开工卡' : ''}。用一两句话告诉用户：它负责什么、在左边的同事列表里，以后这件事直接找它。不要再自己做这件事。` }],
+      render: (_a, v) => [{ type: 'text', text: `已新建同事${v.name ? '「' + v.name + '」' : '（它会先给自己起名）'}，它正在自我介绍${v.first ? '，接着马上做「' + v.first + '」' : ''}${v.asks ? '，然后会在开工卡上问用户「' + v.asks + '」' : ''}${v.offers ? `；${v.asks ? '用户答完后' : '接着'}它会列出它会主动做的事（${v.offers.join('、')}），用户勾了才会安排，现在还没安排` : ''}。用一两句话告诉用户：它负责什么${v.basedOn ? '、照谁的做法' : ''}、在左边的同事列表里、它接下来会先问或先列什么，以后这件事直接找它。不要说已经替它安排了例行，不要再自己做这件事。` }],
     },
   ]
-  // The bench tools (mywork_loop for 实验, mywork_cite_check for 论文): only the teammate whose template has that bench.
-  for (const bt of benches.tools) {
+  // What code does for teammates doing AI work (capabilities.js): any teammate can call these.
+  for (const ct of caps.tools) {
     tools.push({
-      name: bt.name, description: bt.description, parameters: bt.parameters, render: bt.render,
+      name: ct.name, description: ct.description, parameters: ct.parameters, render: ct.render,
       execute(args, exec) {
-        const c = mateOnly(exec, bt.name)
-        if (benches.benchOf(c.mate) !== bt.bench) throw new Error(`${bt.name} 只给有这个工作台的同事用。`)
-        return bt.execute(args || {}, mates.get(c.mate.id) || c.mate)
+        const c = mateOnly(exec, ct.name)
+        return ct.execute(args || {}, mates.get(c.mate.id) || c.mate)
       },
     })
   }
@@ -1299,12 +1418,12 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
         return { mate: mateViewById(idOf(b)), runId: r.runId, mode: r.mode }
       },
     },
-    '/mates/stop': { POST: (_q, b) => { const m = mates.get(idOf(b)); if (!m) throw notFound('同事不存在。'); benches.finishLoop(m, '你停下了'); engine.stop(idOf(b)); return { mate: mateViewById(idOf(b)) } } },
+    '/mates/stop': { POST: (_q, b) => { const m = mates.get(idOf(b)); if (!m) throw notFound('同事不存在。'); caps.finishLoop(m, '你停下了'); engine.stop(idOf(b)); return { mate: mateViewById(idOf(b)) } } },
     '/answer': { POST: (_q, b) => ({ run: runView(engine.answer(idOf(b), b.askId === undefined || b.askId === null ? '' : String(b.askId), b.answer)) }) },
     '/routines': { GET: (q) => { const mate = String(q.get('mate') || '').trim(); const list = mate ? routines.forMate(mate) : routines.items; return { items: list.slice().reverse().map(rview), pending: routines.pending() } } },
     '/routines/create': { POST: (_q, b) => ({ routine: createRoutine({ mateId: b.mateId || DEFAULT_MATE_ID, input: b.input, schedule: b.schedule, kind: b.kind, title: b.title }) }) },
     '/routines/update': { POST: (_q, b) => ({ routine: updateRoutine(b) }) },
-    '/routines/run': { POST: (_q, b) => runRoutine(idOf(b), { manual: true }) },
+    '/routines/run': { POST: (_q, b) => runRoutine(idOf(b)) },
     '/routines/enable': { POST: (_q, b) => { const r = routines.setEnabled(idOf(b), b.enabled !== false); if (!r) throw notFound('routine not found'); return { routine: rview(r) } } },
     '/routines/remove': { POST: (_q, b) => ({ removed: removeRoutine(idOf(b)) }) },
     '/routines/ack': { POST: (_q, b) => ({ routine: ackRoutine(idOf(b), b.at), pending: routines.pending() }) },
@@ -1325,15 +1444,13 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     '/mates/rules/remove': { POST: (_q, b) => { if (!editRule(idOf(b), b.line, null)) throw notFound('没有这条规矩。'); return { removed: true } } },
     '/mates/rules/update': { POST: (_q, b) => { if (!editRule(idOf(b), b.line, b.text)) throw notFound('没有这条规矩。'); return { updated: true } } },
     '/today': { GET: () => todayCard() },
-    '/templates': { GET: () => ({ items: [...templates.values()].map(templateView) }) },
+    '/playbooks': { GET: () => ({ items: [...playbooks.values()].map(playbookView) }) },
+    '/mates/ask-mywork': { POST: (_q, b) => askMyWork(b) },
+    '/mates/review': { POST: (_q, b) => { const m = mates.get(idOf(b)); if (!m) throw notFound('同事不存在。'); return caps.review(m, b.path) } },
     '/mates/upload': { POST: (_q, b) => upload(b) },
     '/mates/onboard': { POST: (_q, b) => onboard(b) },
     '/mates/subscribe': { POST: (_q, b) => subscribe(b) },
-    '/mates/wiki': { GET: (q) => wikiView(q.get('id')) },
     '/mates/wiki/page': { GET: (q) => wikiPage(q.get('id'), q.get('path'), q.get('name'), q.get('from')) },
-    '/mates/wiki/seen': { POST: (_q, b) => wikiSeen(idOf(b), b.path) },
-    '/mates/wiki/search': { GET: (q) => { const m = mates.get(String(q.get('id') || '')); if (!m) throw notFound('同事不存在。'); return { items: searchWiki(m.dir, q.get('q')) } } },
-    ...benches.routes,
   }
   /** One request: { status, body }. `query` is URLSearchParams or a plain object. */
   async function handle(method, path, query, body) {
@@ -1350,8 +1467,8 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
 
   /** The scheduler tick: due routines run, questions nobody answered in 24 h resume on assumptions. */
   function tick() {
-    try { for (const r of routines.due()) if (!benches.isPreparing(r.id)) runRoutine(r.id) } catch (e) { log('scheduler: ' + (e && e.message)) }
-    try { for (const m of mates.items) if (m.loop && m.loop.active) benches.continueLoop(m.id) } catch (e) { log('loop tick: ' + (e && e.message)) }
+    try { for (const r of routines.due()) runRoutine(r.id) } catch (e) { log('scheduler: ' + (e && e.message)) }
+    try { for (const m of mates.items) if (m.loop && m.loop.active) caps.continueLoop(m.id) } catch (e) { log('loop tick: ' + (e && e.message)) }
     try { engine.expireAsks() } catch (e) { log('ask expiry: ' + (e && e.message)) }
   }
 
@@ -1368,7 +1485,7 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     on: (fn) => { listeners.add(fn); return () => listeners.delete(fn) },
   }
 
-  return { store, deliverables, routines, seen, mates, scenarios, engine, api, tools, routes, handle, tick, runView, mateView: mateViewById, listMates, thread, activity, files, search, workRecord, presetFor, createMate, updateMate, removeMate, createRoutine, updateRoutine, runRoutine, ackRoutine, dir, presetRoot, templates, onboard, subscribe, upload, todayCard, wikiView, wikiPage }
+  return { store, deliverables, routines, seen, mates, scenarios, engine, api, tools, routes, handle, tick, runView, mateView: mateViewById, listMates, thread, activity, files, search, workRecord, presetFor, createMate, updateMate, removeMate, createRoutine, updateRoutine, runRoutine, ackRoutine, dir, presetRoot, playbooks, onboard, subscribe, upload, askMyWork, todayCard, wikiPage, caps }
 }
 
 export function apply(ctx, config = {}) {

@@ -4,19 +4,18 @@
 
 ## 怎么做的
 
-- **分四路独立调查**，每路要求打开原始页面阅读，记下说话人、日期和网址：
+- **分五路独立调查**，每路要求打开原始页面阅读，记下说话人、日期和网址：
   1. 通用智能体和通用助手；
   2. 常驻的智能体和 AI 同事；
   3. 简报、监控和跟踪；
-  4. 对话之外的形式。
-
-  第五路「研究类产品」因模型额度用完中途失败，正在重跑，结果之后补进 [interaction-2026-10/forms/](interaction-2026-10/forms/)。
+  4. 对话之外的形式；
+  5. 研究类产品（学术、海外金融、国内、开源）。第一次因模型额度用完中途失败，重跑后补齐。
 - **同时用开发者自己 7 天的真实数据评估了我们现在的形式**，见 [interaction-2026-10/current-form.md](interaction-2026-10/current-form.md)。
 - **局限**：
   - 这一轮没有做任何网页搜索（内置浏览器开不了新标签页），来源偏向已知网址的官方文档、Hacker News、V2EX、GitHub issue 和厂商帮助中心。
   - Reddit、知乎、小红书、即刻、应用商店评论没读到。
   - 多数产品的运行界面没有亲眼看到，靠官方文字描述。
-- **原始记录**在 [interaction-2026-10/forms/](interaction-2026-10/forms/)，共 82 个产品条目和 35 种形式的描述。每条以所附网址的原文为准。
+- **原始记录**在 [interaction-2026-10/forms/](interaction-2026-10/forms/)，共 111 个产品条目和 44 种形式的描述。每条以所附网址的原文为准。研究类产品那一路做过网页搜索；知乎、Trustpilot、Reddit、OpenAI 帮助中心被验证页挡住，没有绕过，所以国内和金融产品的真实用户评价很少。
 
 ## 几种形式
 
@@ -70,6 +69,31 @@
 **国内大厂从 IM 里的助理变成独立的办公智能体应用，再往回接 IM。** 钉钉悟空并入千问办公；字节的豆包工作有独立 App、豆包 App、飞书内三个入口；腾讯 WorkBuddy 7 月月活 1115 万；企业微信向各类智能体开放 CLI 和 MCP。
 
 **券商和基金从禁用转向封装。** 3 月先禁用 OpenClaw，4–5 月转为把自家数据和方法封成技能，送进别人的智能体。9 月基金公司的口径从「实习生」改叫「新同事」，开始用任务成功率、人工介入率、单 token 成本来衡量。
+
+## 研究类产品
+
+覆盖了学术与通用研究（Gemini Notebook、Elicit、ChatGPT 和 Gemini 的 deep research、Perplexity、Undermind、Consensus、SciSpace）、海外金融（AlphaSense、Hebbia、Rogo、Fintool、Daloopa、Brightwave）、国内（秘塔、Kimi、豆包、进门、熵简、Wind、同花顺、东方财富妙想、Reportify）和开源（ARIS、ai-berkshire、gpt-researcher、local-deep-research、Khoj、Zotero 接智能体）共 29 个，原始记录在 [forms/5-research-products.md](interaction-2026-10/forms/5-research-products.md)。
+
+**工作单位在往「项目或研究空间」收拢。**
+- Elicit 2026-09-30 撤掉独立的表格工具，表格退成研究智能体会话里的产物，提醒换成能交回分析成品的 Routines（[帮助页](https://support.elicit.com/en/articles/17220397-where-did-find-papers-extract-data-and-chat-with-papers-go)）。
+- Undermind 的默认形态从一次性报告换成持久的 Projects。
+- Consensus 从搜索引擎变成工作区，每个引用对应原句，研究空白矩阵的格子能点开。
+- 进门 2026-07 上线研究模式：每个个股或赛道一个长期研究空间，加常态化监测，增量信息写回原底稿，明确针对「聊完即废」。
+
+**一次性报告最大的缺陷是接不上上次。**
+- HN 上有用户说，连续做 5 到 10 次深度研究，大部分篇幅浪费在引言和已经查过的内容上；只能自己另建知识库，把旧报告当新来源喂回去。
+- 只问一轮就跑半小时，问错了白白浪费一次额度；Kimi 帮助页写明中途停止也照扣额度。
+- 能改过程的很少：ChatGPT 和 Gemini 可以在开始前改计划，Perplexity 运行中可以追加问题，Elicit Report 是唯一读到的能事后回去改中间步骤再出新版本的。
+
+**出处做得最好的在格子和句子上。** Hebbia 的格子里写日期、状态、口径；Consensus 和 Kimi 点引用后高亮原文；Hebbia Max 宣称 Excel 模型每格都带引用。
+
+**金融侧转向常驻、事件触发的智能体，但几乎没有使用者的证据。** AlphaSense 预告常驻的 SuperAnalyst；Hebbia Max 能用邮件派活；Fintool 2026-04 被 Microsoft 收购。国内数据商 2026-03 起集中推出「小龙虾」形态的智能体（WindClaw、熵简 AlphaClaw、妙想 ClawBot），同时把数据和技能做成 MCP 卖给外部智能体。能读到的几乎全是厂商页和通稿；少数真实评价来自金融从业者论坛，认为这类工具适合快速上手一个领域，但产不出能交给客户的东西。
+
+**订阅式提醒**：只告诉「有新论文」价值低，用户原话是「新的、相关的，但不新颖」。Reportify 把定时研究做成首页可订阅的卡片，写明送达时间、一条样例消息和在用人数。
+
+**专业用户的倾向**：学术侧主张各工具只管一个阶段，检索记录、去重、纳入决策要留在任何一个 AI 界面之外；这和我们「状态落在用户自己的文件夹里」的做法一致。
+
+**计费**普遍转向统一额度池、按任务大小扣（Elicit 月度池、Kimi 一次深度研究约占月额度 5% 到 10%）。
 
 ## OpenClaw 在国内的退潮
 

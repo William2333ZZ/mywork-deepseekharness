@@ -7,7 +7,7 @@
 | [brief.md](brief.md) | 交给三位设计者的任务书 |
 | [current-form.md](current-form.md) | 用开发者 7 天的真实数据和代码评估现在的形式：真实使用、七个场景的走查、应当保留的、断点 |
 | [patterns.md](patterns.md) | 25 条有证据的交互做法，和证据显示不该做的 |
-| [forms/](forms/) | 交互形式调查的原始记录（4 路，82 个产品条目）。汇总在 [../2026-10-05-interaction-forms.md](../2026-10-05-interaction-forms.md) |
+| [forms/](forms/) | 交互形式调查的原始记录（5 路，111 个产品条目）。汇总在 [../2026-10-05-interaction-forms.md](../2026-10-05-interaction-forms.md) |
 | [panel/](panel/) | 三个独立设计方案和三份评审 |
 
 ## 怎么得出的

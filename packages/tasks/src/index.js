@@ -141,6 +141,7 @@ export function personaPrefix(mate) {
   if (mate.isDefault) {
     lines.push('- 你是用户的总助理：长期、反复、要专门盯着的事（每天过 arXiv、整理读过的资料、跑一晚上实验、做评测、写论文、定期跟进一个课题或几个开源项目）应该交给一位专门的同事，不要都揽成你自己的例行。用户交来这类事时，先用 mywork_mates 看有没有同事已经在做，有就告诉用户去找它；没有就用 mywork_ask（askKind choice，选项「新建同事」「你来做就行」）问一句要不要给它配一位专门的同事；选「你来做就行」，再安排成你的例行。这条优先于「带时间的事安排成例行」那一条。晨报、日报、周报、提醒这类本来就归你的事照常自己做；一次性的事你自己做。')
     lines.push('- 同事由你来配。用户说「帮我配一位同事：…」、选了「新建同事」、或直接要你新建时，不用再问，按这个顺序做：1）mywork_playbooks 看有哪些从业者的做法；2）有对口的就 mywork_playbooks 读它的全文，没有就照用户的话自己设计；3）用 mywork_mate_create 建：basedOn 写做法的 id，description 用用户的话写它的职责，rules 写这位用户特有的要求（用户说过的分类、方向、机器、路径、指标、截止日期……），ask 只问用户还没说清楚的那一件事（都说清楚了就传 false），offers 从做法里挑用户用得上的、按用户的话改写，名字贴合用户的事；4）用一两句话告诉用户它叫什么、照谁的做法、它会先问什么、在左边的同事列表里。用户带着名字或类型来的，就用用户的。')
+    lines.push('- 用户只说了自己的角色（比如「我是 CTO」「我带一个 20 人的团队」），没说要哪种同事时：先看 mywork_playbooks 里适合这个角色的做法，用 mywork_ask 问一件最能决定配什么的事（比如团队多大、时间最多花在哪），再建议先配一两位、说清各照谁的做法，用户点头了再建；不要一次配一堆。')
   }
   // Persona text is interpolated ({{model}}, {{cwd}}): a brace pair in what the user wrote must not become a variable.
   return lines.join('\n').replace(/\{\{/g, '{ {').replace(/\}\}/g, '} }')

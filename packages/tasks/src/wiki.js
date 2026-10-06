@@ -10,8 +10,11 @@
  * [[页面|显示的字]]), what links back, pages nothing links to (孤立), links to pages that do not exist (断链), pages the
  * index does not list (没进索引), the log's latest entries (`## [YYYY-MM-DD] 动作 | 标题`), plain search.
  *
- *   scanWiki(dir) → { pages: Page[], byKey, sources: n, orphans, broken, unindexed, log }
+ *   scanWiki(dir) → { pages: Page[], byKey, sources: n, orphans, broken, unindexed, log, revisit, actions }
  *   Page = { path, name, title, category, links: [{ target, path }], inbound: [path], mtime, size, words }
+ *
+ * Dates are facts too (an organisation's wiki, Karpathy's "Business/team" use): a page that says 「重审：YYYY-MM-DD」
+ * (a decision to look at again) and the open action items 「- [ ] 事（@人，截止 YYYY-MM-DD）」 anywhere in the wiki.
  */
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { basename, join } from 'node:path'
@@ -65,6 +68,28 @@ function countFiles(root) {
   return n
 }
 
+const DATE = '(\\d{4})[-/.年](\\d{1,2})[-/.月](\\d{1,2})日?'
+const ymd = (y, m, d) => `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+/** 「重审：2026-12-01」 (also 复查 / 复盘 / revisit) in a page → the date, or ''. */
+export function revisitOf(text) {
+  const m = String(text || '').match(new RegExp('(?:重审|复查|复盘|revisit)\\s*[:：]\\s*' + DATE, 'i'))
+  return m ? ymd(m[1], m[2], m[3]) : ''
+}
+/** The action items of a page: 「- [ ] 事（@人，截止 2026-10-10）」; done ones are 「- [x]」 and skipped. */
+export function actionsOf(text) {
+  const out = []
+  for (const line of String(text || '').split('\n')) {
+    const m = line.match(/^\s*[-*]\s+\[( |x|X)\]\s+(.+)$/)
+    if (!m || m[1] !== ' ') continue
+    const due = m[2].match(new RegExp('(?:截止|due|到期)\\s*[:：]?\\s*' + DATE, 'i'))
+    const who = m[2].match(/@([^\s，,）)]+)/)
+    out.push({ text: m[2].trim(), due: due ? ymd(due[1], due[2], due[3]) : '', who: who ? who[1] : '' })
+  }
+  return out
+}
+const today = () => { const d = new Date(); return ymd(d.getFullYear(), d.getMonth() + 1, d.getDate()) }
+const plusDays = (s, n) => { const d = new Date(s + 'T00:00:00'); d.setDate(d.getDate() + n); return ymd(d.getFullYear(), d.getMonth() + 1, d.getDate()) }
+
 /** The log's entries, newest first: { date, op, title }. */
 export function logEntries(text, limit = 20) {
   const out = []
@@ -91,7 +116,7 @@ export function scanWiki(dir) {
     const h1 = text.match(/^#\s+(.+)$/m)
     const name = basename(rel).replace(/\.md$/i, '')
     const category = rel.includes('/') ? rel.split('/')[0] : ''
-    return { path: WIKI_DIR + '/' + rel, rel, name, title: h1 ? h1[1].trim() : name, category, raw: [...wikiLinks(text), ...mdLinks(text)], text, mtime: st.mtime.toISOString(), size: st.size, words: text.replace(/\s+/g, '').length, inbound: [], links: [] }
+    return { path: WIKI_DIR + '/' + rel, rel, name, title: h1 ? h1[1].trim() : name, category, raw: [...wikiLinks(text), ...mdLinks(text)], text, mtime: st.mtime.toISOString(), size: st.size, words: text.replace(/\s+/g, '').length, inbound: [], links: [], revisit: revisitOf(text), actions: actionsOf(text) }
   })
   // A link resolves by relative path (概念/注意力), else by page name, else by title.
   const byKey = new Map()
@@ -125,8 +150,21 @@ export function scanWiki(dir) {
   const unindexed = index ? content.filter((p) => !indexed.has(p.path)).map((p) => p.path) : []
   let logText = ''
   try { logText = readFileSync(join(root, 'log.md'), 'utf8') } catch {}
-  for (const p of pages) { delete p.raw; delete p.text }
-  return { pages, byKey, sources: countFiles(join(dir, SOURCES_DIR)), orphans, broken, unindexed, log: logEntries(logText) }
+  // Decisions due for another look, and open action items that are late or due within three days (by today's date).
+  const now = today()
+  const soon = plusDays(now, 3)
+  const revisit = pages.filter((p) => p.revisit && p.revisit <= now).map((p) => ({ path: p.path, title: p.title, date: p.revisit }))
+  // The same item written on a person's page and a project's page is one item, kept with every page it is on.
+  const byItem = new Map()
+  for (const p of pages) for (const a of p.actions) {
+    if (!a.due || a.due > soon) continue
+    const k = a.text.replace(/\s+/g, '') + '|' + a.due
+    if (byItem.has(k)) byItem.get(k).paths.push(p.path)
+    else byItem.set(k, { ...a, path: p.path, paths: [p.path], late: a.due < now })
+  }
+  const actions = [...byItem.values()].sort((a, b) => a.due.localeCompare(b.due))
+  for (const p of pages) { delete p.raw; delete p.text; delete p.actions }
+  return { pages, byKey, sources: countFiles(join(dir, SOURCES_DIR)), orphans, broken, unindexed, log: logEntries(logText), revisit, actions }
 }
 
 /** A link target (from a page, or typed) → that page's path, or ''. */
@@ -168,11 +206,15 @@ export function searchWiki(dir, q, limit = 20) {
 
 /** What code found, for the 体检 prompt (the model does contradictions, stale claims and gaps; these it need not guess). */
 export function lintFindings(scan) {
-  const lines = [`知识库现在 ${scan.pages.length} 页，来自 ${scan.sources} 份原始资料。`]
+  const lines = [`库里现在 ${scan.pages.length} 页，来自 ${scan.sources} 份原始资料。`]
   const list = (label, items) => { if (items.length) lines.push(`${label}（${items.length}）：` + items.slice(0, 30).join('、') + (items.length > 30 ? ' …' : '')) }
   list('孤立页（除了索引没有别的页链到它）', scan.orphans)
   list('断链（链到不存在的页）', scan.broken.map((b) => `${b.from} → [[${b.target}]]`))
   list('没进 index.md 的页', scan.unindexed)
-  if (lines.length === 1) lines.push('链接和索引程序没查出问题。')
+  list('到了重审日期的页', (scan.revisit || []).map((r) => `${r.path}（重审 ${r.date}）`))
+  const where = (a) => (a.paths || [a.path]).join('、')
+  list('过期的行动项', (scan.actions || []).filter((a) => a.late).map((a) => `${a.text}（${where(a)}）`))
+  list('三天内到期的行动项', (scan.actions || []).filter((a) => !a.late).map((a) => `${a.text}（${where(a)}）`))
+  if (lines.length === 1) lines.push('链接、索引和日期程序没查出问题。')
   return lines.join('\n')
 }

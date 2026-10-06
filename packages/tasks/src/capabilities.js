@@ -7,7 +7,8 @@
  *   mywork_cite_check    every reference looked up on arXiv / Crossref (ARIS, ICLR 2026: a failed request is never 查无)
  *   mywork_loop          连续跑: code calls the next round until a time (autoresearch's NEVER STOP, Anthropic's long runs)
  *   mywork_results       the numbers in results.tsv (best so far, kept / discarded / crashed, last night's run)
- *   mywork_wiki_check    the wiki's orphans, broken links and pages missing from the index (Karpathy's lint)
+ *   mywork_wiki_check    the wiki's orphans, broken links, pages missing from the index (Karpathy's lint), decisions due
+ *                        for another look and late action items (an organisation's wiki)
  *   mywork_hand_to       hand work (and files) to another teammate; it shows there as 「<name> 转交」
  *
  * and, without a tool: a routine with `loopUntil` (过夜实验) starts 连续跑 with its run as round one; a report with
@@ -276,9 +277,9 @@ export function createCapabilities({ store, mates, routines, emit, pump, log, ba
     },
     {
       name: 'mywork_wiki_check',
-      description: '程序查你的 wiki/：多少页、多少份原始资料、孤立页（除了索引没有别的页链到它）、断链、没进 index.md 的页、最近的日志。体检时先调它，再自己查矛盾、过时的说法和该有却没有的页。',
+      description: '程序查你的 wiki/：多少页、多少份原始资料、孤立页（除了索引没有别的页链到它）、断链、没进 index.md 的页、最近的日志；还有日期：写了「重审：YYYY-MM-DD」且到期的页，和「- [ ] 事（@人，截止 YYYY-MM-DD）」里过期或三天内到期的行动项。体检、晨报前先调它，再自己查矛盾、过时的说法和该有却没有的页。',
       parameters: {},
-      execute(_args, m) { const scan = scanWiki(m.dir); return { pages: scan.pages.length, findings: lintFindings(scan), log: scan.log.slice(0, 5) } },
+      execute(_args, m) { const scan = scanWiki(m.dir); return { pages: scan.pages.length, findings: lintFindings(scan), log: scan.log.slice(0, 5), revisit: scan.revisit, actions: scan.actions } },
     },
     {
       name: 'mywork_hand_to',

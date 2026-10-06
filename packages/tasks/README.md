@@ -49,7 +49,7 @@ MyWork Kit v2 的核心成员：**同事模型**。设计见 [design/v2/TEAMMATE
 
 没有固定的同事库，也没有固定的右栏：「+ 新同事」把你写的一句话（和你选的名字、类型、头像）交给 MyWork（`POST /mates/ask-mywork` → MyWork 对话里一句「帮我配一位同事：…」，选项挂在那次运行上），MyWork 照最近的从业者做法生成这位同事（`mywork_playbooks` 看做法 → `mywork_mate_create`）。
 
-做法在 `playbooks/<id>/`：`playbook.json`（名字、头衔、类型、`order`、头像、一句话、`source` 照谁、`fits` 适合什么、`example` 一句用户会说的话（新同事页的例子）、`tools`、`dropDir`、`ask` 开工问题、`onboardPrompt`、`offers` 它会主动做的、`quiet`、`pins` 它常看的文件）、`duty.md`、`seed/`（建同事时连目录一起拷进它的文件夹，`{date}` 换成当天）。现在七种，每种照一位公开写过自己流程的从业者（design/v2/AI-WORKERS.md，原文提取在 docs/research/ai-workers-2026-10/）：
+做法在 `playbooks/<id>/`：`playbook.json`（名字、头衔、类型、`order`、头像、一句话、`source` 照谁、`fits` 适合什么、`example` 一句用户会说的话（新同事页的例子）、`tools`、`dropDir`、`ask` 开工问题、`onboardPrompt`、`offers` 它会主动做的、`quiet`、`pins` 它常看的文件）、`duty.md`、`seed/`（建同事时连目录一起拷进它的文件夹，`{date}` 换成当天）。现在九种，每种照一位公开写过自己流程的从业者（design/v2/AI-WORKERS.md、design/v2/CTO.md，原文提取在 docs/research/ai-workers-2026-10/ 和 docs/research/cto-2026-10/）：
 
 | 做法 | 照谁 | 用到的代码能力 |
 |---|---|---|
@@ -60,6 +60,8 @@ MyWork Kit v2 的核心成员：**同事模型**。设计见 [design/v2/TEAMMATE
 | 论文 `paper` | Neel Nanda 的 Distill；ARIS citation-audit；ICLR 2026 幻觉引用 | `mywork_cite_check` |
 | 评测 `evals` | Hamel Husain；Shreya Shankar「Who Validates the Validators?」；Eugene Yan | （跑代码、表格） |
 | 前沿 `frontier` | nilenso 的 Atharva Raykar「How I keep up with AI progress」 | （浏览器） |
+| 幕僚 `cto-office` | Karpathy「LLM Wiki」的团队用法和 append-and-review 随手记；Obie Fernandez 的 CTO 操作系统；Larson 的 5-15 周报 | `mywork_wiki_check`（含到期的决定、过期的行动项） |
+| 工程体检 `eng-health` | Larson 的度量和运营机制；DORA 2025；Pragmatic Engineer；Karpathy：数字附可运行的代码 | 它自己写的脚本、`mywork_hand_to` |
 
 `mywork_mate_create { description, name?, title?, group?, basedOn?, rules?, files?, pins?, ask?, offers?, dropDir?, first? }`：`basedOn` 拷做法的文件；`rules` 写进它 AGENTS.md 的「这位用户的要求」；`files` 是 MyWork 替它写的文件（只能在它文件夹里）；`ask` 是开工卡上的一个问题（不给用做法的，`false` 就不出开工卡）；`offers` 是做法里的 id 或 `{ label, note, on, rule, routine（带时间的一句话）, until }`。这些存成同事的 `spec`：
 
@@ -79,7 +81,7 @@ MyWork Kit v2 的核心成员：**同事模型**。设计见 [design/v2/TEAMMATE
 - `mywork_cite_check({ dir? })`：读一个文件夹（默认 `稿子/`）的 .bib 和 .tex / .md，抽每处引用和原句；arXiv 号一次批量查，DOI 和标题走 Crossref（再不行查 arXiv 标题）；分核实 / 元数据不符 / 查无此文（疑似）/ 待查（请求失败，不算查无）/ 网页或软件；写 `核引用/日期.md` 和 `.json`（含查到的摘要，模型据此判断是否支持原句）。
 - `mywork_loop({ until? | minutes? | stop? })`：**连续跑**。`mate.loop` 到点前，每轮结束后由程序排下一轮（`trigger: 'system'`，`loop`、`loopRound`，`quiet`，对话里合成一行灰字「连续跑 · 第 3–14 轮」）；到点、连续 3 轮没有新结果（results.tsv 没加行；没有这个文件就是没改文件）、连续 2 轮出错、200 轮、或你停下（`POST /mates/stop`）就结束，结束时程序写一行（有 results.tsv 的带成绩）。例行带 `loopUntil`（`mywork_routine_create` 的 `until`）时，到点那一轮就是第一轮。头部名字下面显示「连续跑到 07:00 · 第 n 轮」。
 - `mywork_results()`：`results.tsv`（commit / 指标 / 显存 / keep·discard·crash / 说明）和 `program.md`（「指标：」「越低/越高越好」）算好的成绩：几次、留几次、最好和基线、最近几次、上一次连续跑。
-- `mywork_wiki_check()`：wiki 的页数、原始资料数、孤立页、断链、没进索引的页、最近的日志。
+- `mywork_wiki_check()`：wiki 的页数、原始资料数、孤立页、断链、没进索引的页、最近的日志；页里写了「重审：YYYY-MM-DD」且到期的，和「- [ ] 事（@人，截止 YYYY-MM-DD）」里过期或三天内到期的行动项。
 - `mywork_hand_to({ to, text, files? })`：交给另一位同事；文件拷进它的 `dropDir`；它那边排一句用户话（`fromMate`，显示「<名字> 转交」）。
 - **未经你审**（Simon Willison）：报告标题下有「> 未经你审」时，阅读视图里多一个「审过了」（`POST /mates/review { id, path }`，只改它文件夹里的 .md），换成「> 审过：日期」。
 

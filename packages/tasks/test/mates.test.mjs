@@ -1118,7 +1118,7 @@ test('知识库, made by MyWork from the playbook: 新同事 asks MyWork → it 
   const h = harness()
   const { items: pbs } = await h.ok('GET', '/playbooks')
   // The ways of working MyWork draws on, each after a practitioner (design/v2/AI-WORKERS.md); their examples fill 新同事.
-  assert.deepEqual(pbs.map((x) => x.id), ['papers', 'wiki', 'experiments', 'code-research', 'paper', 'evals', 'frontier'])
+  assert.deepEqual(pbs.map((x) => x.id), ['papers', 'wiki', 'experiments', 'code-research', 'paper', 'evals', 'frontier', 'cto-office', 'eng-health'])
   assert.ok(pbs.every((x) => x.example && x.source))
   // 新同事 goes to MyWork: your sentence is a line in its thread; it reads the playbook and makes the teammate.
   const got = {}
@@ -1474,7 +1474,7 @@ test('MyWork designs a teammate without a playbook: its own first question, its 
   h.scripts.push((t) => { got.bad = t.tool('mywork_mate_create', { basedOn: 'nope', description: 'x' }); t.say('没有这个做法。') })
   await h.ok('POST', '/mates/say', { id: 'mywork', text: '再建一个' })
   await h.until(() => !!got.bad)
-  assert.match(got.bad.error, /没有这个做法：nope。有：papers \/ wiki \/ experiments \/ code-research \/ paper \/ evals \/ frontier/)
+  assert.match(got.bad.error, /没有这个做法：nope。有：papers \/ wiki \/ experiments \/ code-research \/ paper \/ evals \/ frontier \/ cto-office \/ eng-health/)
   h.cleanup()
 })
 

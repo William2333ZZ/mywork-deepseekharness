@@ -15,6 +15,11 @@
  *
  * Dates are facts too (an organisation's wiki, Karpathy's "Business/team" use): a page that says 「重审：YYYY-MM-DD」
  * (a decision to look at again) and the open action items 「- [ ] 事（@人，截止 YYYY-MM-DD）」 anywhere in the wiki.
+ *
+ * And from Garry Tan's GBrain, whose pages are a compiled truth on top (rewritten) and a timeline below
+ * 「<!-- timeline -->」 (appended only): a page whose top says 「更新：YYYY-MM-DD」 older than its newest timeline entry
+ * is stale; two pages sharing a name in 「别名：…」 are probably one; an open loop 「- [ ] 等 @人 …（自 YYYY-MM-DD）」
+ * waiting more than a week is listed.
  */
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { basename, join } from 'node:path'
@@ -87,6 +92,32 @@ export function actionsOf(text) {
   }
   return out
 }
+/** The top (compiled truth) and the timeline of a page: split at 「<!-- timeline -->」 or a 「## 时间线 / ## Timeline」 heading. */
+export function splitPage(text) {
+  const t = String(text || '')
+  const m = t.match(/^<!--\s*timeline\s*-->\s*$/im) || t.match(/^#{2,3}\s*(?:时间线|Timeline)\s*$/im)
+  return m ? { top: t.slice(0, m.index), timeline: t.slice(m.index + m[0].length) } : { top: t, timeline: '' }
+}
+/** 「更新：2026-10-06」 in the top, the newest 「- 2026-10-06 …」 in the timeline. */
+function datesOfPage(text) {
+  const { top, timeline } = splitPage(text)
+  const u = top.match(new RegExp('(?:更新|updated)\\s*[:：]\\s*' + DATE, 'i'))
+  let last = ''
+  for (const m of timeline.matchAll(new RegExp('^\\s*[-*]\\s*\\**' + DATE, 'gm'))) { const d = ymd(m[1], m[2], m[3]); if (d > last) last = d }
+  return { updated: u ? ymd(u[1], u[2], u[3]) : '', lastEvent: last }
+}
+/** 「别名：张三, Zhang San, zs@example.com」 → lower-cased names. */
+function aliasesOf(text) {
+  const m = splitPage(text).top.match(/^\s*[-*]?\s*(?:别名|aliases)\s*[:：]\s*(.+)$/im)
+  return m ? m[1].split(/[,，、;；/]+/).map((x) => x.trim().toLowerCase()).filter((x) => x.length > 1) : []
+}
+/** An open loop: an unchecked item that starts with 「等」 (waiting on someone) and says since when. */
+function waitingOf(actions) {
+  return actions.filter((a) => /^等/.test(a.text)).map((a) => {
+    const m = a.text.match(new RegExp('(?:自|since)\\s*' + DATE, 'i'))
+    return m ? { ...a, since: ymd(m[1], m[2], m[3]) } : null
+  }).filter(Boolean)
+}
 const today = () => { const d = new Date(); return ymd(d.getFullYear(), d.getMonth() + 1, d.getDate()) }
 const plusDays = (s, n) => { const d = new Date(s + 'T00:00:00'); d.setDate(d.getDate() + n); return ymd(d.getFullYear(), d.getMonth() + 1, d.getDate()) }
 
@@ -116,7 +147,7 @@ export function scanWiki(dir) {
     const h1 = text.match(/^#\s+(.+)$/m)
     const name = basename(rel).replace(/\.md$/i, '')
     const category = rel.includes('/') ? rel.split('/')[0] : ''
-    return { path: WIKI_DIR + '/' + rel, rel, name, title: h1 ? h1[1].trim() : name, category, raw: [...wikiLinks(text), ...mdLinks(text)], text, mtime: st.mtime.toISOString(), size: st.size, words: text.replace(/\s+/g, '').length, inbound: [], links: [], revisit: revisitOf(text), actions: actionsOf(text) }
+    return { path: WIKI_DIR + '/' + rel, rel, name, title: h1 ? h1[1].trim() : name, category, raw: [...wikiLinks(text), ...mdLinks(text)], text, mtime: st.mtime.toISOString(), size: st.size, words: text.replace(/\s+/g, '').length, inbound: [], links: [], revisit: revisitOf(text), actions: actionsOf(text), dates: datesOfPage(text), aliases: aliasesOf(text) }
   })
   // A link resolves by relative path (概念/注意力), else by page name, else by title.
   const byKey = new Map()
@@ -163,8 +194,23 @@ export function scanWiki(dir) {
     else byItem.set(k, { ...a, path: p.path, paths: [p.path], late: a.due < now })
   }
   const actions = [...byItem.values()].sort((a, b) => a.due.localeCompare(b.due))
-  for (const p of pages) { delete p.raw; delete p.text; delete p.actions }
-  return { pages, byKey, sources: countFiles(join(dir, SOURCES_DIR)), orphans, broken, unindexed, log: logEntries(logText), revisit, actions }
+  // GBrain: a top older than the timeline under it, one entity on two pages, loops left waiting.
+  const stale = pages.filter((p) => p.dates.updated && p.dates.lastEvent > p.dates.updated).map((p) => ({ path: p.path, title: p.title, updated: p.dates.updated, lastEvent: p.dates.lastEvent }))
+  const owner = new Map()
+  const dupes = []
+  for (const p of pages) {
+    for (const a of new Set([...p.aliases, p.title.toLowerCase()])) {
+      const other = owner.get(a)
+      if (other && other !== p.path && !dupes.some((d) => d.paths.includes(other) && d.paths.includes(p.path))) dupes.push({ name: a, paths: [other, p.path] })
+      else if (!other) owner.set(a, p.path)
+    }
+  }
+  const weekAgo = plusDays(now, -7)
+  const waiting = []
+  for (const p of pages) for (const w of waitingOf(p.actions)) if (w.since <= weekAgo) waiting.push({ ...w, path: p.path })
+  waiting.sort((a, b) => a.since.localeCompare(b.since))
+  for (const p of pages) { delete p.raw; delete p.text; delete p.actions; delete p.dates; delete p.aliases }
+  return { pages, byKey, sources: countFiles(join(dir, SOURCES_DIR)), orphans, broken, unindexed, log: logEntries(logText), revisit, actions, stale, dupes, waiting }
 }
 
 /** A link target (from a page, or typed) → that page's path, or ''. */
@@ -215,6 +261,9 @@ export function lintFindings(scan) {
   const where = (a) => (a.paths || [a.path]).join('、')
   list('过期的行动项', (scan.actions || []).filter((a) => a.late).map((a) => `${a.text}（${where(a)}）`))
   list('三天内到期的行动项', (scan.actions || []).filter((a) => !a.late).map((a) => `${a.text}（${where(a)}）`))
+  list('顶部结论比时间线旧、该重写的页', (scan.stale || []).map((x) => `${x.path}（更新 ${x.updated}，时间线到 ${x.lastEvent}）`))
+  list('可能是同一个人或同一件事的页', (scan.dupes || []).map((d) => `${d.paths.join(' 和 ')}（都叫「${d.name}」）`))
+  list('等了一周以上的事', (scan.waiting || []).map((w) => `${w.text}（${w.path}）`))
   if (lines.length === 1) lines.push('链接、索引和日期程序没查出问题。')
   return lines.join('\n')
 }

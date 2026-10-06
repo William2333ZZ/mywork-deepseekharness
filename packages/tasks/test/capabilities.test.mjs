@@ -11,7 +11,8 @@ import { categoriesOf, parseFeed, titleLines } from '../src/arxiv.js'
 import { directionOf, ledgerLine, metricName, parseResults, summarize } from '../src/results.js'
 import { isUnreviewed, markReviewed } from '../src/projects.js'
 import { arxivIdOf, checkEntries, citesIn, firstFamily, parseBib, readDraft, reportMarkdown, titleOverlap } from '../src/cite.js'
-import { BIB, fakeScholar, RSS, TEX } from './fakes.mjs'
+import { BIB, fakeScholar, ICS, RSS, TEX } from './fakes.mjs'
+import { calendarSourceOf, eventsBetween, ianaOf, parseIcs } from '../src/ical.js'
 
 const tmp = () => mkdtempSync(join(tmpdir(), 'mywork-benches-'))
 
@@ -110,4 +111,24 @@ test('核引用: the draft folder is read recursively (.bib, .tex, .md), and the
   assert.equal(res.counts.missing, 0)
   assert.deepEqual([res.counts.pending, res.counts.web], [6, 1])
   rmSync(dir, { recursive: true, force: true })
+})
+
+test('日历 from any service (.ics): recurring 1:1s with a skipped and a moved week, UTC, all-day, an Outlook zone name, 「second Tuesday」; times by code in the local zone', () => {
+  const ev = parseIcs(ICS, { tz: 'Asia/Shanghai' })
+  assert.equal(ev.length, 6)
+  const list = eventsBetween(ev, Date.parse('2026-10-05T16:00:00Z'), Date.parse('2026-10-19T16:00:00Z'), { tz: 'Asia/Shanghai', now: Date.parse('2026-10-06T01:00:00Z') })
+  assert.deepEqual(list.map((e) => [e.local, e.title]), [
+    ['2026-10-06 09:30', '周会'],
+    ['2026-10-09', '团建'],
+    ['2026-10-09 08:00', 'Board sync withthe investors'], // Pacific time in October is daylight time: 17:00 PDT is 08:00 the next day here
+    ['2026-10-12 15:00', '1:1 李想（改到下午）'], // the moved week stands in for 10:00; 10-07 is skipped (EXDATE)
+    ['2026-10-13 16:00', '月度复盘'],
+    ['2026-10-14 10:00', '1:1 李想'],
+    ['2026-10-19 10:00', '1:1 李想'],
+  ])
+  assert.deepEqual([list[0].minutesFromNow, list[0].endLocal, list[0].weekday, list[1].allDay, list[5].attendees], [30, '10:30', '周二', true, ['李想']])
+  assert.deepEqual([ianaOf('China Standard Time'), ianaOf('/mozilla.org/20050126_1/Asia/Shanghai'), ianaOf('Nowhere/Zone')], ['Asia/Shanghai', 'Asia/Shanghai', ''])
+  assert.equal(calendarSourceOf('## 从哪拿\n- 日历：webcal://p01-caldav.icloud.com/published/2/abc。\n'), 'webcal://p01-caldav.icloud.com/published/2/abc')
+  assert.equal(calendarSourceOf('- 日历：（开工时写）'), '')
+  assert.equal(calendarSourceOf('- 日历：日程/导出.ics'), '日程/导出.ics')
 })

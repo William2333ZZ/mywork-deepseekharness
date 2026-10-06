@@ -51,3 +51,22 @@ test('dates in a wiki: a decision past its 重审 date, open action items that a
   assert.match(lint, /三天内到期的行动项（1）：写招聘 JD/)
   rmSync(dir, { recursive: true, force: true })
 })
+
+test('GBrain-style pages: a top (更新：date) older than its timeline is stale; two pages sharing an alias are one; a loop waiting over a week is listed', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'mywork-wiki-gbrain-'))
+  mkdirSync(join(dir, 'wiki', '人'), { recursive: true })
+  const d = (n) => { const x = new Date(); x.setDate(x.getDate() + n); return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0') }
+  writeFileSync(join(dir, 'wiki', 'index.md'), '# 索引\n- [[人/周磊]]\n- [[人/磊哥]]\n- [[人/陈露]]\n')
+  writeFileSync(join(dir, 'wiki', '人', '周磊.md'), `# 周磊\n\n- 别名：磊哥, zhoulei@example.com\n- 更新：${d(-10)}\n- 平台组，负责 CI。\n- [ ] 等 @陈露 回复联调时间（自 ${d(-9)}）\n- [ ] 等 @财务 批预算（自 ${d(-2)}）\n\n<!-- timeline -->\n\n- ${d(-10)} 周会：说 CI 太慢。\n- ${d(-3)} 1:1：方案写了一半。\n`)
+  writeFileSync(join(dir, 'wiki', '人', '磊哥.md'), '# 磊哥\n\n平台组的人。\n')
+  writeFileSync(join(dir, 'wiki', '人', '陈露.md'), `# 陈露\n\n- 更新：${d(-1)}\n\n## 时间线\n\n- ${d(-5)} 周会：Q4 可能晚两周。\n`)
+  const scan = scanWiki(dir)
+  assert.deepEqual(scan.stale.map((x) => [x.title, x.lastEvent]), [['周磊', d(-3)]])
+  assert.deepEqual(scan.dupes.map((x) => [x.name, x.paths]), [['磊哥', ['wiki/人/周磊.md', 'wiki/人/磊哥.md']]])
+  assert.deepEqual(scan.waiting.map((w) => w.text.split('（')[0]), ['等 @陈露 回复联调时间'])
+  const lint = lintFindings(scan)
+  assert.match(lint, /顶部结论比时间线旧、该重写的页（1）：wiki\/人\/周磊\.md/)
+  assert.match(lint, /可能是同一个人或同一件事的页（1）：wiki\/人\/周磊\.md 和 wiki\/人\/磊哥\.md（都叫「磊哥」）/)
+  assert.match(lint, /等了一周以上的事（1）：等 @陈露 回复联调时间/)
+  rmSync(dir, { recursive: true, force: true })
+})

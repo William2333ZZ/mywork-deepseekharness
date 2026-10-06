@@ -20,7 +20,7 @@ import { describeSchedule } from '../src/routines.js'
 const describe = (r) => describeSchedule(r.schedule)
 import { ASK_TEXT, INTERRUPTED, messageText, NUDGE_TEXT, STOPPED } from '../src/engine.js'
 import { ASK_EXPIRY_MS, pendingAsk } from '../src/store.js'
-import { BIB, fakeScholar, RSS, TEX } from './fakes.mjs'
+import { BIB, fakeScholar, ICS, RSS, TEX } from './fakes.mjs'
 
 const STANDARD = new URL('../presets/mate-base/agent.cordis.yml', import.meta.url).pathname
 const gate = () => { let open; const promise = new Promise((r) => { open = r }); return { promise, open } }
@@ -1488,4 +1488,33 @@ test('a teammate made from a template before teammates were generated keeps its 
   assert.deepEqual([v.basedOn, v.drop.dir], ['wiki', '原始资料'])
   assert.deepEqual(h2.mw.mates.get(m.id).spec.pins, ['wiki/index.md', 'wiki/log.md', 'AGENTS.md'])
   rmSync(home, { recursive: true, force: true })
+})
+
+test('mywork_calendar for any teammate: a link from 「- 日历：」 in AGENTS.md is mirrored to 日程/日历.ics and used again when it cannot be fetched; a file in the folder works too; no source says where to put one', async () => {
+  let up = true
+  const h = harness({ fetch: async (url) => { if (!up) throw new Error('offline'); assert.equal(url, 'https://cal.example.com/me.ics'); return { ok: true, status: 200, text: async () => ICS } } })
+  const dir = join(h.dir, 'mywork', 'mates', 'mywork')
+  const got = {}
+  h.scripts.push(async (t) => { got.none = await t.toolAsync('mywork_calendar'); t.say('没有日历。') })
+  await h.ok('POST', '/mates/say', { id: 'mywork', text: '今天有什么会' })
+  await h.until(() => !!got.none)
+  assert.match(got.none.error, /AGENTS\.md 里还没写日历在哪/)
+  writeFileSync(join(dir, 'AGENTS.md'), '# 规矩\n\n- 日历：webcal://cal.example.com/me.ics\n')
+  h.scripts.push(async (t) => { got.week = await t.toolAsync('mywork_calendar', { days: 31 }); t.say('好。') })
+  await h.ok('POST', '/mates/say', { id: 'mywork', text: '这个月的会' })
+  await h.until(() => !!got.week)
+  assert.ok(Array.isArray(got.week.events) && got.week.days === 31)
+  assert.match(readFileSync(join(dir, '日程', '日历.ics'), 'utf8'), /BEGIN:VCALENDAR/)
+  up = false
+  h.scripts.push(async (t) => { got.stale = await t.toolAsync('mywork_calendar'); t.say('好。') })
+  await h.ok('POST', '/mates/say', { id: 'mywork', text: '今天的会' })
+  await h.until(() => !!got.stale)
+  assert.match(got.stale.stale, /用的是上次存下的 日程\/日历\.ics/)
+  writeFileSync(join(dir, '导出.ics'), ICS)
+  h.scripts.push(async (t) => { got.file = await t.toolAsync('mywork_calendar', { source: '导出.ics' }); got.bad = await t.toolAsync('mywork_calendar', { source: '../../x.ics' }); t.say('好。') })
+  await h.ok('POST', '/mates/say', { id: 'mywork', text: '用文件' })
+  await h.until(() => !!got.bad)
+  assert.ok(Array.isArray(got.file.events))
+  assert.match(got.bad.error, /找不到日历文件/)
+  h.cleanup()
 })

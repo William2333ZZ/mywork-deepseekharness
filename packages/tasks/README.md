@@ -60,7 +60,7 @@ MyWork Kit v2 的核心成员：**同事模型**。设计见 [design/v2/TEAMMATE
 | 论文 `paper` | Neel Nanda 的 Distill；ARIS citation-audit；ICLR 2026 幻觉引用 | `mywork_cite_check` |
 | 评测 `evals` | Hamel Husain；Shreya Shankar「Who Validates the Validators?」；Eugene Yan | （跑代码、表格） |
 | 前沿 `frontier` | nilenso 的 Atharva Raykar「How I keep up with AI progress」 | （浏览器） |
-| 幕僚 `cto-office` | Karpathy「LLM Wiki」的团队用法和 append-and-review 随手记；Obie Fernandez 的 CTO 操作系统；Larson 的 5-15 周报 | `mywork_wiki_check`（含到期的决定、过期的行动项） |
+| 幕僚 `cto-office` | Garry Tan 的 GBrain（顶部结论 + 时间线、会议回写、先查库、时间交给程序）；Karpathy「LLM Wiki」的团队用法和 append-and-review 随手记；Obie Fernandez 的 CTO 操作系统；Larson 的 5-15 周报 | `mywork_wiki_check`（含到期的决定、过期的行动项、过时的顶部、可能重复的页、等太久的事）、`mywork_calendar` |
 | 工程体检 `eng-health` | Larson 的度量和运营机制；DORA 2025；Pragmatic Engineer；Karpathy：数字附可运行的代码 | 它自己写的脚本、`mywork_hand_to` |
 
 `mywork_mate_create { description, name?, title?, group?, basedOn?, rules?, files?, pins?, ask?, offers?, dropDir?, first? }`：`basedOn` 拷做法的文件；`rules` 写进它 AGENTS.md 的「这位用户的要求」；`files` 是 MyWork 替它写的文件（只能在它文件夹里）；`ask` 是开工卡上的一个问题（不给用做法的，`false` 就不出开工卡）；`offers` 是做法里的 id 或 `{ label, note, on, rule, routine（带时间的一句话）, until }`。这些存成同事的 `spec`：
@@ -81,7 +81,8 @@ MyWork Kit v2 的核心成员：**同事模型**。设计见 [design/v2/TEAMMATE
 - `mywork_cite_check({ dir? })`：读一个文件夹（默认 `稿子/`）的 .bib 和 .tex / .md，抽每处引用和原句；arXiv 号一次批量查，DOI 和标题走 Crossref（再不行查 arXiv 标题）；分核实 / 元数据不符 / 查无此文（疑似）/ 待查（请求失败，不算查无）/ 网页或软件；写 `核引用/日期.md` 和 `.json`（含查到的摘要，模型据此判断是否支持原句）。
 - `mywork_loop({ until? | minutes? | stop? })`：**连续跑**。`mate.loop` 到点前，每轮结束后由程序排下一轮（`trigger: 'system'`，`loop`、`loopRound`，`quiet`，对话里合成一行灰字「连续跑 · 第 3–14 轮」）；到点、连续 3 轮没有新结果（results.tsv 没加行；没有这个文件就是没改文件）、连续 2 轮出错、200 轮、或你停下（`POST /mates/stop`）就结束，结束时程序写一行（有 results.tsv 的带成绩）。例行带 `loopUntil`（`mywork_routine_create` 的 `until`）时，到点那一轮就是第一轮。头部名字下面显示「连续跑到 07:00 · 第 n 轮」。
 - `mywork_results()`：`results.tsv`（commit / 指标 / 显存 / keep·discard·crash / 说明）和 `program.md`（「指标：」「越低/越高越好」）算好的成绩：几次、留几次、最好和基线、最近几次、上一次连续跑。
-- `mywork_wiki_check()`：wiki 的页数、原始资料数、孤立页、断链、没进索引的页、最近的日志；页里写了「重审：YYYY-MM-DD」且到期的，和「- [ ] 事（@人，截止 YYYY-MM-DD）」里过期或三天内到期的行动项。
+- `mywork_wiki_check()`：wiki 的页数、原始资料数、孤立页、断链、没进索引的页、最近的日志；页里写了「重审：YYYY-MM-DD」且到期的，「- [ ] 事（@人，截止 YYYY-MM-DD）」里过期或三天内到期的行动项（同一件事写在几页里算一件）；GBrain 格式的页（顶部 + `<!-- timeline -->` + 时间线）里顶部「更新：」比时间线旧的、「别名：」撞了的、「- [ ] 等 @人 …（自 日期）」等了一周以上的。
+- `mywork_calendar({ source?, days? })`：读日历，哪家都行——订阅链接（https / webcal）或文件夹里的 .ics，不给就用 AGENTS.md 的「- 日历：」一行；链接镜像到 `日程/日历.ics`，取不到时用上次的并说明；代码算出今天（或接下来 days 天）每个会的本地时间、星期、参会人、还有几分钟（`src/ical.js`：时区含 Outlook 的 Windows 名、RRULE 日周月年、EXDATE、改期的单次、取消的不算）。Garry Tan（GBrain）：时间不让模型算。
 - `mywork_hand_to({ to, text, files? })`：交给另一位同事；文件拷进它的 `dropDir`；它那边排一句用户话（`fromMate`，显示「<名字> 转交」）。
 - **未经你审**（Simon Willison）：报告标题下有「> 未经你审」时，阅读视图里多一个「审过了」（`POST /mates/review { id, path }`，只改它文件夹里的 .md），换成「> 审过：日期」。
 

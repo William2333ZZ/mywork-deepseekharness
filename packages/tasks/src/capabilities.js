@@ -10,6 +10,8 @@
  *   mywork_wiki_check    the wiki's orphans, broken links, pages missing from the index (Karpathy's lint), decisions due
  *                        for another look and late action items (an organisation's wiki)
  *   mywork_hand_to       hand work (and files) to another teammate; it shows there as 「<name> 转交」
+ *   mywork_calendar      the person's calendar from any .ics link or file, mirrored locally, times worked out by code
+ *                        (Garry Tan, GBrain: never let the model do time arithmetic)
  *
  * and, without a tool: a routine with `loopUntil` (过夜实验) starts 连续跑 with its run as round one; a report with
  * 「> 未经你审」 under its title (Simon Willison) gets 审过了 where it is read (POST /mates/review).
@@ -21,6 +23,7 @@ import { checkEntries, DRAFT_DIR, readDraft, saveCheck } from './cite.js'
 import { markReviewed } from './projects.js'
 import { ledgerLine, readLedger, summarize } from './results.js'
 import { lintFindings, scanWiki } from './wiki.js'
+import { calendarSourceOf, eventsBetween, parseIcs } from './ical.js'
 
 const pad = (n) => String(n).padStart(2, '0')
 const dayOf = (d = new Date()) => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate())
@@ -228,6 +231,47 @@ export function createCapabilities({ store, mates, routines, emit, pump, log, ba
     try { return await job } finally { checking.delete(m.id) }
   }
 
+  // ── 日历 ──
+  const CAL_DIR = '日程'
+  const CAL_FILE = '日历.ics'
+  /**
+   * The calendar, whichever service: a subscription link (https / webcal) or an .ics file in the folder, named in the
+   * call or on the 「- 日历：…」 line of AGENTS.md. A link is mirrored to 日程/日历.ics each time; when it cannot be
+   * fetched the last mirror is used and said to be old. Today's (or the next `days` days') events come back with local
+   * times and minutes from now worked out by code.
+   */
+  async function calendar(m, { source, days } = {}) {
+    const src = String(source || '').trim() || calendarSourceOf(readText(join(m.dir, 'AGENTS.md')))
+    if (!src) return { error: 'AGENTS.md 里还没写日历在哪：加一行「- 日历：<订阅链接或 .ics 文件>」。Google、Outlook、iCloud、飞书、钉钉等大多能导出日历订阅链接（.ics）；没有就请用户导出一个 .ics 文件丢进来。' }
+    const mirror = join(m.dir, CAL_DIR, CAL_FILE)
+    let text = ''
+    let stale = ''
+    if (/^(https?|webcal):\/\//i.test(src)) {
+      try {
+        const r = await doFetch(src.replace(/^webcal:/i, 'https:'), { headers: { 'user-agent': 'MyWork/0.1 (calendar)' } })
+        if (!r.ok) throw new Error('日历链接返回 ' + r.status)
+        text = await r.text()
+        if (!/BEGIN:VCALENDAR/i.test(text)) throw new Error('这个链接拿到的不是日历（.ics）')
+        mkdirSync(join(m.dir, CAL_DIR), { recursive: true })
+        writeFileSync(mirror, text)
+      } catch (e) {
+        if (!existsSync(mirror)) return { error: '没取到日历：' + ((e && e.message) || e) }
+        text = readText(mirror)
+        stale = '链接这次没取到（' + ((e && e.message) || e) + '），用的是上次存下的 日程/日历.ics'
+      }
+    } else {
+      const full = resolve(m.dir, src)
+      const inside = relative(resolve(m.dir), full)
+      if (!inside || inside.startsWith('..') || isAbsolute(inside) || !existsSync(full)) return { error: '找不到日历文件：' + src + '（要放在你自己的文件夹里）' }
+      text = readText(full)
+    }
+    const n = Math.max(1, Math.min(31, Math.floor(Number(days)) || 1))
+    const t = now()
+    const start = new Date(t.getFullYear(), t.getMonth(), t.getDate()).getTime()
+    const events = eventsBetween(parseIcs(text), start, start + n * 86400000, { now: t.getTime() })
+    return { today: `${t.getFullYear()}-${pad(t.getMonth() + 1)}-${pad(t.getDate())} 周${'日一二三四五六'[t.getDay()]}`, now: hhmm(t.toISOString()), days: n, events, ...(stale ? { stale } : {}) }
+  }
+
   /** POST /mates/review: 「> 未经你审」 under a report's title becomes 「> 审过：date」 (you read it and say so). */
   function review(m, path) {
     const rel = String(path || '')
@@ -277,9 +321,9 @@ export function createCapabilities({ store, mates, routines, emit, pump, log, ba
     },
     {
       name: 'mywork_wiki_check',
-      description: '程序查你的 wiki/：多少页、多少份原始资料、孤立页（除了索引没有别的页链到它）、断链、没进 index.md 的页、最近的日志；还有日期：写了「重审：YYYY-MM-DD」且到期的页，和「- [ ] 事（@人，截止 YYYY-MM-DD）」里过期或三天内到期的行动项。体检、晨报前先调它，再自己查矛盾、过时的说法和该有却没有的页。',
+      description: '程序查你的 wiki/：多少页、多少份原始资料、孤立页（除了索引没有别的页链到它）、断链、没进 index.md 的页、最近的日志；还有日期：写了「重审：YYYY-MM-DD」且到期的页，「- [ ] 事（@人，截止 YYYY-MM-DD）」里过期或三天内到期的行动项；以及（照 GBrain 的页面格式）顶部「更新：日期」比时间线旧、该重写的页，「别名：」撞了的可能重复的页，「- [ ] 等 @人 …（自 日期）」等了一周以上的事。体检、晨报前先调它，再自己查矛盾、过时的说法和该有却没有的页。',
       parameters: {},
-      execute(_args, m) { const scan = scanWiki(m.dir); return { pages: scan.pages.length, findings: lintFindings(scan), log: scan.log.slice(0, 5), revisit: scan.revisit, actions: scan.actions } },
+      execute(_args, m) { const scan = scanWiki(m.dir); return { pages: scan.pages.length, findings: lintFindings(scan), log: scan.log.slice(0, 5), revisit: scan.revisit, actions: scan.actions, stale: scan.stale, dupes: scan.dupes, waiting: scan.waiting } },
     },
     {
       name: 'mywork_hand_to',
@@ -292,7 +336,17 @@ export function createCapabilities({ store, mates, routines, emit, pump, log, ba
       execute(args, m) { return handTo(m, args) },
       render: (_a, v) => [{ type: 'text', text: `已交给「${v.to.name}」${v.files.length ? '，文件：' + v.files.join('、') : ''}。用一句话告诉用户交给了谁、它会接着做什么。` }],
     },
+    {
+      name: 'mywork_calendar',
+      description: '读用户的日历（哪家都行：一个日历订阅链接 https:// 或 webcal://，或者你文件夹里的 .ics 文件；不给就用 AGENTS.md 里「- 日历：」那一行）。链接会存一份到 日程/日历.ics。程序算好今天（或接下来 days 天）的每个会：本地时间、星期、多长、参会人、离现在还有几分钟——时间一律用它给的，不要自己算。',
+      parameters: {
+        source: { type: 'string', description: '可选，日历订阅链接或文件夹里的 .ics 路径' },
+        days: { type: 'number', description: '可选，看几天，默认 1（今天）' },
+      },
+      async execute(args, m) { return calendar(m, args) },
+      render: (_a, v) => [{ type: 'text', text: v.error ? v.error : `${v.today}，现在 ${v.now}${v.stale ? '（' + v.stale + '）' : ''}。${v.days > 1 ? '接下来 ' + v.days + ' 天' : '今天'}${v.events.length ? '的会：\n' + v.events.map((e) => `- ${e.local}${e.endLocal ? '–' + e.endLocal : ''} ${e.weekday} ${e.title}${e.allDay ? '（全天）' : ''}${e.attendees.length ? '｜' + e.attendees.join('、') : ''}${e.location ? '｜' + e.location : ''}${!e.allDay && e.minutesFromNow >= 0 ? '｜' + e.minutesFromNow + ' 分钟后' : !e.allDay ? '｜已开始或已结束' : ''}`).join('\n') : '没有会。'}时间以这里为准，不要自己换算。` }],
+    },
   ]
 
-  return { tools, continueLoop, finishLoop, loopView, startLoopRoutine, review, handTo, arxivToday, citeCheck, results }
+  return { tools, calendar, continueLoop, finishLoop, loopView, startLoopRoutine, review, handTo, arxivToday, citeCheck, results }
 }

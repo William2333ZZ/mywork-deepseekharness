@@ -13,6 +13,31 @@
   <a href="https://github.com/William2333ZZ/mywork-deepseekharness/stargazers"><img src="https://img.shields.io/github/stars/William2333ZZ/mywork-deepseekharness?style=flat" alt="stars"></a>
 </p>
 
+## v2: MyWork (preview)
+
+**AI teammates that live on your computer.** Give each ongoing job a teammate: it has a name, one conversation, its own folder and routines, does the work in the background and brings the result back to the same conversation. Your data stays on your computer; your phone reaches it from any network through an encrypted relay.
+
+<table>
+<tr>
+<td width="72%"><img src="docs/v2/demo-task.gif" alt="Web: asking 探新 for GitHub hot projects"></td>
+<td width="28%"><img src="docs/v2/demo-phone.gif" alt="Phone: the same job from the phone"></td>
+</tr>
+<tr>
+<td align="center">Web: asking 探新 for today's GitHub hot projects (<a href="docs/v2/demo-task.mp4">video</a>)</td>
+<td align="center">Phone: the same job from the phone (<a href="docs/v2/demo-phone.mp4">video</a>)</td>
+</tr>
+</table>
+
+The code and full write-up are on the [`research-muse-paseo`](https://github.com/William2333ZZ/mywork-deepseekharness/tree/research-muse-paseo) branch. You need Node ≥ 24, pnpm and a DeepSeek API key:
+
+```bash
+git clone -b research-muse-paseo https://github.com/William2333ZZ/mywork-deepseekharness.git
+cd mywork-deepseekharness
+bash scripts/dev-env.sh
+```
+
+> Everything below is v1, MyWork Kit. The desktop installers under Releases are still v1.
+
 ![MyWork Kit one-minute tour](docs/tour.gif)
 
 > The UI follows dsh's language setting (Chinese / English). The screenshots below were taken in Chinese.

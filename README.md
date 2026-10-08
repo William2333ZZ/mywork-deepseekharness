@@ -13,6 +13,31 @@
   <a href="https://github.com/William2333ZZ/mywork-deepseekharness/stargazers"><img src="https://img.shields.io/github/stars/William2333ZZ/mywork-deepseekharness?style=flat" alt="stars"></a>
 </p>
 
+## 第二版：MyWork（预览）
+
+**住在你电脑里的 AI 同事。** 给每件长期的事找一位同事：它有名字、有自己的对话、文件夹和例行，在后台把活干完，结果回到同一条对话里。数据都在你自己的电脑上，手机在任何网络下经加密中继连回来。
+
+<table>
+<tr>
+<td width="72%"><img src="docs/v2/demo-task.gif" alt="网页：让探新去 GitHub 找热点"></td>
+<td width="28%"><img src="docs/v2/demo-phone.gif" alt="手机：同一件事在手机上交代"></td>
+</tr>
+<tr>
+<td align="center">网页：让「探新」去 GitHub 找今天的热点（<a href="docs/v2/demo-task.mp4">视频</a>）</td>
+<td align="center">手机：同一件事在手机上交代（<a href="docs/v2/demo-phone.mp4">视频</a>）</td>
+</tr>
+</table>
+
+代码和完整说明在 [`research-muse-paseo`](https://github.com/William2333ZZ/mywork-deepseekharness/tree/research-muse-paseo) 分支。需要 Node ≥ 24、pnpm 和一个 DeepSeek API key：
+
+```bash
+git clone -b research-muse-paseo https://github.com/William2333ZZ/mywork-deepseekharness.git
+cd mywork-deepseekharness
+bash scripts/dev-env.sh
+```
+
+> 以下是第一版 MyWork Kit。Releases 里的桌面安装包还是第一版。
+
 ![MyWork Kit 一分钟导览](docs/tour.gif)
 
 ## 下载

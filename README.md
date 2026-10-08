@@ -13,18 +13,18 @@
 
 <table>
 <tr>
-<td width="72%"><img src="docs/v2/demo-task.gif" alt="网页：让探新去 GitHub 找热点"></td>
-<td width="28%"><img src="docs/v2/demo-phone.gif" alt="手机：同一件事在手机上交代"></td>
+<td width="72%"><img src="docs/v2/demo-task.gif" alt="网页：一句话配一位前沿哨兵，它先问一件事，再交出今天的一页"></td>
+<td width="28%"><img src="docs/v2/demo-phone.gif" alt="手机：在手机上接着问它"></td>
 </tr>
 <tr>
-<td align="center">网页：让「探新」去 GitHub 找今天的热点（<a href="docs/v2/demo-task.mp4">视频</a>）</td>
-<td align="center">手机：同一件事在手机上交代（<a href="docs/v2/demo-phone.mp4">视频</a>）</td>
+<td align="center">网页：「新同事」写一句话，MyWork 照 nilenso 的做法配出「前沿哨兵」；它先问一件事，再交出今天的一页（等待部分快进，<a href="docs/v2/demo-task.mp4">视频</a>）</td>
+<td align="center">手机：在手机上接着问它（<a href="docs/v2/demo-phone.mp4">视频</a>）</td>
 </tr>
 </table>
 
 <p align="center">
-  <img src="docs/v2/web-working.jpg" width="49%" alt="同事在干活：右栏是它正在看的网页">
-  <img src="docs/v2/web-file.jpg" width="49%" alt="结果回到对话，文件在右栏打开">
+  <img src="docs/v2/web-working.jpg" width="49%" alt="同事在干活：右栏「电脑」是它正在看的网页和它的文件夹">
+  <img src="docs/v2/web-file.jpg" width="49%" alt="交出的那一页在阅读视图里打开">
 </p>
 <p align="center">
   <img src="docs/v2/phone-home.png" width="24%" alt="手机：同事列表">
@@ -39,7 +39,7 @@
 
 MyWork 把 AI 做成**同事**，而不是聊天框：
 
-- **一位同事负责一件长期的事。** 「财联社记者」每天三次整理新闻，「探新」每天早上盯 GitHub 新项目，「MyWork」什么杂事都能接。
+- **一位同事负责一件长期的事。** 「前沿哨兵」每天早上给你一页只看一手来源的 AI 进展，「论文哨兵」每个工作日过一遍 arXiv 全表，「MyWork」什么杂事都能接。
 - **一位同事只有一条对话。** 它记得你说过的偏好；追问「再短一点」，改的就是刚才那份，不会每次从零开始。
 - **它在后台干活，结果回到对话里。** 你不用盯着；干完的东西是一份文件，附带可核对的要点，并由第二个会话独立核验。
 - **它只在真需要你的时候来找你。** 缺关键信息、要你拍板、要付钱发消息删东西、要你登录，才会停下来问。
@@ -53,7 +53,9 @@ MyWork 把 AI 做成**同事**，而不是聊天框：
 
 | 功能 | 说明 |
 | --- | --- |
-| 一句话新建 | 左上「+」，写一句「它负责什么」，名字可以不填。它会自己起名、自我介绍，说出需要你补充什么；这句话里带时间，就顺手把例行建好。 |
+| 一句话配一位 | 左上「+」或列表末尾「新同事」，写一句「它负责什么」，名字、类型、头像可以不填。MyWork 挑最接近的一种从业者做法，照你的话改写成它的职责、规矩、开工要问你的那一件事和它会主动做的。 |
+| 照谁的做法 | 每日论文（苏剑林）、知识库（Karpathy 的 LLM Wiki）、实验（Karpathy 的 autoresearch）、代码研究（Simon Willison）、论文（Neel Nanda）、评测（Hamel Husain、Shreya Shankar）、前沿（nilenso 的 Atharva Raykar）、幕僚（Garry Tan 的 GBrain）、工程体检（Will Larson）。做法是参考，不是模板，在 `packages/tasks/playbooks/`。 |
+| 开工 | 新同事先打招呼，说它负责什么、照谁的做法；开工卡问你一件事（也可以拖文件进去）。答完它把规矩记进自己的 `AGENTS.md`，再列出「它会主动做的」（比如每天 8:30 一页、听到一个说法先回到一手来源），你勾了才算。 |
 | 让 MyWork 来建 | 跟 MyWork 说一件长期要盯的事（「以后每周一帮我看看……」），它先看有没有同事已经在做；没有就问一句要不要给它找一位专门的同事，你选「新建同事」它就建好，还可以当场先做第一份。对话里留一张新同事卡，点开就到它；那件事以后由它做。 |
 | 身份 | 名字、头衔、职责（职责就是它的工作指令）、彩色头像（干活时会动）。 |
 | 默认同事 | 「MyWork」一直在、不能删，什么都能接。 |

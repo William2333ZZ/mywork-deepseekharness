@@ -13,18 +13,18 @@
 
 <table>
 <tr>
-<td width="72%"><img src="docs/v2/demo-task.gif" alt="Web: asking 探新 for GitHub hot projects"></td>
-<td width="28%"><img src="docs/v2/demo-phone.gif" alt="Phone: the same job from the phone"></td>
+<td width="72%"><img src="docs/v2/demo-task.gif" alt="Web: one sentence gets a 前沿哨兵 teammate, which asks one thing and hands over today's page"></td>
+<td width="28%"><img src="docs/v2/demo-phone.gif" alt="Phone: asking it a follow-up"></td>
 </tr>
 <tr>
-<td align="center">Web: asking 探新 for today's GitHub hot projects (<a href="docs/v2/demo-task.mp4">video</a>)</td>
-<td align="center">Phone: the same job from the phone (<a href="docs/v2/demo-phone.mp4">video</a>)</td>
+<td align="center">Web: one sentence under "new teammate", and MyWork makes 前沿哨兵 after nilenso's way of keeping up with AI; it asks one thing, then hands over today's page (waits sped up, <a href="docs/v2/demo-task.mp4">video</a>)</td>
+<td align="center">Phone: asking it a follow-up (<a href="docs/v2/demo-phone.mp4">video</a>)</td>
 </tr>
 </table>
 
 <p align="center">
-  <img src="docs/v2/web-working.jpg" width="49%" alt="A teammate at work">
-  <img src="docs/v2/web-file.jpg" width="49%" alt="The result back in the conversation, the file in the right panel">
+  <img src="docs/v2/web-working.jpg" width="49%" alt="A teammate at work: the Computer panel shows the page it is reading and its folder">
+  <img src="docs/v2/web-file.jpg" width="49%" alt="The page it handed over, open in the reading view">
 </p>
 <p align="center">
   <img src="docs/v2/phone-home.png" width="24%" alt="Phone: teammates">
@@ -40,7 +40,7 @@ Most AI products are one-off chats: ask, answer, close. Real work isn't like tha
 
 MyWork turns AI into **teammates**, not a chat box:
 
-- **One teammate owns one ongoing job.** A news reporter that briefs you three times a day, a scout that checks new GitHub projects every morning, and MyWork for anything else.
+- **One teammate owns one ongoing job.** 前沿哨兵 brings you one page of first-hand AI news every morning, 论文哨兵 goes through the whole arXiv listing every weekday, and MyWork takes anything else.
 - **One teammate, one conversation.** It remembers your preferences; "make it shorter" changes the thing it just made.
 - **It works in the background and the result comes back to the conversation**, as a file with checkable key numbers, verified independently by a second session.
 - **It interrupts you only when it must**: missing key information, a decision only you can make, a consequential action (paying, sending, deleting), or a password, code or scan.
@@ -54,7 +54,9 @@ The product logic follows [Rakazo](https://github.com/elie222/rakazo) (persisten
 
 | Feature | What it does |
 | --- | --- |
-| Create in one sentence | "+" at the top left; describe its job, the name is optional. It names and introduces itself and says what it needs from you; a sentence with a time also creates the routine. |
+| One sentence makes one | "+" at the top left or "new teammate" at the end of the list; say what it is responsible for (name, type and avatar are optional). MyWork picks the closest practitioner's way of working and rewrites it from your words into the teammate's job, rules, the one thing it asks you first, and what it will do unasked. |
+| Whose way of working | Daily papers (Su Jianlin), knowledge base (Karpathy's LLM Wiki), experiments (Karpathy's autoresearch), code research (Simon Willison), paper writing (Neel Nanda), evals (Hamel Husain, Shreya Shankar), keeping up with AI (Atharva Raykar of nilenso), chief of staff (Garry Tan's GBrain), engineering health (Will Larson). They are references, not templates, in `packages/tasks/playbooks/`. |
+| First day | The new teammate says hello, what it does and whose way it follows; a kickoff card asks you one thing (you can drop files in). Once you answer it writes its rules into its own `AGENTS.md` and lists what it will do unasked (one page every day at 8:30, going back to the primary source for any claim you forward…); only what you tick counts. |
 | Let MyWork create it | Tell MyWork about an ongoing job ("every Monday, look at …"). It first checks whether a teammate already does it; if not, it asks whether to find the job its own teammate, and on "new teammate" it creates one, which can do the first round right away. A teammate card stays in the conversation and opens it; the job is that teammate's from then on. |
 | Identity | Name, title, job description (its standing instructions), a coloured avatar that moves while it works. |
 | Default teammate | MyWork is always there, can't be deleted, takes anything. |

@@ -1,0 +1,31 @@
+{
+  "name": "dsh-mywork-tasks",
+  "version": "0.0.1",
+  "description": "同事引擎 for MyWork Kit：每位同事一条永远的对话（自己的 dsh 会话、文件夹、例行与记忆），发一句话就干活，交付文件并在后台核验。同事页与文件页，deliver / mywork_ask / mywork_routine_create 等工具，场景插件通过 myworkTasks 服务注册。",
+  "license": "MIT",
+  "type": "module",
+  "keywords": ["dsh", "deepseek-harness", "dsh-plugin", "teammates", "routines", "deliverables", "agent"],
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./client": "./lib/client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": ["src", "lib", "presets", "playbooks", "cordis.patch.yml", "README.md"],
+  "scripts": {
+    "build": "node ../../scripts/build-client.mjs .",
+    "check": "node --check src/index.js && node --check src/store.js && node --check src/engine.js && node --check src/scenarios.js && node --check src/routines.js && node --check src/harness.js && node --check src/wiki.js && node --check src/client/thread.cjs && node --check src/client/index.js",
+    "test": "node --test test/*.test.mjs"
+  },
+  "engines": { "node": ">=22.19", "dsh": ">=0.1.6-alpha.2" },
+  "dsh": {
+    "bundle": { "patch": "./cordis.patch.yml" },
+    "client": {
+      "platform": "web",
+      "inject": ["@deepseek-ai/dsh-client-ui-layout", "@deepseek-ai/dsh-client-locale"]
+    }
+  },
+  "peerDependencies": { "@deepseek-ai/cordis": "*" },
+  "mywork": { "clientPrelude": ["src/md.cjs", "src/client/thread.cjs", "../../scripts/client-icons.cjs"] }
+}

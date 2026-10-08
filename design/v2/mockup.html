@@ -1,0 +1,1010 @@
+<!doctype html>
+<html lang="zh-CN" data-pal="champagne" data-scheme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MyWork v2 静态稿</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+/* Palettes: copied from packages/shell/src/client/index.js (炭 · 香槟 default, 墨 · 雾紫), dark and light. */
+html[data-pal="champagne"][data-scheme="dark"]{--page:#0a0908;--bg:#12100e;--side:#0e0c0a;--card:#191714;--bubble:#211f1c;--bubble-focus:#272522;--elevated:#1f1c1a;--fg:#efebe2;--fg2:rgba(239,235,226,.68);--fg3:rgba(239,235,226,.54);--rule:rgba(239,235,226,.09);--rule-soft:rgba(239,235,226,.05);--accent:#d8c198;--accent-fg:#191511;--accent-text:#dec79f;--me:#3b342a;--me-fg:#f2eee6;--sel:rgba(216,193,152,.1);--attn:#e2c797;--attn-fg:#191511;--danger:#df7f78;--badge:#c74b47;--mark-bg:#292622;--mark-fg:#fff;--shadow:0 8px 24px rgba(0,0,0,.5);--bar:rgba(18,16,14,.84);--av-slate:#6d757f;--av-blue:#617692;--av-teal:#517e7b;--av-green:#607d65;--av-amber:#9c8a6a;--av-orange:#8d6c5a;--av-rose:#8f6870;--av-violet:#766f8f}
+html[data-pal="champagne"][data-scheme="light"]{--page:#ebe7e1;--bg:#fcfaf6;--side:#f5f2ee;--card:#fffdfa;--bubble:#efece7;--bubble-focus:#e9e6e0;--elevated:#fff;--fg:#26201c;--fg2:rgba(38,32,28,.76);--fg3:rgba(38,32,28,.66);--rule:rgba(38,32,28,.1);--rule-soft:rgba(38,32,28,.05);--accent:#7c5d34;--accent-fg:#fff;--accent-text:#74542c;--me:#eadec8;--me-fg:#26201c;--sel:rgba(124,93,52,.12);--attn:#9b641a;--attn-fg:#fff;--danger:#b33736;--badge:#cb4644;--mark-bg:#26201c;--mark-fg:#fff;--shadow:0 8px 24px rgba(40,30,20,.08);--bar:rgba(252,250,246,.84);--av-slate:#7e8791;--av-blue:#7288a4;--av-teal:#62908d;--av-green:#718f76;--av-amber:#ae9c7b;--av-orange:#a07e6b;--av-rose:#a17a82;--av-violet:#8881a2}
+html[data-pal="mist"][data-scheme="dark"]{--page:#07080b;--bg:#0f0f13;--side:#0a0b0f;--card:#16171c;--bubble:#1e1f25;--bubble-focus:#24252b;--elevated:#1d1e24;--fg:#f1f1f6;--fg2:rgba(241,241,246,.68);--fg3:rgba(241,241,246,.54);--rule:rgba(241,241,246,.09);--rule-soft:rgba(241,241,246,.05);--accent:#666cad;--accent-fg:#fff;--accent-text:#aab3ee;--me:#383c62;--me-fg:#f4f5f9;--sel:rgba(102,108,173,.16);--attn:#efb062;--attn-fg:#1a1206;--danger:#eb827b;--badge:#cb4644;--mark-bg:#25262b;--mark-fg:#fff;--shadow:0 8px 24px rgba(0,0,0,.5);--bar:rgba(15,15,19,.84);--av-slate:#717c87;--av-blue:#627c9e;--av-teal:#4e8682;--av-green:#618568;--av-amber:#a58f68;--av-orange:#98705a;--av-rose:#996c75;--av-violet:#7c749b}
+html[data-pal="mist"][data-scheme="light"]{--page:#e8e8ee;--bg:#fbfbfe;--side:#f4f4f7;--card:#fff;--bubble:#eeeff3;--bubble-focus:#e8e8ec;--elevated:#fff;--fg:#1b1c24;--fg2:rgba(27,28,36,.76);--fg3:rgba(27,28,36,.65);--rule:rgba(27,28,36,.1);--rule-soft:rgba(27,28,36,.05);--accent:#5b61a7;--accent-fg:#fff;--accent-text:#50559a;--me:#e3e6fc;--me-fg:#1b1c24;--sel:rgba(91,97,167,.12);--attn:#a46311;--attn-fg:#fff;--danger:#b63132;--badge:#cb4644;--mark-bg:#1b1c24;--mark-fg:#fff;--shadow:0 8px 24px rgba(40,30,20,.08);--bar:rgba(251,251,254,.84);--av-slate:#7e8792;--av-blue:#7088a7;--av-teal:#5e918d;--av-green:#6f9075;--av-amber:#b09c78;--av-orange:#a27d69;--av-rose:#a47982;--av-violet:#8880a4}
+
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--page);color:var(--fg);font:13px/1.55 "Geist","PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans SC",system-ui,sans-serif;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
+button{font:inherit;color:inherit}
+.i{width:16px;height:16px;flex:none}
+.mono{font-family:"Geist Mono",ui-monospace,"SF Mono",Menlo,monospace}
+
+/* page chrome (outside the app) */
+.top{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:16px;padding:10px 24px;background:var(--page);border-bottom:1px solid var(--rule-soft);flex-wrap:wrap}
+.top .brand{display:flex;align-items:center;gap:8px;font-weight:600;font-size:13px;white-space:nowrap}
+.top .brand small{font-weight:400;color:var(--fg3);font-size:11.5px}
+.tabs{display:flex;gap:2px;flex-wrap:wrap}
+.tabs button{border:0;background:none;height:28px;padding:0 11px;border-radius:7px;color:var(--fg3);cursor:pointer;font-size:12.5px}
+.tabs button:hover{color:var(--fg);background:var(--rule-soft)}
+.tabs button.on{color:var(--fg);background:var(--rule)}
+.theme{margin-left:auto;display:flex;gap:8px}
+.seg{display:flex;background:var(--rule-soft);border:1px solid var(--rule);border-radius:8px;padding:2px}
+.seg button,.seg span{border:0;background:none;padding:3px 10px;border-radius:6px;color:var(--fg3);font-size:11.5px;cursor:pointer;white-space:nowrap;text-align:center}
+.seg .on{background:var(--bubble-focus);color:var(--fg)}
+.cap{max-width:1360px;margin:14px auto 10px;padding:0 24px;font-size:12.5px;color:var(--fg2);display:flex;gap:12px;align-items:baseline}
+.cap b{color:var(--fg);font-weight:600;white-space:nowrap}
+.cap .ref{margin-left:auto;color:var(--fg3);font-size:11.5px;white-space:nowrap}
+.stage{padding:0 24px 40px}
+.fit{width:1360px;margin:0 auto}
+.screen{display:none}
+.screen.on{display:block}
+
+/* app frame */
+.app{display:grid;grid-template-columns:264px minmax(0,1fr) 320px;grid-template-rows:minmax(0,1fr);height:840px;background:var(--bg);border:1px solid var(--rule);border-radius:12px;overflow:hidden;box-shadow:var(--shadow)}
+
+/* sidebar */
+.side{background:var(--side);border-right:1px solid var(--rule);display:flex;flex-direction:column;min-width:0;min-height:0}
+.side-top{height:52px;display:flex;align-items:center;gap:4px;padding:0 8px 0 14px;flex:none}
+.side-top .logo{width:28px;display:grid;place-items:center;margin-right:4px}
+.search{flex:1;height:28px;border-radius:7px;background:var(--rule-soft);border:1px solid var(--rule);display:flex;align-items:center;gap:6px;padding:0 8px;color:var(--fg3);font-size:12px;min-width:0}
+.search .i{width:14px;height:14px}
+.ib{width:28px;height:28px;border-radius:7px;display:grid;place-items:center;color:var(--fg2);position:relative;flex:none;cursor:pointer}
+.ib:hover{background:var(--rule-soft);color:var(--fg)}
+.ib.on{background:var(--rule);color:var(--fg)}
+.ib .cnt{position:absolute;top:1px;right:0;min-width:14px;height:14px;padding:0 3px;border-radius:7px;background:var(--attn);color:var(--attn-fg);font-size:9.5px;font-weight:600;line-height:14px;text-align:center}
+.side-list{flex:1;overflow:auto;padding-bottom:8px}
+.grp{padding:12px 14px 4px;font-size:11px;color:var(--fg3);display:flex;align-items:center;gap:3px}
+.grp .i{width:12px;height:12px}
+.row{height:52px;display:grid;grid-template-columns:28px minmax(0,1fr) auto;column-gap:10px;align-items:center;padding:0 10px 0 8px;margin:0 6px;border-radius:8px;cursor:pointer}
+.row:hover{background:var(--rule-soft)}
+.row.sel{background:var(--rule)}
+.row .nm{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .pv{font-size:12px;color:var(--fg3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .tm{font-size:11px;color:var(--fg3);align-self:start;margin-top:9px;white-space:nowrap}
+.row .tm.busy{color:var(--accent-text)}
+.newmate{display:flex;align-items:center;gap:10px;height:40px;padding:0 14px;color:var(--fg2);font-size:12.5px;margin:4px 0 0}
+.newmate .ph{width:28px;height:28px;border-radius:8px;border:1px dashed var(--rule);display:grid;place-items:center}
+.side-foot{border-top:1px solid var(--rule-soft);padding:6px 6px 8px;flex:none}
+.side-foot div{height:32px;display:flex;align-items:center;gap:10px;padding:0 10px;font-size:12.5px;color:var(--fg2);border-radius:7px}
+.av{position:relative;display:inline-block;width:28px;height:28px;flex:none;line-height:0}
+.av svg{width:100%;height:100%}
+.av .ur{position:absolute;top:-4px;right:-6px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--badge);color:#fff;font-size:10px;font-weight:600;line-height:16px;text-align:center;box-shadow:0 0 0 2px var(--side)}
+.av.s16{width:16px;height:16px}
+.av.s20{width:20px;height:20px}
+.av.s24{width:24px;height:24px}
+
+/* main column */
+.main{display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--bg)}
+.mh{height:52px;display:flex;align-items:center;gap:10px;padding:0 12px 0 20px;border-bottom:1px solid var(--rule-soft);flex:none}
+.mh .nm{font-size:14px;font-weight:600;white-space:nowrap}
+.mh .ds{font-size:12px;color:var(--fg3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mh .tools{margin-left:auto;display:flex;gap:2px}
+.thread{flex:1;overflow:auto;padding:8px 0 20px;position:relative}
+.col{max-width:740px;margin:0 auto;padding:0 28px}
+.tsep{text-align:center;font-size:11px;color:var(--fg3);margin:22px 0 6px}
+.m{display:flex;gap:10px;margin:12px 0}
+.m>.av{margin-top:2px}
+.body{min-width:0;display:flex;flex-direction:column;gap:8px;align-items:flex-start;max-width:600px}
+.body.w{width:600px}
+.bub{background:var(--bubble);padding:8px 12px;border-radius:10px;font-size:13.5px;line-height:1.65;max-width:600px}
+.m.me{justify-content:flex-end}
+.m.me .body{align-items:flex-end}
+.m.me .bub{background:var(--me);color:var(--me-fg)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.chip{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border:1px solid var(--rule);border-radius:8px;font-size:12px;color:var(--fg2);background:var(--card)}
+.chip .i{width:14px;height:14px}
+.chip small{color:var(--fg3);font-size:11px}
+
+/* small lines */
+.note{font-size:12px;color:var(--fg3);display:flex;align-items:center;gap:6px;flex-wrap:wrap;line-height:1.5}
+.note .i{width:13px;height:13px}
+.lnk{color:var(--accent-text);cursor:pointer;white-space:nowrap}
+.lnk.mute{color:var(--fg2)}
+.sep{color:var(--fg3)}
+.did{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--fg2);padding:6px 10px;border-radius:8px;background:var(--rule-soft);max-width:600px;flex-wrap:wrap;line-height:1.5}
+.did .i{width:14px;height:14px;color:var(--fg3)}
+.did .acts{margin-left:auto;display:flex;gap:10px}
+.irrev{font-size:10.5px;color:var(--fg3);border:1px solid var(--rule);border-radius:4px;padding:0 5px;line-height:16px;white-space:nowrap}
+.rline{display:flex;align-items:center;justify-content:center;gap:6px;font-size:11.5px;color:var(--fg3);margin:14px 0}
+.rline .i{width:13px;height:13px}
+.handover{margin:26px 0 8px}
+.handover .ln{display:flex;align-items:center;gap:10px;font-size:11.5px;color:var(--accent-text)}
+.handover .ln::before,.handover .ln::after{content:"";flex:1;height:1px;background:var(--rule)}
+.handover .sum{text-align:center;font-size:12px;color:var(--fg2);margin-top:5px;line-height:1.6}
+.handover .sum .lnk{color:var(--fg)}
+
+/* cards */
+.card{background:var(--card);border:1px solid var(--rule);border-radius:10px;width:100%;font-size:12.5px;line-height:1.6}
+.ch{display:flex;align-items:baseline;gap:8px;padding:10px 14px 6px}
+.ct{font-size:13px;font-weight:600}
+.cm{margin-left:auto;font-size:11px;color:var(--fg3);white-space:nowrap}
+.cb{padding:0 14px 10px}
+.cf{border-top:1px solid var(--rule-soft);padding:7px 14px;font-size:11px;color:var(--fg3);display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.cf .lnk{font-size:11px}
+.acts-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:2px 14px 12px}
+.acts-row .hint{margin-left:auto;font-size:11px;color:var(--fg3)}
+.btn{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 9px;border-radius:6px;border:1px solid var(--rule);background:transparent;color:var(--fg);font-size:12px;cursor:pointer;white-space:nowrap}
+.btn:hover{background:var(--rule-soft)}
+.btn .i{width:13px;height:13px}
+.btn.pri{background:var(--accent);color:var(--accent-fg);border-color:transparent;font-weight:500}
+.btn.picked{background:var(--sel);border-color:transparent;color:var(--accent-text)}
+.btn.ghost{border-color:transparent;color:var(--fg2)}
+.kv{display:grid;grid-template-columns:64px 1fr;column-gap:12px;row-gap:3px;padding:0 14px 10px}
+.kv dt{color:var(--fg3);font-size:12px}
+.kv dd{margin:0;font-size:12.5px}
+.tier{font-size:11px;color:var(--fg3);white-space:nowrap}
+.tier.now{color:var(--accent-text)}
+.st{font-size:11px;padding:0 6px;border-radius:4px;line-height:18px;white-space:nowrap;display:inline-block}
+.st.ok{color:var(--fg3);background:var(--rule-soft)}
+.st.look{color:var(--attn);background:color-mix(in oklab,var(--attn) 14%,transparent)}
+.st.bad{color:var(--danger);background:color-mix(in oklab,var(--danger) 14%,transparent)}
+.st.miss{color:var(--fg3);box-shadow:inset 0 0 0 1px var(--rule)}
+.st.mine{color:var(--fg2);box-shadow:inset 0 0 0 1px var(--rule)}
+.ex{border-left:2px solid var(--rule);padding:2px 0 2px 10px;color:var(--fg2);margin:4px 0}
+.hl{background:color-mix(in oklab,var(--accent) 22%,transparent);color:var(--fg);border-radius:2px;padding:0 1px}
+.chg{padding:6px 14px 8px;border-top:1px solid var(--rule-soft)}
+.chg:first-of-type{border-top:0}
+.chg .l1{display:flex;gap:8px;align-items:baseline}
+.chg .l1 b{font-weight:500}
+.chg .l1 .tier{margin-left:auto}
+.chg .l2{color:var(--fg2);font-size:12px}
+.chg .l2 .hit{color:var(--attn)}
+.fold{display:flex;gap:8px;align-items:center;padding:6px 14px;border-top:1px solid var(--rule-soft);color:var(--fg3);font-size:12px}
+.fold .lnk{margin-left:auto}
+.filecard .fh{display:flex;gap:10px;align-items:center;padding:10px 14px}
+.filecard .fi{width:32px;height:32px;border-radius:8px;background:var(--rule-soft);display:grid;place-items:center;color:var(--fg2)}
+.filecard .fn{font-weight:600;font-size:13px}
+.filecard .fs{font-size:11.5px;color:var(--fg3)}
+.prog{display:flex;gap:10px;flex-wrap:wrap;padding:0 14px 4px;font-size:12px;color:var(--fg2)}
+.prog .k{color:var(--fg3)}
+.prog .look{color:var(--attn)}
+.prog .bad{color:var(--danger)}
+.need{border-color:color-mix(in oklab,var(--attn) 38%,var(--rule))}
+.need .ch .ct{color:var(--attn)}
+.quote{border-left:2px solid var(--rule);padding-left:10px;color:var(--fg2);font-size:12px;margin:0 14px 8px}
+
+/* today card */
+.tc .sec{padding:9px 14px 3px;font-size:11.5px;color:var(--fg3);display:flex;gap:6px;align-items:center}
+.tc .sec.need{color:var(--attn)}
+.tc .sec .i{width:13px;height:13px}
+.tc .r{display:grid;grid-template-columns:104px minmax(0,1fr) auto;column-gap:10px;align-items:center;padding:3px 14px;min-height:28px;cursor:pointer}
+.tc .r:hover{background:var(--rule-soft)}
+.tc .r .tx{font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tc .r .tx .d{color:var(--fg3)}
+.tc .r .rt{display:flex;gap:6px;align-items:center}
+.who{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--fg2);white-space:nowrap;overflow:hidden}
+.tc .foot{border-top:1px solid var(--rule-soft);margin-top:6px;padding:7px 14px;font-size:12px;color:var(--fg3);display:flex;flex-direction:column;gap:2px}
+.tc .late{border-top:1px dashed var(--rule);padding:7px 14px;font-size:12px;color:var(--fg2);display:flex;gap:8px;align-items:center}
+
+/* plan card */
+.steps{padding:4px 14px 8px;border-top:1px solid var(--rule-soft)}
+.step{display:flex;gap:8px;align-items:center;font-size:12.5px;padding:2px 0}
+.step .i{width:14px;height:14px;color:var(--fg3)}
+.step.done{color:var(--fg2)}
+.step.cur{color:var(--fg)}
+.step.cur .i{color:var(--accent-text)}
+.step.todo{color:var(--fg3)}
+.step .r{margin-left:auto;font-size:11.5px;color:var(--fg3)}
+.pbar{height:3px;border-radius:2px;background:var(--rule);overflow:hidden;margin:6px 0 4px}
+.pbar i{display:block;height:100%;background:var(--accent)}
+.runline{font-size:12px;color:var(--fg2);padding:0 14px 8px}
+.srow{display:grid;grid-template-columns:34px 190px minmax(0,1fr);column-gap:8px;padding:4px 14px;border-top:1px solid var(--rule-soft);font-size:12px;align-items:baseline}
+.srow .n{color:var(--fg3)}
+.diff{display:grid;grid-template-columns:64px 1fr;column-gap:12px;row-gap:4px;padding:0 14px 10px}
+.diff dt{color:var(--fg3);font-size:12px}
+.diff dd{margin:0}
+
+/* checkbox list */
+.ck{display:flex;gap:8px;align-items:flex-start;padding:3px 0;font-size:12.5px}
+.box{width:14px;height:14px;border-radius:4px;border:1px solid var(--fg3);flex:none;margin-top:3px;display:grid;place-items:center}
+.box.on{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.box .i{width:11px;height:11px;stroke-width:2.4}
+.ck.off{color:var(--fg2)}
+.ck small{color:var(--fg3);font-size:11.5px}
+
+/* table */
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{text-align:left;font-weight:500;color:var(--fg3);font-size:11px;padding:4px 14px;border-bottom:1px solid var(--rule-soft)}
+.tbl td{padding:5px 14px;border-bottom:1px solid var(--rule-soft);vertical-align:top}
+.tbl tr:last-child td{border-bottom:0}
+.tbl td.src{color:var(--fg3)}
+
+/* composer */
+.comp{padding:8px 28px 16px;flex:none}
+.comp .box2{max-width:684px;margin:0 auto;display:flex;align-items:center;gap:8px;background:var(--bubble);border-radius:10px;padding:7px 7px 7px 12px;font-size:13px;color:var(--fg3)}
+.comp .send{margin-left:auto;width:28px;height:28px;border-radius:7px;background:var(--rule);display:grid;place-items:center;color:var(--fg2)}
+.work{max-width:684px;margin:0 auto 8px;font-size:12px;color:var(--fg2);display:flex;gap:10px;align-items:center}
+.work .pbar{flex:0 0 90px;margin:0}
+.work .acts{margin-left:auto;display:flex;gap:6px}
+
+/* right panel */
+.panel{border-left:1px solid var(--rule);background:var(--side);display:flex;flex-direction:column;min-width:0;min-height:0}
+.ph{height:52px;display:flex;align-items:center;gap:2px;padding:0 12px;border-bottom:1px solid var(--rule-soft);flex:none}
+.ptab{height:28px;padding:0 10px;border-radius:7px;font-size:12.5px;color:var(--fg3);display:flex;align-items:center;gap:6px;cursor:pointer}
+.ptab.on{background:var(--rule);color:var(--fg)}
+.ptab .i{width:14px;height:14px}
+.pbody{flex:1;overflow:auto;padding:2px 0 20px}
+.ps{padding:12px 16px;border-bottom:1px solid var(--rule-soft)}
+.ps:last-child{border-bottom:0}
+.ps h4{font-size:12px;font-weight:600;margin:0 0 7px;display:flex;align-items:center;gap:6px}
+.ps h4 .n{color:var(--fg3);font-weight:400}
+.ps h4 .n.attn{color:var(--attn)}
+.ps h4 .act{margin-left:auto;font-weight:400;font-size:11.5px}
+.pl{display:flex;align-items:baseline;gap:8px;font-size:12px;line-height:1.5;padding:3px 0;color:var(--fg2);min-width:0}
+.pl .mn{color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.pl .r{margin-left:auto;color:var(--fg3);font-size:11px;white-space:nowrap;flex:none}
+.pl .r.attn{color:var(--attn)}
+.pl .id{color:var(--fg3);font-size:11px;flex:none;width:26px}
+.pl .tm{color:var(--fg3);font-size:11px;flex:none;width:34px}
+.more{font-size:11.5px;color:var(--fg3);padding-top:3px}
+.empty{font-size:12px;color:var(--fg3);line-height:1.6}
+.ps .seg{width:100%}
+.ps .seg span{flex:1}
+.pdesc{font-size:11.5px;color:var(--fg3);margin-top:6px;line-height:1.5}
+.tg{display:inline-block;vertical-align:middle;width:26px;height:15px;border-radius:8px;background:var(--rule);position:relative;flex:none}
+.tg::after{content:"";position:absolute;top:2px;left:2px;width:11px;height:11px;border-radius:50%;background:var(--fg3)}
+.tg.on{background:var(--accent)}
+.tg.on::after{left:13px;background:var(--accent-fg)}
+.bar2{flex:0 0 70px;height:4px;border-radius:2px;background:var(--rule);overflow:hidden;align-self:center}
+.bar2 i{display:block;height:100%;background:var(--fg3)}
+
+/* doc reader */
+.doc{flex:1;overflow:auto;position:relative}
+.doc .col{max-width:700px}
+.checkbar{position:sticky;top:0;z-index:2;background:var(--bar);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--rule-soft);height:40px;display:flex;align-items:center;gap:14px;padding:0 24px;font-size:12px;color:var(--fg2)}
+.checkbar b{color:var(--fg);font-weight:600}
+.checkbar .nav{display:flex;gap:2px;align-items:center}
+.checkbar .nav .btn{height:24px}
+.checkbar .r{margin-left:auto;color:var(--fg3);font-size:11.5px}
+.doc h1{font-size:20px;font-weight:600;line-height:1.4;margin:24px 0 4px}
+.doc .meta{font-size:12px;color:var(--fg3)}
+.doc h2{font-size:14.5px;font-weight:600;margin:24px 0 4px}
+.doc p{font-size:14px;line-height:1.85;margin:6px 0}
+.num{text-decoration:underline;text-decoration-color:var(--fg3);text-decoration-thickness:1px;text-underline-offset:4px;cursor:pointer}
+.num.look{text-decoration-color:var(--attn);text-decoration-thickness:1.5px}
+.num.bad{text-decoration-color:var(--danger);text-decoration-thickness:1.5px}
+.num.cur{background:var(--sel);border-radius:3px;box-shadow:0 0 0 2px var(--sel)}
+.sent-look{text-decoration:underline dotted var(--attn);text-underline-offset:4px}
+.mk{font-size:11px;color:var(--fg3)}
+.miss{margin:14px 0 4px;border:1px solid var(--rule);border-radius:10px;font-size:12.5px}
+.miss .mh2{padding:8px 14px 4px;font-size:12px;color:var(--fg2);font-weight:600}
+.miss .mr{display:grid;grid-template-columns:56px minmax(0,1fr) auto;column-gap:10px;padding:4px 14px;align-items:center}
+.miss .mr:last-child{padding-bottom:10px}
+.miss .mr .k{color:var(--fg3);font-size:12px}
+.fc{margin:6px 0 14px;font-size:12.5px}
+.fc .ch{padding-bottom:2px}
+.fc .why{padding:0 14px 4px;color:var(--fg2)}
+.fc .src{padding:0 14px;color:var(--fg3)}
+.fc .ex{margin:6px 14px 10px}
+.fixrow{padding:4px 14px 6px;display:flex;gap:8px;align-items:center;border-top:1px solid var(--rule-soft)}
+.fixrow .k{color:var(--fg3);font-size:12px;width:56px;flex:none}
+.inp{height:26px;border:1px solid var(--accent);border-radius:6px;padding:0 8px;display:flex;align-items:center;min-width:140px;font-size:12.5px;background:var(--bg)}
+.reasons{display:flex;gap:6px;flex-wrap:wrap}
+
+/* live browser */
+.brw{margin:12px;border:1px solid var(--rule);border-radius:10px;overflow:hidden;background:var(--card)}
+.brw .bar3{display:flex;align-items:center;gap:8px;padding:8px 10px;font-size:11.5px;color:var(--fg3);border-bottom:1px solid var(--rule-soft)}
+.brw .bar3 .dot{width:7px;height:7px;border-radius:50%;background:var(--fg3)}
+.brw .addr{display:flex;align-items:center;gap:6px;height:28px;margin:8px 10px;padding:0 8px;border-radius:7px;background:var(--rule-soft);font-size:11px;color:var(--fg2);white-space:nowrap;overflow:hidden}
+.brw .addr .i{width:12px;height:12px;color:var(--fg3)}
+.pdf{background:#f4f2ee;color:#2a2622;margin:0 10px 10px;border-radius:4px;padding:16px 16px 18px;font-size:10.5px;line-height:1.95;height:560px;overflow:hidden}
+.pdf h5{margin:0 0 6px;font-size:11.5px;font-weight:600;text-align:center}
+.pdf .pg{text-align:center;color:#8a847c;font-size:9.5px;margin-top:10px}
+.pdf mark{background:#f2d27a;color:#1d1a16;padding:0 1px}
+.pdf .ln{height:6px;border-radius:2px;background:#dcd8d1;margin:9px 0}
+.files .fr{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12px;color:var(--fg2)}
+.files .fr .i{width:14px;height:14px;color:var(--fg3)}
+.files .fr .r{margin-left:auto;font-size:11px;color:var(--fg3)}
+.files .fr.sub{padding-left:22px}
+.files .fr .live{color:var(--accent-text)}
+.mdprev{margin-top:8px;border:1px solid var(--rule);border-radius:8px;padding:8px 10px;font-size:11.5px;line-height:1.7;color:var(--fg2);background:var(--card)}
+.mdprev b{color:var(--fg);font-weight:600}
+
+/* phones */
+.phones{display:flex;gap:36px;justify-content:center;align-items:flex-start;padding:4px 0}
+.phone{width:360px;height:760px;border-radius:40px;border:1px solid var(--rule);background:var(--bg);box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column;position:relative}
+.phone .sbar{height:40px;display:flex;justify-content:space-between;align-items:flex-end;padding:0 28px 6px;font-size:12px;font-weight:600;flex:none}
+.phone .phd{height:46px;display:flex;align-items:center;gap:8px;padding:0 14px;border-bottom:1px solid var(--rule-soft);flex:none}
+.phone .phd .nm{font-weight:600;font-size:14px}
+.phone .pbody2{flex:1;overflow:auto;padding:10px 12px}
+.phone .pcomp{padding:8px 12px 22px;flex:none}
+.phone .pcomp div{height:36px;border-radius:10px;background:var(--bubble);display:flex;align-items:center;padding:0 12px;color:var(--fg3);font-size:13px}
+.plabel{text-align:center;font-size:11.5px;color:var(--fg3);margin-top:12px}
+.lock{background:linear-gradient(180deg,color-mix(in oklab,var(--accent) 16%,var(--bg)),var(--bg) 55%)}
+.lock .clock{text-align:center;font-size:56px;font-weight:500;letter-spacing:-1px;margin-top:40px;line-height:1}
+.lock .date{text-align:center;font-size:13px;color:var(--fg2);margin:8px 0 26px}
+.ntf{margin:0 12px 10px;background:var(--elevated);border:1px solid var(--rule);border-radius:16px;padding:10px 12px;font-size:12.5px;line-height:1.55}
+.ntf .napp{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--fg3);margin-bottom:3px}
+.ntf .napp .sq{width:16px;height:16px;border-radius:4px;background:var(--rule);display:grid;place-items:center}
+.ntf .napp .sq .i{width:11px;height:11px}
+.ntf .napp .t{margin-left:auto}
+.ntf b{font-weight:600}
+.ntf .na{display:flex;gap:14px;margin-top:6px;font-size:12px}
+.mtc .r{display:block;padding:6px 12px}
+.mtc .r .who{margin-bottom:1px}
+.mtc .r .tx{white-space:normal;font-size:13px}
+.one{padding:16px 16px}
+.one .pos{display:flex;justify-content:space-between;font-size:12px;color:var(--fg3)}
+.one .big{font-size:22px;font-weight:600;margin:14px 0 4px}
+.one .why{font-size:12.5px;color:var(--fg2)}
+.one .exb{margin:14px 0;background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:12px;font-size:13px;line-height:1.75}
+.one .exb .s{font-size:11.5px;color:var(--fg3);margin-bottom:6px}
+.one .ctx{font-size:12.5px;color:var(--fg2);line-height:1.7}
+.bigbtns{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:10px 12px 26px;flex:none}
+.bigbtns div{height:44px;border-radius:10px;border:1px solid var(--rule);display:grid;place-items:center;font-size:14px}
+.bigbtns .pri{background:var(--accent);color:var(--accent-fg);border-color:transparent;font-weight:500}
+.swipe{text-align:center;font-size:11px;color:var(--fg3);display:flex;justify-content:center;gap:6px;align-items:center}
+.swipe .i{width:12px;height:12px}
+
+@media (prefers-reduced-motion:no-preference){.tabs button,.btn,.row,.ib{transition:background-color .12s ease,color .12s ease}}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand"><span class="av s20" data-m="mywork"></span>MyWork v2 静态稿 <small>2026-10-05 · 按 EDITIONS.md 和 PROACTIVE.md 画 · 数据都是示例</small></div>
+  <nav class="tabs" id="tabs">
+    <button data-s="today">今天卡</button>
+    <button data-s="thread">同事对话</button>
+    <button data-s="check">核对</button>
+    <button data-s="plan">长任务</button>
+    <button data-s="onboard">上岗</button>
+    <button data-s="phone">手机</button>
+  </nav>
+  <div class="theme">
+    <div class="seg" id="pal"><button data-v="champagne">炭 · 香槟</button><button data-v="mist">墨 · 雾紫</button></div>
+    <div class="seg" id="scheme"><button data-v="dark">深</button><button data-v="light">浅</button></div>
+  </div>
+</header>
+
+<!-- ============ 1. 今天卡 ============ -->
+<section class="screen" id="s-today">
+  <p class="cap"><b>今天卡</b>MyWork 现在的晨报改成由代码拼出来的今天卡，不调模型：需要你、今天的日子、变化、待你核、花费，最多 12 行，一屏看完。每行点进去，都跳到那位同事对话里对应的那一轮。<span class="ref">EDITIONS 4.4 · PROACTIVE 7.4</span></p>
+  <div class="stage"><div class="fit"><div class="app">
+    <aside class="side" data-sel="mywork"></aside>
+    <main class="main">
+      <div class="mh"><span class="av s24" data-m="mywork"></span><span class="nm">MyWork</span>
+        <div class="tools"><span class="ib"><i data-i="monitor"></i></span><span class="ib on"><i data-i="panel"></i></span><span class="ib"><i data-i="more"></i></span></div></div>
+      <div class="thread"><div class="col">
+        <div class="tsep">昨天 08:30</div>
+        <div class="m"><span class="av" data-m="mywork"></span><div class="body w">
+          <div class="card"><div class="ch"><span class="ct">今天 · 10/20 周二</span><span class="cm">你 08:41 看过</span></div>
+            <div class="cb" style="color:var(--fg3);font-size:12px">需要你 2 · 今天的日子 1（宁德三季报盘后）· 变化 3 · 昨天花费 ¥2.70 <span class="lnk mute" style="margin-left:8px">展开</span></div></div>
+        </div></div>
+        <div class="m me"><div class="body"><div class="bub">以后行业周报每期发群之前，先给我签收</div></div></div>
+        <div class="m"><span class="av" data-m="mywork"></span><div class="body">
+          <div class="bub">好，已转告行业周报。</div>
+          <div class="note"><i data-i="book"></i>记进关于我：要交给别人的东西，发之前先给你签收 <span class="lnk">改</span><span class="lnk mute">删</span></div>
+        </div></div>
+
+        <div class="tsep" data-anchor>今天 08:30</div>
+        <div class="m"><span class="av" data-m="mywork"></span><div class="body w">
+          <div class="card tc">
+            <div class="ch"><span class="ct">今天 · 10/21 周三</span><span class="cm">08:30 · 08:52 补了 1 条</span></div>
+            <div class="sec need"><i data-i="flag"></i>需要你 3</div>
+            <div class="r"><span class="who"><span class="av s16" data-m="cover"></span>覆盖研究</span><span class="tx">J-01 到了重看条件 <span class="d">· 储能出货同比 +17.2%，低于你写的 20%</span></span><span class="rt"><span class="btn">看</span></span></div>
+            <div class="r"><span class="who"><span class="av s16" data-m="ai"></span>2 位同事</span><span class="tx">x.com 登录 <span class="d">· 第 2 天</span></span><span class="rt"><span class="btn">去电脑上</span><span class="btn">把账号给它</span><span class="btn ghost">今晚提醒</span></span></div>
+            <div class="r"><span class="who"><span class="av s16" data-m="weekly"></span>行业周报</span><span class="tx">第 42 期待签收 <span class="d">· 今天 17:00 前发「投研群」</span></span><span class="rt"><span class="btn">看</span></span></div>
+            <div class="sec"><i data-i="calendar"></i>今天的日子</div>
+            <div class="r"><span class="who"><span class="av s16" data-m="cover"></span>覆盖研究</span><span class="tx">比亚迪 三季报（盘后）<span class="d">· 准备好了 · 要对 J-04</span></span><span class="rt"><span class="btn">看</span></span></div>
+            <div class="r"><span class="who"><span class="av s16" data-m="ai"></span>盯在用的 AI</span><span class="tx">deepseek-chat（旧版）明天下线 <span class="d">· 代码审查还没改</span></span><span class="rt"><span class="btn">看</span></span></div>
+            <div class="sec"><i data-i="diff"></i>变化 3</div>
+            <div class="r"><span class="who"><span class="av s16" data-m="cover"></span>覆盖研究</span><span class="tx">宁德 三季报：J-01 碰线，J-05 仍成立</span><span class="rt"><span class="tier now">立刻 · 昨天 21:14 已推</span></span></div>
+            <div class="r"><span class="who"><span class="av s16" data-m="ai"></span>盯在用的 AI</span><span class="tx">qwen-max 输入价 −40%，10/27 生效 <span class="d">· 动到 工单摘要</span></span><span class="rt"><span class="tier now">立刻 · 07:30 已推</span></span></div>
+            <div class="r"><span class="who"><span class="av s16" data-m="topic"></span>课题</span><span class="tx">2 篇相关新论文 <span class="d">· 1 篇和你的贡献点 2 很像</span></span><span class="rt"></span></div>
+            <div class="sec"><i data-i="check-c"></i>待你核 4</div>
+            <div class="r"><span class="who"><span class="av s16" data-m="cover"></span>覆盖研究</span><span class="tx">宁德三季报对账 <span class="d">· 结论里用到的 4 处</span></span><span class="rt"><span class="btn">去核</span></span></div>
+            <div class="foot">
+              <span>它们昨晚做了 6 件 · 没开口：看过 139（覆盖 63 · 在用 45 · 课题 31）</span>
+              <span>昨天花费 ¥3.20 · 本月 ¥41 / ¥150</span>
+            </div>
+            <div class="late"><span style="color:var(--fg3)">08:52 补</span><span class="av s16" data-m="topic"></span>课题 · 你在第 2 节引用的 [23] 在 arXiv 上撤稿了<span class="btn" style="margin-left:auto">看</span></div>
+          </div>
+        </div></div>
+      </div></div>
+      <div class="comp"><div class="box2"><i data-i="clip"></i>给 MyWork 发消息<span class="send"><i data-i="up"></i></span></div></div>
+    </main>
+    <aside class="panel">
+      <div class="ph"><span class="ptab on"><i data-i="panel"></i>资料</span><span class="ptab"><i data-i="monitor"></i>电脑</span></div>
+      <div class="pbody">
+        <div class="ps"><h4>关于我<span class="act lnk">改</span></h4>
+          <div class="pl"><span class="mn">独立投资者；也带一个 4 人的模型应用小组</span></div>
+          <div class="pl">读的时间<span class="r">交易日 08:30</span></div>
+          <div class="pl">写作偏好<span class="r">结论先行 · 金额到亿元</span></div>
+          <div class="pl">交给别人的东西<span class="r">发之前先签收 · 昨天记的</span></div>
+        </div>
+        <div class="ps"><h4>推送</h4>
+          <div class="pl">推送到<span class="r">飞书 · 机器人</span></div>
+          <div class="pl">每天最多<span class="r">5 条 · 今天已推 1 · 昨天 1</span></div>
+          <div class="pl">免打扰<span class="r">22:00–07:30</span></div>
+          <div class="pl">吵醒我<span class="r">没有</span></div>
+          <div class="pl">推送带金额和仓位<span class="r"><span class="tg"></span></span></div>
+        </div>
+        <div class="ps"><h4>主动部分</h4>
+          <div class="pl"><span class="mn">全体暂停</span><span class="r"><span class="tg"></span></span></div>
+          <div class="pdesc">停掉所有同事的主动部分。例行和你叫它做的照常。</div>
+        </div>
+        <div class="ps"><h4>花费<span class="n">本月 ¥41 / ¥150</span><span class="act lnk mute">按例行</span></h4>
+          <div class="pl"><span class="mn">课题</span><span class="bar2"><i style="width:37%"></i></span><span class="r">¥15.1</span></div>
+          <div class="pl"><span class="mn">覆盖研究</span><span class="bar2"><i style="width:30%"></i></span><span class="r">¥12.4</span></div>
+          <div class="pl"><span class="mn">盯在用的 AI</span><span class="bar2"><i style="width:17%"></i></span><span class="r">¥6.8</span></div>
+          <div class="pl"><span class="mn">行业周报</span><span class="bar2"><i style="width:13%"></i></span><span class="r">¥5.2</span></div>
+          <div class="pl"><span class="mn">MyWork</span><span class="bar2"><i style="width:4%"></i></span><span class="r">¥1.5</span></div>
+          <div class="pdesc">花到 80% 时提醒一次。到了也不停，只说一声，除非你设了硬上限。</div>
+        </div>
+      </div>
+    </aside>
+  </div></div></div>
+</section>
+
+<!-- ============ 2. 同事对话 ============ -->
+<section class="screen" id="s-thread">
+  <p class="cap"><b>同事对话</b>你回来时的样子：一行交班、一张变化卡；它自己做的事每件留一行，撤得回的带「撤销」，撤不回的标出来；规矩直接记下，可以改也可以删；你说过的「下周再看」挂成小字；提议等你回来才出。右边是资料栏，里面的「先问」默认是空的。<span class="ref">EDITIONS 4.2 · 6.2 · PROACTIVE 4.4 · 5.2 · 7.3</span></p>
+  <div class="stage"><div class="fit"><div class="app">
+    <aside class="side" data-sel="cover"></aside>
+    <main class="main">
+      <div class="mh"><span class="av s24" data-m="cover"></span><span class="nm">覆盖研究</span><span class="ds">跟 12 只票，对你的判断说话</span>
+        <div class="tools"><span class="ib"><i data-i="monitor"></i></span><span class="ib on"><i data-i="panel"></i></span><span class="ib"><i data-i="more"></i></span></div></div>
+      <div class="thread"><div class="col">
+        <div class="tsep">昨天 15:12</div>
+        <div class="m me"><div class="body"><div class="bub">出货量那个 +31% 是券商估的，公告里没写</div></div></div>
+        <div class="m"><span class="av" data-m="cover"></span><div class="body w">
+          <div class="bub">对，那是券商测算。已改成公告口径「储能电池销量同比 +27%」，深度出了第 3 版，改了 2 处。</div>
+          <div class="did"><i data-i="file"></i>宁德时代深度 · 第 3 版 <span class="sep">·</span> 取代第 2 版 · 因你的纠正改了 2 处<span class="acts"><span class="lnk">看改动</span><span class="lnk mute">撤销</span></span></div>
+          <div class="note"><i data-i="book"></i>记下了规矩 R6（来源）：储能出货只用公告口径，券商测算标〔估〕<span class="sep">·</span>机查 <span class="lnk">改</span><span class="lnk mute">删</span></div>
+        </div></div>
+        <div class="tsep">昨天 16:05</div>
+        <div class="m me"><div class="body"><div class="bub">比亚迪那篇先放着，下周再细看</div>
+          <div class="note"><i data-i="clock"></i>记下了 · 10/26 周一 08:30 提你 · 不回的话：对照留在成稿/，不动你的稿子 <span class="lnk">改日子</span><span class="lnk mute">不用记</span></div></div></div>
+        <div class="m"><span class="av" data-m="cover"></span><div class="body"><div class="bub">好，我先把它和你 J-04 的对照备上。</div></div></div>
+
+        <div class="handover" data-anchor>
+          <div class="ln">以下是新的 · 你不在时（昨天 18:40 起）</div>
+          <div class="sum">交了 2 份（<span class="lnk">宁德三季报对账</span> · <span class="lnk">晨会要点</span>）· <span class="lnk">变化 2</span> · <span class="lnk">需要你 1</span> · <span class="lnk">自己做了 4 件</span> · 看过 152 · ¥0.86</div>
+        </div>
+
+        <div class="rline"><i data-i="repeat"></i>19:30 例行 · 晚间公告 · 看过 41 · 没有动到你的东西 · 没读到 1（x.com 要登录）</div>
+
+        <div class="tsep">昨天 21:12</div>
+        <div class="m"><span class="av" data-m="cover"></span><div class="body w">
+          <div class="bub">三季报出来了。J-01 碰线：储能出货同比 +17.2%，低于你写的 20%。J-05 仍成立，毛利率 25.1%。对账放进成稿了，先看 4 处。</div>
+          <div class="card">
+            <div class="ch"><span class="ct">变化 · 2 条动到你的东西</span><span class="cm">10/20 21:12</span></div>
+            <div class="chg"><div class="l1"><b>宁德时代</b><span style="color:var(--fg3)">持仓 3成</span>三季度储能电池销量同比 +17.2%<span class="tier now">立刻 · 21:14 已推</span></div>
+              <div class="l2"><span class="hit">碰到 J-01「储能出货同比 ≥ 20%」：不成立了</span> · 已出重看，在下面</div>
+              <div class="l2">出处 巨潮 10/20 三季报 第 7 页「……储能电池销量同比增长 17.2%……」 <span class="lnk">看出处</span></div></div>
+            <div class="chg"><div class="l1"><b>宁德时代</b>三季度综合毛利率 25.1%<span class="tier">到点</span></div>
+              <div class="l2">动到 J-05「毛利率 ≥ 24%」：仍成立</div></div>
+            <div class="fold">看过 63 · 重复 12 · 噪音 47 · 换了说法 4<span class="lnk mute">展开</span></div>
+            <div class="cf">为什么现在：三季报 10/20 20:36 发布 · 依据：巨潮公告 · ¥0.31 · <span class="lnk mute">这类以后少说</span></div>
+          </div>
+          <div class="card filecard">
+            <div class="fh"><span class="fi"><i data-i="file"></i></span><div><div class="fn">宁德三季报对账</div><div class="fs">第 1 版 · 成稿/ · 引用事实 38</div></div><span class="btn" style="margin-left:auto">打开</span></div>
+            <div class="prog"><span><span class="k">事实</span> 38</span><span><span class="k">已对上</span> 31</span><span class="look">需要你看 4</span><span class="bad">有问题 1</span><span><span class="k">没核到</span> 2</span></div>
+            <div class="prog" style="padding-bottom:10px"><span class="k">挑错（Kimi）：看了 9 句推断，挑出 1 处 · 交付前按口径 R5 改了 1 处</span></div>
+          </div>
+          <div class="did"><i data-i="check-c"></i>已做 · 底稿「宁德事实表」+14 行 · J-01 状态 有效 → 动摇<span class="acts"><span class="lnk">看</span><span class="lnk mute">撤销</span></span></div>
+          <div class="card need">
+            <div class="ch"><span class="ct">需要你 · 重看 J-01</span><span class="cm">不挡别的活</span></div>
+            <div class="kv"><dt>判断</dt><dd>J-01 假设：宁德的增长主要来自储能 <span class="st look">动摇</span></dd><dt>碰到</dt><dd>储能出货同比 +17.2%（三季报，已对上）&lt; 你写的 20%</dd><dt>依据</dt><dd style="color:var(--fg2)">你 09/02 定的 · 用过 3 次 · 上次维持 07/28</dd></div>
+            <div class="acts-row"><span class="btn">维持（写一句理由）</span><span class="btn">改</span><span class="btn">延后到…</span></div>
+          </div>
+        </div></div>
+
+        <div class="tsep">今天 07:58</div>
+        <div class="m"><span class="av" data-m="cover"></span><div class="body w">
+          <div class="did"><i data-i="send"></i>已发 · 晨会要点 → 飞书「投研晨会」群 <span class="sep">·</span> 你 10/12 让它每个交易日 08:00 前发 <span class="irrev">撤不回</span><span class="acts"><span class="lnk">看</span><span class="lnk mute">以后这类先问</span></span></div>
+        </div></div>
+
+        <div class="tsep">今天 08:31 · 你回来了</div>
+        <div class="m"><span class="av" data-m="cover"></span><div class="body w">
+          <div class="card">
+            <div class="ch"><span class="ct">提议 · 财报前一晚备一页「明天要看的数」</span></div>
+            <div class="kv"><dt>为什么</dt><dd>这季 J-01、J-05 都是财报出来之后才对上的；10/23 比亚迪、10/29 茅台还有两家</dd><dt>会交</dt><dd>一页：要看的 6 个数、你的线、上季和一致预期 <span class="lnk">看样例</span></dd><dt>每次</dt><dd>约 ¥0.3</dd></div>
+            <div class="acts-row"><span class="btn pri">好</span><span class="btn">改一下</span><span class="btn ghost">不用</span></div>
+            <div class="cf">为什么现在：你回来了 · 依据：J-01、J-05、清单里 2 个财报日 · <span class="lnk mute">这类以后少说</span></div>
+          </div>
+        </div></div>
+      </div></div>
+      <div class="comp"><div class="box2"><i data-i="clip"></i>给 覆盖研究 发消息<span class="send"><i data-i="up"></i></span></div></div>
+    </main>
+    <aside class="panel">
+      <div class="ph"><span class="ptab on"><i data-i="panel"></i>资料</span><span class="ptab"><i data-i="monitor"></i>电脑</span></div>
+      <div class="pbody">
+        <div class="ps"><h4>主动程度</h4>
+          <div class="seg"><span>只在我问时</span><span class="on">默认</span><span>多做一点</span></div>
+          <div class="pdesc">管它不等你开口时做多少。能做什么不设限。</div></div>
+        <div class="ps"><h4>清单<span class="n">12 · 持仓 5 · 自选 7</span><span class="act lnk">改</span></h4>
+          <div class="pl"><span class="mn">宁德时代</span><span class="mono" style="font-size:11px;color:var(--fg3)">300750</span><span class="r">持仓 3成</span></div>
+          <div class="pl"><span class="mn">贵州茅台</span><span class="mono" style="font-size:11px;color:var(--fg3)">600519</span><span class="r">持仓 2成</span></div>
+          <div class="pl"><span class="mn">比亚迪</span><span class="mono" style="font-size:11px;color:var(--fg3)">002594</span><span class="r">自选 · 今天三季报</span></div>
+          <div class="pl"><span class="mn">招商银行</span><span class="mono" style="font-size:11px;color:var(--fg3)">600036</span><span class="r">持仓 1成</span></div>
+          <div class="more">还有 8 行</div></div>
+        <div class="ps"><h4>判断<span class="n">6 ·</span><span class="n attn">待重看 1</span></h4>
+          <div class="pl"><span class="id">J-01</span><span class="mn">宁德增长主要来自储能</span><span class="r attn">动摇</span></div>
+          <div class="pl"><span class="id">J-05</span><span class="mn">宁德毛利率 ≥ 24%</span><span class="r">有效</span></div>
+          <div class="pl"><span class="id">J-04</span><span class="mn">比亚迪储能出货同比 ≥ 25%</span><span class="r">有效 · 今天检验</span></div>
+          <div class="more">还有 3 条</div></div>
+        <div class="ps"><h4>规矩<span class="n">6</span></h4>
+          <div class="pl"><span class="id">R6</span><span class="mn">储能出货只用公告口径</span><span class="r">机查 · 昨天记的</span></div>
+          <div class="pl"><span class="id">R5</span><span class="mn">季度数只用最近一期已披露</span><span class="r">机查 · 用 12 · 拦下 1</span></div>
+          <div class="pl"><span class="id">R3</span><span class="mn">金额统一到亿元，一位小数</span><span class="r">机查 · 用 30</span></div>
+          <div class="pl"><span class="id">R2</span><span class="mn">注意估值可比性</span><span class="r">靠它自觉 · 说用 4</span></div>
+          <div class="more">还有 2 条</div></div>
+        <div class="ps"><h4>先问<span class="n">0</span><span class="act lnk">标一类</span></h4>
+          <div class="empty">还没标。标了的那类事，它做之前先问你；没标的直接做，做完告诉你。</div>
+          <div class="pdesc">建议标：对外发消息 · 替换签收过的东西</div></div>
+        <div class="ps"><h4>它做过的<span class="n">昨天 18:40 起 · 4 件</span><span class="act lnk mute">按天翻</span></h4>
+          <div class="pl"><span class="tm">07:58</span><span class="mn">发晨会要点到飞书群</span><span class="r">撤不回</span></div>
+          <div class="pl"><span class="tm">21:20</span><span class="mn">J-01 有效 → 动摇</span><span class="r lnk">撤销</span></div>
+          <div class="pl"><span class="tm">21:18</span><span class="mn">底稿 宁德事实表 +14 行</span><span class="r lnk">撤销</span></div>
+          <div class="pl"><span class="tm">21:12</span><span class="mn">交 宁德三季报对账</span><span class="r lnk">撤销</span></div>
+          <div class="pdesc">读过：巨潮 3 个页面、东财 2 个、你的浏览器标签页 0 个</div></div>
+        <div class="ps"><h4>它最近错过的<span class="n">1</span></h4>
+          <div class="pl"><span class="tm">10/20</span><span class="mn">储能出货用了券商测算</span><span class="r">你纠正 · 已成 R6</span></div></div>
+        <div class="ps"><h4>花费<span class="n">本月 ¥12.40 / ¥30</span></h4>
+          <div class="pl">例行 晚间公告<span class="r">检查 31 次 · 模型 6 次 · ¥1.90</span></div>
+          <div class="pl">主动的<span class="r">本月 ¥3.10</span></div></div>
+      </div>
+    </aside>
+  </div></div></div>
+</section>
+
+<!-- ============ 3. 核对 ============ -->
+<section class="screen" id="s-check">
+  <p class="cap"><b>核对</b>打开一份成稿，顶部是核对条，按排好的顺序一处一处过。正文里的数字能点，点开是出处摘录；点「打开原文」，原文在右边的实时浏览器里打开，带着页码。点了「不对」可以直接写正确的值，改动会往下游传。<span class="ref">EDITIONS 5.4–5.7</span></p>
+  <div class="stage"><div class="fit"><div class="app">
+    <aside class="side" data-sel="cover"></aside>
+    <main class="main">
+      <div class="mh"><span class="ib"><i data-i="chev-l"></i></span><span class="av s20" data-m="cover"></span><span class="nm">宁德三季报对账</span><span class="ds">第 1 版 · 10/20 21:12 · 对照 J-01、J-05</span>
+        <div class="tools"><span class="btn ghost">问它</span><span class="btn ghost">导出</span><span class="ib on"><i data-i="monitor"></i></span></div></div>
+      <div class="doc">
+        <div class="checkbar"><b>先看 7 处</b>· 已核 1
+          <span class="nav"><span class="btn ghost"><i data-i="chev-l"></i>上一处</span><span style="color:var(--fg)">2 / 7</span><span class="btn ghost">下一处<i data-i="chev-r"></i></span></span>
+          <span class="lnk mute">全部 38 条 · 表格模式</span>
+          <span class="r">挑错（Kimi）看了 9 句推断，挑出 1 处</span></div>
+        <div class="col">
+          <h1>宁德时代 2026 年三季报对账</h1>
+          <div class="meta">成稿/ · 引用事实 38 · 交付前按口径 R5 改了 1 处 · 取代：无</div>
+          <div class="miss"><div class="mh2">没核到 2</div>
+            <div class="mr"><span class="k">没查到</span><span>储能在手订单金额 · 三季报和说明会纪要里都没写</span><span class="btn">给它资料</span></div>
+            <div class="mr"><span class="k">打不开</span><span>券商电话会纪要 · 要登录</span><span style="display:flex;gap:6px"><span class="btn">去电脑上</span><span class="btn">把账号给它</span></span></div>
+          </div>
+
+          <h2>结论</h2>
+          <p>J-01 碰线，J-05 仍成立。储能电池销量同比 <span class="num look cur">+17.2%</span>，低于你写的 20%；综合毛利率 <span class="num">25.1%</span>，高于 24%。</p>
+          <div class="card fc">
+            <div class="ch"><span class="ct">储能电池销量同比 +17.2%</span><span class="st look" style="margin-left:auto">需要你看</span></div>
+            <div class="why">为什么让你看：结论里用到 · 动到 J-01 · 只有一个来源</div>
+            <div class="src">出处：宁德时代 2026 年第三季度报告 · 第 7 页 · 10/20 20:41 取得</div>
+            <div class="ex">「……报告期内，公司<span class="hl">储能电池销量同比增长 17.2%</span>，其中海外占比……」</div>
+            <div class="acts-row"><span class="btn">对</span><span class="btn">不对</span><span class="btn ghost"><i data-i="ext"></i>打开原文</span><span class="hint">J / K 上一处 下一处 · 1 对 · 2 不对</span></div>
+          </div>
+
+          <h2>1 收入和利润</h2>
+          <p>三季度营收 <span class="num">1,023.5 亿元</span>，同比 <span class="num">+8.9%</span>；归母净利润 <span class="num">141.2 亿元</span>，同比 <span class="num">+12.6%</span>。海外收入 <span class="num bad">412.0 亿元</span>，占营收 <span class="num">40.3%</span><span class="mk">〔计算〕</span>。</p>
+          <div class="card fc">
+            <div class="ch"><span class="ct">海外收入 412.0 亿元</span><span class="st bad" style="margin-left:auto">有问题</span></div>
+            <div class="why">为什么让你看：字面对不上，摘录里是 421.3 亿元</div>
+            <div class="src">出处：同一份三季报 · 第 9 页 · 10/20 20:41 取得</div>
+            <div class="ex">「……境外主营业务收入 <span class="hl">421.3 亿元</span>……」</div>
+            <div class="fixrow"><span class="k">正确的是</span><span class="inp">421.3 亿元</span><span style="font-size:12px;color:var(--fg3)">你点了「不对」</span></div>
+            <div class="fixrow"><span class="k">原因</span><span class="reasons"><span class="btn">过期了</span><span class="btn">口径不对</span><span class="btn">出处不对</span><span class="btn picked">算错了</span><span class="btn">不支持这句话</span><span class="btn">其他</span></span></div>
+            <div class="fixrow"><span class="k">会改</span><span style="font-size:12px;color:var(--fg2)">这条事实出新版本 · 占营收 40.3% 由程序重算 · 成稿出第 2 版，标出改动</span></div>
+            <div class="acts-row" style="padding-top:6px"><span class="btn pri">确定</span><span class="btn ghost">取消</span><span class="hint">确定后 10 分钟内能撤销</span></div>
+          </div>
+
+          <h2>2 储能</h2>
+          <p>储能电池销量同比 <span class="num look">+17.2%</span>，环比 <span class="num">−6.1%</span>。储能收入占比 <span class="num">21.4%</span><span class="mk">〔计算〕</span>，比上季低 <span class="num">1.8</span> 个百分点。<span class="sent-look">这一季的回落主要是海外大单的交付节奏</span><span class="mk">〔推〕</span>。</p>
+          <p class="note" style="font-size:12px;margin:0 0 6px"><i data-i="alert"></i>挑错（Kimi）判「弱」：所引只有说明会上的一句话，没有订单数据</p>
+
+          <h2>3 毛利率</h2>
+          <p>综合毛利率 <span class="num">25.1%</span>，环比 <span class="num">+0.6</span> 个百分点；J-05 的线是 24%，仍成立。</p>
+          <p style="color:var(--fg3);font-size:12px;margin-top:22px">导出时末尾自动附：38 个数字 · 已对上 31 · 你核过 1 · 没核到 2（见列表）</p>
+        </div>
+      </div>
+    </main>
+    <aside class="panel">
+      <div class="ph"><span class="ptab"><i data-i="panel"></i>资料</span><span class="ptab on"><i data-i="monitor"></i>电脑</span></div>
+      <div class="pbody">
+        <div class="brw">
+          <div class="bar3"><span class="dot"></span>同事的浏览器 · 空闲<span class="btn" style="margin-left:auto">接手</span></div>
+          <div class="addr"><i data-i="globe"></i><span class="mono">static.cninfo.com.cn/…/2026三季报.pdf#page=7</span></div>
+          <div class="pdf">
+            <h5>宁德时代 2026 年第三季度报告</h5>
+            <div class="ln" style="width:92%"></div><div class="ln" style="width:86%"></div><div class="ln" style="width:95%"></div>
+            <div>三、经营情况讨论与分析</div>
+            <div>报告期内，公司动力电池销量保持增长；<mark>储能电池销量同比增长 17.2%</mark>，其中海外占比较上季度有所下降，主要受部分大型项目交付节奏影响。</div>
+            <div class="ln" style="width:90%"></div><div class="ln" style="width:97%"></div><div class="ln" style="width:72%"></div>
+            <div class="ln" style="width:94%"></div><div class="ln" style="width:88%"></div><div class="ln" style="width:91%"></div>
+            <div class="ln" style="width:60%"></div><div class="ln" style="width:96%"></div><div class="ln" style="width:83%"></div>
+            <div class="ln" style="width:93%"></div><div class="ln" style="width:79%"></div><div class="ln" style="width:89%"></div>
+            <div class="pg">— 7 —</div>
+          </div>
+        </div>
+        <div style="padding:0 16px;font-size:11.5px;color:var(--fg3);line-height:1.6">原网页没了就开快照（10/20 20:41）。不用 iframe。</div>
+      </div>
+    </aside>
+  </div></div></div>
+</section>
+
+<!-- ============ 4. 长任务 ============ -->
+<section class="screen" id="s-plan">
+  <p class="cap"><b>长任务</b>超过一轮的活先出计划卡，卡在原地更新进度。第一站永远是交样本给你看。中途插话会在步骤边界生效，并出一张改向卡；中间文件在「电脑 → 文件夹 → 计划」下面。<span class="ref">EDITIONS 7.1–7.3</span></p>
+  <div class="stage"><div class="fit"><div class="app">
+    <aside class="side" data-sel="topic"></aside>
+    <main class="main">
+      <div class="mh"><span class="av s24" data-m="topic"></span><span class="nm">课题</span><span class="ds">跟课题新论文 · 投稿前核引用</span>
+        <div class="tools"><span class="ib on"><i data-i="monitor"></i></span><span class="ib"><i data-i="panel"></i></span><span class="ib"><i data-i="more"></i></span></div></div>
+      <div class="thread"><div class="col">
+        <div class="tsep">今天 10:02</div>
+        <div class="m me"><div class="body"><div class="chips"><span class="chip"><i data-i="file"></i>main.tex <small>48 KB</small></span><span class="chip"><i data-i="file"></i>refs.bib <small>60 条</small></span></div><div class="bub">投稿前核一遍引用</div></div></div>
+        <div class="m" data-anchor><span class="av" data-m="topic"></span><div class="body w">
+          <div class="bub">60 条引用，正文里约 140 处使用。先给你计划。预计 ¥4–7，超过了免确认的 ¥5，所以等你点开始。</div>
+          <div class="card">
+            <div class="ch"><span class="ct">计划 · 投稿前核引用（main.tex）</span><span class="cm" style="color:var(--accent-text)">在做 · 第 4/6 步</span></div>
+            <div class="kv">
+              <dt>要回答</dt><dd>每条引用存在吗、作者和年份对吗、正文那句话被它支持吗</dd>
+              <dt>来源</dt><dd>arXiv · CrossRef · Semantic Scholar · DBLP · 你给的 PDF 12 篇</dd>
+              <dt>会交</dt><dd>核对表 60 行（每行带出处）· 改好的 refs.bib · 没核到清单</dd>
+              <dt>算做完</dt><dd>60 条各有存在性结论；140 处各有 支持 / 弱 / 不支持 / 拿不准</dd>
+              <dt>会停</dt><dd>先交 5 条样本 · 查询失败超过 5 条 · 花到上限</dd>
+              <dt>上次错过</dt><dd>把 workshop 版当正式版引用（9/30），已加检查 R2</dd>
+              <dt>预计</dt><dd>50–80 分钟 · ¥4–7 · 上限 ¥8</dd>
+            </div>
+            <div class="steps">
+              <div class="step done"><i data-i="check-c"></i>1 解析 tex 和 bib<span class="r">60 条 · 140 处</span></div>
+              <div class="step done"><i data-i="check-c"></i>2 查是否存在<span class="r">对上 56 · 作者不符 2 · 没查到 2</span></div>
+              <div class="step done"><i data-i="check-c"></i>3 交样本 5 条<span class="r">你看过 · 照这样做下去</span></div>
+              <div class="step cur"><i data-i="half"></i>4 逐处核支持<span class="r">61 / 140</span></div>
+              <div class="step todo"><i data-i="circle"></i>5 挑错（Kimi）· 只看判「弱」和「拿不准」的</div>
+              <div class="step todo"><i data-i="circle"></i>6 交核对表和改好的 refs.bib</div>
+              <div class="pbar"><i style="width:52%"></i></div>
+            </div>
+            <div class="runline">第 4/6 步 · 61/140 处 · 34 分钟 · ¥3.1 / ¥8</div>
+            <div class="acts-row"><span class="btn"><i data-i="pause"></i>暂停（做完这一步）</span><span class="btn"><i data-i="stop"></i>停</span><span class="btn"><i data-i="skip"></i>跳过这一步</span><span class="btn ghost">移到最后，等我说再跑</span></div>
+          </div>
+          <div class="note"><i data-i="clock"></i>10:05 你点了开始 · 直接回话就是改计划</div>
+        </div></div>
+
+        <div class="tsep">10:21</div>
+        <div class="m"><span class="av" data-m="topic"></span><div class="body w">
+          <div class="card">
+            <div class="ch"><span class="ct">样本 · 前 5 条</span><span class="cm">你选了「照这样做下去」· 10:24</span></div>
+            <div class="srow"><span class="n">[3]</span><span>Vaswani et al. 2017 · NeurIPS</span><span><span class="st ok">对上</span> 第 2 节那句：支持</span></div>
+            <div class="srow"><span class="n">[7]</span><span>Zhang et al. 2025 · ICLR</span><span><span class="st bad">作者不符</span> bib 第二作者 Li Wei，原文 Li Wen</span></div>
+            <div class="srow"><span class="n">[12]</span><span class="mono" style="font-size:11.5px">arXiv:2604.01873</span><span><span class="st miss">没查到</span> 四个库都没有，不代表不存在</span></div>
+            <div class="srow"><span class="n">[15]</span><span>Kumar &amp; Ortiz 2024 · workshop</span><span><span class="st look">违反 R2</span> 正式版已出（ACL 2025）</span></div>
+            <div class="srow"><span class="n">[21]</span><span>Okafor et al. 2026</span><span><span class="st look">弱</span> 原文只在附录里提到一句</span></div>
+            <div class="acts-row" style="padding-top:10px"><span class="btn picked">照这样做下去</span><span class="btn">改（直接说）</span><span class="btn">跳过第 N 步</span><span class="btn">停</span></div>
+          </div>
+        </div></div>
+
+        <div class="tsep">10:31</div>
+        <div class="m me"><div class="body"><div class="bub">第 3 节的引用先别核了，那节我要重写</div>
+          <div class="note"><i data-i="clock"></i>第 4 步做完当前这批（约 2 分钟）后改</div></div></div>
+        <div class="m"><span class="av" data-m="topic"></span><div class="body w">
+          <div class="card">
+            <div class="ch"><span class="ct">改了方向</span><span class="cm">10:33 · 第 4 步边界</span></div>
+            <dl class="diff">
+              <dt>保留</dt><dd>第 1–3 步全部；第 4 步已核 61 处里第 1、2、4 节的 48 处</dd>
+              <dt>作废</dt><dd>第 3 节剩下的 22 处</dd>
+              <dt>留着不用</dt><dd>第 3 节已核的 13 处（在底账里，不进核对表）</dd>
+              <dt>还要</dt><dd>20–30 分钟 · ¥1.5–2.5（合计 ¥4.6–5.6，在上限内）</dd>
+            </dl>
+            <div class="acts-row"><span class="btn pri">好</span><span class="btn">再改</span><span class="btn ghost">停在这里交中间结果</span></div>
+          </div>
+        </div></div>
+      </div></div>
+      <div class="comp">
+        <div class="work"><span style="color:var(--accent-text)">在做</span>第 4/6 步 逐处核支持 · 61/140<span class="pbar"><i style="width:52%"></i></span>34 分钟 · 已花 ¥3.1<span class="acts"><span class="btn ghost"><i data-i="pause"></i>暂停</span><span class="btn ghost"><i data-i="stop"></i>停</span></span></div>
+        <div class="box2"><i data-i="clip"></i>给 课题 发消息（会在步骤边界生效）<span class="send"><i data-i="up"></i></span></div></div>
+    </main>
+    <aside class="panel">
+      <div class="ph"><span class="ptab"><i data-i="panel"></i>资料</span><span class="ptab on"><i data-i="monitor"></i>电脑</span><span style="margin-left:auto" class="seg"><span>浏览器</span><span class="on">文件夹</span></span></div>
+      <div class="pbody">
+        <div class="ps files">
+          <div class="fr"><i data-i="folder"></i>材料<span class="r">14</span></div>
+          <div class="fr sub"><i data-i="file"></i>main.tex<span class="r">48 KB</span></div>
+          <div class="fr sub"><i data-i="file"></i>refs.bib<span class="r">60 条</span></div>
+          <div class="fr sub"><i data-i="file"></i>你给的 PDF<span class="r">12 篇</span></div>
+          <div class="fr"><i data-i="folder"></i>底稿<span class="r">1</span></div>
+          <div class="fr sub"><i data-i="table"></i>引用核对表.csv<span class="r live">61 行 · 在写</span></div>
+          <div class="fr"><i data-i="folder"></i>计划<span class="r">2</span></div>
+          <div class="fr sub"><i data-i="file"></i>2026-10-21 投稿前核引用.md<span class="r">计划</span></div>
+          <div class="fr sub"><i data-i="file"></i>进展.md<span class="r live">10:33</span></div>
+          <div class="fr"><i data-i="folder"></i>成稿<span class="r">还没有</span></div>
+          <div class="mdprev"><b>进展.md</b><br>10:05 开始<br>10:14 第 2 步：没查到 2 条，arXiv、CrossRef、S2、DBLP 都试过<br>10:24 样本你看过，照这样做下去<br>10:29 走不通：S2 限速，改成每秒 1 次<br>10:33 改向：第 3 节不核，已核的 13 处留着不用</div>
+          <div class="pdesc">状态全在这两个文件里，中断了能续。进展也记走不通的路，下一段不会再走一遍。</div>
+        </div>
+      </div>
+    </aside>
+  </div></div></div>
+</section>
+
+<!-- ============ 5. 上岗 ============ -->
+<section class="screen" id="s-onboard">
+  <p class="cap"><b>上岗</b>点「+」选模板。上岗卡只问一件事：你的东西是什么。拖进来的文件同事自己读，读完先给你确认清单；接着出「它会主动做的」，你勾了的才生效。当场就出基线，不用等到明早。<span class="ref">EDITIONS 3 · 9.3 · PROACTIVE 12</span></p>
+  <div class="stage"><div class="fit"><div class="app">
+    <aside class="side" data-sel="ai" data-day="onboard"></aside>
+    <main class="main">
+      <div class="mh"><span class="av s24" data-m="ai"></span><span class="nm">盯在用的 AI</span><span class="ds">盯你们在用的模型和依赖，碰到才说</span>
+        <div class="tools"><span class="ib"><i data-i="monitor"></i></span><span class="ib on"><i data-i="panel"></i></span><span class="ib"><i data-i="more"></i></span></div></div>
+      <div class="thread"><div class="col">
+        <div class="tsep">10/08 周四 14:20 · 你用模板新建了「盯在用的 AI」</div>
+        <div class="m"><span class="av" data-m="ai"></span><div class="body w">
+          <div class="bub">我盯你们在用的模型和依赖。只有下线、调价、改计费、封号碰到在用的某一行时，我才开口。先告诉我你们在用什么。</div>
+          <div class="card">
+            <div class="ch"><span class="ct">开工 · 盯在用的 AI</span><span class="cm">14:22 已交给它</span></div>
+            <div class="kv" style="grid-template-columns:20px 1fr">
+              <dt>1</dt><dd>在用什么：拖进 package.json、requirements.txt、网关配置（one-api / new-api / LiteLLM）、上月账单 CSV，或者直接粘贴
+                <div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 2px"><span class="chip"><i data-i="file"></i>new-api 渠道导出.json</span><span class="chip"><i data-i="file"></i>requirements.txt</span><span class="chip"><i data-i="file"></i>9月账单.csv</span></div></dd>
+              <dt>2</dt><dd style="color:var(--fg2)">碰到在用的这几类立刻说：下线 · 调价 · 改计费 · 封号<span style="color:var(--fg3)">（模板默认，以后在资料栏改）</span></dd>
+              <dt>3</dt><dd style="color:var(--fg2)">其余到点汇总：工作日 09:00<span style="color:var(--fg3)">（关于我里的读的时间）</span></dd>
+            </div>
+            <div class="acts-row"><span style="font-size:12px;color:var(--fg2)">这位同事每月预算 ¥20（预计 ¥4–9）</span><span class="btn picked" style="margin-left:auto">已交给它</span></div>
+          </div>
+        </div></div>
+        <div class="m"><span class="av" data-m="ai"></span><div class="body w">
+          <div class="bub">读完了。在用的有 6 行，每行最后一列写了我是从哪儿知道的。</div>
+          <div class="card">
+            <div class="ch"><span class="ct">在用清单 · 6 行</span><span class="cm">直接回话就是改</span></div>
+            <table class="tbl"><thead><tr><th>对象</th><th>在哪用</th><th>怎么知道的</th></tr></thead><tbody>
+              <tr><td class="mono">deepseek-chat（旧版）</td><td>客服机器人、代码审查</td><td class="src">new-api 渠道</td></tr>
+              <tr><td class="mono">qwen-max</td><td>工单摘要</td><td class="src">代码里的模型 ID · services/summary.py</td></tr>
+              <tr><td class="mono">glm-4.6</td><td>内部检索问答</td><td class="src">9月账单</td></tr>
+              <tr><td class="mono">bge-m3</td><td>检索向量</td><td class="src">代码里的模型 ID</td></tr>
+              <tr><td class="mono">openai SDK 1.51</td><td>3 个服务</td><td class="src">requirements.txt</td></tr>
+              <tr><td>腾讯云 GPU 实例 ×2</td><td>自部署推理</td><td class="src">9月账单</td></tr>
+            </tbody></table>
+            <div class="acts-row" style="padding-top:10px"><span class="btn picked">对，就这些</span><span class="btn">改一下</span></div>
+          </div>
+          <div class="card">
+            <div class="ch"><span class="ct">它会主动做的 · 盯在用的 AI</span><span class="cm">勾了才生效</span></div>
+            <div class="cb">
+              <div class="ck"><span class="box on"><i data-i="check"></i></span><span>每天 07:00 查各家定价页、下线公告和条款 <small>只跑脚本，没动到在用的只出一行灰字</small></span></div>
+              <div class="ck"><span class="box on"><i data-i="check"></i></span><span>每小时查一次状态页，在用的挂了立刻说</span></div>
+              <div class="ck"><span class="box on"><i data-i="check"></i></span><span>下线和迁移：离生效 14 天以内推一次，之后在今天卡里倒数</span></div>
+              <div class="ck off"><span class="box"></span><span>每周一对一次账单，比上周涨 30% 以上时说</span></div>
+              <div class="ck off"><span class="box"></span><span>厂商说「下周公布」，到期没公布时说一声 <small>没有用户证据，默认不勾</small></span></div>
+              <div class="ck off"><span class="box"></span><span>出新模型时在你的自测集上跑一遍 <small>要先建自测集</small></span></div>
+              <div style="font-size:12px;color:var(--fg3);margin-top:6px">夜里只推「吵醒我」的；22:00–07:30 不推 · 主动部分每天调用到 6 次时说一声</div>
+            </div>
+            <div class="acts-row"><span class="hint" style="margin-left:0">逐行开关在资料栏里改</span><span class="btn picked" style="margin-left:auto">已交给它</span></div>
+          </div>
+          <div class="did"><i data-i="repeat"></i>已做 · 建了 2 条例行：每天 07:00 查定价和下线 · 每小时查状态页<span class="acts"><span class="lnk">看</span><span class="lnk mute">撤销</span></span></div>
+        </div></div>
+        <div class="tsep">14:31</div>
+        <div class="m"><span class="av" data-m="ai"></span><div class="body w">
+          <div class="bub">6 行的现状已经记下了，以后只报相对这份的变化。最近 14 天我也回补过了，有 1 条动到你们在用的：</div>
+          <div class="card">
+            <div class="ch"><span class="ct">变化 · 1 条动到在用</span><span class="cm">基线 · 回补 14 天</span></div>
+            <div class="chg"><div class="l1"><b class="mono">deepseek-chat（旧版）</b>10/22 下线<span class="tier now">立刻 · 14:31 已推</span></div>
+              <div class="l2"><span class="hit">客服机器人、代码审查在用</span> · 离下线 14 天</div>
+              <div class="l2">迁移到新版要改 2 处：客服的 prompt 长度上限、代码审查的 JSON 模式</div>
+              <div class="l2">出处 DeepSeek 官方公告 10/08 <span class="lnk">看出处</span></div></div>
+            <div class="fold">看过 45 · 和在用无关 41 · 换了说法 4<span class="lnk mute">展开</span></div>
+          </div>
+          <div class="card need">
+            <div class="ch"><span class="ct">需要你 · 迁移 deepseek-chat（旧版）</span><span class="cm">还有 14 天</span></div>
+            <div class="kv"><dt>影响</dt><dd>客服机器人（日调用约 1.2 万）· 代码审查（每个 PR）</dd><dt>不回的话</dt><dd style="color:var(--fg2)">到期前在今天卡里倒数，不再推</dd></div>
+            <div class="acts-row"><span class="btn pri">让它出迁移方案</span><span class="btn">我来</span><span class="btn ghost">已经在改了</span></div>
+          </div>
+        </div></div>
+      </div></div>
+      <div class="comp"><div class="box2"><i data-i="clip"></i>给 盯在用的 AI 发消息<span class="send"><i data-i="up"></i></span></div></div>
+    </main>
+    <aside class="panel">
+      <div class="ph"><span class="ptab on"><i data-i="panel"></i>资料</span><span class="ptab"><i data-i="monitor"></i>电脑</span></div>
+      <div class="pbody">
+        <div class="ps"><h4>主动程度</h4><div class="seg"><span>只在我问时</span><span class="on">默认</span><span>多做一点</span></div></div>
+        <div class="ps"><h4>清单<span class="n">在用 6</span><span class="act lnk">改</span></h4>
+          <div class="pl"><span class="mn mono">deepseek-chat（旧版）</span><span class="r attn">10/22 下线</span></div>
+          <div class="pl"><span class="mn mono">qwen-max</span><span class="r">工单摘要</span></div>
+          <div class="pl"><span class="mn mono">glm-4.6</span><span class="r">检索问答</span></div>
+          <div class="more">还有 3 行</div></div>
+        <div class="ps"><h4>判断<span class="n">0</span></h4>
+          <div class="empty">还没有。你们的选型决定（比如为什么用 qwen-max 做摘要）可以记成判断，老板问起时拿得出来。</div>
+          <div style="margin-top:8px"><span class="btn">记一条</span></div></div>
+        <div class="ps"><h4>规矩<span class="n">0</span></h4><div class="empty">你纠正它一次，它会记一条。</div></div>
+        <div class="ps"><h4>先问<span class="n">0</span><span class="act lnk">标一类</span></h4><div class="empty">没标的直接做，做完告诉你。</div></div>
+        <div class="ps"><h4>花费<span class="n">本月 ¥0.12 / ¥20</span></h4><div class="pl">预计<span class="r">每月 ¥4–9</span></div></div>
+      </div>
+    </aside>
+  </div></div></div>
+</section>
+
+<!-- ============ 6. 手机 ============ -->
+<section class="screen" id="s-phone">
+  <p class="cap"><b>手机</b>手机上只做三件事：收推送（默认不带金额、仓位和判断原文）、读今天卡、核对一处一屏。登录和接手只能选「今晚提醒」。<span class="ref">EDITIONS 4.6 · 12 · PROACTIVE 7.5</span></p>
+  <div class="stage"><div class="fit"><div class="phones">
+    <div>
+      <div class="phone lock">
+        <div class="sbar"><span>08:12</span><span>5G</span></div>
+        <div class="clock">08:12</div><div class="date">10 月 21 日 星期三</div>
+        <div class="ntf"><div class="napp"><span class="sq"><i data-i="msg"></i></span>飞书 · MyWork<span class="t">昨天 21:14</span></div>
+          <b>覆盖研究</b>：动到你的持仓 · 宁德 三季报碰到你一条判断的线 · 出处 巨潮
+          <div class="na"><span class="lnk">打开</span><span class="lnk mute">这类以后少推</span><span class="lnk mute">今天别推</span></div></div>
+        <div class="ntf"><div class="napp"><span class="sq"><i data-i="msg"></i></span>飞书 · MyWork<span class="t">07:30</span></div>
+          <b>盯在用的 AI</b>：qwen-max 调价，动到在用的 1 行 · 出处 阿里云
+          <div class="na"><span class="lnk">打开</span><span class="lnk mute">这类以后少推</span></div></div>
+        <div style="text-align:center;font-size:11px;color:var(--fg3);margin-top:6px;padding:0 24px">今天推了 1 条 · 每天最多 5 条 · 夜里来的调价等到 07:30 免打扰结束才推</div>
+      </div>
+      <div class="plabel">推送</div>
+    </div>
+    <div>
+      <div class="phone">
+        <div class="sbar"><span>08:31</span><span>5G</span></div>
+        <div class="phd"><i data-i="chev-l"></i><span class="av s24" data-m="mywork"></span><span class="nm">MyWork</span></div>
+        <div class="pbody2">
+          <div class="card tc mtc" style="font-size:13px">
+            <div class="ch"><span class="ct">今天 · 10/21 周三</span><span class="cm">08:30</span></div>
+            <div class="sec need"><i data-i="flag"></i>需要你 3</div>
+            <div class="r"><span class="who"><span class="av s16" data-m="cover"></span>覆盖研究</span><div class="tx">J-01 到了重看条件</div></div>
+            <div class="r"><span class="who"><span class="av s16" data-m="ai"></span>2 位同事</span><div class="tx">x.com 登录 · 第 2 天 <span class="lnk" style="font-size:12px">今晚提醒</span></div></div>
+            <div class="r"><span class="who"><span class="av s16" data-m="weekly"></span>行业周报</span><div class="tx">第 42 期待签收 · 17:00 前</div></div>
+            <div class="sec"><i data-i="calendar"></i>今天的日子</div>
+            <div class="r"><span class="who"><span class="av s16" data-m="cover"></span>覆盖研究</span><div class="tx">比亚迪 三季报（盘后）· 准备好了</div></div>
+            <div class="r"><span class="who"><span class="av s16" data-m="ai"></span>盯在用的 AI</span><div class="tx">deepseek-chat（旧版）明天下线</div></div>
+            <div class="sec"><i data-i="diff"></i>变化 3</div>
+            <div class="r"><span class="who"><span class="av s16" data-m="cover"></span>覆盖研究</span><div class="tx">宁德 三季报：J-01 碰线，J-05 仍成立</div></div>
+            <div class="r"><span class="who"><span class="av s16" data-m="ai"></span>盯在用的 AI</span><div class="tx">qwen-max 输入价 −40%</div></div>
+            <div class="r"><span class="who"><span class="av s16" data-m="topic"></span>课题</span><div class="tx">2 篇相关新论文</div></div>
+            <div class="foot"><span>待你核 4 · 昨天花费 ¥3.20</span></div>
+          </div>
+        </div>
+        <div class="pcomp"><div>给 MyWork 发消息</div></div>
+      </div>
+      <div class="plabel">今天卡</div>
+    </div>
+    <div>
+      <div class="phone">
+        <div class="sbar"><span>08:34</span><span>5G</span></div>
+        <div class="phd"><i data-i="chev-l"></i><span class="nm" style="font-size:13.5px">宁德三季报对账 · 先看</span></div>
+        <div class="pbody2 one">
+          <div class="pos"><span>2 / 7</span><span class="st look">需要你看</span></div>
+          <div class="big">储能电池销量同比 +17.2%</div>
+          <div class="why">结论里用到 · 动到 J-01 · 只有一个来源</div>
+          <div class="exb"><div class="s">快照 · 三季报 第 7 页 · 10/20 20:41</div>「……报告期内，公司<span class="hl">储能电池销量同比增长 17.2%</span>，其中海外占比较上季度有所下降……」</div>
+          <div class="ctx">正文里那句：<br>储能电池销量同比 +17.2%，低于你写的 20%。</div>
+        </div>
+        <div class="swipe"><i data-i="chev-l"></i>左右滑换一处<i data-i="chev-r"></i></div>
+        <div class="bigbtns"><div class="pri">对</div><div>不对</div><div>稍后</div></div>
+      </div>
+      <div class="plabel">核对 · 一处一屏</div>
+    </div>
+  </div></div></div>
+</section>
+
+<script>
+const ICONS = {
+  search:'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+  bell:'<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  sidebar:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/>',
+  panel:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/>',
+  monitor:'<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>',
+  more:'<circle cx="5" cy="12" r=".9"/><circle cx="12" cy="12" r=".9"/><circle cx="19" cy="12" r=".9"/>',
+  up:'<path d="M12 19V5M5 12l7-7 7 7"/>',
+  clip:'<path d="m21 11-8.6 8.6a5 5 0 0 1-7-7l8.6-8.6a3.3 3.3 0 0 1 4.7 4.7l-8.6 8.6a1.7 1.7 0 0 1-2.4-2.4L16 7"/>',
+  check:'<path d="M20 6 9 17l-5-5"/>',
+  'check-c':'<circle cx="12" cy="12" r="9"/><path d="m8.5 12 2.5 2.5 4.5-5"/>',
+  'chev-l':'<path d="m15 18-6-6 6-6"/>',
+  'chev-r':'<path d="m9 18 6-6-6-6"/>',
+  'chev-d':'<path d="m6 9 6 6 6-6"/>',
+  file:'<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  repeat:'<path d="m17 2 4 4-4 4"/><path d="M3 11V9a3 3 0 0 1 3-3h15"/><path d="m7 22-4-4 4-4"/><path d="M21 13v2a3 3 0 0 1-3 3H3"/>',
+  ext:'<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
+  pause:'<path d="M9 5v14M15 5v14"/>',
+  stop:'<rect x="6" y="6" width="12" height="12" rx="1.5"/>',
+  skip:'<path d="m5 5 9 7-9 7z"/><path d="M19 5v14"/>',
+  circle:'<circle cx="12" cy="12" r="8"/>',
+  half:'<circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/>',
+  alert:'<circle cx="12" cy="12" r="9"/><path d="M12 8v4.5M12 16h.01"/>',
+  flag:'<path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/>',
+  calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/>',
+  send:'<path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/>',
+  folder:'<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+  table:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 10v10"/>',
+  globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',
+  book:'<path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19V5"/>',
+  diff:'<path d="M12 3v14M5 10h14"/><path d="M5 21h14"/>',
+  msg:'<path d="M21 12a8 8 0 0 1-11.6 7.1L3 21l1.9-6.4A8 8 0 1 1 21 12z"/>',
+  folderopen:'<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>'
+}
+const ic = n => `<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${ICONS[n] || ''}</svg>`
+
+const SHAPES = {
+  circle:'<circle cx="14" cy="14" r="14"/>',
+  rsq:'<rect width="28" height="28" rx="8"/>',
+  hex:'<path d="M14 .6 25.6 7.3v13.4L14 27.4 2.4 20.7V7.3z"/>',
+  squircle:'<path d="M14 0C25 0 28 3 28 14s-3 14-14 14S0 25 0 14 3 0 14 0z"/>'
+}
+const MATES = {
+  mywork:{ name:'MyWork', mark:true },
+  cover:{ name:'覆盖研究', color:'amber', shape:'rsq' },
+  weekly:{ name:'行业周报', color:'slate', shape:'circle' },
+  ai:{ name:'盯在用的 AI', color:'teal', shape:'hex' },
+  topic:{ name:'课题', color:'violet', shape:'squircle' }
+}
+const avatar = id => {
+  const m = MATES[id]
+  if (m.mark) return `<svg viewBox="0 0 28 28"><circle cx="14" cy="14" r="14" fill="var(--mark-bg)"/><g transform="translate(5.6 5.4) scale(.7)"><path d="M4.5 18.5V7l5.5 6.5L15.5 7M10.5 17l3 3 6-6" stroke="var(--mark-fg)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g></svg>`
+  return `<svg viewBox="0 0 28 28"><g fill="var(--av-${m.color})">${SHAPES[m.shape]}</g><circle cx="10.5" cy="13" r="1.7" fill="rgba(255,255,255,.9)"/><circle cx="17.5" cy="13" r="1.7" fill="rgba(255,255,255,.9)"/></svg>`
+}
+
+// The sidebar on 10/21 morning, and on 10/08 for the onboarding screen.
+const DAYS = {
+  today:{
+    mywork:{ t:'08:30', p:'今天 · 需要你 3 · 变化 3 · 今天的日子 2' },
+    cover:{ t:'08:31', p:'提议：财报前一晚备一页「明天要看的数」', ur:2 },
+    weekly:{ t:'08:02', p:'第 42 期草稿好了，等你签收' },
+    ai:{ t:'07:30', p:'qwen-max 输入价 −40%，动到工单摘要', ur:1 },
+    topic:{ t:'在做', busy:true, p:'第 4/6 步 · 已核 61/140 处' }
+  },
+  onboard:{
+    mywork:{ t:'08:30', p:'今天 · 需要你 1 · 变化 2' },
+    cover:{ t:'10/07', p:'例行 · 晚间公告 · 没有动到你的东西' },
+    weekly:{ t:'10/06', p:'第 40 期已签收，发进了投研群' },
+    ai:{ t:'14:31', p:'6 行的现状已记下。有 1 条动到在用' },
+    topic:{ t:'10/07', p:'2 篇相关新论文' }
+  }
+}
+const GROUPS = [['置顶',['mywork']],['研究',['cover','weekly']],['AI',['ai','topic']]]
+function sidebar(sel, day) {
+  const d = DAYS[day]
+  let h = `<div class="side-top"><span class="logo">${avatar('mywork').replace('<svg','<svg width="22" height="22"')}</span><span class="search">${ic('search')}搜索</span><span class="ib">${ic('bell')}<span class="cnt">3</span></span><span class="ib">${ic('plus')}</span><span class="ib">${ic('sidebar')}</span></div><div class="side-list">`
+  for (const [g, ids] of GROUPS) {
+    h += `<div class="grp">${g}${ic('chev-d')}</div>`
+    for (const id of ids) {
+      const r = d[id]
+      h += `<div class="row${id === sel ? ' sel' : ''}"><span class="av">${avatar(id)}${r.ur && id !== sel ? `<span class="ur">${r.ur}</span>` : ''}</span><span style="min-width:0"><div class="nm">${MATES[id].name}</div><div class="pv">${r.p}</div></span><span class="tm${r.busy ? ' busy' : ''}">${r.t}</span></div>`
+    }
+  }
+  h += `<div class="newmate"><span class="ph">${ic('plus')}</span>新同事</div></div><div class="side-foot"><div>${ic('folder')}文件</div><div>${ic('more')}设置</div></div>`
+  return h
+}
+
+document.querySelectorAll('i[data-i]').forEach(el => { el.outerHTML = ic(el.dataset.i) })
+document.querySelectorAll('[data-m]').forEach(el => { el.insertAdjacentHTML('afterbegin', avatar(el.dataset.m)) })
+document.querySelectorAll('aside.side').forEach(el => { el.innerHTML = sidebar(el.dataset.sel, el.dataset.day || 'today') })
+
+// screens, palette and scheme (remembered in this browser when storage is available)
+const store = { get(k) { try { return localStorage.getItem(k) } catch { return null } }, set(k, v) { try { localStorage.setItem(k, v) } catch {} } }
+function show(s) {
+  document.querySelectorAll('.screen').forEach(x => x.classList.toggle('on', x.id === 's-' + s))
+  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.s === s))
+  store.set('mw-mock-screen', s)
+  if (location.hash !== '#' + s) history.replaceState(null, '', '#' + s)
+  fit()
+  // open each thread where the story starts (marked data-anchor), the way the app lands on 以下是新的
+  document.querySelectorAll('#s-' + s + ' .thread').forEach(th => {
+    const a = th.querySelector('[data-anchor]')
+    th.scrollTop = a ? a.offsetTop - 8 : 0
+  })
+}
+function setTheme(attr, v, seg) {
+  document.documentElement.dataset[attr] = v
+  document.querySelectorAll(seg + ' button').forEach(b => b.classList.toggle('on', b.dataset.v === v))
+  store.set('mw-mock-' + attr, v)
+}
+document.getElementById('tabs').addEventListener('click', e => { const b = e.target.closest('button'); if (b) show(b.dataset.s) })
+document.getElementById('pal').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setTheme('pal', b.dataset.v, '#pal') })
+document.getElementById('scheme').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setTheme('scheme', b.dataset.v, '#scheme') })
+const qp = new URLSearchParams(location.search)
+setTheme('pal', qp.get('pal') || store.get('mw-mock-pal') || 'champagne', '#pal')
+setTheme('scheme', qp.get('scheme') || store.get('mw-mock-scheme') || 'dark', '#scheme')
+
+// The app is drawn at 1360 wide; narrower windows scale it down instead of reflowing it.
+function fit() {
+  const z = Math.min(1, (document.documentElement.clientWidth - 48) / 1360)
+  document.querySelectorAll('.fit').forEach(f => { f.style.zoom = z })
+}
+addEventListener('resize', fit)
+const first = (location.hash || '').slice(1)
+show(document.getElementById('s-' + first) ? first : (store.get('mw-mock-screen') || 'today'))
+</script>
+</body>
+</html>

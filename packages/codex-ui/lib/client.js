@@ -420,7 +420,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$25 = {
+		const __iconData$29 = {
 			name: "archive",
 			size: 24,
 			node: [
@@ -442,8 +442,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$25.node;
-		const Archive = createLucideIcon(__iconData$25);
+		__iconData$29.node;
+		const Archive = createLucideIcon(__iconData$29);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/arrow-left.mjs
 		/**
@@ -452,7 +452,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$24 = {
+		const __iconData$28 = {
 			name: "arrow-left",
 			size: 24,
 			node: [["path", {
@@ -463,8 +463,29 @@ window.__ModuleLoader__.load({
 				key: "x3x0zl"
 			}]]
 		};
-		__iconData$24.node;
-		const ArrowLeft = createLucideIcon(__iconData$24);
+		__iconData$28.node;
+		const ArrowLeft = createLucideIcon(__iconData$28);
+		//#endregion
+		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/bell.mjs
+		/**
+		* @license lucide-react v1.47.0 - ISC
+		*
+		* This source code is licensed under the ISC license.
+		* See the LICENSE file in the root directory of this source tree.
+		*/
+		const __iconData$27 = {
+			name: "bell",
+			size: 24,
+			node: [["path", {
+				d: "M10.268 21a2 2 0 0 0 3.464 0",
+				key: "vwvbt9"
+			}], ["path", {
+				d: "M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326",
+				key: "11g9vi"
+			}]]
+		};
+		__iconData$27.node;
+		const Bell = createLucideIcon(__iconData$27);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/box.mjs
 		/**
@@ -473,7 +494,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$23 = {
+		const __iconData$26 = {
 			name: "box",
 			size: 24,
 			node: [
@@ -491,8 +512,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$23.node;
-		const Box = createLucideIcon(__iconData$23);
+		__iconData$26.node;
+		const Box = createLucideIcon(__iconData$26);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/calendar-clock.mjs
 		/**
@@ -501,7 +522,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$22 = {
+		const __iconData$25 = {
 			name: "calendar-clock",
 			size: 24,
 			node: [
@@ -533,8 +554,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$22.node;
-		const CalendarClock = createLucideIcon(__iconData$22);
+		__iconData$25.node;
+		const CalendarClock = createLucideIcon(__iconData$25);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/chart-column.mjs
 		/**
@@ -543,7 +564,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$21 = {
+		const __iconData$24 = {
 			name: "chart-column",
 			size: 24,
 			node: [
@@ -566,8 +587,26 @@ window.__ModuleLoader__.load({
 			],
 			aliases: ["bar-chart-3"]
 		};
-		__iconData$21.node;
-		const ChartColumn = createLucideIcon(__iconData$21);
+		__iconData$24.node;
+		const ChartColumn = createLucideIcon(__iconData$24);
+		//#endregion
+		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/chevron-down.mjs
+		/**
+		* @license lucide-react v1.47.0 - ISC
+		*
+		* This source code is licensed under the ISC license.
+		* See the LICENSE file in the root directory of this source tree.
+		*/
+		const __iconData$23 = {
+			name: "chevron-down",
+			size: 24,
+			node: [["path", {
+				d: "m6 9 6 6 6-6",
+				key: "qrunsl"
+			}]]
+		};
+		__iconData$23.node;
+		const ChevronDown = createLucideIcon(__iconData$23);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/circle-question-mark.mjs
 		/**
@@ -576,7 +615,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$20 = {
+		const __iconData$22 = {
 			name: "circle-question-mark",
 			size: 24,
 			node: [
@@ -597,8 +636,8 @@ window.__ModuleLoader__.load({
 			],
 			aliases: ["help-circle", "circle-help"]
 		};
-		__iconData$20.node;
-		const CircleQuestionMark = createLucideIcon(__iconData$20);
+		__iconData$22.node;
+		const CircleQuestionMark = createLucideIcon(__iconData$22);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/clock.mjs
 		/**
@@ -607,7 +646,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$19 = {
+		const __iconData$21 = {
 			name: "clock",
 			size: 24,
 			node: [["circle", {
@@ -620,8 +659,8 @@ window.__ModuleLoader__.load({
 				key: "mmk7yg"
 			}]]
 		};
-		__iconData$19.node;
-		const Clock = createLucideIcon(__iconData$19);
+		__iconData$21.node;
+		const Clock = createLucideIcon(__iconData$21);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/cpu.mjs
 		/**
@@ -630,7 +669,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$18 = {
+		const __iconData$20 = {
 			name: "cpu",
 			size: 24,
 			node: [
@@ -700,8 +739,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$18.node;
-		const Cpu = createLucideIcon(__iconData$18);
+		__iconData$20.node;
+		const Cpu = createLucideIcon(__iconData$20);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/eye-off.mjs
 		/**
@@ -710,7 +749,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$17 = {
+		const __iconData$19 = {
 			name: "eye-off",
 			size: 24,
 			node: [
@@ -732,8 +771,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$17.node;
-		const EyeOff = createLucideIcon(__iconData$17);
+		__iconData$19.node;
+		const EyeOff = createLucideIcon(__iconData$19);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/eye.mjs
 		/**
@@ -742,7 +781,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$16 = {
+		const __iconData$18 = {
 			name: "eye",
 			size: 24,
 			node: [["path", {
@@ -755,8 +794,8 @@ window.__ModuleLoader__.load({
 				key: "1v7zrd"
 			}]]
 		};
-		__iconData$16.node;
-		const Eye = createLucideIcon(__iconData$16);
+		__iconData$18.node;
+		const Eye = createLucideIcon(__iconData$18);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/file-spreadsheet.mjs
 		/**
@@ -765,7 +804,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$15 = {
+		const __iconData$17 = {
 			name: "file-spreadsheet",
 			size: 24,
 			node: [
@@ -795,8 +834,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$15.node;
-		const FileSpreadsheet = createLucideIcon(__iconData$15);
+		__iconData$17.node;
+		const FileSpreadsheet = createLucideIcon(__iconData$17);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/globe.mjs
 		/**
@@ -805,7 +844,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$14 = {
+		const __iconData$16 = {
 			name: "globe",
 			size: 24,
 			node: [
@@ -825,8 +864,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$14.node;
-		const Globe = createLucideIcon(__iconData$14);
+		__iconData$16.node;
+		const Globe = createLucideIcon(__iconData$16);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/link.mjs
 		/**
@@ -835,7 +874,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$13 = {
+		const __iconData$15 = {
 			name: "link",
 			size: 24,
 			node: [["path", {
@@ -846,8 +885,8 @@ window.__ModuleLoader__.load({
 				key: "19qd67"
 			}]]
 		};
-		__iconData$13.node;
-		const Link = createLucideIcon(__iconData$13);
+		__iconData$15.node;
+		const Link = createLucideIcon(__iconData$15);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/message-circle.mjs
 		/**
@@ -856,7 +895,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$12 = {
+		const __iconData$14 = {
 			name: "message-circle",
 			size: 24,
 			node: [["path", {
@@ -864,8 +903,8 @@ window.__ModuleLoader__.load({
 				key: "1sd12s"
 			}]]
 		};
-		__iconData$12.node;
-		const MessageCircle = createLucideIcon(__iconData$12);
+		__iconData$14.node;
+		const MessageCircle = createLucideIcon(__iconData$14);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/message-square-more.mjs
 		/**
@@ -874,7 +913,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$11 = {
+		const __iconData$13 = {
 			name: "message-square-more",
 			size: 24,
 			node: [
@@ -896,8 +935,8 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
-		__iconData$11.node;
-		const MessageSquareMore = createLucideIcon(__iconData$11);
+		__iconData$13.node;
+		const MessageSquareMore = createLucideIcon(__iconData$13);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/message-square.mjs
 		/**
@@ -906,7 +945,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$10 = {
+		const __iconData$12 = {
 			name: "message-square",
 			size: 24,
 			node: [["path", {
@@ -914,8 +953,34 @@ window.__ModuleLoader__.load({
 				key: "18887p"
 			}]]
 		};
-		__iconData$10.node;
-		const MessageSquare = createLucideIcon(__iconData$10);
+		__iconData$12.node;
+		const MessageSquare = createLucideIcon(__iconData$12);
+		//#endregion
+		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/panel-left.mjs
+		/**
+		* @license lucide-react v1.47.0 - ISC
+		*
+		* This source code is licensed under the ISC license.
+		* See the LICENSE file in the root directory of this source tree.
+		*/
+		const __iconData$11 = {
+			name: "panel-left",
+			size: 24,
+			node: [["rect", {
+				width: "18",
+				height: "18",
+				x: "3",
+				y: "3",
+				rx: "2",
+				key: "afitv7"
+			}], ["path", {
+				d: "M9 3v18",
+				key: "fh3hqa"
+			}]],
+			aliases: ["sidebar"]
+		};
+		__iconData$11.node;
+		const PanelLeft = createLucideIcon(__iconData$11);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/panel-right.mjs
 		/**
@@ -924,7 +989,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$9 = {
+		const __iconData$10 = {
 			name: "panel-right",
 			size: 24,
 			node: [["rect", {
@@ -939,8 +1004,8 @@ window.__ModuleLoader__.load({
 				key: "14nvp0"
 			}]]
 		};
-		__iconData$9.node;
-		const PanelRight = createLucideIcon(__iconData$9);
+		__iconData$10.node;
+		const PanelRight = createLucideIcon(__iconData$10);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/pin.mjs
 		/**
@@ -949,7 +1014,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$8 = {
+		const __iconData$9 = {
 			name: "pin",
 			size: 24,
 			node: [["path", {
@@ -960,8 +1025,8 @@ window.__ModuleLoader__.load({
 				key: "1nkz8b"
 			}]]
 		};
-		__iconData$8.node;
-		const Pin = createLucideIcon(__iconData$8);
+		__iconData$9.node;
+		const Pin = createLucideIcon(__iconData$9);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/plug.mjs
 		/**
@@ -970,7 +1035,7 @@ window.__ModuleLoader__.load({
 		* This source code is licensed under the ISC license.
 		* See the LICENSE file in the root directory of this source tree.
 		*/
-		const __iconData$7 = {
+		const __iconData$8 = {
 			name: "plug",
 			size: 24,
 			node: [
@@ -992,8 +1057,29 @@ window.__ModuleLoader__.load({
 				}]
 			]
 		};
+		__iconData$8.node;
+		const Plug = createLucideIcon(__iconData$8);
+		//#endregion
+		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/plus.mjs
+		/**
+		* @license lucide-react v1.47.0 - ISC
+		*
+		* This source code is licensed under the ISC license.
+		* See the LICENSE file in the root directory of this source tree.
+		*/
+		const __iconData$7 = {
+			name: "plus",
+			size: 24,
+			node: [["path", {
+				d: "M5 12h14",
+				key: "1ays0h"
+			}], ["path", {
+				d: "M12 5v14",
+				key: "s699le"
+			}]]
+		};
 		__iconData$7.node;
-		const Plug = createLucideIcon(__iconData$7);
+		const Plus = createLucideIcon(__iconData$7);
 		//#endregion
 		//#region ../../node_modules/.pnpm/lucide-react@1.47.0_react@18.3.1/node_modules/lucide-react/dist/esm/icons/search.mjs
 		/**
@@ -1371,6 +1457,27 @@ window.__ModuleLoader__.load({
 			"sidebar.assistant": "IM助理",
 			"sidebar.imSettings": "IM助理",
 			"sidebar.tasksTab": "任务",
+			"settings.v2.common": "常用",
+			"settings.v2.scenarios": "场景与成员",
+			"settings.v2.notify": "通知",
+			"settings.v2.routine": "例行任务",
+			"settings.v2.mcp": "MCP 连接器",
+			"settings.v2.process": "过程记录",
+			"settings.v2.about": "关于",
+			"v2.search": "搜索",
+			"v2.bell": "动静",
+			"v2.newMate": "新同事",
+			"v2.files": "文件",
+			"v2.needs": "需要你",
+			"v2.working": "在干活",
+			"v2.recent": "刚完成",
+			"v2.waitingAsk": "等你答",
+			"v2.quiet": "没有新动静",
+			"v2.noResults": "没有结果",
+			"v2.pinned": "置顶",
+			"v2.other": "其他",
+			"v2.routine": "例行",
+			"v2.unreadCount": "{0} 条未读",
 			"sidebar.channelsTab": "频道",
 			"sidebar.scheduleTab": "定时",
 			"sidebar.runsTab": "执行记录",
@@ -1670,6 +1777,27 @@ window.__ModuleLoader__.load({
 			"sidebar.assistant": "IM Assistant",
 			"sidebar.imSettings": "IM Assistant",
 			"sidebar.tasksTab": "Tasks",
+			"settings.v2.common": "Common",
+			"settings.v2.scenarios": "Scenarios & members",
+			"settings.v2.notify": "Notifications",
+			"settings.v2.routine": "Routine tasks",
+			"settings.v2.mcp": "MCP connectors",
+			"settings.v2.process": "Process records",
+			"settings.v2.about": "About",
+			"v2.search": "Search",
+			"v2.bell": "Activity",
+			"v2.newMate": "New teammate",
+			"v2.files": "Files",
+			"v2.needs": "Needs you",
+			"v2.working": "Working",
+			"v2.recent": "Just finished",
+			"v2.waitingAsk": "Waiting on you",
+			"v2.quiet": "Nothing new",
+			"v2.noResults": "No results",
+			"v2.pinned": "Pinned",
+			"v2.other": "Other",
+			"v2.routine": "Routine",
+			"v2.unreadCount": "{0} unread",
 			"sidebar.channelsTab": "Channels",
 			"sidebar.scheduleTab": "Schedule",
 			"sidebar.runsTab": "Run history",
@@ -1914,7 +2042,7 @@ window.__ModuleLoader__.load({
 		/** settings.section ids registered by the companion plugins. */
 		const AUTOMATION_SECTION_ID = "scheduled-tasks";
 		const IM_SECTION_ID = "im-assistant";
-		const stylesheet$5 = `
+		const stylesheet$6 = `
 .dcu-panel-page{display:flex;flex-direction:column;height:100%;min-height:0;overflow:auto;background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary)}
 .dcu-panel-head{display:flex;align-items:center;gap:10px;padding:18px 28px 8px;font-size:18px;font-weight:600}
 .dcu-panel-head svg{color:var(--dsw-alias-label-secondary)}
@@ -1984,7 +2112,7 @@ window.__ModuleLoader__.load({
 			const page = (title, icon, body) => /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 				className: "dcu-panel-page",
 				children: [
-					/* @__PURE__ */ (0, react_jsx_runtime.jsx)("style", { children: stylesheet$5 }),
+					/* @__PURE__ */ (0, react_jsx_runtime.jsx)("style", { children: stylesheet$6 }),
 					/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 						className: "dcu-panel-head",
 						children: [icon, /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: title })]
@@ -2180,6 +2308,1027 @@ window.__ModuleLoader__.load({
 				size: 16,
 				strokeWidth: 1.6
 			})), panels.map((panel) => button(panel.id, panel.label, renderIcon(panel.id, activeId === panel.id)))] });
+		}
+		//#endregion
+		//#region src/client/MyworkSidebar.tsx
+		/**
+		* MyWork v2 sidebar (TEAMMATES §9.4): the column is teammates, set brutalist (pure black, white type at 100 / 65 / 50 %,
+		* no fills; each teammate keeps its flat avatar). On top the MyWork mark (18px, white), a search field, the bell (a
+		* dot: white while someone works, --warn when someone needs you; a dropdown of 需要你 / 在干活 / 刚完成), 「+」 for a new
+		* teammate and collapse. In the middle only teammates, in sections: 置顶 (pinned; MyWork is pinned by default), then one
+		* per type (the `group` field, 「类型」 in the UI) in the order the types were formed, then 其他. Within a section:
+		* pinned / default first, then the last conversation; state never changes the order of rows or sections. A section
+		* label (only when there is more than one section) folds its rows; what is folded is kept in localStorage (folded, it
+		* carries the sum of its rows' badges). A row is the avatar with the unread count on its top-right — an IM badge (white
+		* on red, 99+): results since you last opened that teammate, at least 1 while it waits on your answer — then the name
+		* (never bold) and the time over one line (等你答 in --warn, 在干活 breathing, else the last thing said). The list ends
+		* with 新同事. At the bottom 文件 and 设置 as plain text rows. Rows carry no actions: opening a row is the only thing it
+		* does.
+		*
+		* Collapsing is clipping, not another layout: the same tree in dsh's 56px rail, where the avatar column (left 14,
+		* 28 wide, centre 28) is all that shows. Every avatar, the mark, the section breaks (a short rule where the label was), 新同事,
+		* 文件 and 设置 stay exactly where they were; only the words go.
+		*
+		* Data comes from dsh-mywork-tasks (/mywork-tasks/api/mates, /activity, /search); navigation into that plugin's pages
+		* goes through window events so neither package imports the other: the column dispatches mywork:open-thread and
+		* listens for mywork:thread-opened (the highlight) and mywork:mates-updated (the page's own poll, shared).
+		*/
+		const V2_STORAGE_KEY = "dsh-mywork:v2";
+		function v2Active() {
+			try {
+				return localStorage.getItem(V2_STORAGE_KEY) !== "off";
+			} catch {
+				return true;
+			}
+		}
+		const MYWORK_PANELS = {
+			mate: "mywork-mate",
+			files: "mywork-files"
+		};
+		const API = "/mywork-tasks/api";
+		const FAST_MS = 4e3;
+		const SLOW_MS = 3e4;
+		const SEARCH_DEBOUNCE_MS = 200;
+		/** Folded section keys ('pinned' | 'g:<name>' | 'other' → true), kept across reloads. */
+		const SECTIONS_KEY = "dsh-mywork:sections";
+		function storedSections() {
+			try {
+				const v = JSON.parse(localStorage.getItem(SECTIONS_KEY) ?? "{}");
+				return v !== null && typeof v === "object" && !Array.isArray(v) ? v : {};
+			} catch {
+				return {};
+			}
+		}
+		/** The teammate the tasks page has open (its sticky nav, shared through sessionStorage). */
+		const MATE_KEY = "dsh-mywork:mate";
+		function storedMate() {
+			try {
+				return window.sessionStorage.getItem(MATE_KEY) ?? "";
+			} catch {
+				return "";
+			}
+		}
+		function storeMate(id) {
+			try {
+				if (id !== "") window.sessionStorage.setItem(MATE_KEY, id);
+				else window.sessionStorage.removeItem(MATE_KEY);
+			} catch {}
+		}
+		const useLegacyPanelInfo$1 = (selector) => selector({ activePanelId: null });
+		const EMPTY_ACTIVITY = {
+			needs: [],
+			working: [],
+			recent: []
+		};
+		const stylesheet$5 = `
+/*
+ * The palette (dsh-mywork-shell's --mw-*, shared with the tasks page; 炭 · 香槟 by default, 墨 · 雾紫 to switch to, each dark
+ * and light): the column sits on --mw-side, a step below the thread; text fg at 100 / 68 / 54 %, rules fg at 9 / 5 %;
+ * the accent marks the open row (a tint) and a working teammate's line; --warn only for a pending question (等你答);
+ * the unread badge white on --badge, as in IM. No fills, no decoration: a row is the teammate's avatar
+ * (28, flat, its own colour and shape), its name (13) and one line (12 at 65 %); the selected row a 5 % ground, radius
+ * 8. Line icons only where they act, at 50 %,
+ * 100 % on hover. Spacing 8 / 16 / 24 (4 inline). Shadows only on the bell's elevated dropdown. Motion: colour /
+ * opacity 150 ms; a working teammate breathes (opacity 1 ↔ .5, 2.4 s; reduced motion holds .65); nothing else moves.
+ */
+.mws{--bg:var(--mw-side,#0e0c0a);--elevated:var(--mw-elevated,#1f1c1a);--fg:var(--mw-fg,#efebe2);--fg-2:var(--mw-fg-2,rgba(239,235,226,0.68));--fg-3:var(--mw-fg-3,rgba(239,235,226,0.54));--rule:var(--mw-rule,rgba(239,235,226,0.09));--rule-soft:var(--mw-rule-soft,rgba(239,235,226,0.05));--warn:var(--mw-attn,#e2c797);--danger:var(--mw-danger,#df7f78);--accent:var(--mw-accent,#d8c198);--accent-text:var(--mw-accent-text,#dec79f);--sel:var(--mw-sel,rgba(216,193,152,0.1));--badge:var(--mw-badge,#c74b47);--av-mark-bg:var(--mw-mark-bg,#292622);--av-mark-fg:var(--mw-mark-fg,#fff);--shadow:var(--mw-shadow,0 8px 24px rgba(0,0,0,.5));--fast:150ms ease;--font:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Hiragino Sans GB","Microsoft YaHei UI",sans-serif;position:relative;width:100%;height:100%;min-width:0;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;background:var(--bg);color:var(--fg);border-right:1px solid var(--rule);font:13px/18px var(--font);letter-spacing:0;-webkit-font-smoothing:antialiased}
+.mws *{box-sizing:border-box}
+.mws button{font-family:inherit;transition:color var(--fast),background-color var(--fast),border-color var(--fast),opacity var(--fast)}
+/* (html body .mws: the shell theme rings every :focus-visible in its brand colour; ours is white at 50 %.) */
+html body .mws :focus-visible{outline:2px solid color-mix(in srgb,var(--accent) 70%,transparent);outline-offset:-2px}
+html body .mws input:focus{outline:none}
+.mws ::selection{background:color-mix(in srgb,var(--accent) 30%,transparent);color:var(--fg)}
+@media (prefers-reduced-motion:reduce){.mws *{transition:none!important;animation:none!important}}
+.mws-breathe{animation:mws-breathe 2.4s ease-in-out infinite}
+@keyframes mws-breathe{0%,100%{opacity:1}50%{opacity:.5}}
+@media (prefers-reduced-motion:reduce){.mws .mws-breathe{opacity:.65}}
+/* The MyWork mark: an M whose last stroke turns into a check, 18px, white. */
+.mws-mark{display:inline-grid;place-items:center;flex:none;color:var(--fg)}
+.mws-mark svg{display:block}
+/*
+ * One geometry for both states. dsh's collapsed rail is 56px, so the avatar column is left 14 / 28 wide / centre 28
+ * everywhere: list 4 + row 10 to the avatar, the mark in a 28 box on the same column, labels and 文件 / 设置 starting at
+ * 14. Collapsed, nothing moves; the words are hidden and the rail clips the rest.
+ * Density as in a desktop IM list (Feishu / WeChat run 14 / 12 at 64): name 13, line 12, time 11, avatar 28, row 52.
+ */
+/* Header: the mark · search · bell · + · collapse (collapsed: the mark alone; it expands, the panel icon on hover). */
+.mws-head{position:relative;display:flex;align-items:center;gap:4px;flex:none;height:52px;padding:0 8px 0 14px}
+.mws-brand{appearance:none;display:grid;place-items:center;flex:none;width:28px;height:28px;padding:0;border:0;border-radius:8px;background:transparent;color:var(--fg)}
+.mws-brand>*{grid-area:1/1;transition:opacity var(--fast)}
+.mws-brand .alt{display:grid;place-items:center;opacity:0}
+button.mws-brand{cursor:pointer}
+button.mws-brand:hover .mws-mark,button.mws-brand:focus-visible .mws-mark{opacity:0}
+button.mws-brand:hover .alt,button.mws-brand:focus-visible .alt{opacity:1}
+.mws-search{flex:1;min-width:0;height:28px;margin:0 4px 0 8px;border:1px solid var(--rule);border-radius:8px;transition:border-color var(--fast)}
+.mws-search:focus-within{border-color:var(--fg-3)}
+.mws-search input{display:block;width:100%;height:100%;margin:0;padding:0 8px;border:0;background:transparent;color:var(--fg);font:inherit;font-size:12px;outline:none}
+.mws-search input::placeholder{color:var(--fg-3)}
+.mws-icon{appearance:none;position:relative;display:inline-grid;place-items:center;flex:none;width:28px;height:28px;padding:0;border:0;border-radius:8px;background:transparent;color:var(--fg-3);cursor:pointer}
+.mws-icon:hover,.mws-icon[aria-expanded=true]{color:var(--fg)}
+.mws-icon svg{display:block}
+/* The bell's dot: white while someone works or something needs you, --warn when a question waits on you. */
+.mws-dot{position:absolute;top:5px;right:5px;width:6px;height:6px;border-radius:50%;background:var(--accent-text);pointer-events:none}
+.mws-dot[data-needs=true]{background:var(--warn)}
+/* The bell's panel: an elevated layer under the header, over the list. */
+.mws-drop{position:absolute;top:46px;left:8px;right:8px;z-index:20;max-height:min(420px,calc(100vh - 120px));overflow:auto;padding:8px;border:1px solid var(--rule);border-radius:8px;background:var(--elevated);box-shadow:var(--shadow)}
+.mws-drop h3{margin:8px 8px 4px;color:var(--fg-3);font-size:12px;line-height:16px;font-weight:400}
+.mws-list{flex:1;min-height:0;overflow-x:hidden;overflow-y:auto;padding:0 4px 16px;scrollbar-width:thin;scrollbar-color:var(--rule) transparent}
+/* Section labels: 12 at 50 %, sentence case, the chevron after the words (open: down; folded: right, with the count). */
+.mws-sec+.mws-sec{margin-top:8px}
+.mws-sec-head{appearance:none;display:flex;align-items:center;gap:4px;width:100%;height:28px;padding:0 10px;border:0;border-radius:8px;background:transparent;color:var(--fg-3);font:inherit;font-size:12px;line-height:16px;font-weight:400;text-align:left;cursor:pointer}
+.mws-sec-head:hover{color:var(--fg)}
+.mws-sec-head svg{flex:none}
+.mws-sec-head[aria-expanded=false] svg{transform:rotate(-90deg)}
+.mws-sec-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mws-sec-count{flex:none;margin-left:4px;font-variant-numeric:tabular-nums}
+.mws-sec-head .mws-badge{margin-left:8px}
+/* Collapsed, the label's place holds a 16px rule on the avatar column; folded, the count (or the badge sum) instead. */
+.mws-sec-mark{display:grid;place-items:center;width:28px;height:16px;font-variant-numeric:tabular-nums}
+.mws-sec-mark:empty::before{content:'';width:16px;height:1px;background:var(--rule)}
+.mws-sec-mark .mws-badge{margin:0}
+/* Rows: the avatar (28, the unread badge on its top-right), then the name 13 and the time 11 at 50 % on one line and one
+ * line of 12 at 65 % under it. */
+.mws-row{appearance:none;display:grid;grid-template-columns:28px minmax(0,1fr);column-gap:10px;align-items:center;width:100%;min-width:0;padding:8px 8px 8px 10px;border:0;border-radius:8px;background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
+.mws-main{display:grid;gap:2px;min-width:0}
+.mws-avw{position:relative;isolation:isolate;display:block;width:28px;height:28px;line-height:0}
+.mws-av{display:inline-block;flex:none;line-height:0;user-select:none}
+.mws-av svg{display:block;overflow:visible}
+.mws-av-none{display:block;width:28px;height:28px}
+.mws-row:hover{background:var(--rule-soft)}
+.mws-row[aria-current=page]{background:var(--sel)}
+.mws-line{display:flex;align-items:baseline;min-width:0}
+.mws-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;line-height:18px;font-weight:400}
+.mws-time{flex:none;margin-left:8px;color:var(--fg-3);font-size:11px;line-height:16px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.mws-sub{display:block;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--fg-2);font-size:12px;line-height:16px}
+.mws-sub[data-tone=warn]{color:var(--warn)}
+.mws-sub.mws-breathe{color:var(--accent-text)}
+.mws-sub[data-tone=danger]{color:var(--danger)}
+/* The unread badge (IM): a pill, white 11 / 600 tabular on red; on an avatar 16 high at its top-right, ringed in the ground. */
+.mws-badge{flex:none;display:inline-block;min-width:18px;height:18px;margin-left:8px;padding:0 6px;border-radius:9px;background:var(--badge);color:#fff;font-size:11px;line-height:18px;font-weight:600;font-variant-numeric:tabular-nums;text-align:center;white-space:nowrap}
+.mws-badge.on{position:absolute;top:-6px;right:-6px;min-width:16px;height:16px;margin:0;padding:0 4px;border-radius:8px;font-size:10px;line-height:16px;box-shadow:0 0 0 2px var(--bg)}
+/* 新同事 closes the list: a 28 outlined square with + on the avatar column, the words at 50 %. */
+.mws-add{margin-top:4px;color:var(--fg-3)}
+.mws-add:hover{color:var(--fg)}
+.mws-add-box{display:grid;place-items:center;width:28px;height:28px;border:1px solid var(--rule);border-radius:8px}
+.mws-empty{padding:16px 10px;color:var(--fg-3);font-size:12px;line-height:16px}
+/* Footer: 文件 and 设置 as plain text rows, the words at 14 (two characters of 13 sit on the avatar column). */
+.mws-foot{flex:none;padding:4px 4px 0;border-top:1px solid var(--rule)}
+.mws-flat{appearance:none;display:flex;align-items:center;width:100%;height:32px;padding:0 10px;border:0;border-radius:8px;background:transparent;color:var(--fg);font:inherit;font-size:13px;line-height:18px;text-align:left;white-space:nowrap;cursor:pointer}
+.mws-flat:hover{background:var(--rule-soft)}
+.mws-flat[aria-current=page]{background:var(--sel)}
+/* The settings entry is dsh's own trigger; it wears the 文件 row. */
+.mws-settings{flex:none;padding:0 4px 12px}
+.mws-settings .dcu-settings-trigger{height:32px;min-height:32px;padding:0 10px;border-radius:8px;color:var(--fg);font:400 13px/18px var(--font);white-space:nowrap;transition:background-color var(--fast),color var(--fast)}
+.mws-settings .dcu-settings-trigger:hover,.mws-settings .dcu-settings-trigger[aria-expanded=true]{background:var(--rule-soft);color:var(--fg)}
+.mws-settings .dcu-settings-trigger:active{transform:none}
+html body .mws-settings .dcu-settings-trigger:focus-visible{outline:2px solid var(--fg-3);outline-offset:-2px;background:transparent}
+.mws-settings .dcu-settings-trigger-content{display:block}
+.mws-settings .dcu-settings-trigger-content svg{display:none}
+/* Collapsed: the same rows; the words hidden, the selected / hovered ground a 40 square around the avatar. */
+.mws.compact .mws-list{scrollbar-width:none}
+.mws.compact .mws-list::-webkit-scrollbar{display:none}
+.mws.compact .mws-main{visibility:hidden}
+.mws.compact .mws-row{padding-right:0}
+.mws.compact .mws-row:hover,.mws.compact .mws-row[aria-current=page]{background:transparent}
+.mws.compact .mws-row:hover .mws-avw::before,.mws.compact .mws-row[aria-current=page] .mws-avw::before{content:'';position:absolute;z-index:-1;inset:-4px;border-radius:8px;background:var(--rule-soft)}
+.mws.compact .mws-row[aria-current=page] .mws-avw::before{background:var(--sel)}
+.mws.compact .mws-flat,.mws.compact .mws-settings .dcu-settings-trigger{padding-right:0}
+`;
+		const str = (v) => typeof v === "string" ? v : "";
+		const ms = (iso) => {
+			const n = Date.parse(iso);
+			return Number.isFinite(n) ? n : 0;
+		};
+		const sameDay = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+		/** HH:MM today, M/D otherwise. */
+		function fmtWhen(iso, now) {
+			if (iso === "") return "";
+			const d = new Date(iso);
+			if (isNaN(d.getTime())) return "";
+			if (sameDay(d, now)) return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+			return `${d.getMonth() + 1}/${d.getDate()}`;
+		}
+		const isPinned = (m) => m.pinned === true || m.isDefault === true && m.pinned !== false;
+		/** The column's one order rule: pinned first (MyWork first among them), then the newest conversation. State never moves a row. */
+		function orderMates(mates) {
+			return mates.filter((m) => str(m.id) !== "").slice().sort((a, b) => Number(isPinned(b)) - Number(isPinned(a)) || (isPinned(a) && isPinned(b) ? Number(b.isDefault === true) - Number(a.isDefault === true) : 0) || ms(str(b.lastAt) || str(b.createdAt)) - ms(str(a.lastAt) || str(a.createdAt)) || (a.id < b.id ? -1 : 1));
+		}
+		/**
+		* The column's sections: 置顶 (every pinned teammate, whatever its group), then one per group name in a stable order —
+		* alphabetical by name, zh-CN collation, so activity never moves a section — then 其他 (no group). Empty sections are
+		* left out; each keeps orderMates' order.
+		*/
+		function sectionMates(mates) {
+			const pinned = [];
+			const other = [];
+			const groups = /* @__PURE__ */ new Map();
+			for (const m of orderMates(mates)) {
+				if (isPinned(m)) {
+					pinned.push(m);
+					continue;
+				}
+				const name = str(m.group).trim();
+				if (name === "") {
+					other.push(m);
+					continue;
+				}
+				const list = groups.get(name);
+				if (list !== void 0) list.push(m);
+				else groups.set(name, [m]);
+			}
+			const born = (list) => Math.min(...list.map((m) => Date.parse(str(m.createdAt)) || 0));
+			const named = [...groups].sort(([a, la], [b, lb]) => born(la) - born(lb) || a.localeCompare(b, "zh-CN"));
+			const out = [];
+			if (pinned.length > 0) out.push({
+				key: "pinned",
+				kind: "pinned",
+				name: "",
+				mates: pinned
+			});
+			for (const [name, list] of named) out.push({
+				key: "g:" + name,
+				kind: "group",
+				name,
+				mates: list
+			});
+			if (other.length > 0) out.push({
+				key: "other",
+				kind: "other",
+				name: "",
+				mates: other
+			});
+			return out;
+		}
+		function asMates(v) {
+			return Array.isArray(v) ? v.filter((x) => x !== null && typeof x === "object" && str(x.id) !== "") : [];
+		}
+		function asItems(v) {
+			return Array.isArray(v) ? v.filter((x) => x !== null && typeof x === "object" && str(x.mateId) !== "") : [];
+		}
+		function asActivity(v) {
+			if (v === null || typeof v !== "object") return void 0;
+			const a = v;
+			return {
+				needs: asItems(a.needs),
+				working: asItems(a.working),
+				recent: asItems(a.recent)
+			};
+		}
+		/** GET /search?q= → { mates, messages, files, routines }: one row shape, told apart by the glyph. */
+		function parseSearch(data, byId) {
+			if (data === null || typeof data !== "object") return [];
+			const body = data;
+			const list = (k) => Array.isArray(body[k]) ? body[k].filter((x) => x !== null && typeof x === "object") : [];
+			const out = [];
+			for (const m of asMates(body.mates)) out.push({
+				key: "mate:" + m.id,
+				glyph: "mate",
+				mate: byId.get(m.id) ?? m,
+				title: str(m.name),
+				sub: str(m.title) || str(m.preview),
+				at: str(m.lastAt),
+				target: {
+					kind: "mate",
+					id: m.id
+				}
+			});
+			list("messages").forEach((x, i) => {
+				const mateId = str(x.mateId);
+				if (mateId === "") return;
+				out.push({
+					key: `msg:${mateId}:${str(x.runId)}:${i}`,
+					glyph: "message",
+					mate: byId.get(mateId),
+					title: byId.get(mateId)?.name ?? str(x.mateName),
+					sub: str(x.text),
+					at: str(x.at),
+					target: {
+						kind: "mate",
+						id: mateId,
+						runId: str(x.runId) || void 0
+					}
+				});
+			});
+			for (const x of list("files")) {
+				const id = str(x.id);
+				if (id === "") continue;
+				out.push({
+					key: "file:" + id,
+					glyph: "file",
+					mate: byId.get(str(x.mateId)),
+					title: str(x.title),
+					sub: byId.get(str(x.mateId))?.name ?? "",
+					at: str(x.createdAt),
+					target: {
+						kind: "files",
+						id
+					}
+				});
+			}
+			for (const x of list("routines")) {
+				const id = str(x.id);
+				if (id === "") continue;
+				const owner = byId.get(str(x.mateId))?.name ?? "";
+				out.push({
+					key: "routine:" + id,
+					glyph: "routine",
+					mate: byId.get(str(x.mateId)),
+					title: str(x.title),
+					sub: [str(x.scheduleLabel), owner].filter((s) => s !== "").join(" · "),
+					at: str(x.lastAt) || str(x.nextRunAt),
+					target: {
+						kind: "routine",
+						id,
+						mateId: str(x.mateId) || void 0
+					}
+				});
+			}
+			return out;
+		}
+		function fire(name, detail, cancelable = false) {
+			try {
+				return !window.dispatchEvent(new CustomEvent(name, {
+					detail,
+					cancelable
+				}));
+			} catch {
+				return false;
+			}
+		}
+		/** The MyWork mark: an M whose last stroke turns into a check — the product mark, white, 18px by default. */
+		function BrandMark({ size = 18 }) {
+			return /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+				className: "mws-mark",
+				style: {
+					width: size,
+					height: size
+				},
+				"aria-hidden": "true",
+				children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("svg", {
+					viewBox: "0 0 24 24",
+					width: size,
+					height: size,
+					fill: "none",
+					children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("path", {
+						d: "M4.5 18.5V7l5.5 6.5L15.5 7M10.5 17l3 3 6-6",
+						stroke: "currentColor",
+						strokeWidth: "2.6",
+						strokeLinecap: "round",
+						strokeLinejoin: "round"
+					})
+				})
+			});
+		}
+		/**
+		* Avatars (the same recipe as dsh-mywork-tasks' page): a flat shape with two eyes in the look the owner picked for the
+		* teammate (mate.avatar { color, shape }: one of 8 muted colour keys and 4 shapes), else derived from its id per field.
+		* The colours are mid-tones that sit on #000 without glowing; [fill, eyes]. MyWork keeps its M-check mark.
+		*/
+		const AV_COLORS = {
+			slate: ["#5f6b7a", "#ffffff"],
+			blue: ["#4c6d9e", "#ffffff"],
+			teal: ["#3f7f7b", "#ffffff"],
+			green: ["#5a8160", "#ffffff"],
+			amber: ["#a48344", "#141414"],
+			orange: ["#a9673f", "#ffffff"],
+			rose: ["#9d5868", "#ffffff"],
+			violet: ["#71609f", "#ffffff"]
+		};
+		const AV_COLOR_KEYS = Object.keys(AV_COLORS);
+		/** In a 100 box; the hexagon is drawn with a round-joined stroke of its own colour, so its corners are soft. */
+		const AV_SHAPES = {
+			circle: "M50 4a46 46 0 1 1 0 92a46 46 0 1 1 0-92Z",
+			squircle: "M34 4h32c20 0 30 10 30 30v32c0 20-10 30-30 30H34C14 96 4 86 4 66V34C4 14 14 4 34 4Z",
+			pebble: "M50 8c28 0 46 14 46 40s-18 44-46 44S4 74 4 48 22 8 50 8Z",
+			hex: "M50 8L86.4 29V71L50 92L13.6 71V29Z"
+		};
+		const AV_SHAPE_KEYS = Object.keys(AV_SHAPES);
+		/** Rakazo's shippedHash (FNV-1a): the derived look is stable per teammate. */
+		function avatarHash(v) {
+			let x = 2166136261;
+			for (let i = 0; i < v.length; i++) x = Math.imul(x ^ v.charCodeAt(i), 16777619);
+			return x >>> 0;
+		}
+		function lookOf(mate) {
+			const a = mate.avatar ?? {};
+			const hash = avatarHash(str(mate.id) || str(mate.name) || "mate");
+			return {
+				color: a.color !== void 0 && a.color in AV_COLORS ? a.color : AV_COLOR_KEYS[hash % AV_COLOR_KEYS.length],
+				shape: a.shape !== void 0 && a.shape in AV_SHAPES ? a.shape : AV_SHAPE_KEYS[(Math.imul(hash ^ hash >>> 16, 73244475) >>> 0) % AV_SHAPE_KEYS.length]
+			};
+		}
+		/** A teammate's avatar; working, it breathes (opacity 1 ↔ .5 over 2.4 s; .65 under reduced motion). */
+		function MateAvatar({ mate, size = 32 }) {
+			const cls = "mws-av" + (mate.state === "working" ? " mws-breathe" : "");
+			if (mate.isDefault === true) return /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+				className: cls,
+				"aria-hidden": "true",
+				children: /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("svg", {
+					viewBox: "0 0 100 100",
+					width: size,
+					height: size,
+					children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("circle", {
+						cx: "50",
+						cy: "50",
+						r: "46",
+						fill: "var(--av-mark-bg)"
+					}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("svg", {
+						x: "22",
+						y: "22",
+						width: "56",
+						height: "56",
+						viewBox: "0 0 24 24",
+						fill: "none",
+						children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("path", {
+							d: "M4.5 18.5V7l5.5 6.5L15.5 7M10.5 17l3 3 6-6",
+							stroke: "var(--av-mark-fg)",
+							strokeWidth: "3",
+							strokeLinecap: "round",
+							strokeLinejoin: "round"
+						})
+					})]
+				})
+			});
+			const look = lookOf(mate);
+			const key = AV_COLORS[look.color] !== void 0 ? look.color : "slate";
+			const [hex, eye] = AV_COLORS[key];
+			const fill = `var(--mw-av-${key},${hex})`;
+			const d = AV_SHAPES[look.shape] ?? AV_SHAPES.circle;
+			return /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+				className: cls,
+				"aria-hidden": "true",
+				children: /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("svg", {
+					viewBox: "0 0 100 100",
+					width: size,
+					height: size,
+					children: [look.shape === "hex" ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("path", {
+						d,
+						style: {
+							fill,
+							stroke: fill
+						},
+						strokeWidth: "8",
+						strokeLinejoin: "round"
+					}) : /* @__PURE__ */ (0, react_jsx_runtime.jsx)("path", {
+						d,
+						style: { fill }
+					}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("g", {
+						fill: eye,
+						children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("ellipse", {
+							cx: "37.3",
+							cy: "46.5",
+							rx: "4.4",
+							ry: "3.1"
+						}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("ellipse", {
+							cx: "62.7",
+							cy: "46.5",
+							rx: "4.4",
+							ry: "3.1"
+						})]
+					})]
+				})
+			});
+		}
+		/** The second line: 等你答 · question (--warn) / 在干活 · step (breathing) / the last thing said. */
+		function secondLine(mate, t) {
+			if (mate.state === "waiting") {
+				const q = str(mate.ask?.question).replace(/\*\*|__|`/g, "");
+				return {
+					text: [t("v2.waitingAsk"), q].filter((s) => s !== "").join(" · "),
+					tone: "warn"
+				};
+			}
+			if (mate.state === "working") return {
+				text: [t("v2.working"), str(mate.step)].filter((s) => s !== "").join(" · "),
+				live: true
+			};
+			return { text: str(mate.preview) };
+		}
+		/** The unread count as an IM badge (nothing at 0; 99+ above 99). */
+		function Badge({ n, on = false, t }) {
+			if (n <= 0) return null;
+			return /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+				className: "mws-badge" + (on ? " on" : ""),
+				role: "img",
+				"aria-label": t("v2.unreadCount").replace("{0}", String(n)),
+				children: n > 99 ? "99+" : String(n)
+			});
+		}
+		/** A teammate's row; collapsed, the same row with the words hidden (its name becomes the tooltip). */
+		function MateRow({ mate, time, current, unread, compact, t, onOpen }) {
+			const sub = secondLine(mate, t);
+			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
+				type: "button",
+				className: "mws-row",
+				title: compact ? mate.name : void 0,
+				"aria-current": current ? "page" : void 0,
+				"data-unread": unread > 0 ? "true" : void 0,
+				onClick: onOpen,
+				children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
+					className: "mws-avw",
+					children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(MateAvatar, {
+						mate,
+						size: 28
+					}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)(Badge, {
+						n: unread,
+						on: true,
+						t
+					})]
+				}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
+					className: "mws-main",
+					children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
+						className: "mws-line",
+						children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+							className: "mws-title",
+							children: mate.name
+						}), time !== "" && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+							className: "mws-time",
+							children: time
+						})]
+					}), sub.text !== "" && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+						className: "mws-line",
+						children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+							className: "mws-sub" + (sub.live === true ? " mws-breathe" : ""),
+							"data-tone": sub.tone,
+							children: sub.text
+						})
+					})]
+				})]
+			});
+		}
+		/**
+		* A search result: the avatar of the teammate it belongs to and the same two lines; a file or a routine says what it
+		* is at the start of its second line.
+		*/
+		function ResultItem({ row, time, t, onOpen }) {
+			const sub = [row.glyph === "file" ? t("v2.files") : row.glyph === "routine" ? t("v2.routine") : "", row.sub].filter((s) => s !== "").join(" · ");
+			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
+				type: "button",
+				className: "mws-row",
+				onClick: onOpen,
+				children: [row.mate !== void 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)(MateAvatar, {
+					mate: row.mate,
+					size: 28
+				}) : /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+					className: "mws-av-none",
+					"aria-hidden": "true"
+				}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
+					className: "mws-main",
+					children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
+						className: "mws-line",
+						children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+							className: "mws-title",
+							children: row.title
+						}), time !== "" && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+							className: "mws-time",
+							children: time
+						})]
+					}), sub !== "" && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+						className: "mws-sub",
+						children: sub
+					})]
+				})]
+			});
+		}
+		function MyworkSidebar({ selectPanel, usePanelInfo = useLegacyPanelInfo$1, collapsed, width, toggleSidebar, renderSlot, t }) {
+			const activePanelId = usePanelInfo((info) => info.activePanelId);
+			const compact = collapsed || width < 80;
+			const [mates, setMates] = (0, react.useState)([]);
+			const [activity, setActivity] = (0, react.useState)(EMPTY_ACTIVITY);
+			const [query, setQuery] = (0, react.useState)("");
+			const [remote, setRemote] = (0, react.useState)(null);
+			const [opened, setOpened] = (0, react.useState)(() => {
+				const id = storedMate();
+				return id !== "" ? "mate:" + id : "";
+			});
+			const [bellOpen, setBellOpen] = (0, react.useState)(false);
+			const [seen, setSeen] = (0, react.useState)({});
+			const [folded, setFolded] = (0, react.useState)(storedSections);
+			const toggleSection = (key) => {
+				const next = { ...folded };
+				if (next[key] === true) delete next[key];
+				else next[key] = true;
+				setFolded(next);
+				try {
+					localStorage.setItem(SECTIONS_KEY, JSON.stringify(next));
+				} catch {}
+			};
+			const timer = (0, react.useRef)(void 0);
+			const searchSeq = (0, react.useRef)(0);
+			const matesRef = (0, react.useRef)([]);
+			matesRef.current = mates;
+			const headRef = (0, react.useRef)(null);
+			const schedule = (0, react.useCallback)((list) => {
+				window.clearTimeout(timer.current);
+				timer.current = window.setTimeout(() => {
+					load();
+				}, list.some((m) => m.state === "working") ? FAST_MS : SLOW_MS);
+			}, []);
+			const load = (0, react.useCallback)(() => {
+				const matesReq = fetch(`${API}/mates`).then((r) => r.ok ? r.json() : null);
+				const activityReq = fetch(`${API}/activity`).then((r) => r.ok ? r.json() : null).catch(() => null);
+				Promise.all([matesReq, activityReq]).then(([m, a]) => {
+					const items = m !== null && typeof m === "object" ? asMates(m.items) : void 0;
+					if (items !== void 0) setMates(items);
+					const next = asActivity(a);
+					if (next !== void 0) setActivity(next);
+					schedule(items ?? matesRef.current);
+				}).catch(() => {
+					window.clearTimeout(timer.current);
+					timer.current = window.setTimeout(() => {
+						load();
+					}, SLOW_MS);
+				});
+			}, [schedule]);
+			const markSeen = (0, react.useCallback)((id) => {
+				const mate = matesRef.current.find((m) => m.id === id);
+				setSeen((prev) => prev[id] === str(mate?.lastAt) ? prev : {
+					...prev,
+					[id]: str(mate?.lastAt)
+				});
+			}, []);
+			(0, react.useEffect)(() => {
+				load();
+				const onFocus = () => {
+					load();
+				};
+				const onUpdated = (event) => {
+					const detail = event.detail;
+					if (Array.isArray(detail?.items)) {
+						const list = asMates(detail.items);
+						setMates(list);
+						schedule(list);
+					}
+					const next = asActivity(detail?.activity);
+					if (next !== void 0) setActivity(next);
+				};
+				const onOpened = (event) => {
+					const detail = event.detail;
+					const kind = str(detail?.kind);
+					const id = str(detail?.id);
+					if (kind === "mate" && id !== "") {
+						setOpened("mate:" + id);
+						markSeen(id);
+					} else if (kind === "files") setOpened("files");
+				};
+				window.addEventListener("focus", onFocus);
+				window.addEventListener("mywork:mates-updated", onUpdated);
+				window.addEventListener("mywork:thread-opened", onOpened);
+				return () => {
+					window.clearTimeout(timer.current);
+					window.removeEventListener("focus", onFocus);
+					window.removeEventListener("mywork:mates-updated", onUpdated);
+					window.removeEventListener("mywork:thread-opened", onOpened);
+				};
+			}, [
+				load,
+				markSeen,
+				schedule
+			]);
+			(0, react.useEffect)(() => {
+				if (!bellOpen) return void 0;
+				const onDoc = (event) => {
+					if (headRef.current !== null && event.target instanceof Node && !headRef.current.contains(event.target)) setBellOpen(false);
+				};
+				const onKey = (event) => {
+					if (event.key === "Escape") setBellOpen(false);
+				};
+				document.addEventListener("mousedown", onDoc);
+				document.addEventListener("keydown", onKey);
+				return () => {
+					document.removeEventListener("mousedown", onDoc);
+					document.removeEventListener("keydown", onKey);
+				};
+			}, [bellOpen]);
+			const needle = query.trim();
+			const byId = (0, react.useMemo)(() => new Map(mates.map((m) => [m.id, m])), [mates]);
+			(0, react.useEffect)(() => {
+				const seq = ++searchSeq.current;
+				if (needle === "") {
+					setRemote(null);
+					return;
+				}
+				const id = window.setTimeout(() => {
+					fetch(`${API}/search?q=${encodeURIComponent(needle)}`).then((r) => r.ok ? r.json() : null).then((d) => {
+						if (seq === searchSeq.current) setRemote(parseSearch(d, byId));
+					}).catch(() => {
+						if (seq === searchSeq.current) setRemote([]);
+					});
+				}, SEARCH_DEBOUNCE_MS);
+				return () => {
+					window.clearTimeout(id);
+				};
+			}, [needle]);
+			const results = (0, react.useMemo)(() => {
+				if (needle === "") return [];
+				const q = needle.toLowerCase();
+				const local = orderMates(mates).filter((m) => str(m.name).toLowerCase().includes(q) || str(m.title).toLowerCase().includes(q)).map((m) => ({
+					key: "mate:" + m.id,
+					glyph: "mate",
+					mate: m,
+					title: m.name,
+					sub: str(m.title) || str(m.preview),
+					at: str(m.lastAt),
+					target: {
+						kind: "mate",
+						id: m.id
+					}
+				}));
+				const keys = new Set(local.map((r) => r.key));
+				return [...local, ...(remote ?? []).filter((r) => !keys.has(r.key))];
+			}, [
+				needle,
+				mates,
+				remote
+			]);
+			const sections = (0, react.useMemo)(() => sectionMates(mates), [mates]);
+			const headed = sections.length > 1;
+			const count = activity.needs.length + activity.working.length;
+			const asking = activity.needs.some((x) => x.kind === "ask");
+			const now = /* @__PURE__ */ new Date();
+			/** mywork:open-thread is the contract; if nothing handled it (the tasks client is not loaded yet), its page is selected. */
+			const open = (target) => {
+				setBellOpen(false);
+				if (target.kind === "mate" && target.id !== void 0 && target.id !== "") {
+					setOpened("mate:" + target.id);
+					markSeen(target.id);
+				} else if (target.kind === "files") setOpened("files");
+				if (target.kind === "mate") storeMate(target.id !== void 0 ? target.id : "");
+				if (!fire("mywork:open-thread", { ...target }, true) && selectPanel !== void 0) selectPanel(target.kind === "files" ? MYWORK_PANELS.files : MYWORK_PANELS.mate);
+			};
+			const highlighted = activePanelId === MYWORK_PANELS.files ? "files" : activePanelId === null || activePanelId === MYWORK_PANELS.mate ? opened : "";
+			const groups = [
+				[t("v2.needs"), activity.needs],
+				[t("v2.working"), activity.working],
+				[t("v2.recent"), activity.recent]
+			];
+			/**
+			* The row's badge: results since you last opened that teammate (the server's unreadCount; 1 when it only says unread),
+			* and at least 1 while it waits on your answer. Nothing on the teammate you have open, or one you just opened here
+			* (until its lastAt moves). POST /seen on open is the page's.
+			*/
+			const unreadOf = (mate) => {
+				if (highlighted === "mate:" + mate.id) return 0;
+				const count = typeof mate.unreadCount === "number" && Number.isFinite(mate.unreadCount) ? Math.max(0, Math.floor(mate.unreadCount)) : 0;
+				const n = (mate.unread === true || count > 0) && seen[mate.id] !== str(mate.lastAt) ? Math.max(1, count) : 0;
+				return mate.state === "waiting" ? Math.max(1, n) : n;
+			};
+			const sectionLabel = (sec) => sec.kind === "pinned" ? t("v2.pinned") : sec.kind === "other" ? t("v2.other") : sec.name;
+			const searching = needle !== "" && !compact;
+			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+				className: "mws" + (compact ? " compact" : ""),
+				"data-mywork-sidebar": "v2",
+				children: [
+					/* @__PURE__ */ (0, react_jsx_runtime.jsx)("style", { children: stylesheet$5 }),
+					/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+						className: "mws-head",
+						ref: headRef,
+						children: [
+							compact ? /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
+								type: "button",
+								className: "mws-brand",
+								"aria-label": t("sidebar.expand"),
+								title: t("sidebar.expand"),
+								onClick: toggleSidebar,
+								children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(BrandMark, {}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+									className: "alt",
+									children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(PanelLeft, {
+										size: 16,
+										strokeWidth: 1.5
+									})
+								})]
+							}) : /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+								className: "mws-brand",
+								children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(BrandMark, {})
+							}),
+							!compact && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [
+								/* @__PURE__ */ (0, react_jsx_runtime.jsx)("label", {
+									className: "mws-search",
+									children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("input", {
+										type: "text",
+										value: query,
+										placeholder: t("v2.search"),
+										"aria-label": t("v2.search"),
+										autoComplete: "off",
+										spellCheck: false,
+										onChange: (event) => {
+											setQuery(event.target.value);
+										},
+										onKeyDown: (event) => {
+											if (event.key === "Escape") {
+												event.preventDefault();
+												setQuery("");
+											}
+										}
+									})
+								}),
+								/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
+									type: "button",
+									className: "mws-icon",
+									"aria-label": t("v2.bell"),
+									title: t("v2.bell"),
+									"aria-haspopup": "true",
+									"aria-expanded": bellOpen,
+									onClick: () => {
+										setBellOpen(!bellOpen);
+									},
+									children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(Bell, {
+										size: 16,
+										strokeWidth: 1.5
+									}), count > 0 && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+										className: "mws-dot",
+										"data-needs": asking ? "true" : void 0,
+										"aria-hidden": "true"
+									})]
+								}),
+								/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+									type: "button",
+									className: "mws-icon",
+									"aria-label": t("v2.newMate"),
+									title: t("v2.newMate"),
+									onClick: () => {
+										open({ kind: "new-mate" });
+									},
+									children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(Plus, {
+										size: 16,
+										strokeWidth: 1.5
+									})
+								}),
+								/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+									type: "button",
+									className: "mws-icon",
+									"aria-label": t("sidebar.collapse"),
+									title: t("sidebar.collapse"),
+									onClick: toggleSidebar,
+									children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(PanelLeft, {
+										size: 16,
+										strokeWidth: 1.5
+									})
+								})
+							] }),
+							bellOpen && !compact && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+								className: "mws-drop",
+								role: "dialog",
+								"aria-label": t("v2.bell"),
+								children: [groups.every(([, items]) => items.length === 0) && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+									className: "mws-empty",
+									children: t("v2.quiet")
+								}), groups.map(([label, items]) => items.length === 0 ? null : /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("h3", { children: label }), items.map((item, i) => {
+									const mate = byId.get(item.mateId) ?? {
+										id: item.mateId,
+										name: str(item.mateName)
+									};
+									return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
+										type: "button",
+										className: "mws-row",
+										onClick: () => {
+											open({
+												kind: "mate",
+												id: item.mateId,
+												runId: str(item.runId) || void 0
+											});
+										},
+										children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(MateAvatar, {
+											mate,
+											size: 28
+										}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
+											className: "mws-main",
+											children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
+												className: "mws-line",
+												children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+													className: "mws-title",
+													children: str(mate.name) || str(item.mateName)
+												}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+													className: "mws-time",
+													children: fmtWhen(str(item.at), now)
+												})]
+											}), str(item.text) !== "" && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+												className: "mws-sub",
+												"data-tone": item.kind === "ask" ? "warn" : item.kind === "failed" ? "danger" : void 0,
+												children: str(item.text)
+											})]
+										})]
+									}, `${item.mateId}:${str(item.runId)}:${i}`);
+								})] }, label))]
+							})
+						]
+					}),
+					/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+						className: "mws-list",
+						children: [
+							!searching ? sections.map((sec) => {
+								const rows = sec.mates.map((mate) => /* @__PURE__ */ (0, react_jsx_runtime.jsx)(MateRow, {
+									mate,
+									t,
+									compact,
+									time: fmtWhen(str(mate.lastAt), now),
+									current: highlighted === "mate:" + mate.id,
+									unread: unreadOf(mate),
+									onOpen: () => {
+										open({
+											kind: "mate",
+											id: mate.id
+										});
+									}
+								}, mate.id));
+								if (!headed) return /* @__PURE__ */ (0, react_jsx_runtime.jsx)(react.Fragment, { children: rows }, sec.key);
+								const closed = folded[sec.key] === true;
+								const news = closed ? sec.mates.reduce((n, m) => n + unreadOf(m), 0) : 0;
+								return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+									className: "mws-sec",
+									role: "group",
+									"aria-label": sectionLabel(sec),
+									children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+										type: "button",
+										className: "mws-sec-head",
+										title: compact ? sectionLabel(sec) : void 0,
+										"aria-expanded": !closed,
+										onClick: () => {
+											toggleSection(sec.key);
+										},
+										children: compact ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+											className: "mws-sec-mark",
+											children: closed ? news > 0 ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)(Badge, {
+												n: news,
+												t
+											}) : sec.mates.length : null
+										}) : /* @__PURE__ */ (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [
+											/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+												className: "mws-sec-name",
+												children: sectionLabel(sec)
+											}),
+											/* @__PURE__ */ (0, react_jsx_runtime.jsx)(ChevronDown, {
+												size: 12,
+												strokeWidth: 1.5,
+												"aria-hidden": "true"
+											}),
+											closed && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+												className: "mws-sec-count",
+												children: sec.mates.length
+											}),
+											/* @__PURE__ */ (0, react_jsx_runtime.jsx)(Badge, {
+												n: news,
+												t
+											})
+										] })
+									}), !closed && rows]
+								}, sec.key);
+							}) : results.map((row) => /* @__PURE__ */ (0, react_jsx_runtime.jsx)(ResultItem, {
+								row,
+								t,
+								time: fmtWhen(row.at, now),
+								onOpen: () => {
+									open(row.target);
+								}
+							}, row.key)),
+							searching && remote !== null && results.length === 0 && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+								className: "mws-empty",
+								children: t("v2.noResults")
+							}),
+							!searching && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
+								type: "button",
+								className: "mws-row mws-add",
+								title: compact ? t("v2.newMate") : void 0,
+								onClick: () => {
+									open({ kind: "new-mate" });
+								},
+								children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+									className: "mws-avw",
+									children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+										className: "mws-add-box",
+										children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(Plus, {
+											size: 16,
+											strokeWidth: 1.5
+										})
+									})
+								}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+									className: "mws-main",
+									children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+										className: "mws-title",
+										children: t("v2.newMate")
+									})
+								})]
+							})
+						]
+					}),
+					/* @__PURE__ */ (0, react_jsx_runtime.jsx)("footer", {
+						className: "mws-foot",
+						children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+							type: "button",
+							className: "mws-flat",
+							"aria-current": highlighted === "files" ? "page" : void 0,
+							onClick: () => {
+								open({ kind: "files" });
+							},
+							children: t("v2.files")
+						})
+					}),
+					/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+						className: "mws-settings",
+						children: renderSlot("sidebar.settings", { wide: true })
+					})
+				]
+			});
 		}
 		//#endregion
 		//#region src/client/ui-zoom.ts
@@ -9935,6 +11084,32 @@ html[data-dcu-official-turn-navigator-supported=true] .dcu-turn-navigator,html:h
 			if (/composer|font|conversation|chat|enter/.test(id)) return "editor";
 			return "general";
 		}
+		const SETTINGS_GROUPS_V2 = ["common", "advanced"];
+		const COMMON_V2 = [
+			"general",
+			"models",
+			"dsh-mywork-kit",
+			"im-assistant",
+			"scheduled-tasks"
+		];
+		function settingsGroupV2(id) {
+			return COMMON_V2.includes(id) ? "common" : "advanced";
+		}
+		function settingsOrderV2(id) {
+			const i = COMMON_V2.indexOf(id);
+			return i >= 0 ? i : 100;
+		}
+		/** Labels a task user understands; falls back to the section's own label. */
+		function settingsLabelV2(id) {
+			return {
+				"dsh-mywork-kit": "settings.v2.scenarios",
+				"im-assistant": "settings.v2.notify",
+				"scheduled-tasks": "settings.v2.routine",
+				connectors: "settings.v2.mcp",
+				"archived-sessions": "settings.v2.process",
+				about: "settings.v2.about"
+			}[id];
+		}
 		//#endregion
 		//#region src/client/settings-page-styles.ts
 		/** Codex 设置页的局部 tokens 与布局，不覆盖宿主其他弹窗。 */
@@ -10040,6 +11215,19 @@ html[data-dsh-native-backdrop=mica] .dcu-settings-page,html[data-dsh-native-back
 
 @media(max-width:900px){.dcu-settings-inner{padding:32px 28px}.dcu-settings-heading{align-items:flex-start;flex-direction:column;gap:12px}}
 @media(max-width:600px){.dcu-settings-page{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr)}.dcu-settings-nav{padding:8px 12px;max-height:220px;border-right:0;border-bottom:1px solid var(--sp-border)}.dcu-settings-search{margin:6px 0}.dcu-settings-groups{display:flex;gap:8px;overflow-x:auto;flex:none}.dcu-settings-group{display:flex;gap:4px;margin:0;flex:none}.dcu-settings-group-label{display:none}.dcu-settings-link{width:auto;min-height:40px;flex:none}.dcu-settings-link+.dcu-settings-link{margin-top:0}.dcu-settings-inner{padding:32px 16px}.dcu-settings-heading{margin-bottom:28px}.dcu-settings-heading h1,.dcu-settings-inner:is([data-settings-section=models],[data-settings-section=plugins],[data-settings-section=agent-presets]) [class$="_section"]>h2:is([class$="_title"],[class$="_heading"]){font-size:22px}.dcu-settings-card{padding:0 12px}.dcu-settings-row>[data-slot]>*{flex-wrap:wrap;gap:12px!important}.dcu-settings-general-group{margin-bottom:32px}}
+
+/* MyWork v2 shell: the settings page shares the warm neutral palette of the sidebar and pages. */
+body[data-mywork-v2] .dcu-settings-page{--sp-bg:#ffffff;--sp-nav:#f6f5f4;--sp-card:#f6f5f4;--sp-border:rgba(0,0,0,.1);--sp-text:rgba(0,0,0,.92);--sp-muted:#615d59;--sp-hover:#efedeb;--sp-active:#ffffff;font-family:Geist,-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei UI",sans-serif}
+body[data-mywork-v2] .dcu-settings-link[aria-current=page]{box-shadow:0 0 0 1px rgba(0,0,0,.1)}
+body[data-mywork-v2] .dcu-settings-nav{--sp-text:rgba(0,0,0,.92);--sp-muted:#75706a;--sp-hover:#efedeb;--sp-active:#ffffff;--sp-border:rgba(0,0,0,.06)}
+body[data-mywork-v2] .dcu-settings-link svg{color:#75706a}
+body[data-mywork-v2] .dcu-settings-link[aria-current=page] svg,body[data-mywork-v2] .dcu-settings-link:hover svg{color:#31302e}
+body[data-mywork-v2] .dcu-settings-page :focus-visible{outline-color:#0075de}
+body[data-mywork-v2] .dcu-settings-search:focus-within{border-color:#0075de}
+body[data-ds-dark-theme][data-mywork-v2] .dcu-settings-page{--sp-bg:#191919;--sp-nav:#202020;--sp-card:#202020;--sp-border:rgba(255,255,255,.1);--sp-text:rgba(255,255,255,.9);--sp-muted:#9b9893;--sp-hover:#2a2a2a;--sp-active:#191919}
+body[data-ds-dark-theme][data-mywork-v2] .dcu-settings-nav{--sp-text:rgba(255,255,255,.9);--sp-muted:#8a867f;--sp-hover:#2a2a2a;--sp-active:#191919;--sp-border:rgba(255,255,255,.06)}
+body[data-ds-dark-theme][data-mywork-v2] .dcu-settings-link svg{color:#8a867f}
+body[data-ds-dark-theme][data-mywork-v2] .dcu-settings-link[aria-current=page] svg,body[data-ds-dark-theme][data-mywork-v2] .dcu-settings-link:hover svg{color:#e6e4e0}
 `;
 		//#endregion
 		//#region src/client/settings-focus.ts
@@ -10241,6 +11429,7 @@ html[data-dsh-native-backdrop=mica] .dcu-settings-page,html[data-dsh-native-back
 				if (main.current !== null) main.current.scrollTop = 0;
 			}, [active?.id]);
 			const visible = filterSettingsRows(rows, query);
+			const v2 = v2Active();
 			const ownTitle = active?.id === "general" ? t("settings.general") : active?.id === "plugin-config" ? t("settings.pluginConfig") : void 0;
 			const connectionIndicator = connection === "disconnected" ? "disconnected" : connection === "connecting" ? "connecting" : recovered ? "recovered" : void 0;
 			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [
@@ -10302,7 +11491,32 @@ html[data-dsh-native-backdrop=mica] .dcu-settings-page,html[data-dsh-native-back
 							}),
 							/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
 								className: "dcu-settings-groups",
-								children: [
+								children: v2 ? SETTINGS_GROUPS_V2.map((group) => {
+									const entries = visible.filter((row) => settingsGroupV2(row.id) === group).slice().sort((a, b) => settingsOrderV2(a.id) - settingsOrderV2(b.id) || a.order - b.order);
+									return entries.length > 0 && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("section", {
+										className: "dcu-settings-group",
+										children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("h2", {
+											className: "dcu-settings-group-label",
+											children: t(group === "common" ? "settings.v2.common" : "settings.advanced")
+										}), entries.map((row) => {
+											const Icon = sectionIcon(row.id);
+											const key = settingsLabelV2(row.id);
+											return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
+												type: "button",
+												className: "dcu-settings-link",
+												"aria-current": row.id === active?.id ? "page" : void 0,
+												onClick: () => {
+													setActiveId(row.id);
+												},
+												children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(Icon, {
+													size: 16,
+													strokeWidth: 1.6,
+													"aria-hidden": "true"
+												}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: row.id === "general" ? t("settings.general") : key !== void 0 ? t(key) : row.label })]
+											}, row.id);
+										})]
+									}, group);
+								}) : [
 									"personal",
 									"integrations",
 									"records"
@@ -10377,11 +11591,15 @@ html[data-dsh-native-backdrop=mica] .dcu-settings-page,html[data-dsh-native-back
 			const rows = (0, react.useSyncExternalStore)(items.subscribe, items.getSnapshot);
 			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 				className: "dcu-settings-general",
-				children: [[
+				children: [(v2Active() ? [
+					"general",
+					"editor",
+					"permissions"
+				] : [
 					"permissions",
 					"general",
 					"editor"
-				].map((group) => {
+				]).map((group) => {
 					const entries = rows.filter((row) => generalItemGroup(row.id) === group);
 					return entries.length > 0 && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("section", {
 						className: "dcu-settings-general-group",
@@ -11311,7 +12529,7 @@ html[data-dsh-native-backdrop=mica] .dcu-settings-page,html[data-dsh-native-back
 			registerPluginConfigSection(ctx);
 			const connection = ctx.get("connection");
 			const openPath = (path) => openPathInHost(connection, path);
-			ctx.effect(() => observeSlimSidebar(), "michengai-codex-ui: slim sidebar");
+			if (!v2Active()) ctx.effect(() => observeSlimSidebar(), "michengai-codex-ui: slim sidebar");
 			ctx.effect(() => observeSettingsNavIcons(), "michengai-codex-ui: settings nav icons");
 			ctx.effect(() => observeComposerToolMenus({
 				search: t("home.projectSearch"),
@@ -11389,7 +12607,7 @@ html[data-dsh-native-backdrop=mica] .dcu-settings-page,html[data-dsh-native-back
 						selectGlobalPanel(ctx.layout, id);
 					}
 				})
-			}, CodexSidebar));
+			}, v2Active() ? MyworkSidebar : CodexSidebar));
 			ctx.slots.inject("conversation.session.header.utilities", () => ctx.slots.register({
 				name: "conversation.session.header.utilities",
 				id: "turn-navigator",
@@ -11506,6 +12724,19 @@ html[data-dsh-native-backdrop=mica] .dcu-settings-page,html[data-dsh-native-back
 				openDeepLink();
 				return ctx.sessions.list.subscribe(openDeepLink);
 			}, "michengai-codex-ui: session deep link");
+			ctx.effect(() => {
+				if (typeof window === "undefined") return () => {};
+				const onOpen = (event) => {
+					const detail = event.detail;
+					const sessionId = detail && typeof detail.sessionId === "string" ? detail.sessionId : "";
+					if (sessionId === "" || ctx.sessions.list.getSnapshot().byId[sessionId] === void 0) return;
+					openConversation(ctx, ctx.layout, sessionId);
+				};
+				window.addEventListener("mywork:open-session", onOpen);
+				return () => {
+					window.removeEventListener("mywork:open-session", onOpen);
+				};
+			}, "michengai-codex-ui: mywork open-session bridge");
 			registerSectionPanels(ctx, t, (id) => {
 				selectGlobalPanel(ctx.layout, id);
 			}, { renderConnectors: () => (0, react.createElement)(ConnectorsSection, {

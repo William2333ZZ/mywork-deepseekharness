@@ -8,11 +8,12 @@ window.__ModuleLoader__.load({
  * dsh-mywork-shell — browser half (CommonJS; wrapped into a DSH client bundle
  * by scripts/build-client.mjs).
  *
- *   1. Theme families over dsh's own light / dark palettes through the official
- *      `ctx.theme.overrideTokens` layer API:
- *        claude — warm ivory + Claude orange accent
- *        codex  — neutral monochrome, terminal feel
- *      The family is remembered in this browser; the light/dark/system scheme
+ *   1. MyWork's two palettes over dsh's own light / dark palettes, through the
+ *      official `ctx.theme.overrideTokens` layer API, plus the --mw-* variables the
+ *      MyWork pages read:
+ *        champagne — 炭 · 香槟 (default): warm charcoal / paper, champagne for "you"
+ *        mist      — 墨 · 雾紫: cool ink / paper, a quiet periwinkle
+ *      The palette is remembered in this browser; the light/dark/system scheme
  *      is stored by dsh itself, so the two combine freely.
  *   2. UI zoom (80–150 %). CSS `zoom` goes on #root, NOT on <html>: dsh positions its
  *      floating menus (workspace / mode / model pickers, tooltips) with viewport
@@ -35,323 +36,89 @@ const STORAGE_KEY = 'dsh-mywork-shell:theme'
 const TAB_SLOT = 'mywork.settings.tab'
 
 // ---------------------------------------------------------------------------
-// Palettes (alias-token overrides; every value is a plain CSS color).
-// Token names come from @deepseek-ai/dsh-client-ui-theme design-platform.css.
+// Palettes
 // ---------------------------------------------------------------------------
 
-const CLAUDE_LIGHT = {
-  '--dsw-alias-bg-base': '#F4F3EE',
-  '--dsw-alias-bg-layer-1': '#FBFAF7',
-  '--dsw-alias-bg-layer-2': '#EFEDE6',
-  '--dsw-alias-bg-layer-3': '#E7E4DB',
-  '--dsw-alias-bg-overlay': '#FFFFFF',
-  '--dsw-alias-bg-mask-1': 'rgba(31, 30, 29, 0.35)',
-  '--dsw-alias-border-l1': 'rgba(31, 30, 29, 0.06)',
-  '--dsw-alias-border-l2': 'rgba(31, 30, 29, 0.11)',
-  '--dsw-alias-border-l3': 'rgba(31, 30, 29, 0.18)',
-  '--dsw-alias-brand-primary': '#D97757',
-  '--dsw-alias-brand-text': '#A75437',
-  '--dsw-alias-link': '#A75437',
-  '--dsw-alias-label-primary-foreground': '#FFFFFF',
-  '--dsw-alias-label-primary': '#1F1E1D',
-  '--dsw-alias-label-secondary': '#5B5852',
-  '--dsw-alias-label-tertiary': '#67645E',
-  '--dsw-alias-label-caption': '#706D66',
-  '--dsw-alias-button-primary-fill': '#BA5A3A',
-  '--dsw-alias-button-primary-hover': '#A84D2C',
-  '--dsw-alias-interactive-bg-hover': 'rgba(31, 30, 29, 0.05)',
-  '--dsw-alias-interactive-bg-active': 'rgba(31, 30, 29, 0.09)',
-  '--dsw-alias-markdown-code-block': '#EEEBE3',
-  '--dsw-alias-markdown-code-block-banner': '#E5E1D6',
-  '--dsw-alias-markdown-inline-code': '#ECE8DF',
-  '--dsw-specific-sidebar-fill': '#E8E1CF',
-  '--dsw-alias-state-success-primary': '#4A7249',
-  '--dsw-alias-state-warn-primary': '#8B692A',
-  '--dsw-alias-state-error-primary': '#B84E38',
-  // surfaces dsh draws with "specific" tokens (user bubble, composer) and its blue "business" accent (active tab, send button, drop targets)
-  '--dsw-specific-bubble': '#EFE8D8',
-  '--dsw-specific-input-major': '#FFFFFF',
-  '--dsw-alias-state-business-primary': '#A75437',
-  '--dsw-alias-button-info-fill': '#BA5A3A',
-  '--dsw-alias-button-info-hover': '#A84D2C',
+/**
+ * MyWork's two palettes: 炭 · 香槟 (the default) and 墨 · 雾紫, each with a dark and a light scheme that follow dsh's own
+ * light / dark / system preference. One role table per scheme, computed in OKLCH and checked to WCAG AA (every text role
+ * at least 4.5:1 on the canvas, the sidebar and cards). Roles: the canvas (bg) with the sidebars a step below it (side)
+ * and cards, bubbles and menus above; text fg / fg2 / fg3 (label2 / label3: the same over bg, solid, for dsh); one accent
+ * (accentText where it is type) for what concerns you and what you can press; your own bubble (me); attn = needs you,
+ * danger = failed, badge = the unread count; the teammates' avatar colours, muted to sit in the palette.
+ * From each table come dsh's alias tokens (its settings, dialogs, menus) and the --mw-* variables the MyWork pages read.
+ */
+const PALETTES = {
+  champagne: {
+    label: { zh: '炭 · 香槟', en: 'Charcoal · Champagne' },
+    dark: { bg: '#12100e', side: '#0e0c0a', card: '#191714', bubble: '#211f1c', bubbleFocus: '#272522', elevated: '#1f1c1a', fg: '#efebe2', fg2: 'rgba(239,235,226,0.68)', fg3: 'rgba(239,235,226,0.54)', label2: '#a8a59e', label3: '#898680', rule: 'rgba(239,235,226,0.09)', ruleSoft: 'rgba(239,235,226,0.05)', accent: '#d8c198', accentFg: '#191511', accentText: '#dec79f', me: '#3b342a', meFg: '#f2eee6', sel: 'rgba(216,193,152,0.1)', attn: '#e2c797', danger: '#df7f78', badge: '#c74b47', markBg: '#292622', markFg: '#ffffff', shadow: '0 8px 24px rgba(0,0,0,.5)', bar: 'rgba(18,16,14,0.84)',
+      av: { slate: '#6d757f', blue: '#617692', teal: '#517e7b', green: '#607d65', amber: '#9c8a6a', orange: '#8d6c5a', rose: '#8f6870', violet: '#766f8f' } },
+    light: { bg: '#fcfaf6', side: '#f5f2ee', card: '#fffdfa', bubble: '#efece7', bubbleFocus: '#e9e6e0', elevated: '#ffffff', fg: '#26201c', fg2: 'rgba(38,32,28,0.76)', fg3: 'rgba(38,32,28,0.66)', label2: '#595450', label3: '#6f6a66', rule: 'rgba(38,32,28,0.1)', ruleSoft: 'rgba(38,32,28,0.05)', accent: '#7c5d34', accentFg: '#ffffff', accentText: '#74542c', me: '#eadec8', meFg: '#26201c', sel: 'rgba(124,93,52,0.12)', attn: '#9b641a', danger: '#b33736', badge: '#cb4644', markBg: '#26201c', markFg: '#ffffff', shadow: '0 8px 24px rgba(40,30,20,.08)', bar: 'rgba(252,250,246,0.84)',
+      av: { slate: '#7e8791', blue: '#7288a4', teal: '#62908d', green: '#718f76', amber: '#ae9c7b', orange: '#a07e6b', rose: '#a17a82', violet: '#8881a2' } },
+  },
+  mist: {
+    label: { zh: '墨 · 雾紫', en: 'Ink · Mist' },
+    dark: { bg: '#0f0f13', side: '#0a0b0f', card: '#16171c', bubble: '#1e1f25', bubbleFocus: '#24252b', elevated: '#1d1e24', fg: '#f1f1f6', fg2: 'rgba(241,241,246,0.68)', fg3: 'rgba(241,241,246,0.54)', label2: '#a9a9ad', label3: '#89898e', rule: 'rgba(241,241,246,0.09)', ruleSoft: 'rgba(241,241,246,0.05)', accent: '#666cad', accentFg: '#ffffff', accentText: '#aab3ee', me: '#383c62', meFg: '#f4f5f9', sel: 'rgba(102,108,173,0.16)', attn: '#efb062', danger: '#eb827b', badge: '#cb4644', markBg: '#25262b', markFg: '#ffffff', shadow: '0 8px 24px rgba(0,0,0,.5)', bar: 'rgba(15,15,19,0.84)',
+      av: { slate: '#717c87', blue: '#627c9e', teal: '#4e8682', green: '#618568', amber: '#a58f68', orange: '#98705a', rose: '#996c75', violet: '#7c749b' } },
+    light: { bg: '#fbfbfe', side: '#f4f4f7', card: '#ffffff', bubble: '#eeeff3', bubbleFocus: '#e8e8ec', elevated: '#ffffff', fg: '#1b1c24', fg2: 'rgba(27,28,36,0.76)', fg3: 'rgba(27,28,36,0.65)', label2: '#515258', label3: '#696a70', rule: 'rgba(27,28,36,0.1)', ruleSoft: 'rgba(27,28,36,0.05)', accent: '#5b61a7', accentFg: '#ffffff', accentText: '#50559a', me: '#e3e6fc', meFg: '#1b1c24', sel: 'rgba(91,97,167,0.12)', attn: '#a46311', danger: '#b63132', badge: '#cb4644', markBg: '#1b1c24', markFg: '#ffffff', shadow: '0 8px 24px rgba(40,30,20,.08)', bar: 'rgba(251,251,254,0.84)',
+      av: { slate: '#7e8792', blue: '#7088a7', teal: '#5e918d', green: '#6f9075', amber: '#b09c78', orange: '#a27d69', rose: '#a47982', violet: '#8880a4' } },
+  },
 }
 
-const CLAUDE_DARK = {
-  '--dsw-alias-bg-base': '#262624',
-  '--dsw-alias-bg-layer-1': '#2E2E2B',
-  '--dsw-alias-bg-layer-2': '#383734',
-  '--dsw-alias-bg-layer-3': '#42413D',
-  '--dsw-alias-bg-overlay': '#30302D',
-  '--dsw-alias-bg-mask-1': 'rgba(0, 0, 0, 0.5)',
-  '--dsw-alias-border-l1': 'rgba(255, 255, 255, 0.07)',
-  '--dsw-alias-border-l2': 'rgba(255, 255, 255, 0.12)',
-  '--dsw-alias-border-l3': 'rgba(255, 255, 255, 0.2)',
-  '--dsw-alias-brand-primary': '#D97757',
-  '--dsw-alias-brand-text': '#E8916F',
-  '--dsw-alias-link': '#E8916F',
-  '--dsw-alias-label-primary-foreground': '#FFFFFF',
-  '--dsw-alias-label-primary': '#EDECE8',
-  '--dsw-alias-label-secondary': '#A8A59E',
-  '--dsw-alias-label-tertiary': '#9A9791',
-  '--dsw-alias-label-caption': '#8F8D88',
-  '--dsw-alias-button-primary-fill': '#BA5A3A',
-  '--dsw-alias-button-primary-hover': '#E8916F',
-  '--dsw-alias-interactive-bg-hover': 'rgba(255, 255, 255, 0.06)',
-  '--dsw-alias-interactive-bg-active': 'rgba(255, 255, 255, 0.1)',
-  '--dsw-alias-markdown-code-block': '#1F1F1D',
-  '--dsw-alias-markdown-code-block-banner': '#1A1A18',
-  '--dsw-alias-markdown-inline-code': '#3A3936',
-  '--dsw-specific-sidebar-fill': '#1C1915',
-  '--dsw-alias-state-success-primary': '#7FB77E',
-  '--dsw-alias-state-warn-primary': '#E0B458',
-  '--dsw-alias-state-error-primary': '#E68674',
-  // surfaces dsh draws with "specific" tokens (user bubble, composer) and its blue "business" accent (active tab, send button, drop targets)
-  '--dsw-specific-bubble': '#3B3934',
-  '--dsw-specific-input-major': '#30302D',
-  '--dsw-alias-state-business-primary': '#E8916F',
-  '--dsw-alias-button-info-fill': '#BA5A3A',
-  '--dsw-alias-button-info-hover': '#E8916F',
+/** dsh's alias tokens for one scheme of a palette (token names from @deepseek-ai/dsh-client-ui-theme design-platform.css). */
+function aliasTokens(p, scheme) {
+  return {
+    '--dsw-alias-bg-base': p.bg, '--dsw-alias-bg-layer-1': p.card, '--dsw-alias-bg-layer-2': p.bubble, '--dsw-alias-bg-layer-3': p.bubbleFocus,
+    '--dsw-alias-bg-overlay': p.elevated, '--dsw-alias-bg-mask-1': scheme === 'dark' ? 'rgba(0,0,0,0.55)' : 'rgba(40,30,20,0.3)',
+    '--dsw-alias-border-l1': p.ruleSoft, '--dsw-alias-border-l2': p.rule, '--dsw-alias-border-l3': p.fg3,
+    '--dsw-alias-brand-primary': p.accent, '--dsw-alias-brand-text': p.accentText, '--dsw-alias-link': p.accentText,
+    '--dsw-alias-label-primary-foreground': p.accentFg, '--dsw-alias-label-primary': p.fg, '--dsw-alias-label-secondary': p.label2,
+    '--dsw-alias-label-tertiary': p.label3, '--dsw-alias-label-caption': p.label3, '--dsw-alias-label-primary-inverted': p.bg,
+    '--dsw-alias-button-primary-fill': p.accent, '--dsw-alias-button-primary-hover': p.accentText,
+    '--dsw-alias-interactive-bg-hover': p.ruleSoft, '--dsw-alias-interactive-bg-active': p.rule,
+    '--dsw-alias-markdown-code-block': p.card, '--dsw-alias-markdown-code-block-banner': p.side, '--dsw-alias-markdown-inline-code': p.bubble,
+    '--dsw-specific-sidebar-fill': p.side, '--dsw-alias-state-warn-primary': p.attn, '--dsw-alias-state-error-primary': p.danger,
+    // surfaces dsh draws with "specific" tokens (user bubble, composer) and its blue "business" accent (active tab, send button, drop targets)
+    '--dsw-specific-bubble': p.me, '--dsw-specific-input-major': p.bubble,
+    '--dsw-alias-state-business-primary': p.accentText, '--dsw-alias-button-info-fill': p.accent, '--dsw-alias-button-info-hover': p.accentText,
+  }
 }
 
-/* The three families below come from the taste-skill pack (github.com/Leonxlnx/taste-skill): soft-skill, minimalist-skill,
-   brutalist-skill. Each is one override layer with both palettes; every text role was checked against WCAG AA 4.5:1 at build time. */
-const SOFT_LIGHT = {
-  '--dsw-alias-bg-base': '#F5F5F7',
-  '--dsw-alias-bg-layer-1': '#FFFFFF',
-  '--dsw-alias-bg-layer-2': '#ECECF1',
-  '--dsw-alias-bg-layer-3': '#E2E2EA',
-  '--dsw-alias-bg-overlay': '#FFFFFF',
-  '--dsw-alias-bg-mask-1': 'rgba(23,23,28,0.4)',
-  '--dsw-alias-border-l1': 'rgba(23,23,28,0.05)',
-  '--dsw-alias-border-l2': 'rgba(23,23,28,0.09)',
-  '--dsw-alias-border-l3': 'rgba(23,23,28,0.16)',
-  '--dsw-alias-brand-primary': '#4F46E5',
-  '--dsw-alias-brand-text': '#4338CA',
-  '--dsw-alias-link': '#4338CA',
-  '--dsw-alias-label-primary-foreground': '#FFFFFF',
-  '--dsw-alias-label-primary': '#17171C',
-  '--dsw-alias-label-secondary': '#5C5C66',
-  '--dsw-alias-label-tertiary': '#62626E',
-  '--dsw-alias-label-caption': '#62626E',
-  '--dsw-alias-label-primary-inverted': '#FFFFFF',
-  '--dsw-alias-button-primary-fill': '#4F46E5',
-  '--dsw-alias-button-primary-hover': '#4338CA',
-  '--dsw-alias-interactive-bg-hover': 'rgba(23,23,28,0.045)',
-  '--dsw-alias-interactive-bg-active': 'rgba(23,23,28,0.08)',
-  '--dsw-alias-markdown-code-block': '#ECECF1',
-  '--dsw-alias-markdown-code-block-banner': '#E2E2EA',
-  '--dsw-alias-markdown-inline-code': '#E7E7EE',
-  '--dsw-specific-sidebar-fill': '#EDEDF2',
-  '--dsw-alias-state-success-primary': '#166534',
-  '--dsw-alias-state-warn-primary': '#854D0E',
-  '--dsw-alias-state-error-primary': '#B91C1C',
-  '--dsw-specific-bubble': '#E9E8FA',
-  '--dsw-specific-input-major': '#FFFFFF',
-  '--dsw-alias-state-business-primary': '#4F46E5',
-  '--dsw-alias-button-info-fill': '#4F46E5',
-  '--dsw-alias-button-info-hover': '#4338CA',
-}
-
-const SOFT_DARK = {
-  '--dsw-alias-bg-base': '#050505',
-  '--dsw-alias-bg-layer-1': '#111113',
-  '--dsw-alias-bg-layer-2': '#161618',
-  '--dsw-alias-bg-layer-3': '#1E1E22',
-  '--dsw-alias-bg-overlay': '#111113',
-  '--dsw-alias-bg-mask-1': 'rgba(0,0,0,0.7)',
-  '--dsw-alias-border-l1': 'rgba(255,255,255,0.06)',
-  '--dsw-alias-border-l2': 'rgba(255,255,255,0.10)',
-  '--dsw-alias-border-l3': 'rgba(255,255,255,0.18)',
-  '--dsw-alias-brand-primary': '#818CF8',
-  '--dsw-alias-brand-text': '#A5B4FC',
-  '--dsw-alias-link': '#A5B4FC',
-  '--dsw-alias-label-primary-foreground': '#0B0B14',
-  '--dsw-alias-label-primary': '#F4F4F5',
-  '--dsw-alias-label-secondary': '#A1A1AA',
-  '--dsw-alias-label-tertiary': '#8E8E98',
-  '--dsw-alias-label-caption': '#84848E',
-  '--dsw-alias-label-primary-inverted': '#0B0B14',
-  '--dsw-alias-button-primary-fill': '#818CF8',
-  '--dsw-alias-button-primary-hover': '#A5B4FC',
-  '--dsw-alias-interactive-bg-hover': 'rgba(255,255,255,0.06)',
-  '--dsw-alias-interactive-bg-active': 'rgba(255,255,255,0.11)',
-  '--dsw-alias-markdown-code-block': '#0C0C0E',
-  '--dsw-alias-markdown-code-block-banner': '#050505',
-  '--dsw-alias-markdown-inline-code': '#1E1E22',
-  '--dsw-specific-sidebar-fill': '#0A0A0B',
-  '--dsw-alias-state-success-primary': '#34D399',
-  '--dsw-alias-state-warn-primary': '#FBBF24',
-  '--dsw-alias-state-error-primary': '#F87171',
-  '--dsw-specific-bubble': '#17172A',
-  '--dsw-specific-input-major': '#111113',
-  '--dsw-alias-state-business-primary': '#818CF8',
-  '--dsw-alias-button-info-fill': '#818CF8',
-  '--dsw-alias-button-info-hover': '#A5B4FC',
-}
-
-const MINIMAL_LIGHT = {
-  '--dsw-alias-bg-base': '#F7F6F3',
-  '--dsw-alias-bg-layer-1': '#FFFFFF',
-  '--dsw-alias-bg-layer-2': '#EFEEEA',
-  '--dsw-alias-bg-layer-3': '#E6E5E0',
-  '--dsw-alias-bg-overlay': '#FFFFFF',
-  '--dsw-alias-bg-mask-1': 'rgba(17,17,17,0.35)',
-  '--dsw-alias-border-l1': '#F0EFEB',
-  '--dsw-alias-border-l2': '#EAEAEA',
-  '--dsw-alias-border-l3': '#DAD9D4',
-  '--dsw-alias-brand-primary': '#111111',
-  '--dsw-alias-brand-text': '#111111',
-  '--dsw-alias-link': '#1F6C9F',
-  '--dsw-alias-label-primary-foreground': '#FFFFFF',
-  '--dsw-alias-label-primary': '#111111',
-  '--dsw-alias-label-secondary': '#63625E',
-  '--dsw-alias-label-tertiary': '#66655F',
-  '--dsw-alias-label-caption': '#66655F',
-  '--dsw-alias-label-primary-inverted': '#FFFFFF',
-  '--dsw-alias-button-primary-fill': '#111111',
-  '--dsw-alias-button-primary-hover': '#333333',
-  '--dsw-alias-interactive-bg-hover': 'rgba(17,17,17,0.04)',
-  '--dsw-alias-interactive-bg-active': 'rgba(17,17,17,0.08)',
-  '--dsw-alias-markdown-code-block': '#F7F6F3',
-  '--dsw-alias-markdown-code-block-banner': '#EFEEEA',
-  '--dsw-alias-markdown-inline-code': '#F1F0EC',
-  '--dsw-specific-sidebar-fill': '#F1F0EC',
-  '--dsw-alias-state-success-primary': '#346538',
-  '--dsw-alias-state-warn-primary': '#8A5C00',
-  '--dsw-alias-state-error-primary': '#9F2F2D',
-  '--dsw-specific-bubble': '#F1F0EC',
-  '--dsw-specific-input-major': '#FFFFFF',
-  '--dsw-alias-state-business-primary': '#111111',
-  '--dsw-alias-button-info-fill': '#111111',
-  '--dsw-alias-button-info-hover': '#333333',
-}
-
-const MINIMAL_DARK = {
-  '--dsw-alias-bg-base': '#191919',
-  '--dsw-alias-bg-layer-1': '#202020',
-  '--dsw-alias-bg-layer-2': '#262626',
-  '--dsw-alias-bg-layer-3': '#2E2E2E',
-  '--dsw-alias-bg-overlay': '#202020',
-  '--dsw-alias-bg-mask-1': 'rgba(0,0,0,0.6)',
-  '--dsw-alias-border-l1': 'rgba(232,230,225,0.07)',
-  '--dsw-alias-border-l2': 'rgba(232,230,225,0.12)',
-  '--dsw-alias-border-l3': 'rgba(232,230,225,0.22)',
-  '--dsw-alias-brand-primary': '#E8E6E1',
-  '--dsw-alias-brand-text': '#E8E6E1',
-  '--dsw-alias-link': '#8DC1E8',
-  '--dsw-alias-label-primary-foreground': '#111111',
-  '--dsw-alias-label-primary': '#E8E6E1',
-  '--dsw-alias-label-secondary': '#A3A19B',
-  '--dsw-alias-label-tertiary': '#96948E',
-  '--dsw-alias-label-caption': '#8E8C86',
-  '--dsw-alias-label-primary-inverted': '#111111',
-  '--dsw-alias-button-primary-fill': '#E8E6E1',
-  '--dsw-alias-button-primary-hover': '#FFFFFF',
-  '--dsw-alias-interactive-bg-hover': 'rgba(232,230,225,0.06)',
-  '--dsw-alias-interactive-bg-active': 'rgba(232,230,225,0.12)',
-  '--dsw-alias-markdown-code-block': '#111111',
-  '--dsw-alias-markdown-code-block-banner': '#0D0D0D',
-  '--dsw-alias-markdown-inline-code': '#2E2E2E',
-  '--dsw-specific-sidebar-fill': '#141414',
-  '--dsw-alias-state-success-primary': '#86C48A',
-  '--dsw-alias-state-warn-primary': '#E0B458',
-  '--dsw-alias-state-error-primary': '#F0908C',
-  '--dsw-specific-bubble': '#262626',
-  '--dsw-specific-input-major': '#202020',
-  '--dsw-alias-state-business-primary': '#E8E6E1',
-  '--dsw-alias-button-info-fill': '#E8E6E1',
-  '--dsw-alias-button-info-hover': '#FFFFFF',
-}
-
-const BRUTAL_LIGHT = {
-  '--dsw-alias-bg-base': '#F4F4F0',
-  '--dsw-alias-bg-layer-1': '#FFFFFF',
-  '--dsw-alias-bg-layer-2': '#E8E8E2',
-  '--dsw-alias-bg-layer-3': '#DCDCD4',
-  '--dsw-alias-bg-overlay': '#FFFFFF',
-  '--dsw-alias-bg-mask-1': 'rgba(17,17,17,0.5)',
-  '--dsw-alias-border-l1': '#C9C9C1',
-  '--dsw-alias-border-l2': '#111111',
-  '--dsw-alias-border-l3': '#111111',
-  '--dsw-alias-brand-primary': '#D41616',
-  '--dsw-alias-brand-text': '#B91111',
-  '--dsw-alias-link': '#B91111',
-  '--dsw-alias-label-primary-foreground': '#FFFFFF',
-  '--dsw-alias-label-primary': '#111111',
-  '--dsw-alias-label-secondary': '#4A4A4A',
-  '--dsw-alias-label-tertiary': '#5E5E5E',
-  '--dsw-alias-label-caption': '#626262',
-  '--dsw-alias-label-primary-inverted': '#FFFFFF',
-  '--dsw-alias-button-primary-fill': '#111111',
-  '--dsw-alias-button-primary-hover': '#D41616',
-  '--dsw-alias-interactive-bg-hover': 'rgba(17,17,17,0.06)',
-  '--dsw-alias-interactive-bg-active': 'rgba(17,17,17,0.12)',
-  '--dsw-alias-markdown-code-block': '#111111',
-  '--dsw-alias-markdown-code-block-banner': '#050505',
-  '--dsw-alias-markdown-inline-code': '#E8E8E2',
-  '--dsw-specific-sidebar-fill': '#EAE8E3',
-  '--dsw-alias-state-success-primary': '#1F6B2A',
-  '--dsw-alias-state-warn-primary': '#8A5A00',
-  '--dsw-alias-state-error-primary': '#C41414',
-  '--dsw-specific-bubble': '#E8E8E2',
-  '--dsw-specific-input-major': '#FFFFFF',
-  '--dsw-alias-state-business-primary': '#D41616',
-  '--dsw-alias-button-info-fill': '#111111',
-  '--dsw-alias-button-info-hover': '#D41616',
-}
-
-const BRUTAL_DARK = {
-  '--dsw-alias-bg-base': '#0A0A0A',
-  '--dsw-alias-bg-layer-1': '#121212',
-  '--dsw-alias-bg-layer-2': '#1A1A1A',
-  '--dsw-alias-bg-layer-3': '#222222',
-  '--dsw-alias-bg-overlay': '#121212',
-  '--dsw-alias-bg-mask-1': 'rgba(0,0,0,0.75)',
-  '--dsw-alias-border-l1': '#2A2A2A',
-  '--dsw-alias-border-l2': '#3A3A3A',
-  '--dsw-alias-border-l3': '#EAEAEA',
-  '--dsw-alias-brand-primary': '#FF2A2A',
-  '--dsw-alias-brand-text': '#FF6B6B',
-  '--dsw-alias-link': '#FF6B6B',
-  '--dsw-alias-label-primary-foreground': '#0A0A0A',
-  '--dsw-alias-label-primary': '#EAEAEA',
-  '--dsw-alias-label-secondary': '#B0B0B0',
-  '--dsw-alias-label-tertiary': '#9A9A9A',
-  '--dsw-alias-label-caption': '#909090',
-  '--dsw-alias-label-primary-inverted': '#0A0A0A',
-  '--dsw-alias-button-primary-fill': '#EAEAEA',
-  '--dsw-alias-button-primary-hover': '#FF2A2A',
-  '--dsw-alias-interactive-bg-hover': 'rgba(234,234,234,0.07)',
-  '--dsw-alias-interactive-bg-active': 'rgba(234,234,234,0.14)',
-  '--dsw-alias-markdown-code-block': '#050505',
-  '--dsw-alias-markdown-code-block-banner': '#000000',
-  '--dsw-alias-markdown-inline-code': '#222222',
-  '--dsw-specific-sidebar-fill': '#0E0E0E',
-  '--dsw-alias-state-success-primary': '#4AF626',
-  '--dsw-alias-state-warn-primary': '#F2C94C',
-  '--dsw-alias-state-error-primary': '#FF6B6B',
-  '--dsw-specific-bubble': '#1A1A1A',
-  '--dsw-specific-input-major': '#121212',
-  '--dsw-alias-state-business-primary': '#FF2A2A',
-  '--dsw-alias-button-info-fill': '#EAEAEA',
-  '--dsw-alias-button-info-hover': '#FF2A2A',
+/** The --mw-* variables for one scheme (read by the MyWork sidebar and teammate pages, each with its own fallback). */
+function mwVars(p, scheme) {
+  const v = {
+    scheme, bg: p.bg, side: p.side, card: p.card, bubble: p.bubble, 'bubble-focus': p.bubbleFocus, elevated: p.elevated,
+    fg: p.fg, 'fg-2': p.fg2, 'fg-3': p.fg3, rule: p.rule, 'rule-soft': p.ruleSoft,
+    accent: p.accent, 'accent-fg': p.accentFg, 'accent-text': p.accentText, me: p.me, 'me-fg': p.meFg, sel: p.sel,
+    attn: p.attn, danger: p.danger, badge: p.badge, 'mark-bg': p.markBg, 'mark-fg': p.markFg, shadow: p.shadow, bar: p.bar,
+  }
+  for (const [k, c] of Object.entries(p.av)) v['av-' + k] = c
+  return Object.entries(v).map(([k, c]) => '--mw-' + k + ':' + c).join(';')
 }
 
 /**
- * Theme families. Each family is one override layer with BOTH palettes, so
- * it follows the host's light / dark / system preference (which dsh itself
- * persists) instead of fighting it. `official` means "no override".
+ * Where each scheme applies: 炭 · 香槟 is the default (no attribute needed); dsh marks dark with body[data-ds-dark-theme];
+ * this plugin marks the palette with body[data-mywork-theme].
  */
-const FAMILIES = [
-  { id: 'official', light: null, dark: null, label: { zh: '官方默认', en: 'Official' } },
-  { id: 'claude', light: CLAUDE_LIGHT, dark: CLAUDE_DARK, label: { zh: 'Claude Code 风格', en: 'Claude Code style' } },
-  { id: 'soft', light: SOFT_LIGHT, dark: SOFT_DARK, label: { zh: '柔和高级', en: 'Soft premium' }, fonts: '/mywork-shell/fonts.css', cjkFonts: 'https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&display=swap' },
-  { id: 'minimal', light: MINIMAL_LIGHT, dark: MINIMAL_DARK, label: { zh: '极简编辑', en: 'Editorial minimal' }, fonts: '/mywork-shell/fonts.css', cjkFonts: 'https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600&family=Noto+Serif+SC:wght@500;600&display=swap' },
-  { id: 'brutal', light: BRUTAL_LIGHT, dark: BRUTAL_DARK, label: { zh: '工业粗野', en: 'Industrial brutalist' }, fonts: '/mywork-shell/fonts.css' },
-]
+function paletteCss() {
+  const c = PALETTES.champagne
+  const m = PALETTES.mist
+  return [
+    'body{' + mwVars(c.dark, 'dark') + '}',
+    'body:not([data-ds-dark-theme]){' + mwVars(c.light, 'light') + '}',
+    'body[data-mywork-theme="mist"][data-ds-dark-theme]{' + mwVars(m.dark, 'dark') + '}',
+    'body[data-mywork-theme="mist"]:not([data-ds-dark-theme]){' + mwVars(m.light, 'light') + '}',
+  ].join('\n')
+}
 
-/** Family used until the user picks one (the kit's own look). */
-const DEFAULT_FAMILY = 'claude'
+/**
+ * Theme families: one per palette, each one override layer with BOTH schemes, so it follows the host's light / dark /
+ * system preference (which dsh itself persists) instead of fighting it.
+ */
+const FAMILIES = Object.entries(PALETTES).map(([id, pal]) => ({ id, label: pal.label, light: aliasTokens(pal.light, 'light'), dark: aliasTokens(pal.dark, 'dark') }))
+
+/** Family used until the user picks one. */
+const DEFAULT_FAMILY = 'champagne'
 
 const SCHEMES = [
   { id: 'system', label: { zh: '跟随系统', en: 'System' } },
@@ -397,22 +164,9 @@ body[data-mywork-theme] {
 body[data-mywork-theme] pre, body[data-mywork-theme] code, body[data-mywork-theme] kbd {
   font-family: var(--mywork-mono);
 }
-/* Claude: warm accent focus ring + slightly rounder surfaces */
-body[data-mywork-theme="claude"] :focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--dsw-alias-brand-primary) 70%, transparent);
-  outline-offset: 2px;
-}
-body[data-mywork-theme="claude"] textarea:focus, body[data-mywork-theme="claude"] input:focus {
-  outline-color: color-mix(in srgb, var(--dsw-alias-brand-primary) 60%, transparent);
-}
-body[data-mywork-theme="claude"] a { text-decoration-color: color-mix(in srgb, var(--dsw-alias-brand-primary) 50%, transparent); }
-/* Codex: monospace composer and tighter, terminal-like blocks */
-body[data-mywork-theme="codex"] textarea { font-family: var(--mywork-mono); font-size: 0.95em; }
-body[data-mywork-theme="codex"] pre { border: 0.5px solid var(--dsw-alias-border-l2); }
-body[data-mywork-theme="codex"] :focus-visible {
-  outline: 1.5px solid var(--dsw-alias-label-primary);
-  outline-offset: 1px;
-}
+/* Both palettes: the accent rings focus. */
+body[data-mywork-theme] :focus-visible { outline: 2px solid color-mix(in srgb, var(--dsw-alias-brand-primary) 70%, transparent); outline-offset: 2px; }
+body[data-mywork-theme] a { text-decoration-color: color-mix(in srgb, var(--dsw-alias-link) 45%, transparent); }
 /* The Codex UI fork hardcodes its sidebar / settings-page palette (mint grey). Under a family, route those
    variables to the family's tokens so the whole chrome follows the style, not just the chat area. */
 body[data-mywork-theme][data-mywork-theme] .dcu-root { /* doubled attribute: outranks the fork's own dark-mode rule */
@@ -431,104 +185,9 @@ body[data-mywork-theme][data-mywork-theme] .dcu-settings-page {
   --sp-hover: var(--dsw-alias-interactive-bg-hover); --sp-active: var(--dsw-alias-interactive-bg-active);
   --dcu-font: var(--dsw-font-family, -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif);
 }
-@media (prefers-reduced-motion: reduce) { body[data-mywork-theme="tech"] * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; } }
-
-/* 柔和高级 (soft-skill "Soft Structuralism / Ethereal Glass"): Plus Jakarta Sans + Geist Mono, squircle radii, ultra-diffuse ambient
-   shadows in light, white/10 hairlines in dark, pill primary buttons, spring-like easing. */
-body[data-mywork-theme="soft"] {
-  --mywork-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  --mywork-ease: cubic-bezier(0.32, 0.72, 0, 1);
-  --mywork-shadow: 0 1px 2px rgba(23, 23, 28, 0.04), 0 24px 48px -24px rgba(23, 23, 28, 0.22);
-  font-family: "Plus Jakarta Sans", "Yuanti SC", "Noto Sans SC", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", sans-serif;
-}
-body[data-ds-dark-theme][data-mywork-theme="soft"] { --mywork-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 24px 48px -24px rgba(0, 0, 0, 0.8); }
-body[data-mywork-theme="soft"] button, body[data-mywork-theme="soft"] input, body[data-mywork-theme="soft"] select, body[data-mywork-theme="soft"] textarea { font-family: inherit; }
-body[data-mywork-theme="soft"][data-mywork-theme] .dcu-root, body[data-mywork-theme="soft"][data-mywork-theme] .dcu-settings-page { --dcu-font: "Plus Jakarta Sans", "Yuanti SC", "Noto Sans SC", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", sans-serif; }
-body[data-mywork-theme="soft"] [data-composer-card] { border-radius: 24px !important; box-shadow: var(--mywork-shadow) !important; }
-body[data-mywork-theme="soft"] .dcu-home-card { border-radius: 24px; background: var(--dsw-alias-bg-layer-1); box-shadow: var(--mywork-shadow); border-color: transparent; }
-body[data-mywork-theme="soft"] .dcu-home-card:hover, body[data-mywork-theme="soft"] .dcu-home-card[aria-pressed=true] { transform: translateY(-2px); border-color: transparent; }
-body[data-mywork-theme="soft"] .dcu-home-task, body[data-mywork-theme="soft"] .mwtc-card, body[data-mywork-theme="soft"] .mwi, body[data-mywork-theme="soft"] .dsh-st-card, body[data-mywork-theme="soft"] .ima-platform, body[data-mywork-theme="soft"] .dcu-panel-body > div > div { border-radius: 16px; }
-body[data-mywork-theme="soft"] [data-composer-card] [class*="_primary"], body[data-mywork-theme="soft"] .dsh-st-btn--primary, body[data-mywork-theme="soft"] .mwm-primary, body[data-mywork-theme="soft"] .mwi .btn { border-radius: 999px !important; color: var(--dsw-alias-label-primary-foreground) !important; box-shadow: 0 8px 20px -10px var(--dsw-alias-brand-primary); }
-body[data-mywork-theme="soft"] .mwb-omni .mwb-in, body[data-mywork-theme="soft"] .dcu-settings-search { border-radius: 999px; }
-body[data-mywork-theme="soft"] .dcu-wb-session, body[data-mywork-theme="soft"] .dcu-menu button, body[data-mywork-theme="soft"] .dcu-settings-link { border-radius: 12px; }
-body[data-mywork-theme="soft"] button, body[data-mywork-theme="soft"] [role="button"], body[data-mywork-theme="soft"] a, body[data-mywork-theme="soft"] .dcu-home-card { transition: background-color 400ms var(--mywork-ease), border-color 400ms var(--mywork-ease), color 400ms var(--mywork-ease), box-shadow 400ms var(--mywork-ease), transform 400ms var(--mywork-ease); }
-body[data-mywork-theme="soft"] button:active { transform: scale(0.98); }
-body[data-mywork-theme="soft"] :focus-visible { outline: 2px solid var(--dsw-alias-brand-primary); outline-offset: 3px; border-radius: 12px; }
-body[data-mywork-theme="soft"] .dcu-wb-section-label, body[data-mywork-theme="soft"] .mwtc-title, body[data-mywork-theme="soft"] .dcu-settings-group-label { letter-spacing: 0.14em; text-transform: uppercase; font-size: 12px; font-weight: 500; }
-body[data-mywork-theme="soft"] h1, body[data-mywork-theme="soft"] h2, body[data-mywork-theme="soft"] h3 { letter-spacing: -0.02em; }
-
-/* 极简编辑 (minimalist-skill "Premium Utilitarian Minimalism"): warm bone canvas, exactly 1px #EAEAEA borders, radii ≤ 8px, no shadows,
-   Geist UI + Newsreader serif headline + Geist Mono, solid off-black primary button, invisible motion. */
-body[data-mywork-theme="minimal"] {
-  --mywork-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  --mywork-serif: "Newsreader", "Noto Serif SC", "Songti SC", "STSong", "SimSun", Georgia, serif;
-  font-family: "Geist", "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
-}
-body[data-mywork-theme="minimal"] button, body[data-mywork-theme="minimal"] input, body[data-mywork-theme="minimal"] select, body[data-mywork-theme="minimal"] textarea { font-family: inherit; }
-body[data-mywork-theme="minimal"][data-mywork-theme] .dcu-root, body[data-mywork-theme="minimal"][data-mywork-theme] .dcu-settings-page { --dcu-font: "Geist", "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; }
-body[data-mywork-theme="minimal"] [data-phase=hero] [class$="_headline"] { font-family: var(--mywork-serif); font-weight: 500; letter-spacing: -0.02em; }
-body[data-mywork-theme="minimal"] .dcu-panel-head, body[data-mywork-theme="minimal"] .dcu-settings-heading h1, body[data-mywork-theme="minimal"] .mwtc-title, body[data-mywork-theme="minimal"] .dsh-st-card h3, body[data-mywork-theme="minimal"] h1, body[data-mywork-theme="minimal"] h2, body[data-mywork-theme="minimal"] .dcu-home-card span { font-family: var(--mywork-serif); font-weight: 500; letter-spacing: -0.01em; }
-body[data-mywork-theme="minimal"] [data-composer-card] { border-radius: 8px !important; box-shadow: none !important; border: 1px solid var(--dsw-alias-border-l2) !important; }
-body[data-mywork-theme="minimal"] .dcu-home-card, body[data-mywork-theme="minimal"] .mwtc-card, body[data-mywork-theme="minimal"] .mwi, body[data-mywork-theme="minimal"] .dsh-st-card { border: 1px solid var(--dsw-alias-border-l2); border-radius: 8px; background: var(--dsw-alias-bg-layer-1); box-shadow: none; }
-body[data-mywork-theme="minimal"] .dcu-home-card:hover, body[data-mywork-theme="minimal"] .dcu-home-card[aria-pressed=true] { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04); border-color: var(--dsw-alias-border-l3); }
-body[data-mywork-theme="minimal"] .dcu-home-task, body[data-mywork-theme="minimal"] .mwtc-zbtn, body[data-mywork-theme="minimal"] .mwb-mini.framed, body[data-mywork-theme="minimal"] .mwr-in, body[data-mywork-theme="minimal"] .mwm-in, body[data-mywork-theme="minimal"] .mwb-in { border-radius: 6px; }
-body[data-mywork-theme="minimal"] [data-composer-card] [class*="_primary"], body[data-mywork-theme="minimal"] .dsh-st-btn--primary, body[data-mywork-theme="minimal"] .mwm-primary, body[data-mywork-theme="minimal"] .mwi .btn { border-radius: 6px !important; box-shadow: none !important; color: var(--dsw-alias-label-primary-foreground) !important; }
-body[data-mywork-theme="minimal"] .dcu-wb-session, body[data-mywork-theme="minimal"] .dcu-menu button, body[data-mywork-theme="minimal"] .dcu-settings-link { border-radius: 6px; }
-body[data-mywork-theme="minimal"] .dcu-wb-section-label, body[data-mywork-theme="minimal"] .mwtc-title, body[data-mywork-theme="minimal"] .dcu-settings-group-label { letter-spacing: 0.05em; text-transform: uppercase; font-size: 12px; }
-body[data-mywork-theme="minimal"] .mwr-pill, body[data-mywork-theme="minimal"] .dsh-st-chip { border-radius: 999px; font-size: 12px; letter-spacing: 0.04em; }
-body[data-mywork-theme="minimal"] kbd { border: 1px solid var(--dsw-alias-border-l2); border-radius: 4px; background: var(--dsw-alias-bg-base); font-family: var(--mywork-mono); }
-body[data-mywork-theme="minimal"] pre { border: 1px solid var(--dsw-alias-border-l2); border-radius: 8px; }
-body[data-mywork-theme="minimal"] button, body[data-mywork-theme="minimal"] [role="button"], body[data-mywork-theme="minimal"] a { transition: background-color 200ms cubic-bezier(0.16, 1, 0.3, 1), border-color 200ms cubic-bezier(0.16, 1, 0.3, 1), color 200ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 200ms cubic-bezier(0.16, 1, 0.3, 1); }
-body[data-mywork-theme="minimal"] button:active { transform: scale(0.98); }
-body[data-mywork-theme="minimal"] :focus-visible { outline: 2px solid var(--dsw-alias-label-primary); outline-offset: 2px; border-radius: 4px; }
-
-/* 工业粗野 (brutalist-skill "Swiss Industrial Print" in light / "Tactical Telemetry" in dark): Archivo heavy headings, JetBrains Mono
-   uppercase metadata, hazard red as the only accent, 90° corners everywhere, visible 1px compartment lines, scanlines in dark. */
-body[data-mywork-theme="brutal"] {
-  --mywork-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  font-family: "Archivo", -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
-}
-body[data-mywork-theme="brutal"] button, body[data-mywork-theme="brutal"] input, body[data-mywork-theme="brutal"] select, body[data-mywork-theme="brutal"] textarea { font-family: inherit; }
-body[data-mywork-theme="brutal"][data-mywork-theme] .dcu-root, body[data-mywork-theme="brutal"][data-mywork-theme] .dcu-settings-page { --dcu-font: "Archivo", -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif; }
-body[data-mywork-theme="brutal"] #root *:not(svg):not(svg *):not([role="switch"]):not([role="switch"] *):not(input[type="checkbox"]):not(input[type="radio"]):not(img) { border-radius: 0 !important; }
-body[data-mywork-theme="brutal"] [class*="_sidebarCol"] { border-right: 2px solid var(--dsw-alias-label-primary) !important; }
-body[data-mywork-theme="brutal"] .dcu-head, body[data-mywork-theme="brutal"] .dcu-foot, body[data-mywork-theme="brutal"] .dcu-workspaces { border-color: var(--dsw-alias-label-primary) !important; }
-body[data-mywork-theme="brutal"] .dcu-wb-section-label, body[data-mywork-theme="brutal"] .mwtc-title, body[data-mywork-theme="brutal"] .dcu-settings-group-label, body[data-mywork-theme="brutal"] .dcu-menu button, body[data-mywork-theme="brutal"] .dcu-im-tab, body[data-mywork-theme="brutal"] .dcu-settings-link, body[data-mywork-theme="brutal"] .mwk-tab, body[data-mywork-theme="brutal"] .dsh-st-chip, body[data-mywork-theme="brutal"] .mwr-pill, body[data-mywork-theme="brutal"] .mwb-foot { font-family: var(--mywork-mono); text-transform: uppercase; letter-spacing: 0.08em; font-size: 12px; }
-body[data-mywork-theme="brutal"] { --mywork-display: "Archivo", -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; }
-body[data-mywork-theme="brutal"] [data-phase=hero] [class$="_headline"] { font-family: var(--mywork-display); font-weight: 900; letter-spacing: -0.04em; text-transform: uppercase; }
-body[data-mywork-theme="brutal"] .dcu-panel-head, body[data-mywork-theme="brutal"] .dcu-home-card, body[data-mywork-theme="brutal"] .mwtc-card .mwtc-name, body[data-mywork-theme="brutal"] .dcu-wb-project-title, body[data-mywork-theme="brutal"] .dcu-settings-heading h1, body[data-mywork-theme="brutal"] .dsh-st-card h3, body[data-mywork-theme="brutal"] .ima-platform-name, body[data-mywork-theme="brutal"] h1, body[data-mywork-theme="brutal"] h2, body[data-mywork-theme="brutal"] h3 { font-family: var(--mywork-display); }
-body[data-mywork-theme="brutal"] .dcu-panel-head, body[data-mywork-theme="brutal"] h1, body[data-mywork-theme="brutal"] h2, body[data-mywork-theme="brutal"] h3 { font-weight: 800; letter-spacing: -0.02em; text-transform: uppercase; }
-body[data-mywork-theme="brutal"] [data-composer-card] { border: 2px solid var(--dsw-alias-label-primary) !important; box-shadow: 6px 6px 0 var(--dsw-alias-label-primary) !important; }
-body[data-mywork-theme="brutal"] .dcu-home-card, body[data-mywork-theme="brutal"] .mwtc-card, body[data-mywork-theme="brutal"] .mwi, body[data-mywork-theme="brutal"] .dsh-st-card, body[data-mywork-theme="brutal"] .ima-platform { border: 1px solid var(--dsw-alias-label-primary); background: var(--dsw-alias-bg-layer-1); box-shadow: none; }
-body[data-mywork-theme="brutal"] .dcu-home-card:hover, body[data-mywork-theme="brutal"] .dcu-home-card[aria-pressed=true], body[data-mywork-theme="brutal"] .mwtc-card.active { box-shadow: 4px 4px 0 var(--dsw-alias-brand-primary); border-color: var(--dsw-alias-label-primary); }
-body[data-mywork-theme="brutal"] .dcu-home-card svg { color: var(--dsw-alias-brand-primary); }
-body[data-mywork-theme="brutal"] [data-composer-card] [class*="_primary"], body[data-mywork-theme="brutal"] .dsh-st-btn--primary, body[data-mywork-theme="brutal"] .mwm-primary, body[data-mywork-theme="brutal"] .mwi .btn { box-shadow: 3px 3px 0 var(--dsw-alias-label-primary) !important; color: var(--dsw-alias-label-primary-foreground) !important; text-transform: uppercase; letter-spacing: 0.06em; }
-body[data-mywork-theme="brutal"] .mwb-omni .mwb-in, body[data-mywork-theme="brutal"] .mwr-in, body[data-mywork-theme="brutal"] .mwm-in, body[data-mywork-theme="brutal"] .mwb-in { border: 1px solid var(--dsw-alias-label-primary); font-family: var(--mywork-mono); }
-body[data-mywork-theme="brutal"] .mwb-bar { border-bottom: 1px solid var(--dsw-alias-label-primary); }
-body[data-mywork-theme="brutal"] .dcu-wb-session.dcu-wb-selected, body[data-mywork-theme="brutal"] .dcu-menu button[aria-current], body[data-mywork-theme="brutal"] .dcu-settings-link[aria-current] { box-shadow: inset 3px 0 0 var(--dsw-alias-brand-primary); }
-body[data-mywork-theme="brutal"] pre { border: 1px solid var(--dsw-alias-label-primary); }
-body[data-mywork-theme="brutal"] button, body[data-mywork-theme="brutal"] [role="button"], body[data-mywork-theme="brutal"] a { transition: background-color 80ms linear, color 80ms linear, box-shadow 80ms linear; }
-body[data-mywork-theme="brutal"] :focus-visible { outline: 2px solid var(--dsw-alias-brand-primary); outline-offset: 0; }
-/* brutalist type runs one step smaller: dense telemetry, not display */
-:root:has(body[data-mywork-theme="brutal"]) { --dsh-content-font-size: 13px; }
-body[data-mywork-theme="brutal"] .dcu-root { font-size: 13px; }
-body[data-mywork-theme="brutal"] .dcu-wb-project-title, body[data-mywork-theme="brutal"] .dcu-wb-session-title, body[data-mywork-theme="brutal"] .dcu-menu button, body[data-mywork-theme="brutal"] .dcu-footer-link, body[data-mywork-theme="brutal"] .dcu-settings-seat > button { font-size: 13px; }
-body[data-mywork-theme="brutal"] .dcu-menu button, body[data-mywork-theme="brutal"] .dcu-im-tab { font-size: 11.5px; }
-body[data-mywork-theme="brutal"] .dcu-panel-head { font-size: 16px; }
-body[data-mywork-theme="brutal"] [data-phase=hero] [class$="_headline"] { font-size: 28px; line-height: 36px; }
-body[data-mywork-theme="brutal"] .dcu-home-card { font-size: 12.5px; }
-body[data-ds-dark-theme][data-mywork-theme="brutal"]::after { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 2147483000; background: repeating-linear-gradient(0deg, transparent 0 2px, rgba(0, 0, 0, 0.16) 2px 4px); }
-@media (prefers-reduced-motion: reduce) { body[data-mywork-theme] * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; } }
-/* dsh derives every font shorthand (--dsw-font-xs-*, markdown, tables) from --dsw-font-family at :root, so a family must
-   override the base variable on :root itself; body-level font-family alone leaves message text, the right-sidebar guide and
-   hosted plugins on the system font. */
-:root:has(body[data-mywork-theme="soft"]) { --dsw-font-family: "Plus Jakarta Sans", "Yuanti SC", "Noto Sans SC", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", sans-serif; --dsw-font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace; --dsw-font-family-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
-:root:has(body[data-mywork-theme="minimal"]) { --dsw-font-family: "Geist", "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; --dsw-font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace; --dsw-font-family-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
-:root:has(body[data-mywork-theme="brutal"]) { --dsw-font-family: "Archivo", -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif; --dsw-font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace; --dsw-font-family-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
-/* Every family: the sidebar is its own tinted surface (warm sand / neutral grey / cool slate) with a hairline edge,
+/* Both palettes: the sidebar is its own surface (a step below the canvas) with a hairline edge,
    solid on every platform (dsh blends it to 60 % on macOS, which washes the tint out). */
 body[data-mywork-theme] [class*="_sidebarCol"] { background: var(--dsw-specific-sidebar-fill) !important; border-right: 1px solid var(--dsw-alias-border-l2); }
-@media (prefers-reduced-motion: reduce) { body[data-mywork-theme="swiss"] * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; } }
 /* settings section */
 .mwtc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 10px; margin-top: 8px; }
 .mwtc-card { border: 0.5px solid var(--dsw-alias-border-l2); border-radius: 12px; padding: 10px; cursor: pointer; background: var(--dsw-alias-bg-layer-1); color: var(--dsw-alias-label-primary); text-align: left; transition: border-color .15s, box-shadow .15s; }
@@ -554,8 +213,8 @@ body[data-mywork-theme] [class*="_sidebarCol"] { background: var(--dsw-specific-
 
 const zh = {
   nav: '外观',
-  intro: '一键切换 Claude Code / Codex / Swiss 开发者风格配色（Swiss 由 ui-ux-pro-max 设计系统生成：slate 灰阶 + 一个绿色强调色，IBM Plex Sans + JetBrains Mono）。风格保存在本浏览器并在刷新后恢复；明暗方案由 dsh 自身保存，两者独立组合。',
-  mine: '风格',
+  intro: '两套配色：炭 · 香槟（默认，暖炭灰与暖象牙，香槟金只给和你有关的）和 墨 · 雾紫（冷墨与低饱和雾紫）。每套都有深色和浅色，跟着下面的明暗方案走。配色保存在本浏览器。',
+  mine: '配色',
   scheme: '明暗方案',
   current: '当前',
   zoom: '界面缩放',
@@ -564,8 +223,8 @@ const zh = {
 }
 const en = {
   nav: 'Appearance',
-  intro: 'Switch between Claude Code / Codex / Swiss developer palettes with one click (Swiss comes from the ui-ux-pro-max design system: slate scale + one green accent, IBM Plex Sans + JetBrains Mono). The style is kept in this browser and restored after reload; the light/dark scheme is stored by dsh itself, and the two combine freely.',
-  mine: 'Style',
+  intro: 'Two palettes: Charcoal · Champagne (the default: warm charcoal and ivory, champagne only for what concerns you) and Ink · Mist (cool ink, a quiet periwinkle). Each has a dark and a light scheme that follow the color scheme below. Kept in this browser.',
+  mine: 'Palette',
   scheme: 'Color scheme',
   current: 'current',
   zoom: 'UI zoom',
@@ -602,7 +261,7 @@ function familyById(id) {
 function injectStyles() {
   const el = document.createElement('style')
   el.setAttribute('data-plugin', PLUGIN)
-  el.textContent = CSS
+  el.textContent = CSS + '\n' + paletteCss()
   document.head.appendChild(el)
   return () => { el.remove() }
 }

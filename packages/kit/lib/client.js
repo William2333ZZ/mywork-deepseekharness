@@ -35,6 +35,7 @@ const PATHS = {
   'arrow-right': ['M5 12h14', 'm12 5 7 7-7 7'],
   'refresh-cw': ['M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8', 'M21 3v5h-5', 'M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16', 'M8 16H3v5'],
   'chevron-up': ['m18 15-6-6-6 6'],
+  'arrow-up': ['m5 12 7-7 7 7', 'M12 19V5'],
   'chevron-down': ['m6 9 6 6 6-6'],
   pencil: ['M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z', 'm15 5 4 4'],
   pause: ['M6 4h4v16H6z', 'M14 4h4v16h-4z'],
@@ -54,8 +55,17 @@ const PATHS = {
   search: ['M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16z', 'm21 21-4.3-4.3'],
   history: ['M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8', 'M3 3v5h5', 'M12 7v5l4 2'],
   'bookmark-plus': ['m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z', 'M12 7v6', 'M9 10h6'],
+  sun: ['M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10z', 'M12 2v2', 'M12 20v2', 'm4.93 4.93 1.41 1.41', 'm17.66 17.66 1.41 1.41', 'M2 12h2', 'M20 12h2', 'm6.34 17.66-1.41 1.41', 'm19.07 4.93-1.41 1.41'],
+  'file-text': ['M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z', 'M14 2v4a2 2 0 0 0 2 2h4', 'M10 9H8', 'M16 13H8', 'M16 17H8'],
+  'arrow-left': ['m12 19-7-7 7-7', 'M19 12H5'],
+  'rotate-cw': ['M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8', 'M21 3v5h-5'],
+  'circle-check': ['M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z', 'm9 12 2 2 4-4'],
+  'circle-x': ['M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z', 'm15 9-6 6', 'm9 9 6 6'],
+  loader: ['M12 2v4', 'm16.2 7.8 2.9-2.9', 'M18 12h4', 'm16.2 16.2 2.9 2.9', 'M12 18v4', 'm4.9 19.1 2.9-2.9', 'M2 12h4', 'm4.9 4.9 2.9 2.9'],
   'list-checks': ['m3 17 2 2 4-4', 'm3 7 2 2 4-4', 'M13 6h8', 'M13 12h8', 'M13 18h8'],
   settings: ['M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z', 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z'],
+  image: ['M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z', 'M9 11a2 2 0 1 0 0-4 2 2 0 0 0 0 4z', 'm21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21'],
+  file: ['M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z', 'M14 2v4a2 2 0 0 0 2 2h4'],
   sheet: ['M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z', 'M3 9h18', 'M3 15h18', 'M9 9v12', 'M15 9v12'],
   plug: ['M12 22v-5', 'M9 8V2', 'M15 8V2', 'M18 8v5a6 6 0 0 1-12 0V8z'],
   message: ['M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z'],
@@ -132,6 +142,16 @@ const zh = {
   hint: '提示：',
   noProfile: '没有找到安装了本 Kit 的 profile。',
   noTabs: '没有可用的设置页。',
+  phone: '手机',
+  phoneOn: '用手机自带的相机扫这个码，在浏览器里就能用；装了 MyWork App 的，在 App 里扫。手机在任何网络下都能连回这台电脑；中间的中继只转发加密过的数据，看不到内容。',
+  phoneReset: '换一个配对码', phoneResetAsk: '换了以后，已经配对的手机都要重新扫一次。', phoneResetYes: '换', phoneResetNo: '不换',
+  phoneOff: '现在只有这台电脑能打开 MyWork。',
+  phoneAllow: '允许手机连接',
+  phoneDeny: '关闭手机连接',
+  phoneHere: '这个页面要在电脑上看。',
+  relayUp: '已连上中继 · {n} 台手机在线',
+  relayConnecting: '正在连中继…',
+  relayNoUrl: '还没有中继地址。',
 }
 const en = {
   nav: 'MyWork',
@@ -157,10 +177,29 @@ const en = {
   hint: 'Hint: ',
   noProfile: 'No profile with this kit installed was found.',
   noTabs: 'No settings pages available.',
+  phone: 'Phone',
+  phoneOn: 'Scan this with the phone\'s own camera to use MyWork in the browser, or with the MyWork app if you have it. The phone reaches this computer from any network; the relay in between only passes encrypted data and cannot read it.',
+  phoneReset: 'New pairing code', phoneResetAsk: 'Every paired phone will have to scan again.', phoneResetYes: 'Replace', phoneResetNo: 'Keep',
+  phoneOff: 'Only this computer can open MyWork right now.',
+  phoneAllow: 'Allow phones to connect',
+  phoneDeny: 'Stop phone connections',
+  phoneHere: 'Open this page on the computer.',
+  relayUp: 'Connected to the relay · {n} phone(s) online',
+  relayConnecting: 'Connecting to the relay…',
+  relayNoUrl: 'No relay address yet.',
 }
 
 const CSS = `
 .mwk{font-size:13px;color:var(--dsw-alias-label-primary)}
+.mwk-phone{display:grid;gap:14px;max-width:420px}
+.mwk-phone p{margin:0;font-size:14px;line-height:1.6}
+.mwk-qr{width:208px;height:208px;padding:12px;box-sizing:border-box;background:#fff;border:1px solid color-mix(in srgb,currentColor 12%,transparent);border-radius:12px}
+.mwk-qr svg{display:block;width:100%;height:100%}
+.mwk-phone button{justify-self:start}
+.mwk-acts{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.mwk-acts p{font-size:12px;color:var(--dsw-alias-label-secondary)}
+.mwk-state{margin:0;font-size:12px;line-height:1.6;color:var(--dsw-alias-label-secondary)}
+.mwk-state[data-up=true]{color:var(--dsw-alias-brand-text,var(--dsw-alias-label-primary))}
 .mwk-tabs{display:flex;gap:2px;border-bottom:0.5px solid var(--dsw-alias-border-l2);margin:0 0 16px;overflow-x:auto}
 .mwk-tab{border:0;background:transparent;color:var(--dsw-alias-label-secondary);padding:8px 12px;font:inherit;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-0.5px;white-space:nowrap}
 .mwk-tab:hover{color:var(--dsw-alias-label-primary)}
@@ -338,6 +377,37 @@ exports.apply = function apply(ctx) {
   ctx.slots.inject(TAB_SLOT, () => ctx.slots.register({
     name: TAB_SLOT, id: 'members', order: 10, label: () => t('members'),
   }, function MyworkMembersTab() { return h(Members) }))
+
+  // ---- "手机" tab: one switch; on, the pairing QR (the relay and, after #, the pairing) and the relay's state ----------
+  function Phone() {
+    const [st, setSt] = React.useState(null)
+    const [busy, setBusy] = React.useState(false)
+    const load = React.useCallback(async () => { const r = await api('/phone'); if (r.ok) setSt(r.data) }, [])
+    // While the tab is open the relay's state is read again every 5 s (it connects in the background).
+    React.useEffect(() => { load(); const id = setInterval(load, 5000); return () => clearInterval(id) }, [load])
+    const flip = async (enabled) => { if (busy) return; setBusy(true); try { await api('/phone/enable', { enabled }); await load() } finally { setBusy(false) } }
+    // 换一个配对码 asks once inline (every paired phone has to scan again), then makes a new pairing.
+    const [asking, setAsking] = React.useState(false)
+    const reset = async () => { if (busy) return; setBusy(true); try { await api('/phone/reset', {}); setAsking(false); await load() } finally { setBusy(false) } }
+    if (!st) return h('div', null, t('loading'))
+    if (!st.here) return h('div', { className: 'mwk-phone' }, h('p', null, t('phoneHere')))
+    if (!st.on) return h('div', { className: 'mwk-phone' }, h('p', null, t('phoneOff')), h('button', { type: 'button', className: 'mwk-btn', disabled: busy, onClick: () => flip(true) }, t('phoneAllow')))
+    const r = st.relay || {}
+    return h('div', { className: 'mwk-phone' },
+      h('p', null, t('phoneOn')),
+      st.pairing ? h('div', { className: 'mwk-qr', dangerouslySetInnerHTML: { __html: st.pairing.svg } }) : null,
+      h('p', { className: 'mwk-state', 'data-up': r.connected ? 'true' : undefined }, !r.url ? t('relayNoUrl') : r.connected ? t('relayUp').replace('{n}', String(r.phones || 0)) : (r.error || t('relayConnecting'))),
+      asking
+        ? h('div', { className: 'mwk-acts' }, h('p', null, t('phoneResetAsk')),
+          h('button', { type: 'button', className: 'mwk-btn', disabled: busy, onClick: reset }, t('phoneResetYes')),
+          h('button', { type: 'button', className: 'mwk-btn', disabled: busy, onClick: () => setAsking(false) }, t('phoneResetNo')))
+        : h('div', { className: 'mwk-acts' },
+          h('button', { type: 'button', className: 'mwk-btn', disabled: busy, onClick: () => flip(false) }, t('phoneDeny')),
+          h('button', { type: 'button', className: 'mwk-btn', disabled: busy, onClick: () => setAsking(true) }, t('phoneReset'))))
+  }
+  ctx.slots.inject(TAB_SLOT, () => ctx.slots.register({
+    name: TAB_SLOT, id: 'phone', order: 30, label: () => t('phone'),
+  }, function MyworkPhoneTab() { return h(Phone) }))
 }
 
     return module.exports;

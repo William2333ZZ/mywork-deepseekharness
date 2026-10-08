@@ -9,6 +9,7 @@ import {
 } from './session-host.ts'
 import { createGlobalPanelSource } from './global-panels.tsx'
 import { registerSectionPanels } from './section-panels.tsx'
+import { MyworkSidebar, v2Active } from './MyworkSidebar.tsx'
 import { createElement } from 'react'
 import { initializeComposerWidth, observeHeroWidthHandles } from './composer-width.ts'
 import { browserStorage } from './tree-expansion.ts'
@@ -144,7 +145,8 @@ export function apply(ctx: ClientContext): void {
   const connectionService: unknown = ctx.get('connection')
   const connection = connectionService as HostOpenPathConnection
   const openPath = (path: string): Promise<void> => openPathInHost(connection, path)
-  ctx.effect(() => observeSlimSidebar(), 'michengai-codex-ui: slim sidebar')
+  // v2 leaves the column at dsh's own width (280, drag 264–420); only the legacy Codex sidebar forces the slim geometry.
+  if (!v2Active()) ctx.effect(() => observeSlimSidebar(), 'michengai-codex-ui: slim sidebar')
   ctx.effect(() => observeSettingsNavIcons(), 'michengai-codex-ui: settings nav icons')
   ctx.effect(() => observeComposerToolMenus({ search: t('home.projectSearch'), empty: t('home.projectEmpty') }), 'michengai-codex-ui: composer tool menus')
   ctx.effect(() => observeConversationHeader(), 'michengai-codex-ui: conversation header')
@@ -193,7 +195,7 @@ export function apply(ctx: ClientContext): void {
       footerActions,
       selectPanel: (id: string | null) => { selectGlobalPanel(ctx.layout, id) },
     }),
-  }, CodexSidebar))
+  }, v2Active() ? MyworkSidebar : CodexSidebar))
 
   ctx.slots.inject('conversation.session.header.utilities', () => ctx.slots.register({
     name: 'conversation.session.header.utilities', id: 'turn-navigator', order: 100, locale: NS,
@@ -306,6 +308,19 @@ export function apply(ctx: ClientContext): void {
     openDeepLink()
     return ctx.sessions.list.subscribe(openDeepLink)
   }, 'michengai-codex-ui: session deep link')
+
+  // Kit pages (e.g. dsh-mywork-tasks 「过程」) open a conversation by id without importing this package.
+  ctx.effect(() => {
+    if (typeof window === 'undefined') return () => {}
+    const onOpen = (event: Event): void => {
+      const detail = (event as CustomEvent<{ sessionId?: string }>).detail
+      const sessionId = detail && typeof detail.sessionId === 'string' ? detail.sessionId : ''
+      if (sessionId === '' || ctx.sessions.list.getSnapshot().byId[sessionId as SessionId] === undefined) return
+      openConversation(ctx, ctx.layout, sessionId as SessionId)
+    }
+    window.addEventListener('mywork:open-session', onOpen)
+    return () => { window.removeEventListener('mywork:open-session', onOpen) }
+  }, 'michengai-codex-ui: mywork open-session bridge')
 
   registerSectionPanels(ctx, t, (id) => { selectGlobalPanel(ctx.layout, id) }, {
     renderConnectors: () => createElement(ConnectorsSection, { sessionStore: ctx.sessions.list, startPromptSession: startConnectorPromptSession, t }),

@@ -1,0 +1,72 @@
+{
+  "expo": {
+    "name": "MyWork",
+    "slug": "mywork",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "mywork",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#12100e"
+    },
+    "android": {
+      "package": "com.mywork.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#12100e"
+      },
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
+    },
+    "ios": {
+      "bundleIdentifier": "com.mywork.app",
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsLocalNetworking": true,
+          "NSAllowsArbitraryLoads": true
+        }
+      }
+    },
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "用相机扫电脑上的二维码，把手机连到 MyWork。"
+        }
+      ],
+      "expo-secure-store"
+    ],
+    "newArchEnabled": false,
+    "extra": {
+      "eas": {
+        "projectId": "a2470ca8-cc93-4b56-8946-d7d08522d974"
+      }
+    },
+    "owner": "hhdz",
+    "backgroundColor": "#12100e",
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/icon.png",
+      "name": "MyWork",
+      "shortName": "MyWork",
+      "lang": "zh-CN",
+      "backgroundColor": "#12100e",
+      "themeColor": "#12100e"
+    }
+  }
+}

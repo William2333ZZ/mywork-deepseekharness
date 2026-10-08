@@ -248,7 +248,8 @@ export function apply(ctx, config = {}) {
         return json(res, { running: false, error: 'DevTools unreachable: ' + e.message, port })
       }
       const self = String(req.headers.host || '').toLowerCase()
-      if (self) targets = targets.filter((x) => { try { return new URL(x.url).host.toLowerCase() !== self } catch { return true } })
+      // dsh's own pages are hidden; a teammate's file opened by a signed link (/mywork-tasks/files/raw) is content, not dsh.
+      if (self) targets = targets.filter((x) => { try { const u = new URL(x.url); return u.host.toLowerCase() !== self || u.pathname === '/mywork-tasks/files/raw' } catch { return true } })
       json(res, { running: true, port, desktop: !!process.env.MYWORK_DESKTOP, headless: history.headed ? false : config.headless !== false, headed: !!history.headed, adopted: !!handle.adopted, executable: handle.executable || null, browser: handle.version && handle.version.Browser, targets, size: { width: config.width || 1280, height: config.height || 800 }, allowSystem: config.allowSystemBrowser !== false })
     })
 

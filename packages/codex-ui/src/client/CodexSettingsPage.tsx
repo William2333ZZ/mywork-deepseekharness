@@ -5,7 +5,8 @@ import type { PropsLocale, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/d
 import { ConnectionIndicator } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { ConnectionState } from '@deepseek-ai/dsh-client-connection/client'
 import { NS } from './locales.ts'
-import { filterSettingsRows, generalItemGroup, settingsGroup, type SettingsRow } from './settings-page-model.ts'
+import { filterSettingsRows, generalItemGroup, settingsGroup, settingsGroupV2, settingsLabelV2, settingsOrderV2, SETTINGS_GROUPS_V2, type SettingsRow } from './settings-page-model.ts'
+import { v2Active } from './MyworkSidebar.tsx'
 import { settingsPageStyles } from './settings-page-styles.ts'
 import { settingsElementAvailable, settingsOverlays } from './settings-focus.ts'
 import { SETTINGS_OPEN_SECTION_EVENT } from './settings-navigation.ts'
@@ -174,6 +175,7 @@ export function CodexSettingsPage({ wide, sections, onboarding, connectionState,
   useEffect(() => { if (main.current !== null) main.current.scrollTop = 0 }, [active?.id])
 
   const visible = filterSettingsRows(rows, query)
+  const v2 = v2Active()
   const ownTitle = active?.id === 'general' ? t('settings.general') : active?.id === 'plugin-config' ? t('settings.pluginConfig') : undefined
   const connectionIndicator = connection === 'disconnected' ? 'disconnected' : connection === 'connecting' ? 'connecting' : recovered ? 'recovered' : undefined
   return <>
@@ -189,13 +191,21 @@ export function CodexSettingsPage({ wide, sections, onboarding, connectionState,
         {renderSlot('settings.header', {})}
         <label className="dcu-settings-search"><Search size={15} aria-hidden="true"/><input type="search" value={query} aria-label={t('settings.search')} placeholder={t('settings.search')} onChange={event => { setQuery(event.target.value) }}/></label>
         <div className="dcu-settings-groups">
-          {(['personal', 'integrations', 'records'] as const).map(group => {
-            const entries = visible.filter(row => settingsGroup(row.id) === group)
-            return entries.length > 0 && <section className="dcu-settings-group" key={group}>
-              <h2 className="dcu-settings-group-label">{t(groupLabels[group])}</h2>
-              {entries.map(row => { const Icon = sectionIcon(row.id); return <button key={row.id} type="button" className="dcu-settings-link" aria-current={row.id === active?.id ? 'page' : undefined} onClick={() => { setActiveId(row.id) }}><Icon size={16} strokeWidth={1.6} aria-hidden="true"/><span>{row.id === 'general' ? t('settings.general') : row.label}</span></button> })}
-            </section>
-          })}
+          {v2
+            ? SETTINGS_GROUPS_V2.map(group => {
+              const entries = visible.filter(row => settingsGroupV2(row.id) === group).slice().sort((a, b) => settingsOrderV2(a.id) - settingsOrderV2(b.id) || a.order - b.order)
+              return entries.length > 0 && <section className="dcu-settings-group" key={group}>
+                <h2 className="dcu-settings-group-label">{t(group === 'common' ? 'settings.v2.common' : 'settings.advanced')}</h2>
+                {entries.map(row => { const Icon = sectionIcon(row.id); const key = settingsLabelV2(row.id); return <button key={row.id} type="button" className="dcu-settings-link" aria-current={row.id === active?.id ? 'page' : undefined} onClick={() => { setActiveId(row.id) }}><Icon size={16} strokeWidth={1.6} aria-hidden="true"/><span>{row.id === 'general' ? t('settings.general') : key !== undefined ? t(key) : row.label}</span></button> })}
+              </section>
+            })
+            : (['personal', 'integrations', 'records'] as const).map(group => {
+              const entries = visible.filter(row => settingsGroup(row.id) === group)
+              return entries.length > 0 && <section className="dcu-settings-group" key={group}>
+                <h2 className="dcu-settings-group-label">{t(groupLabels[group])}</h2>
+                {entries.map(row => { const Icon = sectionIcon(row.id); return <button key={row.id} type="button" className="dcu-settings-link" aria-current={row.id === active?.id ? 'page' : undefined} onClick={() => { setActiveId(row.id) }}><Icon size={16} strokeWidth={1.6} aria-hidden="true"/><span>{row.id === 'general' ? t('settings.general') : row.label}</span></button> })}
+              </section>
+            })}
         </div>
         {visible.length > 0 && !visible.some(row => row.id === active?.id) && <p className="dcu-settings-empty" role="status">{t('settings.filterHint')}</p>}
         {visible.length === 0 && <p className="dcu-settings-empty" role="status">{t('settings.noResults')}</p>}
@@ -216,7 +226,7 @@ export function CodexSettingsPage({ wide, sections, onboarding, connectionState,
 export function CodexGeneralSettings({ items, renderSlot, t }: { items: SettingsSource<{ id: string }> } & PropsRenderSlots<'settings.general.item' | 'settings.general.footer'> & PropsLocale<typeof NS>) {
   const rows = useSyncExternalStore(items.subscribe, items.getSnapshot)
   return <div className="dcu-settings-general">
-    {(['permissions', 'general', 'editor'] as const).map(group => {
+    {((v2Active() ? ['general', 'editor', 'permissions'] : ['permissions', 'general', 'editor']) as const).map(group => {
       const entries = rows.filter(row => generalItemGroup(row.id) === group)
       return entries.length > 0 && <section className="dcu-settings-general-group" key={group}><h2>{t(groupLabels[group])}</h2><div className="dcu-settings-card">{entries.map(row => <div className="dcu-settings-row" data-dcu-settings-item={row.id} key={row.id}>{renderSlot('settings.general.item', {}, { only: row.id })}</div>)}</div></section>
     })}

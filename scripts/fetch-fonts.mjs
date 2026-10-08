@@ -3,17 +3,20 @@
 //   node scripts/fetch-fonts.mjs
 // The shell host then serves them from /mywork-shell/fonts/… so the styles work offline / behind the GFW.
 // All faces are SIL Open Font License; see packages/shell/fonts/LICENSES.md.
-import { mkdirSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 const out = join(dirname(fileURLToPath(import.meta.url)), '..', 'packages', 'shell', 'fonts')
 mkdirSync(out, { recursive: true })
+for (const f of readdirSync(out)) if (f.endsWith('.woff2')) rmSync(join(out, f)) // every face is refetched below under its content hash
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36'
 const FAMILIES = [
   { css: 'Plus+Jakarta+Sans:wght@400;500;600;700', name: 'Plus Jakarta Sans' },
   { css: 'Geist:wght@400;500;600', name: 'Geist' },
   { css: 'Geist+Mono:wght@400;500', name: 'Geist Mono' },
   { css: 'Newsreader:opsz,wght@6..72,400;6..72,500', name: 'Newsreader' },
+  { css: 'Libre+Baskerville:wght@400;700', name: 'Libre Baskerville' }, // display serif for headings (the Manus pairing); CJK headings fall back to the system serif
   { css: 'Archivo:wght@400;500;600;800;900', name: 'Archivo' },
   { css: 'JetBrains+Mono:wght@400;500;700', name: 'JetBrains Mono' },
 ]
@@ -39,13 +42,14 @@ for (const fam of FAMILIES) {
   const ws = [...weights].map(Number).filter(Number.isFinite)
   const weightRange = ws.length > 1 ? `${Math.min(...ws)} ${Math.max(...ws)}` : (ws[0] || 400)
   for (const [subset, { url, range }] of seen) {
-    const file = `${fam.name.toLowerCase().replace(/\s+/g, '-')}-${subset}.woff2`
     const buf = Buffer.from(await fetch(url, { headers: { 'user-agent': UA } }).then((r) => r.arrayBuffer()))
+    // Content-hashed name: the shell serves these as immutable, so a refetched face must get a new URL or browsers keep the old bytes.
+    const file = `${fam.name.toLowerCase().replace(/\s+/g, '-')}-${subset}-${createHash('sha256').update(buf).digest('hex').slice(0, 8)}.woff2`
     writeFileSync(join(out, file), buf)
     css += `@font-face{font-family:'${fam.name}';font-style:${style};font-weight:${weightRange};font-display:swap;src:url(fonts/${file}) format('woff2');unicode-range:${range}}\n`
     console.log(file, Math.round(buf.length / 1024) + 'KB', 'weight', weightRange)
   }
 }
 writeFileSync(join(out, 'fonts.css'), css)
-writeFileSync(join(out, 'LICENSES.md'), `# Bundled web fonts\n\nDownloaded by scripts/fetch-fonts.mjs from Google Fonts (latin / latin-ext subsets of the variable fonts). All are licensed under the SIL Open Font License 1.1:\n\n- Plus Jakarta Sans — Tokotype\n- Geist, Geist Mono — Vercel\n- Newsreader — Production Type\n- Archivo — Omnibus-Type\n- JetBrains Mono — JetBrains\n`)
+writeFileSync(join(out, 'LICENSES.md'), `# Bundled web fonts\n\nDownloaded by scripts/fetch-fonts.mjs from Google Fonts (latin / latin-ext subsets of the variable fonts). All are licensed under the SIL Open Font License 1.1:\n\n- Plus Jakarta Sans — Tokotype\n- Geist, Geist Mono — Vercel\n- Newsreader — Production Type\n- Libre Baskerville — Impallari Type\n- Archivo — Omnibus-Type\n- JetBrains Mono — JetBrains\n`)
 console.log('wrote', join(out, 'fonts.css'))

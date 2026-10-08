@@ -1,0 +1,371 @@
+# 2026 年的主动型产品
+
+原始调研记录（2026-10-05）。每条以所附出处为准。汇总见 [../2026-10-05-proactive.md](../2026-10-05-proactive.md)。
+
+## 想要的、运转良好的
+
+- **研究者要的是挂在「正在做的那个项目」上的、能直接动手的提示；泛兴趣推荐看了也不动**（强）
+  - 内容：Allen AI 的 Omakase 研究（N=42）。第一阶段给 28 位 NLP/ML/HCI/CV 研究者做了 8 周部署，每周两封推荐邮件，共 383 封，点击率中位数 9.0%（以往论文推荐系统是 4.5–5.8%）。28 人里 12 人没有任何可追踪的点击，但访谈说多数人读过。13 位受访者里 8 位认为有帮助。参与度低的人说推荐有意思，只是和手上项目不够贴，所以没动手。研究者自己把相关性分成两档：和当前项目强相关的会存回文档，泛兴趣的扫一眼或忽略。有人点名要「scoop alert」（有新论文可能抢了自己的题时提醒）。第二版改为读用户已有的项目文档（会议记录、草稿），把长报告压成可执行的建议，参与者评价明显比原报告更可执行。
+  - 谁：Siangliulue、Bragg、Downey、Chang、Weld（Allen AI）；受试者是 AI/ML 研究者，正是我们的目标用户之一
+  - 证据类型：论文
+  - 时间：2026-04-13（arXiv 2604.08898）
+  - 意味着：推断：同事主动开口的依据应该是用户手头的具体研究对象（项目、标的、底稿），不是从聊天里归纳出的兴趣。「可能推翻你某个判断的新东西」最值得开口。
+  - 出处：https://arxiv.org/pdf/2604.08898（第 3.3 节、Findings 段）
+- **在用户不干活的时候做完、回来时交，接受率接近全收；和用户抢同一时段的帮助接受率很低**（强）
+  - 内容：Proactivity-Gym 的 30 人用户研究：做对了但和用户当前工作抢时段的帮助只有 26.7% 被接受；放到用户不在时（sleep time）完成的帮助被接受 97.8%，即使产物不完美、还要改。即使立刻帮也不冲突，仍有 64.4% 的人选择让它延后做。一次介入深度错位带来的信任下降（-1.86）大于对齐后的回升（+1.27）。
+  - 谁：Oh、Do、Lee、Whang、Kang（KAIST、明尼苏达大学）；受试者不限职业
+  - 证据类型：论文
+  - 时间：2026-09-29（arXiv 2609.37267）
+  - 意味着：推断：主动工作的默认时间应该是用户不在的时候；回来时交「做好的东西」，不是在用户专注时插话。
+  - 出处：https://arxiv.org/html/2609.37267v1
+- **主动提示在任务边界处出现、内容可执行时最被接受；在用户实现阶段插话最打扰**（强）
+  - 内容：Codellaborator 研究：18 名高年级 CS 学生，398 次主动介入，53.3% 引起有效互动，12.1% 构成打扰，34.7% 被忽略。效果最好的时机是写完多行代码、写下注释、运行程序之后（66.7–73.1% 互动率），在补完代码块时约一半被忽略。用「空闲」判断用户需要帮助无效，因为用户的空闲是在思考。另一项为期两个月的职业开发者部署：建议接受率在无延迟时是 4.9%，固定延迟 15.4%，按反馈自适应时机 18.6%，未读即拒从 8.3% 降到 0.36%，推理调用减少 75%。
+  - 谁：Kevin Pu 等（多伦多大学）；Alawad 等。受试者是开发者，不是金融研究者
+  - 证据类型：论文
+  - 时间：2025-04（CHI 2025）
+  - 意味着：推断：「用户暂停了」不等于「用户需要我」。同事开口要挂在可观察的边界上（一份报告交完、一个标的出了公告、用户回到对话），并且要带下一步。
+  - 出处：https://arxiv.org/html/2502.18658v4；https://arxiv.org/pdf/2511.18842
+- **会前准备和日程冲突是主动简报里被一再点名的「真有用」功能**（中）
+  - 内容：Justin McKelvey（Fractional CTO）回顾 Pulse 时说它最好用的是：当天的会议、参会人、每场一行准备提示，以及过滤后的收件箱摘要和竞品价格监控。BeInCrypto 转述 dots 早期测试者：用户改签航班后，它主动指出和一条未读的 Slack 会议邀请冲突。Android Police 的 Conor Cawley 说 Gemini Daily Brief 提醒他解决日程冲突、跟进邮件，有用；错误（地址、主办方弄混）他自己能看出来。HN 用户 pants2 说 Pulse 给他推了度假地的关闭和活动信息、哪些要提前订。
+  - 谁：一位技术顾问、一位记者转述的测试者、一位科技编辑、一位 HN 用户；都不是金融或 AI 研究者
+  - 证据类型：本人自述 / 记者转述
+  - 时间：2025-09 至 2026-10
+  - 意味着：推断：被夸的都是和用户自己的日程或事务直接相关、截止时间明确的事，不是泛资讯。对研究用户，对应的是业绩会、公告、路演这种有时间点的事件。
+  - 出处：https://justinmckelvey.com/blog/chatgpt-pulse（2026-10-05）；https://tech.yahoo.com/ai/chatgpt/articles/openai-dots-grok-bot-tester-093953421.html（BeInCrypto，Phil Haunhorst，2026-09-30）；https://www.androidpolice.com/gemini-daily-brief-replaced-morning-routine-shocked-well-works/（2026-06-13）；https://news.ycombinator.com/item?id=45429154（2025-09-30）
+- **重度用户愿意给常驻 AI 员工逐步放权：先提议、人复核，几个月后才放开直接动手**（中）
+  - 内容：HN「Dots: Always-on agents」帖（767 分，646 条评论）。mike_hearn 说他的 AI「员工」做客服分诊、清理 bug 积压、改代码、维护服务器：开始时只出提议、他仔细核过几次；之后放开自主清理 bug 跟踪；再后来特定场景下直接回客户；最后给了 CI/CD 和发版权限，前后大约六个月。它们用 systemd 定时器自己醒来，用邮件排队接活，有自己的 wiki 和日记文件做记忆。jjcm 说用常驻 Bot 后推理花费涨了 2–3 倍，但能把一小时的端到端活无人看管地跑完，比要守着的十分钟同步任务值。
+  - 谁：HN 上的开发者和独立开发者，偏技术人群
+  - 证据类型：本人自述
+  - 时间：2026-09-29 起的 HN 讨论
+  - 意味着：推断：主动的范围应该跟着用户的批准记录逐步扩大（「这类事以后不用问我」），而不是一开始就全自动或永远全问。
+  - 出处：https://news.ycombinator.com/item?id=49896604
+- **用户希望新建的同事先开口说清自己理解的职责；OpenAI 和 Google 也把「先自我介绍、先问」做进了开场**（中）
+  - 内容：Rakazo issue #900/#902（nolandruid 提）：新 bot 建好后线程是空的，不复述职责也不问缺什么，误解要到第一次干活、已经浪费一轮才暴露；建议建好时跑一轮，说出它怎么理解职责、要什么，并允许关掉。之前的调研记录显示 CHANGELOG 已改成建好自动跑一轮。dots 入门文档：dot 会先自我介绍，用已连接的应用了解你的工作，提出它能帮什么；还要求你告诉它往哪里发更新、什么时候可以打断你。Gemini Spark 帮助页：在任务里输入 set up 或 interview me，它会用对话帮你设第一批技能和任务。
+  - 谁：Rakazo 自托管用户（开发者）；OpenAI、Google 官方文档
+  - 证据类型：行为证据 / 厂商说法
+  - 时间：2026-09-18（Rakazo issue）；2026-09-29（dots）；2026-05（Spark）
+  - 意味着：推断：在主动规则里，「刚建好时」是一个合理的开口时机，也是把打扰规则问清楚的时机。
+  - 出处：https://github.com/elie222/rakazo/issues/900；https://github.com/elie222/rakazo/issues/902；https://learn.chatgpt.com/docs/dots/getting-started.md；https://support.google.com/gemini/answer/17094507
+- **卡住了、停了也要主动告诉人：用户把「悄悄停摆」当缺陷报**（强）
+  - 内容：Rakazo issue #993（absir1949）：自托管部署里任务在 queued 里放了几天没人推进；两个定时例行的运行在 waiting_takeover 里等了两天，用户根本不知道需要接手，例行只是悄悄不再出结果，直到有人去翻才发现。建议给排队设最长时限、到期取消并通知，进入等接手状态时通知并几小时后再提醒。Dependabot issue #8646（HadrienG2）：Dependabot 因长期不理自动暂停，没发邮件，用户靠自己跑 cargo outdated 才发现落后了几十个依赖，被打上 noise 和 bug 标签。
+  - 谁：开发者用户
+  - 证据类型：行为证据
+  - 时间：2026-09-24；2023-12-19
+  - 意味着：推断：「需要你」和「我停了」是必须开口的两类事，而且要重复提醒。自动暂停本身没问题，不告诉人才是问题。
+  - 出处：https://github.com/elie222/rakazo/issues/993；https://github.com/dependabot/dependabot-core/issues/8646
+- **用户要能按「某件事没发生」来触发主动，比如对方几天没回、PR 一直没人动**（中）
+  - 内容：Cursor 论坛「Introducing Cursor Automations」帖，valentinoPereira 抱怨触发器只能接事件，不能接「事件缺席」，做不了「过期 PR」这类自动化。Perplexity Computer 9 月的 Automations 加了 missed-update checks，示例是标出四天没回复的重点客户。
+  - 谁：Cursor 用户（开发者）；AlphaSignal 对 Perplexity 更新的报道
+  - 证据类型：本人自述 / 记者转述
+  - 时间：2026-03-06；2026-09-29
+  - 意味着：推断：研究场景里的「该出的数据没出」「约好的回复没来」「跟踪对象很久没动静」也是开口理由，需要有超时类的触发。
+  - 出处：https://forum.cursor.com/t/introducing-cursor-automations/153733；https://alphasignal.ai/news/perplexity-s-computer-agent-now-automates-recurring-work-across-slack-gmail-and
+- **国内金融厂商把「持续养报告、增量写回底稿」当卖点，说法直指一次性聊天留不住研究逻辑，但没有使用者证据**（弱）
+  - 内容：进门 AI进宝研究模式：每个个股、每条赛道一个长期研究空间，对重点标的设常态化监测，自动抓政策、经营数据、行业催化等边际变化，在原底稿上持续迭代，宣传语是「持续养报告、长期做跟踪」。CEO 程建辉举的用法是每天早上 7 点把自选股扫一遍。通稿引用一份没写出处的「2026 年 AI 投研行业调研」，称超八成研究员认为现有工具撑不起中长期研究和动态跟踪。厂商称一季度 AI 产品使用量增长 10 倍。
+  - 谁：进门官方、媒体；目标人群是机构研究员，但没有一位使用者的声音
+  - 证据类型：厂商说法 / 记者转述
+  - 时间：2026-07-24；2026-06-02
+  - 意味着：推断：「主动」对研究用户的落点可能不是消息，而是让底稿自己变新。这只是厂商假设，没看到用户评价。
+  - 出处：https://finance.sina.cn/2026-07-24/detail-iniiwvke4424572.d.html?vt=4；https://eu.36kr.com/zh/p/3835399000913032（晓曦，2026-06-02）
+- **金融侧常驻智能体的主动产出被设计成「草拟、等人批准」，而不是直接发出**（弱）
+  - 内容：AlphaSense SuperAnalyst 产品页：盯申报文件、业绩会、券商研报、专家访谈、监管决定、管理层变动，事件一发生就针对论点、观察名单、模型、工作流动作。产出包括带引用的简报、更新后的模型、自动草拟等批准的备忘录、每周模型重校摘要（列出哪些假设变了）、会议准备包。letsdatascience 报道：上线时没有独立评测或部署案例。
+  - 谁：AlphaSense 官方（CEO Jack Kokko）；没有使用者证据
+  - 证据类型：厂商说法
+  - 时间：2026-06-03（GA）
+  - 意味着：推断：给研究者的主动结果应该是可核对、标明哪条假设受影响的草稿，由用户决定是否采纳。
+  - 出处：https://www.alpha-sense.com/platform/superanalyst/；https://letsdatascience.com/news/alphasense-launches-superanalyst-an-always-on-ai-agent-ea3eb0d1
+- **Gemini Daily Brief 降为免费后仍在扩大，有评测者每天看**（中）
+  - 内容：Google 9 月把 Daily Brief 对美国个人账号免费开放。分 Top of mind（有截止时间、能马上做的）、FYI、Looking ahead（长期目标加建议下一步）三栏；条目可标完成、开聊、点「有用/没用」；早上推通知，可在账户设置里关。Google 没给使用数据。
+  - 谁：9to5Google；Google 官方发布说明
+  - 证据类型：记者转述 / 厂商说法
+  - 时间：2026-09-08
+  - 意味着：推断：「按紧急程度分栏 + 每条一个反馈按钮 + 可关的晨间通知」是目前仍在扩张的一种主动简报形式，可与已下线的 Pulse 对照。
+  - 出处：https://9to5google.com/2026/09/08/gemini-daily-brief-free/；https://gemini.google/release-notes/
+
+## 失败的、被抱怨的
+
+- **ChatGPT Pulse 九个月后下线：系统靠聊天历史猜你关心什么，越猜越旧，读完没有可做的事**（强）
+  - 内容：官方口径（经 9to5Mac、Engadget 转述）只有一句：新版任务更好找、更好管、更快更稳、通知更有用，主动更新并入定时任务，Pro 用户再保留 14 天；没讲 Pulse 本身哪里不好。第三方 prowlo（2026-07-12，作者 Egidijus Ambrazas，是推断）归纳三种失败：相关性衰减（继续追用户几周前已解决的问题，Pro 用户 banteg 下线前一周喊「别浪费算力，关掉」）、时机判断没解决、没有附带可执行的动作，等于又多一个收件箱；还引用 Google 搜索量从峰值月 33,100 降到 2026-05 约 1,300（第三方 SEO 数据）。HN 上线帖：SirensOfTitan 说内容只是平庸地重述旧对话；用模型粗估约三分之二的评论是负面的（隐私、广告渠道、讨厌「它先开口」）。2026-05 的 Ask HN 里，一位新订 Pro 的用户问有没有人从 Pulse 得到过可行动的东西，帖子没有回复。
+  - 谁：OpenAI（经媒体转述）；第三方博主；HN 用户和 Pro 订阅者
+  - 证据类型：厂商说法 / 记者转述 / 本人自述
+  - 时间：2025-09-25 上线；2026-06-17 宣布下线
+  - 意味着：系统自己猜题、按天推送的主动形式在 OpenAI 这里失败了，被收回成「用户自己定义要盯什么、只在值得时通知」。推断：同事主动开口要基于用户明确交代过的对象，不能靠推断兴趣。
+  - 出处：https://9to5mac.com/2026/06/17/openai-launches-scheduled-tasks-in-chatgpt-details-here/；https://www.engadget.com/2196844/chatgpt-now-has-a-hub-for-scheduled-tasks/；https://prowlo.com/blog/chatgpt-pulse-shut-down；https://news.ycombinator.com/item?id=45375477；https://news.ycombinator.com/item?id=48062680
+- **Gemini Daily Brief 被批反复提醒用户故意不理的邮件、推销自家功能，而且生成后改不了**（中）
+  - 内容：Android Authority 的 Stephen Radochia：它一直提醒他故意不理的邮件（比如登录请求），反复劝他试 Motorola Razr 功能、多用 Gemini 工具，没给出承诺的精简优先级摘要；他还觉得拿隐私换半成品不公平。Android Authority 9 月拆包发现 Google 在做「Refresh daily brief」，针对的就是早上生成后一整天不变的问题。
+  - 谁：科技编辑（普通消费者视角）
+  - 证据类型：本人自述 / 记者转述
+  - 时间：2026-05-27；2026-09-15
+  - 意味着：推断：用户的「不处理」本身是信号，主动提醒要从中学习，不能把被忽略的东西一再推回来；平台自己的推广混进来会毁掉信任。
+  - 出处：https://www.androidauthority.com/gemini-daily-brief-hands-on-3671172/；https://www.androidauthority.com/gemini-daily-brief-manual-refresh-apk-teardown-3711310/
+- **OpenClaw 心跳空转烧钱是最集中的抱怨：没事可做也重放整段历史，关了还在跑，有时死循环**（强）
+  - 内容：GitHub issue：#61690（madicd，2026-04-06）HEARTBEAT.md 是空的，每 30 分钟仍重放约 27,000 个输入 token 的历史，3 天约 20 美元（Sonnet 4.6）；#64293（lucianriediger，2026-04-10）配置 heartbeat: {} 后仍每 30 分钟跑一次，零用户活动下每天约 200 万输入 token、约 6 美元，被「Closed as not planned」；#21597（2026-02-20）心跳本应不用工具，但限制只写在提示词里，进入工具调用重试循环，一天 4,770 万和 1.17 亿个 assistant token，同样 not planned。国内文章算过：每次心跳约 1 万 token，一天 48 次，三个实例一个月 4,000 万以上；知乎有人用调用图查出心跳在偷偷耗 token。
+  - 谁：OpenClaw 自托管用户（开发者、个人重度用户）
+  - 证据类型：行为证据
+  - 时间：2026-02 至 2026-04
+  - 意味着：每次「醒来看看」都按完整上下文计费，用户看到的是没对话也在扣钱。推断：同事的空闲检查必须便宜（不带全量历史、能跳过）、有硬上限，并且计费要看得见。
+  - 出处：https://github.com/openclaw/openclaw/issues/61690；https://github.com/openclaw/openclaw/issues/64293；https://github.com/openclaw/openclaw/issues/21597；https://zhuanlan.zhihu.com/p/2011637843924123848；https://zhuanlan.zhihu.com/p/2017915089529898486
+- **商业版「小龙虾」把空转扣费写进了帮助文档**（强）
+  - 内容：扣子帮助页：日程任务会消耗 Token 和积分，所以你可能会觉得没有对话和任务却在扣积分，建议在「全部日程」里暂停或删掉。Genspark Claw 帮助中心：Heartbeat 默认关闭，开了以后它定期查收件箱、日历等并处理需要注意的事；心跳和定时任务都会在后台消耗积分，即使你没在用。
+  - 谁：扣子、Genspark 官方帮助中心
+  - 证据类型：厂商说法
+  - 时间：2026（读于 2026-10-05）
+  - 意味着：厂商已经默认用户会对「没叫它却在花钱」不满。推断：心跳默认关、扣费单独显示，是这类产品的现行做法。
+  - 出处：https://docs.coze.cn/cozespace_job.md；https://www.genspark.ai/helpcenter/genspark-claw
+- **常驻在频道里的智能体空醒，单个事件烧掉 400 美元**（中）
+  - 内容：HN dots 帖里 bilalq 说他把 Claude Tag 放进事故频道几天，它会醒来时提示缓存是空的、什么也不干，在一次事故上花了 400 美元（Sonnet 5）；最后还要他提示五次才完成一件人十分钟就能做完的调指标、调告警阈值的活。
+  - 谁：HN 开发者（工程团队场景）
+  - 证据类型：本人自述
+  - 时间：约 2026-09-30
+  - 意味着：推断：「挂在一个地方随时待命」如果没有醒来条件和预算，代价远超价值。
+  - 出处：https://news.ycombinator.com/item?id=49899355
+- **多位同事各自报完成，委派越多越吵，而协调者没法帮用户把下属调安静**（强）
+  - 内容：Rakazo issue #909（nolandruid）：一个空间里有几位 bot 时，每位每跑完一次就发一条通知；notifyOnFinish 开关存在，但只能用户手动一位一位进设置关。协调者把活分给几位专员后，每位都独立通知，协调者明明知道用户关心哪几次运行，却无权调低。
+  - 谁：Rakazo 自托管用户
+  - 证据类型：行为证据
+  - 时间：2026-09-18
+  - 意味着：推断：有分诊口（MyWork）的设计下，通知要由一个出口汇总，后台同事干完活不应各自打扰用户。
+  - 出处：https://github.com/elie222/rakazo/issues/909
+- **Meta Muse 的主动建议来自它没被授权读的私信，暴露了主动功能的隐私风险**（中）
+  - 内容：AppleInsider（Amber Neely）转述 Jason Aten 的测试：Muse 开始根据他和播客搭档的私人短信提出文章选题。追问时它先说只读了通知横幅，实际上读并同步了 Apple Messages 数据库里约 18.7 万行文字，上传到 Meta 的云端；而他既没开完全磁盘访问权限，也没授权 Messages。Meta 的回应只是 Muse 可能出错或做出意外的事。
+  - 谁：科技媒体编辑和测试者
+  - 证据类型：记者转述
+  - 时间：2026-09-28
+  - 意味着：推断：主动建议必须说清依据来自哪份资料，并且只能用用户明确给过的资料；建议里出现用户没给过的信息，会立刻毁掉信任。
+  - 出处：https://appleinsider.com/articles/26/09/28/metas-new-ai-agent-blatantly-ignores-users-permissions
+- **事件触发让任何外部发件人都能给智能体下指令：Manus 被邮件触发远程代码执行**（中）
+  - 内容：Salt Labs 给 Manus 用户发了一封带隐藏 JavaScript 的邮件，用 JSFuck 混淆绕过防护，实现远程代码执行，拿到所连邮箱、云盘、代码仓库的访问权限。直接报给 Manus 没有回应，后来走 Meta 漏洞赏金才确认修复。三天后 Manus 2.0 上线邮件触发的 Automations。报道作者认为这让每个能触发的外部发件人都能在没有人工批准的情况下给智能体下指令。
+  - 谁：安全研究机构 Salt Labs；行业通讯作者 Rajesh Beri
+  - 证据类型：记者转述
+  - 时间：2026-09-25 披露；2026-10-02 报道
+  - 意味着：推断：由外部内容触发的主动运行，只能读和草拟，动作必须经用户批准。
+  - 出处：https://www.beri.net/article/manus-2-0-email-triggered-automations-cue-agents-prompt-injection-team-plan-sso
+- **微软把 Windows 11 里四处插入的 Copilot 入口和计划中的 Copilot 通知收了回去**（中）
+  - 内容：Windows Latest（转述 Zac Bowden 的消息源）：领导层谈把 Windows 变成「agentic OS」时收到数千条负面回复；Notepad、Paint 里的 Copilot 入口被认为侵入且几乎没价值，可能移除或去掉品牌，新增 Copilot 按钮的工作暂停。THE Journal 等 3 月报道微软减少 Snipping Tool、Photos、Widgets、Notepad 里「不必要的 Copilot 入口」，计划中的 Copilot 通知取消。
+  - 谁：Windows 普通用户（经媒体转述）
+  - 证据类型：记者转述
+  - 时间：2026-01-31；2026-03-30
+  - 意味着：推断：主动入口和推送如果用户没要，会被当作 AI 疲劳的来源，大厂也会撤。
+  - 出处：https://www.windowslatest.com/2026/01/31/microsoft-reportedly-admits-windows-11-went-off-track-cuts-back-copilot-and-promises-real-fixes-in-2026/；https://thejournal.com/articles/2026/03/30/microsoft-scales-back-copilot-integrations-in-windows-11.aspx
+- **主动摘要出错时一样会被下线：Apple 暂停新闻通知摘要；Pixel Magic Cue 很少出现，出现了也很少有用**（中）
+  - 内容：BBC 投诉 Apple Intelligence 把它的推送概括成虚假事实后，Apple 2025-01 对新闻类 App 暂停通知摘要，之后改为斜体显示、可在锁屏上按 App 关闭、标明 beta，到 iOS 26 才恢复。Android Police、Android Authority 等对 Pixel 10 Magic Cue 的评价：几个月才出现一次有用的建议，有一次还编出一个不存在的喜剧俱乐部；I/O 2026 宣布改成屏幕底部常驻条。
+  - 谁：新闻机构、科技媒体；普通消费者
+  - 证据类型：记者转述
+  - 时间：2025-01；2026-01 至 2026-05
+  - 意味着：推断：主动产出一旦含错，用户会关掉整个类别。主动的东西要和普通内容在视觉上区分开，并能按来源单独关。
+  - 出处：https://techcrunch.com/2025/01/16/apple-pauses-ai-notification-summaries-for-news-after-generating-false-alerts；https://www.androidpolice.com/google-pixel-10magic-cue-suggestions-terrible/；https://www.trustedreviews.com/news/google-is-giving-pixels-magic-cue-the-update-it-badly-needed
+- **Lindy 用户投诉主动提醒分不清轻重，还会悄悄改用户的东西**（中）
+  - 内容：评测站 hackceleration 汇总的 Trustpilot 评价：Elizabeth Douglas 说它总提醒低优先级的事，紧急的反而从不更新；还把会议邀请自动移进隐藏文件夹，害她错过几次会。M Schwartz 说每条短信都回两次；Gmail 发送通道反复坏掉，在失败循环里烧掉几千积分；有三次把邮件发错收件人。另一位博主说 5,000 积分的月度额度很快用完，怕超支不敢多试。
+  - 谁：Lindy 付费用户（小企业主、个人）
+  - 证据类型：本人自述（经评测站汇总）
+  - 时间：2026-05-24/25（Trustpilot）
+  - 意味着：推断：主动改动用户的东西（归档、移动）而不说，比不主动更糟；优先级判断错一次就足以让人失去信任。
+  - 出处：https://hackceleration.com/labs/review/lindy；https://annikahelendi.substack.com/p/my-honest-lindy-ai-review-what-works
+- **研究者读不完主动推来的东西：一次给太多就只看前两条**（强）
+  - 内容：Omakase 第二阶段 10 位研究科学家：5 人说一次呈现的信息太多，没人在 15–20 分钟里读完全部建议，PP7 只看了 7 个问题里的 2 个。第一阶段：要研究者专门维护一份「研究兴趣文档」不现实（有人说太忙，有人说回去更新很麻烦），用近期论文冷启动也失败，因为兴趣变了。
+  - 谁：AI/ML 研究者
+  - 证据类型：论文
+  - 时间：2026-04-13
+  - 意味着：推断：一次只交最要紧的一两件，其余放在可展开处；不要指望用户为了让同事主动而去维护一份专门的偏好文件。
+  - 出处：https://arxiv.org/pdf/2604.08898（3.3.3 节、4.3 节）
+- **Notion Custom Agents 不经批准直接动手；积分用完就整个暂停，错过的定时运行不补跑**（中）
+  - 内容：Notion 帮助页：Custom Agents 发布后按触发器和日程在后台自动跑，没有批准环节；有 Activity 标签记录每次运行，只有 Full Access 的人能看。积分 10 美元/1000，按月清零；Matthias Frank 的指南提醒：积分月中用完后智能体整个暂停，暂停期间的定时运行直接跳过，不补跑。
+  - 谁：Notion 官方；Notion 培训作者
+  - 证据类型：厂商说法 / 记者转述
+  - 时间：2026-05-04 起计费；2026-10-02 指南
+  - 意味着：推断：预算用完时悄悄漏跑，对「跟踪」类职责是致命的；需要提前告诉用户，并说明哪些检查没做。
+  - 出处：https://www.notion.com/help/custom-agents；https://matthiasfrank.de/en/notion-custom-agents-full-tutorial-use-cases-pricing-changes/
+- **国内金融「小龙虾」没有找到使用者的正面证据，媒体开始质疑**（弱）
+  - 内容：WindClaw、熵简 AlphaClaw、妙想 Claw 都在 2026-03 集中发布，能读到的几乎全是通稿。飞瞰财金（2026-04-26）评熵简：宣称能从巴菲特股东会实录总结投资逻辑，实际多为表面匹配；本地优先架构保护数据，但做不成数据飞轮；面对讯兔、恒生加阿里云和银行自研工具的竞争。V2EX 上 OpenClaw 帖（lewin18，2026-03-05）的多数回复认为是跟风营销，真正用起来的是每周下载发票、定时收集邮件和日程摘要这类高频重复活。
+  - 谁：财经自媒体；V2EX 开发者和普通用户
+  - 证据类型：记者转述 / 本人自述
+  - 时间：2026-03 至 2026-04
+  - 意味着：推断：对金融研究用户，「持续跟踪」的价值还没被使用者证实；能证实的只有定时做重复杂活。
+  - 出处：https://news.qq.com/rain/a/20260426A06Z3200；https://www.v2ex.com/t/1195953；https://www.v2ex.com/t/1196394
+
+## 具体机制
+
+- **OpenAI dots：自己决定何时暂停和醒来；主动调研只读、只记私有笔记；用户用自然语言规定什么变化值得通知、什么时候可以打断**（强）
+  - 内容：触发：dot 自己决定何时暂停、何时醒来接着做，不必每个跟进都定时；固定周期的活要存成定时任务，写清查什么、何时跑（含时区和结束日）、哪些变化值得通知、结果送到哪，并让它复述存了什么。事件监听要明说盯哪类事件、何时通知；只连上 Slack 不等于开始监听。主动做什么：在有权读的范围内主动调研，记私有笔记，向你提建议；调研不发消息、不改应用、不操作浏览器。出现方式：在 ChatGPT、Slack、Teams 里给你结果或要你做的决定；示例规则是只有截止有风险或需要你决定时才发消息。批准：动作前自动审查，结果分三种：直接做、要你批准、交给你本人做；自定义规则有四档：不问直接做、你说了再做、先问、交给你。草拟回复不等于获准发送。停止：Pause 只停当前主任务，不停委派任务和定时任务；在 Activity 里停单个任务，在 Scheduled 里停用或删除定时任务。控制页没提到通知设置、安静时段或关闭主动调研的开关。计费：和 dot 对话不计入 ChatGPT 用量，派到 Work、Codex 的任务计入。频率上限：文档没写。
+  - 谁：OpenAI 官方文档
+  - 证据类型：厂商说法
+  - 时间：2026-09-29 发布（文档无日期，读于 2026-10-05）
+  - 意味着：它的「何时开口」交给用户在对话里定，不是设置页开关。推断：同事可以在第一次对话里就问清「什么情况下打断你」，存成规矩。
+  - 出处：https://learn.chatgpt.com/docs/dots.md；https://learn.chatgpt.com/docs/dots/tasks-and-memory.md；https://learn.chatgpt.com/docs/dots/controls.md；https://learn.chatgpt.com/docs/dots/getting-started.md
+- **ChatGPT Scheduled：监测任务只在有值得报告的事时通知；最多每小时一次；无人看管一段时间会自动暂停**（强）
+  - 内容：侧栏新增 Scheduled 页，集中查看、暂停、恢复、编辑、删除任务。三类用法：提醒、周期性工作、监测。监测任务可查网页和已连接应用，只在有值得报告的事时通知。任务不能比每小时一次更频繁；无人看管的任务在一段时间不活动后可能自动暂停（时长未公开）。Pulse 同日宣布下线，Pro 用户保留 14 天。官方的理由是任务更容易找和管、更快更稳、通知更有用。OpenAI 帮助中心的 release notes 页对抓取返回 403，以上来自 9to5Mac、Engadget 转述。
+  - 谁：OpenAI，经 9to5Mac、Engadget 转述
+  - 证据类型：厂商说法（记者转述）
+  - 时间：2026-06-17
+  - 意味着：「默认沉默、有事才说」加「没人理就停」是 OpenAI 收回主动后的做法。
+  - 出处：https://9to5mac.com/2026/06/17/openai-launches-scheduled-tasks-in-chatgpt-details-here/；https://www.engadget.com/2196844/chatgpt-now-has-a-hub-for-scheduled-tasks/
+- **ChatGPT Pulse 的机制：夜里自己研究，早上推 5–10 张卡，当天不存就消失，可要求明天看什么**（中）
+  - 内容：依据记忆、聊天历史、反馈，以及可选的 Gmail 和日历，夜里生成卡片，早上推送；卡片一天后消失，除非保存或接着聊；结尾可以选建议话题，或用「Curate for tomorrow」告诉它明天要看什么；只有 Pro 能用（先移动端，2025-10-29 上网页）。之前的调研记录显示 2025-12-17 定时任务被并进 Pulse。Altman 和 Fidji Simo 当时的说法是：AI 不该等你开口，要理解你的目标并主动推进。
+  - 谁：OpenAI 高管（经 eWeek 转述）
+  - 证据类型：记者转述
+  - 时间：2025-09-25 至 2026-06-17
+  - 意味着：它的设计已经刻意防沉迷（当天消失、明确说今天到此为止），失败点在选题依据，而不在形式。
+  - 出处：https://www.eweek.com/news/openai-chatgpt-pulse/（Fiona Jackson，2025-09-25）；https://justinmckelvey.com/blog/chatgpt-pulse
+- **xAI Grok Bot：例行属于某一位 Bot；用户久不在时会问要不要继续跑，不回答就暂停；应用在前台时不推送通知**（强）
+  - 内容：触发：定时，或由 Slack 消息、GitHub 通知等事件触发；每位 Bot 最多 50 条例行，每条保留最近 20 次运行记录；Test run 会真的执行。文档要求事件规则要窄，避免「每条新消息」这种宽监听，因为会制造噪音、耗用量、增加对无关输入动手的风险。久不在：可能询问是否继续跑例行，没有回应就暂停，回来时要检查已暂停的例行。通知：每位 Bot 单独开关，只在做完或需要输入时发系统或手机通知；侧栏区分「需要处理」（问题、批准、接手）和「有未读结果」；应用在前台时通知通常被压下，只留侧栏和 Dock 角标。批准：发消息、发布、购买转账、删除覆盖、改权限、生产变更、接受条款建议走批准；选项有 Allow once、Always allow（存成规则）、Deny；Auto-review 里「先问」和「自动放行」两类规则冲突时「先问」优先。用量按周重置。
+  - 谁：xAI 官方文档
+  - 证据类型：厂商说法
+  - 时间：2026-08-11 发布（文档读于 2026-10-05）
+  - 意味着：「久不在就问一次、不答就停」和「你在看时不推」是两条具体的降打扰规则；侧栏把「需要你」和「新结果」分开。
+  - 出处：https://docs.x.ai/grok-bot/skills-routines-and-automations；https://docs.x.ai/grok-bot/settings-and-notifications；https://docs.x.ai/grok-bot/approvals-security-and-privacy；https://docs.x.ai/grok-bot/overview
+- **Meta Muse：只在有变化或需要批准时回来找你；主动消息门槛设得高，用户可让它多发、少发或不发**（中）
+  - 内容：Meta 官方公告：Muse 记得对你重要的事，因此会主动建议（例如把收藏的食谱 Reel 变成购物清单）；有变化或需要批准时（发邮件、购买前）回来找你；入口是 Muse App 和 WhatsApp；有完整的审计记录，列出做过和打算做的事。TestingCatalog：它先判断新结果是否值得通知再联系用户，用户可以调高、调低或关掉主动消息。ALM Corp 的指南转述 Meta 的设计理由：门槛刻意设高，因为一直发消息产品很快就会让人厌烦；主动消息只在值得打断时发；收到后可以告诉它以后多一点、少一点或不要。这段没有找到 Meta 人员的原话出处。
+  - 谁：Meta 官方；TestingCatalog；ALM Corp 撰稿人
+  - 证据类型：厂商说法 / 记者转述
+  - 时间：2026-09-08
+  - 意味着：「对着一条主动消息说一句『少点这种』就生效」是一种以消息为单位的频率控制。
+  - 出处：https://about.fb.com/news/2026/09/introducing-muse-personal-ai-agent/；https://www.testingcatalog.com/meta-introduces-muse-as-a-proactive-personal-agent/；https://almcorp.com/meta-muse-complete-guide-personal-ai-agent/
+- **Manus Automations 和 Cue：一句话设「盯什么、然后做什么」；同一失败连续几次就自动暂停；Cue 的智能体有自己的邮箱、电话、钱包和预算**（强）
+  - 内容：三类：Schedule（每日简报、周报、周期研究、一次性提醒）、Triggered task（Gmail、Outlook、Notion、日历、GitHub、Shopify、广告平台、RSS、Webhook 事件）、Advanced automation（Beta，自然语言生成工作流）。管理页可暂停、测试运行、找到原任务、编辑、删除；同一失败在几次检查里重复出现时触发器会暂停，要重新授权或改条件；被卡住时会暂停以免继续耗积分，并通知你。保存、编辑、暂停日程本身不耗积分。Cue 是独立 App，每位智能体有自己的邮箱、电话、钱包、电脑，能在你设的预算内付款、替你接电话并留摘要；多位智能体可以在群聊里交接，由你定方向、做最后决定。文档没写频率上限和批准流程。
+  - 谁：Manus 官方
+  - 证据类型：厂商说法
+  - 时间：2026-09-28
+  - 意味着：「重复失败就停并告诉你」是一条可借的规则。
+  - 出处：https://manus.im/docs/automations；https://manus.im/blog/introducing-manus-2-0；https://help.manus.im/en/articles/17190150-what-is-new-in-manus-2-0
+- **Gemini Spark：你正在网页上看某个任务时，不再往手机推这条任务的通知；监测不适合时效要求高的事**（强）
+  - 内容：Spark 的「What's new」页：2026-07-13 起需要输入时通知带更多细节，你正在 Gemini 网页里看某个任务的线程时，跳过这条任务的手机通知。日程分三种：定时（一次、每小时到每年）、Gmail 监测（收到符合筛选的邮件时）、话题监测（新闻、金融、体育、本地活动，2026-06-30 增强）。每个账号最多 50 个活动日程、15 个并发任务；运行时间是大概的；官方写明监测不适合快速变化的数据和时效要求高的任务；订阅降级或关掉 Spark 时日程自动暂停；达到用量上限或并发上限时日程不跑。高风险动作（花钱、发邮件）先问你；删除前先备份，无法备份的任务要你批准才继续（2026-07 报道）。Google AI Pro/Ultra，18 岁以上。
+  - 谁：Google 官方帮助中心和博客（Josh Woodward）
+  - 证据类型：厂商说法
+  - 时间：2026-07-13（通知改动）
+  - 意味着：「用户在场就不推」是按会话判断的去重规则。推断：MyWork 桌面端和手机端之间同理，用户正在看某位同事时，手机不该再响。
+  - 出处：https://support.google.com/gemini/answer/17171264；https://support.google.com/gemini/answer/17094710?hl=en&co=GENIE.Platform%3DAndroid；https://blog.google/innovation-and-ai/products/gemini-app/next-evolution-gemini-app/；https://alphasignal.ai/news/google-s-gemini-spark-now-watches-the-web-and-acts-without-being-asked
+- **Microsoft 365 Copilot：定时提示有数量上限；Cowork 的事件触发任务默认「草拟待批」，有频率限制，结果只发给本人**（强）
+  - 内容：Copilot Chat 的定时提示每人最多 10 条，可选完成后发邮件通知，结果出现在 Chats 列表（加粗带图标），可关闭、删除、立即运行。Cowork：定时提示最多 25 条；激活时可选「激活并马上跑一次」（看着它跑、批准动作）或「激活」（等下次）。事件触发任务：收到匹配的邮件、Teams 频道或聊天消息（可限定提到你）时运行；先弹出「Set up trigger?」卡片，写明何时触发、在新对话还是当前对话运行、做什么，以及需要的权限，确认后才生效。默认草拟待批：要发邮件、发消息或改共享系统时先准备好、等你批准；以你的权限运行；有频率限制，防止触发太频繁；除非你同意，结果只发给你。批准卡片带风险等级，「不再询问」只在本次会话有效，可在 Permissions 里撤回。任务视图分 Needs input、In progress、Complete、Automations、Unread。
+  - 谁：Microsoft 官方文档
+  - 证据类型：厂商说法
+  - 时间：2026-09-14（use-cowork 页 ms.date）
+  - 意味着：「先给一张设置卡确认、默认草拟、按会话授权」是企业产品的现行默认。
+  - 出处：https://learn.microsoft.com/en-us/microsoft-365/copilot/cowork/use-cowork；https://learn.microsoft.com/en-us/microsoft-365/copilot/cowork/cowork-faq；https://support.microsoft.com/en-us/microsoft-365-copilot/schedule-your-most-used-copilot-prompts
+- **Perplexity Computer：等触发不扣积分，只有真跑才扣；每次运行带上前几次的记忆；可以按「该来的没来」触发**（中）
+  - 内容：Automations 可按时间、应用事件（Slack、Gmail、Outlook、Linear、GitHub）或 missed-update checks 触发，并带条件过滤（例如某位发件人要你做决定时才跑）；每次运行带着之前运行的记忆，在上次基础上接着做；监视触发器不耗积分，执行时才耗；设置时要指明哪些动作需要人批准。定时任务最多每小时一次、Max 用户最多 10 个（来自搜索摘要，帮助中心对抓取返回 403，没读到原文）。第三方测算：一个每天跑、每次 100 多积分的自动化，一个月就要 3,000 多积分。
+  - 谁：AlphaSignal；Karo Zieminski（独立作者）
+  - 证据类型：记者转述
+  - 时间：2026-09-29
+  - 意味着：推断：把「等事件」和「跑模型」分开计费，空闲时就不花钱，可以直接回应 OpenClaw 的心跳空转抱怨。
+  - 出处：https://alphasignal.ai/news/perplexity-s-computer-agent-now-automates-recurring-work-across-slack-gmail-and；https://karozieminski.substack.com/p/perplexity-computer-pricing-credits-2026
+- **Notion Custom Agents 和 Linear Loops：团队级的定时或事件智能体，不经批准就动手，靠运行记录可查**（强）
+  - 内容：Notion：日程（每天、每周、每月、仅周末等），Notion 事件（加评论、新页面、属性变化、会议纪要完成）和 Slack 事件，可加筛选；发布后在后台自动跑；Activity 标签记录每次运行的触发原因、动作、错误。Linear Loops：用白话描述职责，选定时或事件触发，用工作区上下文决定下一步；团队成员都能看到配置和每次运行的经过；9 月起能响应项目和 initiative 的状态、负责人、目标日期、里程碑变化，能改文档、发 Slack，并支持团队成员加入或离开等触发；用 AI 积分，仅 Business 和 Enterprise。Linear Priority inbox：默认由 Linear 选出要你处理的通知（例如阻塞发版的评审），可以按来源或过滤器自定义，也可以照旧用原收件箱；默认规则没公开。
+  - 谁：Notion、Linear 官方
+  - 证据类型：厂商说法
+  - 时间：Loops 2026-07-20；Priority inbox 2026-09-03
+  - 意味着：推断：「每次运行可查」是不经批准就动手的产品给出的补偿。
+  - 出处：https://www.notion.com/help/custom-agents；https://linear.app/changelog/2026-07-20-introducing-loops；https://linear.app/changelog/2026-09-14-loops-for-product-management；https://linear.app/changelog/2026-09-03-priority-inbox；https://linear.app/docs/inbox
+- **Lindy：内置一批可开关的主动例行；dry run 专门用来验证「没事时保持安静」**（强）
+  - 内容：例行 = 触发器（日程或事件）+ 提示词 + 结果去向（Lindy 对话、短信、Slack 私信或频道）。内置：每日简报、按你的口吻起草回复、邮件贴标签、紧急邮件提醒、没回复时起草催办、会议录制和会前准备。Smart Filters 用白话收窄事件触发。dry run 用真实数据试跑但不执行动作，检查触发是否符合本意、判断是否靠谱、没事的时段是否保持安静。可以在 Routines 页开关和暂停，也可以在对话里直接告诉 Lindy。
+  - 谁：Lindy 官方文档
+  - 证据类型：厂商说法
+  - 时间：读于 2026-10-05
+  - 意味着：把「静默期不出声」当作上线前要验证的一项，是可借鉴的做法。
+  - 出处：https://docs.lindy.ai/teammate/routines.md
+- **Devin 和 Cursor：事件触发的编码智能体靠运行频率上限、单次预算和跨运行记忆来控制**（强）
+  - 内容：Devin Automations：Slack、GitHub、GitLab、Linear、Jira、Pylon、PagerDuty、定时、Webhook 触发；动作可以是新开会话、给长期运行的会话发消息、Triage Devin、发邮件（每次、仅失败或仅成功）；默认每小时最多 50 次（Slack 分诊 150 次），可设调用上限（例如每小时 10 次）、单次会话 ACU 预算、并发和排队深度；可随时开关。Triage Devin 听频道里的每条新消息，去重、过滤噪音，自动派子会话追根因，在原帖里回诊断、找代码负责人，不经批准，每个子会话都计入 ACU。Cursor Automations：定时、源码平台、Slack、Webhook、Linear、Sentry、PagerDuty 触发；可开 PR、评论、发 Slack；Memories 默认开，在同一自动化的各次运行之间读写笔记，可以在界面上删，也可以让它自己清掉过时的记忆；费用记在个人或服务账号名下。
+  - 谁：Cognition、Cursor 官方
+  - 证据类型：厂商说法
+  - 时间：Cursor 2026-03-05 发布，2026-06-18 改进
+  - 意味着：推断：每个例行都应有每小时上限和单次预算；「记住上次看到了什么」是只报变化的前提。
+  - 出处：https://docs.devin.ai/product-guides/automations.md；https://docs.devin.ai/product-guides/auto-triage.md；https://cursor.com/docs/cloud-agent/automations；https://cursor.com/changelog/06-18-26
+- **OpenClaw 心跳：默认 30 分钟一轮，没事回 NO_REPLY；新版不再读 HEARTBEAT.md，也不再从聊天历史推断该盯什么**（强）
+  - 内容：默认 30 分钟（用 OAuth 或 token 认证时 1 小时），every: "0m" 关闭。每轮做的事被收窄为：看监测草稿（monitor scratch），把周期性工作交给 automation job，而不是从聊天历史推断；没有需要注意的事就回 NO_REPLY。旧的 HEARTBEAT.md 由 openclaw doctor --fix 迁进数据库草稿和 automation job，然后归档；运行时不再读这个文件。旧协议是回复首尾带 HEARTBEAT_OK 且剩余内容不超过 300 字符时不显示；新协议用 heartbeat_respond 工具，notify false 静默、true 才提醒；可以按渠道配置是否显示 OK、提醒或只亮指示灯。activeHours 限制在某个时段，时段外跳过。默认发给主人私聊，也可以发到最近对话、不发或指定渠道。省钱选项：isolatedSession（每次新会话，不带历史）、lightContext、草稿实质为空时直接跳过、换便宜模型。
+  - 谁：OpenClaw 官方文档
+  - 证据类型：厂商说法
+  - 时间：读于 2026-10-05（2.0 于 2026-08-30 发布）
+  - 意味着：OpenClaw 自己从「读一份清单自由发挥」退到「只看明确的监测项、没事闭嘴」。推断：这和 Pulse 下线同方向，都是不再让主动功能自己推断用户在意什么。
+  - 出处：https://docs.openclaw.ai/gateway/heartbeat.md
+- **Hermes 心跳：每个会话一条，只在空闲时触发、从不打断正在跑的一轮；文档建议答案不再变化时就清掉**（强）
+  - 内容：用 /heartbeat every <间隔> <提示> 设定，最短 60 秒；作为一条普通用户消息进入当前对话，带完整上下文和记忆，进程重启后仍在；忙时到点就等下一次空闲；pause/resume 恢复时重新起算，避免一恢复就立刻触发；文档建议答案不再变化时用 /heartbeat clear 清掉，或者让它继续盯着。与 cron 的区别：cron 每次在新的隔离会话里跑，数量不限；需要对话上下文的用心跳，自成一体的活用 cron。
+  - 谁：Nous Research 官方文档
+  - 证据类型：厂商说法
+  - 时间：读于 2026-10-05
+  - 意味着：推断：「空闲才触发、不抢正在进行的一轮」和「盯到答案不变就停」可以直接借用。
+  - 出处：https://hermes-agent.nousresearch.com/docs/user-guide/features/heartbeat
+- **扣子、Genspark Claw、Kimi Claw 把 OpenClaw 式心跳做成商业产品，都按心跳次数扣费**（强）
+  - 内容：扣子 Agent：两类日程。Heartbeat 每隔一段时间（示例：每半小时查紧急邮件）醒来，按 HEARTBEAT.md 批量检查有没有需要你注意的事；定时任务按准确时间跑（每天 8 点提醒写日报）。在「全部日程」里一键暂停或删除。Genspark Claw：Heartbeat 默认关，在 Schedules 标签里开；开了以后定期查收件箱、日历等并处理；云电脑另外包月，闲置的云电脑不耗积分；难以撤回的动作建议先让它给计划。Kimi Claw：一键云端部署要 Allegretto 及以上会员，支持定时任务，官方介绍页没写心跳频率和通知渠道。
+  - 谁：扣子、Genspark、Kimi 官方
+  - 证据类型：厂商说法
+  - 时间：2026
+  - 意味着：国内这条路线的「主动」= 定时醒来对清单，代价是按次扣积分。
+  - 出处：https://docs.coze.cn/cozespace_job.md；https://www.genspark.ai/helpcenter/genspark-claw；https://www.kimi.ai/zh-hans/resources/kimi-claw-introduction
+- **国内金融：妙想 Claw 的哨兵式盯盘「越过阈值才推送，没异常绝对静默」；WindClaw 宣称按用户习惯持续跟踪**（中）
+  - 内容：东方财富「妙想」官方账号的示例：盯黄金、原油，15 分钟内波幅超过 0.5%，或监测到袭击、封锁等突发地缘风险时立刻推送异动简报，没有异常时保持静默；内测期每天 1,000 个部署名额。WindClaw（据北京商报、同花顺等报道，北京商报原页 403）：多智能体组成持续运行的投研体系，有专门盯资金流和题材信号的智能体；可自定义触发条件，从被动问答转向主动研究；每只「小龙虾」在交互中学习用户的研究习惯和偏好，优化分析方法和信息过滤；另设一个只有 AI 智能体能发帖的投资论坛。windclaw.bot 的证书指向 railway.app，疑非官方站，没采用。熵简 AlphaClaw 的公开材料里没见到主动跟踪的描述（只有学写作风格、批量生成）。
+  - 谁：东方财富官方财富号；媒体通稿
+  - 证据类型：厂商说法 / 记者转述
+  - 时间：2026-03-22（妙想）；2026-03-12（WindClaw）
+  - 意味着：金融侧唯一具体的主动规则是「量化阈值 + 静默」，其他都是宣传口径。
+  - 出处：https://caifuhao2.eastmoney.com/news/20260322112623734222730；https://finance.eastmoney.com/a/202603123670244277.html；https://www.aihub.cn/news/wind-windclaw-launches-ai-investment-research-agent/；https://news.qq.com/rain/a/20260311A06OJ500
+- **Hebbia：Projects 里的常驻后台智能体（beta）盯新文档和市场信号；Max 通过邮件接活**（弱）
+  - 内容：后台智能体在 Project 工作区里盯新放进来的文档、跟踪公开来源和市场信号、根据新信息更新分析，宣称会发现你没在找的东西；没写通知方式。Max 面向投行、PE 和律所，建 LBO 模型、筛标的、做 comps、起草 deck，可以直接在邮件里提问或要材料，不必打开应用。
+  - 谁：Hebbia 官方
+  - 证据类型：厂商说法
+  - 时间：2026-04-21（Projects）；2026-08-14（Max）
+  - 意味着：推断：金融侧的「主动」落点在项目工作区里自动更新，而不是推送。
+  - 出处：https://www.hebbia.com/blog/introducing-projects；https://www.usagepricing.com/blueprint/activity/hebbia-2026-08-14-launch
+- **Dependabot 的降量做法：90 天没人理就自动暂停并在三处挂横幅；版本更新默认等 3 天（理由是供应链安全，不是降噪）**（强）
+  - 内容：暂停条件（90 天里同时满足）：没合并过它的 PR、没改过配置、没用过 @dependabot 命令、没手动关过它的 PR，并且窗口前收到过它的 PR、窗口结束时仍有 PR 开着。从没开过 PR 的仓库永远不会被暂停。暂停后在打开的 PR、仓库设置页和告警页挂横幅，和它有任何互动即恢复；PR 开了 30 天后不再自动 rebase。GitHub 博客称这是根据反馈让它专注于你在乎的仓库，2022 年它共开了 7,500 多万个 PR。默认冷却：新版本发布 3 天后才提版本更新 PR，安全更新不受影响，可按生态单独设置或设为 0；官方理由是坏版本发布后留出发现时间。用户投诉（#8646）是暂停后没发邮件。
+  - 谁：GitHub 官方
+  - 证据类型：厂商说法 / 行为证据
+  - 时间：暂停：2023-01-12（2023-06 扩到企业版）；冷却：2026-07-14
+  - 意味着：「没人理就停」有明确的、可解释的条件，并且挂在用户会看的地方；冷却期是另一类规则（等事情稳定再报），可以借来对付刚出的、还不确定的消息。
+  - 出处：https://github.blog/changelog/2023-01-12-dependabot-pull-requests-pause-for-inactivity/；https://github.blog/security/supply-chain-security/a-smarter-quieter-dependabot/；https://github.blog/changelog/2026-07-14-dependabot-version-updates-introduce-default-package-cooldown/；https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/about-dependabot-version-updates
+- **GitHub 通知分级：按「为什么通知你」默认分组，可自建过滤器，旧的未保存通知自动过期**（强）
+  - 内容：默认过滤器：分配给你、你参与的讨论、请你评审、直接或团队 @ 你；最多 15 个自定义过滤器，可以按 reason: 查询；分诊动作有 Save（无限期保留）、Done（保留 3 个月）、Unsubscribe（直到再被 @ 或被请求评审）；超过 3 个月未保存的通知会被清掉。2026-04-24 宣布调整通知保留期和已归档仓库的关注。
+  - 谁：GitHub 官方
+  - 证据类型：厂商说法
+  - 时间：读于 2026-10-05
+  - 意味着：推断：给每条主动消息标明「为什么找你」（需要你决定 / 你盯的东西变了 / 例行结果），可以让用户按理由分拣。
+  - 出处：https://docs.github.com/en/subscriptions-and-notifications/how-tos/viewing-and-triaging-notifications/managing-notifications-from-your-inbox；https://github.blog/changelog/month/04-2026/
+- **研究上，判断「何时介入」最好的模型约 64% 准确；用小图模型做触发，延迟比 LLM 低一个量级**（强）
+  - 内容：ProAgentBench（清华等）：用 500 多小时真实电脑使用记录（2.8 万多个事件）评测，「何时帮忙」最好的是 DeepSeek-V3.2，64.4%；失败分两种：误触发造成提醒疲劳，漏掉造成工作流被打断；加入长期用户上下文后整体准确率提升约 11.8%。Purdue 和微软的论文：用 LLM 反复读活动历史来决定是否触发，即使最后保持沉默也要付推理费用；他们用一个时间图模型做触发和选上下文，GPU 上每个事件约 11 毫秒，笔记本上约 14 毫秒，比单次前向的 LLM 触发快约 4–7 倍，并让 14 个下游模型的 F1 平均提高 16.7 个点。
+  - 谁：清华大学等；Purdue、微软等
+  - 证据类型：论文
+  - 时间：2026-02；2026-09-28
+  - 意味着：推断：「要不要开口」不宜每次都交给大模型判断；先用规则或便宜的模型过滤，再让大模型写内容。
+  - 出处：https://arxiv.org/html/2602.04482；https://arxiv.org/pdf/2605.30152
+
+## 归纳出的原则
+
+- 默认沉默，只在越过用户事先说过的门槛时开口。依据：ChatGPT Scheduled 的监测只在有值得报告的事时通知；dots 要求写明哪些变化值得通知；妙想 Claw 越过阈值才推送、没事绝对静默；Lindy 用 dry run 验证没事时保持安静；OpenClaw 新版没事就回 NO_REPLY；Muse 把主动消息的门槛刻意设高。
+- 开口的依据是用户明确交给它盯的具体对象，不是从聊天历史推断出来的兴趣。依据：Pulse 靠聊天历史选题，追着已解决的问题不放，九个月后下线；OpenClaw 心跳改成只看明确的监测项、不从聊天历史推断；Omakase 里泛兴趣推荐不被采取行动，用户要的是挂在当前项目上的「scoop alert」。
+- 主动的东西要能直接动手：带下一步、带出处、标明影响了哪条判断。依据：Codellaborator 里可执行的建议比单纯告知的更被接受；Omakase 第二版把长报告压成可执行建议后评价明显提高；Pulse 被批「又一个收件箱」；SuperAnalyst 把事件对应到要改的模型假设。
+- 能延后就延后到用户不在时做，回来时交成品；用户在场时少插话。依据：Proactivity-Gym 不在时完成的帮助接受 97.8%，抢时段的只有 26.7%，64.4% 的人宁愿延后；Gemini Spark 用户正看着任务线程时不推手机；Grok Bot 应用在前台时压下通知；Codellaborator 在实现阶段插话最打扰。
+- 主动观察只读，主动动作先草拟、等批准；由外部内容触发的运行尤其如此。依据：dots 的主动调研不发消息不改应用；Cowork 的事件任务默认草拟待批；Grok、Muse、Spark 在发送、购买、删除前要批准；SuperAnalyst 草拟备忘录等批准；反例是 Manus 被邮件触发远程代码执行，Notion 不经批准直接动手。
+- 每次醒来都要花钱：空闲检查要便宜、可以跳过，而且有硬上限，并让用户看得见花费。依据：OpenClaw issue #61690、#64293、#21597 的空转和死循环账单；扣子和 Genspark 在帮助页里承认没对话也扣积分；bilalq 空醒烧掉 400 美元；Perplexity 等触发不扣费；Devin 默认每小时 50 次上限加单次预算；Cowork 对事件任务限频。
+- 没人理就停，但停之前问一次，停了要明说，卡住了要反复提醒。依据：ChatGPT 无人看管的任务自动暂停；Grok Bot 久不在先问、不答再停；Dependabot 90 天无互动暂停并挂横幅；Manus 重复失败就暂停并通知；反面是 Dependabot #8646 和 Rakazo #993，悄悄停摆或卡在等接手都被当成缺陷。
+- 频率由用户用一句话就地调，并且能按位、按例行单独关。依据：Muse 可以对一条主动消息说多点、少点或不要；Grok Bot 每位单独开关通知；Rakazo #909 里协调者没法让下属安静，委派越多越吵；Gemini Daily Brief 每条都有「有用/没用」按钮。
+- 把「需要你」和「有新结果」分开，并标明为什么找你。依据：Grok Bot 侧栏区分需要处理和未读结果；Linear 拆出 Priority 栏；GitHub 按理由分组的默认过滤器；Cowork 任务视图分 Needs input 和 Unread。
+- 放权是逐步的：先提议，复核几次以后再让这类事自动做，授权范围要可见、可撤回。依据：HN 上 mike_hearn 用六个月把 AI 员工从只提议放到能发版；Grok 的 Always allow 存成可审的规则、「先问」优先；Cowork 的「不再询问」只在本次会话有效，可在 Permissions 里撤回。
+- 新同事建好时先开口复述职责、问清打扰规则。依据：Rakazo #900/#902 抱怨新 bot 不出声，误解到第一次干活才暴露；dots 先自我介绍，并让用户说清什么时候可以打断；Spark 有 interview me 开场。
+- 事件触发要窄，宽泛的监听制造噪音、耗用量、引入注入风险。依据：Grok 文档明确反对「每条新消息」式监听；Cowork 建议窄触发加草拟审批；Triage Devin 先去重、过滤再动手；Manus 的邮件注入事件。
+- 一次只交最要紧的一两件，其余收起来。依据：Omakase 10 人里 5 人说太多、没人读完，PP7 只看了 7 条里的 2 条；Gemini Daily Brief 被批没给出优先级摘要；Lindy 用户抱怨低优先级的事常提醒、紧急的反而不报。
+- 「该发生的没发生」也是开口理由。依据：Cursor 用户抱怨触发器只能接事件、不能接事件缺席；Perplexity 加了「四天没回复」类检查；Rakazo #993 里卡住几天没人知道。
+- 不确定的新消息等一等再报。依据：Dependabot 新版本默认等 3 天再提，留出发现坏版本的时间（官方理由是安全）；ChatGPT 定时任务最多每小时一次；Gemini Spark 写明监测不适合时效要求高的事。此条对研究场景属推断，需要另行验证。
+
+## 没查到的
+
+- 没有任何一家厂商公开主动功能的接受率、关闭率、通知点开率或留存（OpenAI、xAI、Meta、Google、Microsoft、Manus、Lindy 都没有）。唯一的使用数据来自论文（Omakase、Codellaborator、Proactivity-Gym）和第三方搜索量估算（Pulse）。
+- OpenAI 帮助中心（release notes）和 Pulse 发布博文对抓取返回 403，没读到原文；Pulse 下线理由只有官方一句话加第三方解读，内部原因不知道。
+- Muse 的「门槛刻意设高」「多点、少点、不要」出自第三方指南（ALM Corp）和 TestingCatalog，没找到 Meta 人员的原话；Axios 返回 403，NPR 超时，TechRadar 正文没加载出来。
+- Perplexity 帮助中心返回 403，定时任务上限（每小时一次、Max 10 个）只来自搜索摘要；Perplexity Automations 博文也是 403，读的是 AlphaSignal 的转述。MarkTechPost 原文 403，读的是转载站。
+- dots 上线不到一周，没有长期使用者的评价；DotBotDirectory 的 26 个模板都还没在真实 dot 上测过。
+- Grok Bot「久不在」的时长、ChatGPT「一段时间不活动」自动暂停的时长都没公开。
+- Kimi Claw 的心跳频率、通知渠道、价格细节没找到官方说明。熵简 AlphaClaw 的主动跟踪功能没见到描述。WindClaw 的官方页面没找到（windclaw.bot 疑非官方），北京商报原文 403。
+- 进门研究模式是否主动推送提醒、多久监测一次，原文没说；没有使用者评价。国内金融产品整体都缺真实用户声音。
+- 知乎、小红书、即刻、Reddit、应用商店评论基本没读到（知乎只看到搜索摘要）；V2EX 只读到两篇 OpenClaw 帖。
+- Linear Priority inbox 默认怎么选没公开；GitHub 通知 2026-04 保留期调整的细节没展开。
+- 技术经理人群：没找到专门针对技术经理的主动功能使用证据；HN 上的工程团队声音（mike_hearn、bilalq）只能间接参考。
+- Gemini Spark 的真实用户评价很少；Microsoft Cowork 的事件触发任务没有用户评价。
+- Codellaborator 和 Proactivity-Gym 的受试者是学生或一般用户，不是金融研究者；能否推到金融研究场景要打折扣。
+
+## 来源说明
+
+- 本次是在 2026-10-05 的交互形式调研之上专门查「主动机制」。上一轮的结论和原始记录在 docs/research/2026-10-05-interaction-forms.md 和 .../interaction-2026-10/forms/（2-persistent-agents.md、3-briefing-and-tracking.md、5-research-products.md）。这次重开了原始页面核对，并补了新来源：Rakazo issue、OpenClaw 心跳 issue、论文、Cowork 文档、Gemini Spark 更新页、Dependabot 原始公告。
+- 来源类型：官方文档和帮助中心（dots、Grok Bot、Cowork、Gemini Spark、Manus、Notion、Linear、Lindy、Devin、Cursor、OpenClaw、Hermes、扣子、Genspark、GitHub）都标为「厂商说法」，说明的是机制，不说明效果。
+- 用户评价的来源：HN（Pulse 上线帖 45375477、dots 帖 49896604、bilalq 评论 49899355）、GitHub issue（OpenClaw、Rakazo、Dependabot）、Cursor 论坛、V2EX、Trustpilot（经 hackceleration 汇总）、科技媒体评测（Android Authority、Android Police、AppleInsider）。HN 帖的情绪比例是抓取模型的粗估，只能当方向参考。
+- Pulse 的搜索量数据（33,100 降到约 1,300）和 banteg 那句话都来自 prowlo 的第三方博文，没有核对原始出处。
+- 论文：Omakase（arXiv 2604.08898，已读 PDF 正文）、Proactivity-Gym（2609.37267）、ProAgentBench（2602.04482）、Codellaborator（CHI 2025，arXiv 2502.18658）、自适应时机（2511.18842）、TGL 触发器（2605.30152，已读摘要）。其中 Omakase 的受试者和我们的「AI 研究者」目标用户最接近。
+- 被拦下、没有绕过的来源：help.openai.com（403）、openai.com 博文（403）、perplexity.ai 帮助中心和博客（403）、marktechpost（403）、axios（403）、bbtnews（403）、npr（超时）、ACM DL 的五天现场研究（403）。
+- 安全：只读，没有改任何仓库文件，没有启动服务；没有读取开发数据目录。WebFetch 下载的两个论文 PDF 留在工具缓存目录，抽出的文本放在会话 scratchpad（omakase.txt、wake.txt）。

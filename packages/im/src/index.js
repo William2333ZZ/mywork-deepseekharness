@@ -55,6 +55,45 @@ export function apply(ctx, config = {}) {
   let notifyConfig = readNotifyConfig()
   const watcher = createAutomationWatcher({ getConfig: () => notifyConfig, send, log })
   ctx.effect(() => ctx.on('session/event', (...args) => { watcher(args[0], args[1]) }, { global: true }), 'dsh-mywork-im: automation watcher')
+  // MyWork teammates (dsh-mywork-tasks, the teammate model) → IM, to the default notification target when one is set and the
+  // teammate's 通知 is on. What goes out: a fired reminder, a question the teammate stopped on (even under 仅失败), a routine
+  // run that has news, a failed run, and a user run that took long enough that you probably walked away. Chat replies, the
+  // intro and quiet routine runs never do.
+  const LONG_RUN_MS = 2 * 60000
+  ctx.effect(() => ctx.on('mywork/task', (payload) => {
+    try {
+      if (!payload || !payload.run) return
+      const rule = notifyConfig.automation.default
+      if (!rule) return
+      const mate = payload.mate || null
+      if (mate && mate.notify === false) return
+      const who = mate && mate.name ? mate.name : 'MyWork'
+      const run = payload.run
+      const out = (text, what) => Promise.resolve(send(rule.target, text)).then(() => log(`${what} → IM`)).catch((e) => log(`${what} → IM failed: ${e && e.message}`))
+      const line = (s, n) => { const t = String(s || '').replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n - 1) + '…' : t }
+      if (payload.kind === 'remind') {
+        const r = payload.routine || { title: run.routineTitle, input: run.input }
+        out(`【${who}】提醒 · ${r.title}` + (r.input && r.input !== r.title ? '\n\n' + r.input : ''), `reminder ${run.routineId}`)
+        return
+      }
+      if (payload.kind === 'waiting') {
+        const question = run.ask && run.ask.question ? String(run.ask.question) : ''
+        out(`【${who}】等你答` + (question ? ' · ' + question : ''), `run ${run.id} waiting`)
+        return
+      }
+      if (payload.kind !== 'done' || run.remind || run.trigger === 'system') return
+      const failed = !!run.error
+      if (failed && run.error === '已停止。') return
+      if (rule.when === 'failed' && !failed) return
+      if (run.quiet && !failed) return // a routine run that found nothing new stays quiet
+      const took = Date.parse(run.finishedAt) - Date.parse(run.startedAt || run.createdAt)
+      if (run.trigger === 'user' && !failed && !(took >= LONG_RUN_MS)) return // a chat reply: you are looking at it
+      const reply = [...(run.activity || [])].reverse().find((a) => a && a.kind === 'text')
+      const body = failed ? run.error : (reply ? reply.text : run.deliverables && run.deliverables[0] ? run.deliverables[0].title : run.summary)
+      const what = run.trigger === 'routine' ? (run.routineTitle || '例行') : line(run.input, 30)
+      out(`【${who}】${what} · ${failed ? '失败' : '完成'}` + (body ? '\n\n' + String(body).slice(0, notifyConfig.automation.maxChars) : ''), `run ${run.id}`)
+    } catch (e) { log('teammate notify error: ' + (e && e.message)) }
+  }, { global: true }), 'dsh-mywork-im: teammate notifier')
 
   if (config.tools !== false) {
     ctx.tools.register(defineRawTool({

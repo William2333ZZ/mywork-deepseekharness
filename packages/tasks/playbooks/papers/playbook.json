@@ -1,0 +1,28 @@
+{
+  "id": "papers",
+  "name": "每日论文",
+  "title": "一篇不漏地过当天的 arXiv",
+  "group": "研究",
+  "order": 1,
+  "avatar": { "color": "blue", "shape": "circle" },
+  "pitch": "每个工作日取你那几个分类当天的 arXiv 全表，一篇不漏地过完，挑出必读和值得看；你说「收进知识库」的交给知识库同事。",
+  "source": "苏剑林《写了个刷论文的辅助网站：Cool Papers》（科学空间，2023-12-25）：每天自己刷 arXiv 全表、不用算法初筛；TideDra/zotero-arxiv-daily：用你的文献库当兴趣；huangkiki/dailypaper-skills：必读 / 值得看 / 可跳过、每篇四个问题",
+  "fits": "用户想每天或定期追 arXiv 上某几个方向的新论文、怕漏、想有人先筛一遍",
+  "example": "每个工作日帮我过一遍 arXiv 上 agent 和长上下文的新论文，挑出必读的",
+  "tools": ["mywork_arxiv_today", "mywork_hand_to"],
+  "dropDir": "文献库",
+  "dropSay": "这些是我的文献，当兴趣参考：{files}",
+  "ask": {
+    "question": "你看哪几个分类，关心什么方向",
+    "hint": "写分类（cs.CL、cs.LG、cs.AI、cs.CV、stat.ML……）和方向：在做什么、想追什么、什么不要。有 Zotero 导出的 .bib、读过的论文清单，丢进来当兴趣参考。",
+    "placeholder": "分类：cs.CL, cs.LG。在做长上下文推理和 KV cache 压缩，关注稀疏注意力、推理时计算；纯 CV 和医疗应用不要。"
+  },
+  "onboardPrompt": "（以下是 MyWork 替用户附上的，用户看不到。）这是每日论文开张的第一件事，按 AGENTS.md 做：\n1. 把用户说的分类写进 AGENTS.md「订阅」一节的「分类：」那一行（arXiv 的分类代号，用逗号隔开，例如「分类：cs.CL, cs.LG」；用户说的是方向不是代号时，替他选最贴近的两三个代号）。程序靠这一行取表。\n2. 把用户在做什么、想追什么、什么不要写进「我关注什么」。\n3. 用户给了文献（在 文献库/）：读标题和关键词（不用逐篇读全文），在「我关注什么」下面补一段兴趣画像——用户反复出现的主题、方法、作者，越新的文献越重要。\n4. 最后用两三句话告诉用户：你订了哪几个分类、你理解的重点是什么、哪些会算必读。不要自己去取今天的表，下一步程序会取。",
+  "offers": [
+    {"id": "daily", "label": "每个工作日中午过当天的全表", "note": "arXiv 北京时间中午出新表；程序先取全表，它逐篇过，挑出必读和值得看。周末和美国假日没有新表，只出一行灰字。交给它就先过一遍今天的", "on": true, "routine": {"title": "今天的 arXiv", "input": "先调 mywork_arxiv_today 取今天的 arXiv 全表（程序取，一篇不漏）；今天没有新表或这一天已经过过，就只回一句并在最后一行写「变化：无」。有新表就按 AGENTS.md 过表。", "schedule": {"type": "workdays", "time": "12:30"}, "runNow": true}},
+    {"id": "ask", "label": "问一篇时读全文再答", "note": "不只看摘要；一个问题一个问题地答，答完问要不要收进知识库", "on": true, "rule": "（问一篇）用户问某篇论文时打开 PDF（https://arxiv.org/pdf/号）读全文再答，一个问题一个问题地答，不只凭摘要；答完问一句要不要收进知识库。"},
+    {"id": "weekly", "label": "每周五一页：这周的论文在往哪走", "note": "从这一周的每日分流里看扎堆的方向、反复出现的方法和作者", "on": false, "routine": {"title": "这周的论文", "input": "读这一周 每日/ 下的分流（YYYY-MM-DD.md），写一页：这周这几个分类在往哪走、扎堆的方向、反复出现的方法和作者、和我关注的方向最近的三篇。论文写 arXiv 号。", "schedule": {"type": "weekly", "weekday": 5, "time": "17:00"}}}
+  ],
+  "quiet": "没有新表的日子只出一行灰字；过完的表在「电脑」的「它常看的」里，必读排在最前。",
+  "pins": ["每日/", "收藏.md", "AGENTS.md"]
+}

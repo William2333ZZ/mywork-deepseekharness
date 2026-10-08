@@ -59,5 +59,9 @@
     "clientPrelude": [
       "../../scripts/client-icons.cjs"
     ]
+  },
+  "dependencies": {
+    "qrcode-generator": "1.4.4",
+    "tweetnacl": "^1.0.3"
   }
 }

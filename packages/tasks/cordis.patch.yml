@@ -1,0 +1,6 @@
+# dsh-mywork-tasks bundle patch: mounts the teammate model (one long-lived session per
+# teammate, its folder, routines and memory; deliver / mywork_ask / mywork_routine_create
+# and the other teammate tools; /mywork-tasks/api; the myworkTasks service).
+- insert:
+    - id: mywork-tasks
+      name: dsh-mywork-tasks

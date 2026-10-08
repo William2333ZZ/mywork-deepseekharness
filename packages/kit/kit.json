@@ -24,6 +24,16 @@
       "local": "../shell"
     },
     {
+      "name": "dsh-mywork-tasks",
+      "range": "^0.0.1",
+      "icon": "list-checks",
+      "label": "任务",
+      "desc": "一句话即任务：后台在独立会话里执行，交付一份交付物；今日 / 任务 两个页面，deliver 工具，场景插件通过 myworkTasks 注册",
+      "group": "time",
+      "required": true,
+      "local": "../tasks"
+    },
+    {
       "name": "dsh-mywork-schedule",
       "range": "^0.1.0",
       "icon": "calendar",

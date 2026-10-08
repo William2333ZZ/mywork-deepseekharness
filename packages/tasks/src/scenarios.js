@@ -52,6 +52,28 @@ export function stepNameFor(tool, map) {
 }
 
 /**
+ * What a tool call is working on, in a few characters, for the 在干活 line: the site it opens, the file it reads,
+ * the words it searches, the command it runs. Empty when the arguments name nothing worth showing.
+ */
+export function stepWhat(args) {
+  let a = args
+  if (typeof a === 'string') { try { a = JSON.parse(a) } catch { return '' } }
+  if (!a || typeof a !== 'object') return ''
+  const pick = (...keys) => { for (const k of keys) { const v = a[k]; if (typeof v === 'string' && v.trim()) return v.trim() } return '' }
+  const short = (s, n) => { const one = s.replace(/\s+/g, ' '); return one.length > n ? one.slice(0, n - 1) + '…' : one }
+  const url = pick('url', 'href', 'link')
+  if (url) { try { const u = new URL(url); return short(u.hostname.replace(/^www\./, '') + (u.pathname.length > 1 ? u.pathname : ''), 32) } catch { return short(url, 32) } }
+  const q = pick('query', 'q', 'keyword', 'keywords', 'pattern', 'search')
+  if (q) return '「' + short(q, 20) + '」'
+  const file = pick('path', 'file_path', 'filePath', 'file', 'filename', 'name', 'title')
+  if (file) return short(file.split(/[\\/]/).filter(Boolean).pop() || file, 28)
+  const cmd = pick('command', 'cmd', 'code', 'script')
+  if (cmd) return short(cmd, 28)
+  const el = pick('element', 'text', 'selector')
+  return el ? short(el, 24) : ''
+}
+
+/**
  * The one built-in way of working. It decides by itself whether to answer or to deliver,
  * and uses whatever capabilities this machine has (browser, office documents, IM). Domain
  * packs (交易 …) register their own scenarios with a `match(input)` and take over the inputs

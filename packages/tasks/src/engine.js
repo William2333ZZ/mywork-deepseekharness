@@ -31,7 +31,7 @@ import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync,
 import { createHash, randomUUID } from 'node:crypto'
 import { dirname, extname, isAbsolute, join, relative, resolve } from 'node:path'
 import { ACTIVITY_DETAIL_MAX, ASK_DETAIL_MAX, ASK_EXPIRY_MS, ASK_KINDS, ASK_MAX_PER_TASK, ASK_OPTION_MAX, ASK_OPTIONS_MAX, ASK_OPTIONS_MIN, ASK_QUESTION_MAX, MATE_SESSION_PREFIX, pendingAsk, titleOf, ts } from './store.js'
-import { defaultVerifyPrompt, parseVerdict, stepNameFor } from './scenarios.js'
+import { defaultVerifyPrompt, parseVerdict, stepNameFor, stepWhat } from './scenarios.js'
 import { changedVerdict, parseSchedule, recordDays, routinePrompt, stripVerdict, wantsRecord, wantsSchedule } from './routines.js'
 
 const VERIFY_TIMEOUT_MS = 5 * 60000
@@ -675,7 +675,7 @@ export function createEngine({ ctx, store, deliverables, mates, routines, scenar
           const run = resolveTurn(mateId)
           if (!run) return
           const tool = data.name ? String(data.name) : ''
-          store.step(run.id, stepNameFor(tool, stepMap()), tool)
+          store.step(run.id, stepNameFor(tool, stepMap()), tool, stepWhat(data.arguments))
           store.activity(run.id, { kind: 'tool', name: tool, detail: argsPreview(data.arguments) })
           try { recordDid(run.id, mates.get(mateId), tool, data.arguments) } catch (e) { log('did: ' + errorText(e)) }
           emit('step', store.get(run.id))

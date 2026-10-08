@@ -218,7 +218,7 @@ test('say while idle opens a run; say while it works on a user run steers it (no
   assert.equal(first.mode, 'queue')
   await h.until(() => h.run(first.runId).status === 'running' && h.run(first.runId).steps.length === 1)
   let m = h.mw.mateView('mywork')
-  assert.deepEqual([m.state, m.step, m.preview], ['working', '读取', '在干活 · 读取'])
+  assert.deepEqual([m.state, m.step, m.preview], ['working', '读取 README.md', '在干活 · 读取 README.md'])
   assert.ok(m.since)
   const second = await h.ok('POST', '/mates/say', { id: 'mywork', text: '改成英文' })
   assert.deepEqual([second.mode, second.runId], ['steer', first.runId])

@@ -172,13 +172,13 @@ export class TaskStore extends JsonList {
     return this.update(id, { status, ...(extra || {}) })
   }
   /** Append a step, or bump the count of the current step when it has the same name. */
-  step(id, name, tool) {
+  step(id, name, tool, what) {
     return this.update(id, (t) => {
       const at = now()
       const last = t.steps[t.steps.length - 1]
-      if (last && !last.endedAt && last.name === name) { last.count = (last.count || 1) + 1; return }
+      if (last && !last.endedAt && last.name === name) { last.count = (last.count || 1) + 1; last.what = what || ''; return }
       if (last && !last.endedAt) last.endedAt = at
-      t.steps.push({ name, tool: tool || '', count: 1, startedAt: at, endedAt: '' })
+      t.steps.push({ name, tool: tool || '', what: what || '', count: 1, startedAt: at, endedAt: '' })
     })
   }
   /** Append one activity entry, text capped, stream capped. */
@@ -355,7 +355,8 @@ export function clip(text, max = PREVIEW_MAX) {
 }
 const findLast = (list, fn) => { for (let i = list.length - 1; i >= 0; i -= 1) if (fn(list[i])) return list[i]; return null }
 /** The name of the step a run is in (its last open step), or ''. */
-export const currentStepOf = (t) => { const s = t && Array.isArray(t.steps) && t.steps.length ? t.steps[t.steps.length - 1] : null; return s && !s.endedAt ? s.name : '' }
+/** The step a running run is on, with what it is on: 查阅 zhihu.com, 读取 README.md. */
+export const currentStepOf = (t) => { const s = t && Array.isArray(t.steps) && t.steps.length ? t.steps[t.steps.length - 1] : null; return s && !s.endedAt ? (s.what ? s.name + ' ' + s.what : s.name) : '' }
 
 /** Is this ask entry still open? Legacy entries without a status count as open until they carry an answer. */
 export function isPendingAsk(a) { return !!a && a.kind === 'ask' && (a.status ? a.status === 'pending' : !a.answer) }

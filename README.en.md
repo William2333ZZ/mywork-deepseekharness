@@ -61,6 +61,7 @@ The product logic follows [Rakazo](https://github.com/elie222/rakazo) (persisten
 | Identity | Name, title, job description (its standing instructions), a coloured avatar that moves while it works. |
 | Default teammate | MyWork is always there, can't be deleted, takes anything. |
 | Its own computer | A private folder per teammate as working directory and write boundary; the local real Chrome when it needs the web. |
+| Sign-ins | Much research sits behind a login: in Settings › Scenarios & members › Browser, import the cookies of sites you are signed into in your own browser (a Cookie-Editor JSON export, cookies.txt or `name=value`), and the teammates' Chrome is signed in; you can also hand cookies to a teammate in the conversation. They only go into this local Chrome, never shown or uploaded. |
 | Memory | Stable preferences go into `AGENTS.md` in its folder and are read every turn; you can also say "remember …". |
 | Profile | Click the name: a profile card (avatar, name, title, type, edited in place), the job, routines, what it remembers, pin and notifications, delete. |
 
@@ -69,7 +70,7 @@ The product logic follows [Rakazo](https://github.com/elie222/rakazo) (persisten
 | Feature | What it does |
 | --- | --- |
 | One continuous conversation | Backed by one persistent dsh session per teammate with automatic context compaction; the visible history stays complete. |
-| Working | The avatar moves and one line reads "working · step · time"; tool calls stay in each turn's folded "process". |
+| Working | The avatar moves and one line names the tool and what it is on, e.g. "在干活 · 查阅 arxiv.org/list/cs.CL · 1m 15s" (working · browsing … · time) or "在干活 · 读取 README.md" (reading); the teammate's row in the sidebar shows the same. Tool calls stay in each turn's folded "process". |
 | Results | One bubble per turn: the reply, ✓ checkable key numbers, a file card. |
 | Steering | A message sent while it works steers the current job instead of starting another. |
 | Stop | A stop button beside the input. |
@@ -137,7 +138,7 @@ cd mywork-deepseekharness
 bash scripts/dev-env.sh
 ```
 
-The script installs dsh into `.dsh-dev-home/` inside the repo and starts it, leaving `~/.dsh` alone. Open the printed address, add your API key in Settings › Model, then click "+" to create your first teammate.
+The script installs dsh (0.2.0-rc.2) into `.dsh-dev-home/` inside the repo and starts it, leaving `~/.dsh` alone. Open the printed address: the first time, dsh shows its preview notice and an "add an API key" dialog — paste your key there (change it later in Settings › Model). Then click "+" to create your first teammate.
 
 Phone: in `apps/mobile`, build an APK with `npx eas-cli build --platform android --profile preview`, or run `npx expo run:android`. The web version ships with the relay: `cd apps/relay && npm run deploy` (`build-web.sh` builds the page, then `wrangler deploy`).
 

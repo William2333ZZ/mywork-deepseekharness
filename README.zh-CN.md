@@ -3,7 +3,7 @@
 <p align="center"><b>住在你电脑里的 AI 同事。</b></p>
 <p align="center">给每件长期的事找一位同事：它有名字、有自己的对话、文件夹和例行，在后台把活干完，结果回到同一条对话里。数据都在你自己的电脑上，手机在任何网络下经加密中继连回来。</p>
 
-<p align="center">中文 · <a href="README.en.md">English</a></p>
+<p align="center"><a href="README.md">English</a> · 中文</p>
 
 <p align="center">
   <a href="https://github.com/deepseek-ai/deepseek-harness"><img src="https://img.shields.io/badge/dsh-0.2.0--rc.2-blue" alt="dsh"></a>

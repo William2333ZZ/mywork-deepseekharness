@@ -3,7 +3,7 @@
 <p align="center"><b>AI teammates that live on your computer.</b></p>
 <p align="center">Give each ongoing job a teammate: it has a name, one conversation, its own folder and routines, does the work in the background and brings the result back to the same conversation. Your data stays on your computer; your phone reaches it from any network through an encrypted relay.</p>
 
-<p align="center"><a href="README.md">中文</a> · English</p>
+<p align="center">English · <a href="README.zh-CN.md">中文</a></p>
 
 <p align="center">
   <a href="https://github.com/deepseek-ai/deepseek-harness"><img src="https://img.shields.io/badge/dsh-0.2.0--rc.2-blue" alt="dsh"></a>

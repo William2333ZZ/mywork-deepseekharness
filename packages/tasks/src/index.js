@@ -187,6 +187,20 @@ export function mateComposition(baseText, mate) {
   return header.join('\n') + '\n' + lines.join('\n').replace(/\n*$/, '\n')
 }
 
+/**
+ * The same composition as rows, for dsh ≥ 0.2 where a preset is a registered definition (agentPresets.register)
+ * rather than a file under .agent-presets: the standard preset's rows with the persona row replaced and ask_user dropped.
+ * Rows are plain data (`!!js` expressions stay `{ __jsExpr }` objects), so a JSON copy is exact.
+ */
+export function matePlugins(basePlugins, mate) {
+  const persona = { id: 'persona', name: '@deepseek-ai/dsh-persona', config: { suffix: '你的工作目录（你的文件夹）是 {{cwd}}。', prefix: personaPrefix(mate) } }
+  const rows = JSON.parse(JSON.stringify(basePlugins || [])).filter((r) => !(r && r.id === 'tool-ask-user'))
+  const at = rows.findIndex((r) => r && r.id === 'persona')
+  if (at >= 0) rows[at] = persona
+  else rows.unshift(persona)
+  return rows
+}
+
 // ── the service ─────────────────────────────────────────────────────────────
 
 /**
@@ -323,8 +337,42 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     if (!baseText) baseText = readFileSync(join(PACKAGE_ROOT, 'presets', 'mate-base', 'agent.cordis.yml'), 'utf8')
     return baseText
   }
+  // dsh ≥ 0.2: presets are definitions registered with the registry (kept in memory, so re-registered every start).
+  const registry = () => ctx.agentPresets
+  const registers = () => !!registry() && typeof registry().register === 'function' && registry().definitions instanceof Map
+  const registered = new Map() // preset id → { body, dispose }
+  async function standardRows() {
+    // The profile's own 'standard' row may load after this plugin: wait for it a little.
+    for (let i = 0; i < 60; i++) {
+      const defs = registry().definitions
+      const rec = defs.get('standard') || defs.get(registry().defaultId)
+      if (rec && rec.config && Array.isArray(rec.config.plugins)) return rec.config.plugins
+      await new Promise((r) => setTimeout(r, 500))
+    }
+    throw new Error('the standard agent preset is not registered')
+  }
+  async function registerPreset(mate) {
+    const id = 'mate-' + mate.id
+    const plugins = matePlugins(await standardRows(), mate)
+    const body = JSON.stringify(plugins)
+    const cur = registered.get(id)
+    if (cur && cur.body === body) return id
+    if (cur) { registered.delete(id); try { await cur.dispose() } catch (e) { log(`preset ${id} not released: ${e && e.message}`) } }
+    const dispose = await registry().register({ id, name: '同事 · ' + (mate.name || '未命名'), description: 'MyWork 同事的会话预设（自动生成）', order: 90, plugins })
+    registered.set(id, { body, dispose })
+    log(`preset ${id} registered`)
+    return id
+  }
+  async function unregisterPreset(mateId) {
+    const cur = registered.get('mate-' + mateId)
+    if (!cur) return
+    registered.delete('mate-' + mateId)
+    try { await cur.dispose() } catch {}
+  }
+
   /** Write $DSH_HOME/.agent-presets/mate-<id>/agent.cordis.yml (and preset.yml) when it differs; returns the preset id. */
   async function presetFor(mate) {
+    if (registers()) return registerPreset(mate)
     const id = 'mate-' + mate.id
     const folder = join(presetRoot, id)
     const file = join(folder, 'agent.cordis.yml')
@@ -432,6 +480,8 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
   queueMicrotask(async () => {
     for (const m of mates.items) {
       if (!m.sessionId) continue
+      // Registered presets live in memory: a persisted session resumes only once its preset is registered again.
+      if (registers()) { try { await registerPreset(m) } catch (e) { log(`preset ${m.id} not registered: ${e && e.message}`) } continue }
       try {
         const file = join(presetRoot, 'mate-' + m.id, 'agent.cordis.yml')
         if (!existsSync(file) || readFileSync(file, 'utf8') !== mateComposition(await standardText(), m)) refreshPreset(m, false)
@@ -541,6 +591,7 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     seen.forget(m.id)
     mates.remove(m.id)
     try { rmSync(join(presetRoot, 'mate-' + m.id), { recursive: true, force: true }) } catch {}
+    unregisterPreset(m.id)
     log(`teammate ${m.id} removed (its folder ${m.dir} is kept)`)
     emit('mate', null, { mateId: m.id, removed: true })
     return true

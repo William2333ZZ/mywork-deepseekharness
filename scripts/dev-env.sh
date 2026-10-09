@@ -61,13 +61,14 @@ case "$cmd" in
     mkdir -p "$DEV/npm" "$DSH_HOME"
     # Pin dsh to the version the kit targets (DSH_VERSION=alpha to follow the tag): 0.1.7-alpha renamed the
     # dsh-client-ui icon exports the Codex sidebar imports, which crashes it with React error #130.
-    if [ ! -f "$BIN" ]; then (cd "$DEV/npm" && npm init -y >/dev/null && npm i "@deepseek-ai/dsh@${DSH_VERSION:-0.1.6-alpha.2}"); fi
+    if [ ! -f "$BIN" ]; then (cd "$DEV/npm" && npm init -y >/dev/null && npm i "@deepseek-ai/dsh@${DSH_VERSION:-0.2.0-rc.2}"); fi
     build
     node "$BIN" plugin --profile web add "$ROOT/packages/kit" "$ROOT/packages/codex-ui" "$ROOT/packages/shell" "$ROOT/packages/schedule" "$ROOT/packages/browser" "$ROOT/packages/mcp" "$ROOT/packages/im" "$ROOT/packages/tasks"
     if [ "${MEMBERS:-yes}" = "yes" ]; then
       echo "== installing community kit members (MEMBERS=no to skip)"
       specs=(); while IFS= read -r spec; do specs+=("$spec"); done < <(node -e 'for (const m of require(process.argv[1]).members) if (!m.local) console.log(m.range ? m.name + "@" + m.range : m.name)' "$ROOT/packages/kit/kit.json")
-      node "$BIN" plugin --profile web add "${specs[@]}"
+      # One at a time: dsh >= 0.2 rejects a whole batch when one plugin's peer range excludes this dsh.
+      for spec in "${specs[@]}"; do node "$BIN" plugin --profile web add "$spec" >/dev/null 2>&1 && echo "  + $spec" || echo "  - $spec (rejected by this dsh; skipped)"; done
     fi
     node "$ROOT/scripts/profile-fixups.mjs" web
     seed_workspace

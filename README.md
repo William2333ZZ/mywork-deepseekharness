@@ -6,7 +6,7 @@
 <p align="center">中文 · <a href="README.en.md">English</a></p>
 
 <p align="center">
-  <a href="https://github.com/deepseek-ai/deepseek-harness"><img src="https://img.shields.io/badge/dsh-0.1.6--alpha.2-blue" alt="dsh"></a>
+  <a href="https://github.com/deepseek-ai/deepseek-harness"><img src="https://img.shields.io/badge/dsh-0.2.0--rc.2-blue" alt="dsh"></a>
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Android-lightgrey" alt="platform">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT%20%2B%20Apache--2.0-green" alt="license"></a>
 </p>
@@ -165,7 +165,7 @@ bash scripts/dev-env.sh
 
 ## 现状与已知限制
 
-- 预览版，跑在 dsh 0.1.6-alpha.2 上；更新的 dsh 会让侧栏报错，暂时锁版本。
+- 预览版，跑在 dsh 0.2.0-rc.2 上（社区插件目前适配到这一版）；`dsh-mermaid-render` 只支持 0.1.x，开发环境脚本会跳过它。
 - 一位同事同一时间只做一件事；想并行就交给另一位同事。
 - 同事共用本机一个 Chrome，同一时刻多位同事上网会共用标签页。
 - 默认中继在 `workers.dev` 上，国内部分移动网络可能连不上，需要时给中继绑一个自己的域名（`MYWORK_RELAY_URL` 指过去）。手机连接要电脑能上网。没有系统推送，人不在电脑旁时靠 IM 提醒。

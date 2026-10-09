@@ -63,7 +63,7 @@
     },
     {
       "name": "@deepseek-ai/dsh-browser-use",
-      "range": "^0.1.6-alpha.2",
+      "range": "^0.2.0-rc.2",
       "icon": "globe",
       "label": "browser-use（官方）",
       "desc": "dsh 官方的浏览器使用服务：提供方插槽，真实浏览器插件把 Chrome 挂到这里",
@@ -72,7 +72,7 @@
     },
     {
       "name": "@deepseek-ai/dsh-experimental-browser-use-playwright-mcp",
-      "range": "^0.1.6-alpha.2",
+      "range": "^0.2.0-rc.2",
       "icon": "globe",
       "label": "Playwright MCP（官方）",
       "desc": "官方 Playwright MCP 运行时 + 固定版本的 @playwright/mcp。真实浏览器插件用它给每个会话挂一份 Playwright MCP（attach 到后台 Chrome，非独占）；官方自己的 provider 行在 attach 模式下只给第一个会话用，所以套件不插入那一行。必须装在 profile 里",

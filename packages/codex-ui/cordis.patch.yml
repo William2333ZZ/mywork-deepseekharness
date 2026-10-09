@@ -2,8 +2,10 @@
 # shell take over the official rows, exactly as upstream does.
 - id: ui-sidebar
   disabled: true
+# dsh 0.2 stores the welcome notice's acknowledgement in this row's settings section: keep the row, but point it
+# at a host-only module so dsh's settings shell (sidebar.settings) does not mount next to ours.
 - id: ui-settings-general
-  disabled: true
+  name: 'dsh-mywork-codex-ui/onboarding-settings'
 - id: session-title-llm
   disabled: true
 - insert:

@@ -6,7 +6,7 @@
 <p align="center"><a href="README.md">中文</a> · English</p>
 
 <p align="center">
-  <a href="https://github.com/deepseek-ai/deepseek-harness"><img src="https://img.shields.io/badge/dsh-0.1.6--alpha.2-blue" alt="dsh"></a>
+  <a href="https://github.com/deepseek-ai/deepseek-harness"><img src="https://img.shields.io/badge/dsh-0.2.0--rc.2-blue" alt="dsh"></a>
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Android-lightgrey" alt="platform">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT%20%2B%20Apache--2.0-green" alt="license"></a>
 </p>
@@ -166,7 +166,7 @@ Design: [design/v2/TEAMMATES.md](design/v2/TEAMMATES.md) §9 (teammate model and
 
 ## Status and known limits
 
-- Preview on dsh 0.1.6-alpha.2; newer dsh breaks the sidebar, so the version is pinned.
+- Preview on dsh 0.2.0-rc.2 (the version community plugins currently support); `dsh-mermaid-render` only supports 0.1.x and the dev-env script skips it.
 - A teammate does one thing at a time; hand parallel work to another teammate.
 - Teammates share one local Chrome; simultaneous browsing shares tabs.
 - The default relay is on `workers.dev`, which some mobile networks in mainland China block — bind your own domain to it if so (point `MYWORK_RELAY_URL` at it). The phone connection needs the computer online. No push notifications; IM covers you when you're away.

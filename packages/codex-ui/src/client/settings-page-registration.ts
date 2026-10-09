@@ -5,7 +5,6 @@ import type { SettingsRow } from './settings-page-model.ts'
 import type { ConnectionHandle } from '@deepseek-ai/dsh-client-connection/client'
 import { createElement } from 'react'
 import { Settings } from 'lucide-react'
-import { SettingsDocumentAction } from './SettingsDocumentAction.tsx'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface SlotMap {
@@ -50,16 +49,6 @@ export function registerSettingsPage(ctx: Context): void {
   ctx.slots.inject('settings.trigger', () => !owned ? () => {} : ctx.slots.register({ name: 'settings.trigger', locale: NS },
     ({ wide }) => createElement('span', { className: 'dcu-settings-trigger-content' }, createElement(Settings, { size: 16, strokeWidth: 1.6 }), wide ? createElement('span', null, t('settings.title')) : null)))
   ctx.slots.inject('settings.close', () => !owned ? () => {} : ctx.slots.register({ name: 'settings.close', locale: NS }, () => t('settings.back')))
-  ctx.inject(['settingsScope', 'remote.settings'], settingsCtx => {
-    const service: unknown = settingsCtx.get('remote')
-    const remote = service as { $host: { isLoopback: boolean }; settings: { openSettingsDocument: () => Promise<{ ok: boolean }> } }
-    if (!remote.$host.isLoopback) return
-    const describe = settingsCtx.settingsScope.describe()
-    settingsCtx.slots.inject('settings.general.footer', () => !owned ? () => {} : settingsCtx.slots.register({
-      name: 'settings.general.footer', id: 'open-document', locale: NS,
-      inject: () => ({ describe, openDocument: () => remote.settings.openSettingsDocument() }),
-    }, SettingsDocumentAction))
-  })
   ctx.slots.inject('sidebar.settings', () => {
     if (occupied()) { warn(); return () => {} }
     owned = true

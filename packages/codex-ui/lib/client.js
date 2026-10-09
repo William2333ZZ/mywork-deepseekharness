@@ -3866,14 +3866,14 @@ html body .mws-settings .dcu-settings-trigger:focus-visible{outline:2px solid va
 						className: "dcu-wb-tip-row",
 						children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 							className: "dcu-wb-folder",
-							children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconFolderClose16, { size: 16 })
+							children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconFolderCloseRegular, { size: 16 })
 						}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: tip.project })]
 					}),
 					tip.branch !== void 0 && tip.branch !== "" && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 						className: "dcu-wb-tip-row",
 						children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 							className: "dcu-wb-folder",
-							children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconBranchOutline16, { size: 16 })
+							children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconBranchOutlineRegular, { size: 16 })
 						}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: tip.branch })]
 					})
 				]
@@ -3884,7 +3884,7 @@ html body .mws-settings .dcu-settings-trigger:focus-visible{outline:2px solid va
 				{
 					id: "rename",
 					label: t("sessions.rename"),
-					icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconEditOutline16, { size: 16 })
+					icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconEditOutlineRegular, { size: 16 })
 				},
 				{
 					id: "unread",
@@ -3902,7 +3902,7 @@ html body .mws-settings .dcu-settings-trigger:focus-visible{outline:2px solid va
 				{
 					id: "archive",
 					label: t("sessions.archive"),
-					icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconArchiveOutline20, { size: 16 })
+					icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconArchiveOutlineRegular, { size: 16 })
 				},
 				{
 					type: "separator",
@@ -3911,24 +3911,24 @@ html body .mws-settings .dcu-settings-trigger:focus-visible{outline:2px solid va
 				{
 					id: "fork",
 					label: t("sessions.fork"),
-					icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconBranchOutline16, { size: 16 })
+					icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconBranchOutlineRegular, { size: 16 })
 				}
 			];
 			if (options.includePath === true) items.push({
 				id: "openPath",
 				label: t("sessions.openPath"),
-				icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconFolderOpenOutline16, { size: 16 }),
+				icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconFolderOpenOutlineRegular, { size: 16 }),
 				disabled: options.path === void 0
 			});
 			if (options.moveTargets !== void 0) items.push({
 				id: "moveWorkspace",
 				label: t("sessions.moveWorkspace"),
-				icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconFolderClose16, { size: 16 }),
+				icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconFolderCloseRegular, { size: 16 }),
 				disabled: options.moveTargets.length === 0,
 				submenu: options.moveTargets.map((target) => ({
 					id: target.id,
 					label: target.label,
-					icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconFolderClose16, { size: 16 })
+					icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconFolderCloseRegular, { size: 16 })
 				}))
 			});
 			items.push({
@@ -3937,15 +3937,15 @@ html body .mws-settings .dcu-settings-trigger:focus-visible{outline:2px solid va
 			}, {
 				id: "copyId",
 				label: t("sessions.copyId"),
-				icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconLinkOutline16, { size: 16 })
+				icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconLinkOutlineRegular, { size: 16 })
 			}, {
 				id: "copyTitle",
 				label: t("sessions.copyTitle"),
-				icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconCopyOutline16, { size: 16 })
+				icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconCopyOutlineRegular, { size: 16 })
 			}, ...options.includePath === true ? [{
 				id: "copyPath",
 				label: t("sessions.copyPath"),
-				icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconCopyOutline16, { size: 16 }),
+				icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconCopyOutlineRegular, { size: 16 }),
 				disabled: options.path === void 0
 			}] : []);
 			if (options.canDelete !== false) items.push({
@@ -3954,7 +3954,7 @@ html body .mws-settings .dcu-settings-trigger:focus-visible{outline:2px solid va
 			}, {
 				id: "delete",
 				label: t("sessions.delete"),
-				icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconTrashOutline16, { size: 16 }),
+				icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconTrashOutlineRegular, { size: 16 }),
 				danger: true
 			});
 			return items;
@@ -4112,7 +4112,7 @@ html body .mws-settings .dcu-settings-trigger:focus-visible{outline:2px solid va
 									event.stopPropagation();
 									onMenuChange(!menuOpen);
 								},
-								children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconEllipsisOutline16, { size: 16 })
+								children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconEllipsisOutlineRegular, { size: 16 })
 							})
 						})
 					})
@@ -5007,7 +5007,7 @@ header [data-dcu-title-folder] svg,header [data-dcu-title-more] svg{display:bloc
 						children: [
 							workspace && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 								className: "dcu-wb-folder",
-								children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconFolderClose16, { size: 16 })
+								children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconFolderCloseRegular, { size: 16 })
 							}),
 							/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 								className: "dcu-wb-tip-title-main",
@@ -5040,7 +5040,7 @@ header [data-dcu-title-folder] svg,header [data-dcu-title-more] svg{display:bloc
 						className: "dcu-wb-tip-row dcu-wb-tip-path",
 						children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 							className: "dcu-wb-folder",
-							children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconFolderClose16, { size: 16 })
+							children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconFolderCloseRegular, { size: 16 })
 						}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 							className: "dcu-wb-tip-path-copy",
 							children: hoverTip.path
@@ -5050,14 +5050,14 @@ header [data-dcu-title-folder] svg,header [data-dcu-title-more] svg{display:bloc
 						className: "dcu-wb-tip-row",
 						children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 							className: "dcu-wb-folder",
-							children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconFolderClose16, { size: 16 })
+							children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconFolderCloseRegular, { size: 16 })
 						}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: hoverTip.project })]
 					}),
 					!workspace && hoverTip.branch !== void 0 && hoverTip.branch !== "" && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 						className: "dcu-wb-tip-row",
 						children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 							className: "dcu-wb-folder",
-							children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconBranchOutline16, { size: 16 })
+							children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconBranchOutlineRegular, { size: 16 })
 						}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: hoverTip.branch })]
 					}),
 					workspaceId !== void 0 && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", { className: "dcu-wb-tip-sep" }), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
@@ -5067,7 +5067,7 @@ header [data-dcu-title-folder] svg,header [data-dcu-title-more] svg{display:bloc
 							onEditWorkspace(workspaceId, hoverTip.title);
 							dismissTip();
 						},
-						children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconSettingsOutline16, { size: 16 }), t("workspace.edit")]
+						children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconSettingsOutlineRegular, { size: 16 }), t("workspace.edit")]
 					})] })
 				]
 			});
@@ -5612,7 +5612,7 @@ header [data-dcu-title-folder] svg,header [data-dcu-title-more] svg{display:bloc
 			});
 		}
 		function CreateGroupIcon() {
-			return /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconProjectAddOutline16, { size: 16 });
+			return /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconProjectAddOutlineRegular, { size: 16 });
 		}
 		/** 使用独立节点生成稳定的拖拽预览，避免浏览器把目标高亮和操作按钮截入默认快照。 */
 		function setDragPreview(dataTransfer, title, icon) {
@@ -6233,7 +6233,7 @@ header [data-dcu-title-folder] svg,header [data-dcu-title-more] svg{display:bloc
 				const moveTargets = workspaceGroupMoveTargets(workspaceGroups, workspaceId).map((target) => ({
 					id: workspaceGroupMoveActionId(target.groupId),
 					label: target.title ?? t("workspace.removeFromGroup"),
-					icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconFolderClose16, { size: 16 })
+					icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconFolderCloseRegular, { size: 16 })
 				}));
 				return [
 					{
@@ -6244,7 +6244,7 @@ header [data-dcu-title-folder] svg,header [data-dcu-title-more] svg{display:bloc
 					{
 						id: "rename",
 						label: t("workspace.rename"),
-						icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconEditOutline16, { size: 16 })
+						icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconEditOutlineRegular, { size: 16 })
 					},
 					{
 						type: "separator",
@@ -6253,14 +6253,14 @@ header [data-dcu-title-folder] svg,header [data-dcu-title-more] svg{display:bloc
 					{
 						id: "moveToGroup",
 						label: t("workspace.moveToGroup"),
-						icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconFolderClose16, { size: 16 }),
+						icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconFolderCloseRegular, { size: 16 }),
 						disabled: moveTargets.length === 0,
 						submenu: moveTargets
 					},
 					{
 						id: "openPath",
 						label: t("workspace.openPath"),
-						icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconFolderOpenOutline16, { size: 16 })
+						icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconFolderOpenOutlineRegular, { size: 16 })
 					},
 					{
 						type: "separator",
@@ -6269,7 +6269,7 @@ header [data-dcu-title-folder] svg,header [data-dcu-title-more] svg{display:bloc
 					{
 						id: "archiveWorkspace",
 						label: t("workspace.archive"),
-						icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconArchiveOutline20, { size: 16 }),
+						icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconArchiveOutlineRegular, { size: 16 }),
 						disabled: workspace.visibleIds.length === 0
 					},
 					{
@@ -6279,7 +6279,7 @@ header [data-dcu-title-folder] svg,header [data-dcu-title-more] svg{display:bloc
 					{
 						id: "delete",
 						label: t("workspace.delete"),
-						icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconTrashOutline16, { size: 16 }),
+						icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconTrashOutlineRegular, { size: 16 }),
 						danger: true
 					}
 				];
@@ -6538,7 +6538,7 @@ header [data-dcu-title-folder] svg,header [data-dcu-title-more] svg{display:bloc
 										top: box.top
 									}, { immediate: true });
 								},
-								children: folder.open ? folder.current ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconFolderOpen16, { size: 16 }) : /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconFolderOpenOutline16, { size: 16 }) : /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconFolderClose16, { size: 16 })
+								children: folder.open ? folder.current ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconFolderOpenRegular, { size: 16 }) : /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconFolderOpenOutlineRegular, { size: 16 }) : /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconFolderCloseRegular, { size: 16 })
 							}),
 							/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 								className: "dcu-wb-project-title",
@@ -6571,7 +6571,7 @@ header [data-dcu-title-folder] svg,header [data-dcu-title-more] svg{display:bloc
 												type: "workspace"
 											});
 										},
-										children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconEllipsisOutline16, { size: 16 })
+										children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconEllipsisOutlineRegular, { size: 16 })
 									})
 								})
 							}),
@@ -6759,7 +6759,7 @@ header [data-dcu-title-folder] svg,header [data-dcu-title-more] svg{display:bloc
 														type: "session"
 													});
 												},
-												children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconEllipsisOutline16, { size: 16 })
+												children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconEllipsisOutlineRegular, { size: 16 })
 											})
 										})
 									})
@@ -6912,7 +6912,7 @@ header [data-dcu-title-folder] svg,header [data-dcu-title-more] svg{display:bloc
 									{
 										id: "rename",
 										label: t("workspace.renameGroup"),
-										icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconEditOutline16, { size: 16 })
+										icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconEditOutlineRegular, { size: 16 })
 									},
 									{
 										type: "separator",
@@ -6921,7 +6921,7 @@ header [data-dcu-title-folder] svg,header [data-dcu-title-more] svg{display:bloc
 									{
 										id: "delete",
 										label: t("workspace.deleteGroupAction"),
-										icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconTrashOutline16, { size: 16 }),
+										icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconTrashOutlineRegular, { size: 16 }),
 										danger: true
 									}
 								],
@@ -6949,7 +6949,7 @@ header [data-dcu-title-folder] svg,header [data-dcu-title-more] svg{display:bloc
 										groupActionTriggerRef.current = event.currentTarget;
 										setGroupMenuId((current) => current === groupId ? void 0 : groupId);
 									},
-									children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconEllipsisOutline16, { size: 16 })
+									children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconEllipsisOutlineRegular, { size: 16 })
 								})
 							})
 						})]
@@ -7837,7 +7837,7 @@ header [data-dcu-title-folder] svg,header [data-dcu-title-more] svg{display:bloc
 						children: [
 							/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 								className: "dcu-wb-move-target",
-								children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconFolderClose16, { size: 16 }), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+								children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconFolderCloseRegular, { size: 16 }), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 									className: "dcu-wb-move-target-copy",
 									children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
 										className: "dcu-wb-move-project",
@@ -8474,7 +8474,7 @@ header [data-dcu-title-folder] svg,header [data-dcu-title-more] svg{display:bloc
 				{
 					id: "task-settings",
 					label: t("schedule.taskSettings"),
-					icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconSettingsOutline16, { size: 16 })
+					icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconSettingsOutlineRegular, { size: 16 })
 				},
 				{
 					type: "separator",
@@ -8483,7 +8483,7 @@ header [data-dcu-title-folder] svg,header [data-dcu-title-more] svg{display:bloc
 				{
 					id: "archive-group",
 					label: t("schedule.archiveGroup"),
-					icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconArchiveOutline20, { size: 16 }),
+					icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconArchiveOutlineRegular, { size: 16 }),
 					danger: true
 				}
 			];
@@ -8577,7 +8577,7 @@ header [data-dcu-title-folder] svg,header [data-dcu-title-more] svg{display:bloc
 													setMenu(void 0);
 													setGroupMenu((current) => current === group.id ? void 0 : group.id);
 												},
-												children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconEllipsisOutline16, { size: 16 })
+												children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconEllipsisOutlineRegular, { size: 16 })
 											})
 										})
 									}), isExpanded && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
@@ -9586,7 +9586,7 @@ html[data-dcu-official-turn-navigator-supported=true] .dcu-turn-navigator,html:h
 						className: "dcu-search-input",
 						children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Input, {
 							autoFocus: true,
-							icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconSearchOutline16, { size: 16 }),
+							icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconSearchOutlineRegular, { size: 16 }),
 							value: query,
 							placeholder: t("search.placeholder"),
 							onChange: (event) => {
@@ -9871,7 +9871,7 @@ html[data-dcu-official-turn-navigator-supported=true] .dcu-turn-navigator,html:h
 										className: "dcu-icon",
 										"aria-label": t("sidebar.collapse"),
 										onClick: toggleSidebar,
-										children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconPanelLeftOutline16, { size: 16 })
+										children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconPanelLeftOutlineRegular, { size: 16 })
 									}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
 										type: "button",
 										className: "dcu-icon",
@@ -9879,7 +9879,7 @@ html[data-dcu-official-turn-navigator-supported=true] .dcu-turn-navigator,html:h
 										onClick: () => {
 											search.current?.open();
 										},
-										children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconSearchOutline16, { size: 16 })
+										children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconSearchOutlineRegular, { size: 16 })
 									})]
 								})]
 							}),
@@ -9893,7 +9893,7 @@ html[data-dcu-official-turn-navigator-supported=true] .dcu-turn-navigator,html:h
 										onClick: () => {
 											startSession();
 										},
-										children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(MenuIcon, { children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconNewChatOutline16, { size: 16 }) }), t("sidebar.newTask")]
+										children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(MenuIcon, { children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconNewChatOutlineRegular, { size: 16 }) }), t("sidebar.newTask")]
 									}),
 									/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 										className: "dcu-extensions-group",
@@ -9911,10 +9911,13 @@ html[data-dcu-official-turn-navigator-supported=true] .dcu-turn-navigator,html:h
 											},
 											children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(MenuIcon, { children: /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
 												className: "dcu-extension-leading",
-												children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconEnhanceOutline16, {
+												children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconEnhanceOutlineRegular, {
 													className: "dcu-extension-default-icon",
 													size: 16
-												}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconChevronRightOutline14, { className: "dcu-extension-state-arrow" })]
+												}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconChevronRightOutlineRegular, {
+													size: 14,
+													className: "dcu-extension-state-arrow"
+												})]
 											}) }), t("sidebar.extensions")]
 										}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
 											id: "dcu-extension-items",
@@ -9939,7 +9942,7 @@ html[data-dcu-official-turn-navigator-supported=true] .dcu-turn-navigator,html:h
 															onClick: () => {
 																openPlugins();
 															},
-															children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(MenuIcon, { children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconPersonalizationOutline16, { size: 16 }) }), t("sidebar.plugins")]
+															children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(MenuIcon, { children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconPersonalizationOutlineRegular, { size: 16 }) }), t("sidebar.plugins")]
 														}),
 														available.experts && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
 															type: "button",
@@ -9947,7 +9950,7 @@ html[data-dcu-official-turn-navigator-supported=true] .dcu-turn-navigator,html:h
 															onClick: () => {
 																selectExternalSection(t("sidebar.experts"));
 															},
-															children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(MenuIcon, { children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconUserOutline16, { size: 16 }) }), t("sidebar.experts")]
+															children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(MenuIcon, { children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconUserOutlineRegular, { size: 16 }) }), t("sidebar.experts")]
 														}),
 														available.skills && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
 															type: "button",
@@ -9955,7 +9958,7 @@ html[data-dcu-official-turn-navigator-supported=true] .dcu-turn-navigator,html:h
 															onClick: () => {
 																selectExternalSection(t("sidebar.skills"));
 															},
-															children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(MenuIcon, { children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconSkillOutline16, { size: 16 }) }), t("sidebar.skills")]
+															children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(MenuIcon, { children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconSkillOutlineRegular, { size: 16 }) }), t("sidebar.skills")]
 														})
 													]
 												})
@@ -10073,7 +10076,7 @@ html[data-dcu-official-turn-navigator-supported=true] .dcu-turn-navigator,html:h
 							className: "dcu-icon",
 							"aria-label": t("sidebar.expand"),
 							onClick: toggleSidebar,
-							children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconPanelLeftOutline16, { size: 16 })
+							children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconPanelLeftOutlineRegular, { size: 16 })
 						}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("nav", {
 							className: "dcu-compact-nav",
 							"aria-label": t("sidebar.mainMenu"),
@@ -10086,7 +10089,7 @@ html[data-dcu-official-turn-navigator-supported=true] .dcu-turn-navigator,html:h
 									onClick: () => {
 										startSession();
 									},
-									children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconNewChatOutline16, { size: 16 })
+									children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconNewChatOutlineRegular, { size: 16 })
 								}),
 								/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
 									type: "button",
@@ -10095,7 +10098,7 @@ html[data-dcu-official-turn-navigator-supported=true] .dcu-turn-navigator,html:h
 									onClick: () => {
 										search.current?.open();
 									},
-									children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconSearchOutline16, { size: 16 })
+									children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconSearchOutlineRegular, { size: 16 })
 								}),
 								available.schedule && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
 									type: "button",
@@ -10112,7 +10115,7 @@ html[data-dcu-official-turn-navigator-supported=true] .dcu-turn-navigator,html:h
 									onClick: () => {
 										openPlugins();
 									},
-									children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconPersonalizationOutline16, { size: 16 })
+									children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconPersonalizationOutlineRegular, { size: 16 })
 								}),
 								available.experts && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
 									type: "button",
@@ -10121,7 +10124,7 @@ html[data-dcu-official-turn-navigator-supported=true] .dcu-turn-navigator,html:h
 									onClick: () => {
 										selectExternalSection(t("sidebar.experts"));
 									},
-									children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconUserOutline16, { size: 16 })
+									children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconUserOutlineRegular, { size: 16 })
 								}),
 								available.skills && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
 									type: "button",
@@ -10130,7 +10133,7 @@ html[data-dcu-official-turn-navigator-supported=true] .dcu-turn-navigator,html:h
 									onClick: () => {
 										selectExternalSection(t("sidebar.skills"));
 									},
-									children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconSkillOutline16, { size: 16 })
+									children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconSkillOutlineRegular, { size: 16 })
 								}),
 								available.assistant && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
 									type: "button",
@@ -10481,7 +10484,7 @@ html[data-dcu-official-turn-navigator-supported=true] .dcu-turn-navigator,html:h
 								target: "_blank",
 								rel: "noreferrer",
 								"aria-label": t("about.feedback"),
-								children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconListPenOutline16, {}), t("about.feedback")]
+								children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconListPenOutlineRegular, {}), t("about.feedback")]
 							})]
 						})]
 					}),
@@ -10511,7 +10514,7 @@ html[data-dcu-official-turn-navigator-supported=true] .dcu-turn-navigator,html:h
 							onClick: () => {
 								updateAll();
 							},
-							children: [installing === "all" ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconLoadingOutline16, { size: 14 }) : /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconDownloadOutline16, { size: 14 }), installing === "all" ? t("about.updatingAll") : t("about.updateAll")]
+							children: [installing === "all" ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconLoadingOutlineRegular, { size: 14 }) : /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconDownloadOutlineRegular, { size: 14 }), installing === "all" ? t("about.updatingAll") : t("about.updateAll")]
 						})]
 					}),
 					/* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
@@ -10550,7 +10553,7 @@ html[data-dcu-official-turn-navigator-supported=true] .dcu-turn-navigator,html:h
 											rel: "noreferrer",
 											title: t("about.downloadsSource"),
 											"aria-label": `${dependency.packageName} · ${t("about.totalDownloads")} · ${typeof dependency.totalDownloads === "number" && Number.isSafeInteger(dependency.totalDownloads) && dependency.totalDownloads >= 0 ? dependency.totalDownloads.toLocaleString() : t("about.downloadsUnavailable")}`,
-											children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconDownloadOutline16, {
+											children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconDownloadOutlineRegular, {
 												size: 12,
 												"aria-hidden": "true"
 											}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
@@ -10578,7 +10581,7 @@ html[data-dcu-official-turn-navigator-supported=true] .dcu-turn-navigator,html:h
 									className: "dcu-about-status",
 									"data-installed": dependency.installed,
 									"data-update": dependency.updateAvailable,
-									children: [dependency.installed && !dependency.updateAvailable && /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconCheckOutline16, { size: 14 }), dependency.updateAvailable ? t("about.updateAvailable") : dependency.installed ? t("about.installed") : t("about.missing")]
+									children: [dependency.installed && !dependency.updateAvailable && /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconCheckOutlineRegular, { size: 14 }), dependency.updateAvailable ? t("about.updateAvailable") : dependency.installed ? t("about.installed") : t("about.missing")]
 								}),
 								(!dependency.installed || dependency.updateAvailable) && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
 									className: "dcu-about-install",
@@ -10587,7 +10590,7 @@ html[data-dcu-official-turn-navigator-supported=true] .dcu-turn-navigator,html:h
 									onClick: () => {
 										install(dependency.id);
 									},
-									children: [installing === dependency.id ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconLoadingOutline16, { size: 14 }) : /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconDownloadOutline16, { size: 14 }), installing === dependency.id ? t("about.installing") : dependency.updateAvailable ? t("about.update") : t("about.install")]
+									children: [installing === dependency.id ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconLoadingOutlineRegular, { size: 14 }) : /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconDownloadOutlineRegular, { size: 14 }), installing === dependency.id ? t("about.installing") : dependency.updateAvailable ? t("about.update") : t("about.install")]
 								})
 							]
 						}, dependency.id))
@@ -10596,7 +10599,7 @@ html[data-dcu-official-turn-navigator-supported=true] .dcu-turn-navigator,html:h
 						className: "dcu-about-progress",
 						role: "status",
 						children: [
-							/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconLoadingOutline16, { size: 14 }) }),
+							/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconLoadingOutlineRegular, { size: 14 }) }),
 							/* @__PURE__ */ (0, react_jsx_runtime.jsx)("code", { children: progress === void 0 ? t("about.progressHint") : progressLabel(progress, t) }),
 							progress?.percent !== null && progress?.percent !== void 0 && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
 								className: "dcu-about-progress-pct",
@@ -10688,7 +10691,7 @@ html[data-dcu-official-turn-navigator-supported=true] .dcu-turn-navigator,html:h
 					children: [
 						/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 							className: "dcu-connector-head",
-							children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconLinkOutline16, { size: 16 }), connector.name]
+							children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconLinkOutlineRegular, { size: 16 }), connector.name]
 						}),
 						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
 							className: "dcu-connector-meta",
@@ -11616,72 +11619,6 @@ body[data-ds-dark-theme][data-mywork-v2] .dcu-settings-link[aria-current=page] s
 			});
 		}
 		//#endregion
-		//#region src/client/SettingsDocumentAction.tsx
-		/** 通过宿主公开接口打开配置文件，沿用共享元数据和路径无关的操作。 */
-		function SettingsDocumentAction({ describe, openDocument, t }) {
-			const snapshot = (0, react.useSyncExternalStore)((listener) => describe.subscribe(listener), () => describe.getSnapshot());
-			const busy = (0, react.useRef)(false);
-			const [opening, setOpening] = (0, react.useState)(false);
-			const [error, setError] = (0, react.useState)(false);
-			(0, react.useEffect)(() => {
-				let active = true;
-				setError(false);
-				describe.ensure().catch(() => {
-					if (active) setError(true);
-				});
-				return () => {
-					active = false;
-				};
-			}, [describe]);
-			if (!snapshot.view?.hasDocument) return error ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
-				role: "alert",
-				children: t("settings.openDocumentError")
-			}) : null;
-			const open = async () => {
-				if (busy.current) return;
-				busy.current = true;
-				setOpening(true);
-				setError(false);
-				try {
-					setError(!(await openDocument()).ok);
-				} catch {
-					setError(true);
-				} finally {
-					busy.current = false;
-					setOpening(false);
-				}
-			};
-			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("section", {
-				className: "dcu-settings-general-group",
-				children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("h2", { children: t("settings.advanced") }), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
-					className: "dcu-settings-card",
-					children: /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
-						className: "dcu-settings-document",
-						children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
-							className: "dcu-settings-document-copy",
-							children: [
-								/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", { children: t("settings.documentTitle") }),
-								/* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", { children: t("settings.documentDescription") }),
-								error && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
-									role: "alert",
-									children: t("settings.openDocumentError")
-								})
-							]
-						}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
-							type: "button",
-							"aria-label": t("settings.openDocument"),
-							"aria-busy": opening,
-							disabled: opening,
-							onClick: () => {
-								open();
-							},
-							children: t(opening ? "settings.documentOpening" : "settings.documentOpen")
-						})]
-					})
-				})]
-			});
-		}
-		//#endregion
 		//#region src/client/settings-page-registration.ts
 		/** 用公开插槽替换设置壳，保留宿主的设置写入、连接恢复和首次使用引导。 */
 		function registerSettingsPage(ctx) {
@@ -11743,20 +11680,6 @@ body[data-ds-dark-theme][data-mywork-v2] .dcu-settings-link[aria-current=page] s
 				name: "settings.close",
 				locale: NS
 			}, () => t("settings.back")));
-			ctx.inject(["settingsScope", "remote.settings"], (settingsCtx) => {
-				const remote = settingsCtx.get("remote");
-				if (!remote.$host.isLoopback) return;
-				const describe = settingsCtx.settingsScope.describe();
-				settingsCtx.slots.inject("settings.general.footer", () => !owned ? () => {} : settingsCtx.slots.register({
-					name: "settings.general.footer",
-					id: "open-document",
-					locale: NS,
-					inject: () => ({
-						describe,
-						openDocument: () => remote.settings.openSettingsDocument()
-					})
-				}, SettingsDocumentAction));
-			});
 			ctx.slots.inject("sidebar.settings", () => {
 				if (occupied()) {
 					warn();

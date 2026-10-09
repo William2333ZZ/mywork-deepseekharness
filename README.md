@@ -1,9 +1,9 @@
 <h1 align="center">MyWork</h1>
 
-<p align="center"><b>住在你电脑里的 AI 同事。</b></p>
-<p align="center">给每件长期的事找一位同事：它有名字、有自己的对话、文件夹和例行，在后台把活干完，结果回到同一条对话里。数据都在你自己的电脑上，手机在任何网络下经加密中继连回来。</p>
+<p align="center"><b>AI teammates that live on your computer.</b></p>
+<p align="center">Give each ongoing job a teammate: it has a name, one conversation, its own folder and routines, does the work in the background and brings the result back to the same conversation. Your data stays on your computer; your phone reaches it from any network through an encrypted relay.</p>
 
-<p align="center">中文 · <a href="README.en.md">English</a></p>
+<p align="center"><a href="README.md">中文</a> · English</p>
 
 <p align="center">
   <a href="https://github.com/deepseek-ai/deepseek-harness"><img src="https://img.shields.io/badge/dsh-0.2.0--rc.2-blue" alt="dsh"></a>
@@ -13,123 +13,124 @@
 
 <table>
 <tr>
-<td width="72%"><img src="docs/v2/demo-task.gif" alt="网页：一句话配一位前沿哨兵，它先问一件事，再交出今天的一页"></td>
-<td width="28%"><img src="docs/v2/demo-phone.gif" alt="手机：在手机上接着问它"></td>
+<td width="72%"><img src="docs/v2/demo-task.gif" alt="Web: one sentence gets a 前沿哨兵 teammate, which asks one thing and hands over today's page"></td>
+<td width="28%"><img src="docs/v2/demo-phone.gif" alt="Phone: asking it a follow-up"></td>
 </tr>
 <tr>
-<td align="center">网页：「新同事」写一句话，MyWork 照 nilenso 的做法配出「前沿哨兵」；它先问一件事，再交出今天的一页（等待部分快进，<a href="docs/v2/demo-task.mp4">视频</a>）</td>
-<td align="center">手机：在手机上接着问它（<a href="docs/v2/demo-phone.mp4">视频</a>）</td>
+<td align="center">Web: one sentence under "new teammate", and MyWork makes 前沿哨兵 after nilenso's way of keeping up with AI; it asks one thing, then hands over today's page (waits sped up, <a href="docs/v2/demo-task.mp4">video</a>)</td>
+<td align="center">Phone: asking it a follow-up (<a href="docs/v2/demo-phone.mp4">video</a>)</td>
 </tr>
 </table>
 
 <p align="center">
-  <img src="docs/v2/web-working.jpg" width="49%" alt="同事在干活：右栏「电脑」是它正在看的网页和它的文件夹">
-  <img src="docs/v2/web-file.jpg" width="49%" alt="交出的那一页在阅读视图里打开">
+  <img src="docs/v2/web-working.jpg" width="49%" alt="A teammate at work: the Computer panel shows the page it is reading and its folder">
+  <img src="docs/v2/web-file.jpg" width="49%" alt="The page it handed over, open in the reading view">
 </p>
 <p align="center">
-  <img src="docs/v2/phone-home.png" width="24%" alt="手机：同事列表">
-  <img src="docs/v2/phone-thread.png" width="24%" alt="手机：对话">
+  <img src="docs/v2/phone-home.png" width="24%" alt="Phone: teammates">
+  <img src="docs/v2/phone-thread.png" width="24%" alt="Phone: a conversation">
 </p>
 
-> 这是 MyWork 的第二版。第一版「MyWork Kit」（dsh 插件组合包：实时浏览器、表格演示、IM 助理）在 tag [`v0.0.1`](https://github.com/William2333ZZ/mywork-deepseekharness/tree/v0.0.1)，Releases 里的桌面安装包也是它。
 
-## 立意
+> This is MyWork v2. The first version, MyWork Kit (a dsh plugin bundle: live browser, sheets and slides, IM assistant), is at tag [`v0.0.1`](https://github.com/William2333ZZ/mywork-deepseekharness/tree/v0.0.1); the desktop installers under Releases are that version too.
 
-大多数 AI 产品是一次性对话：问一句，答一句，关掉就没了。真正的工作不是这样的。每天早上要看的行业新闻、每周五要交的周报、一直在盯的竞品价格，都是**持续的事**：需要有人记得上下文、按时去做、做完把东西交给你，有问题再来问你。
+## Why
 
-MyWork 把 AI 做成**同事**，而不是聊天框：
+Most AI products are one-off chats: ask, answer, close. Real work isn't like that. The morning industry news, the Friday weekly report, the competitor prices you keep watching are **ongoing jobs**. Someone has to remember the context, do it on time, hand you the result, and come back only when there's a real question.
 
-- **一位同事负责一件长期的事。** 「前沿哨兵」每天早上给你一页只看一手来源的 AI 进展，「论文哨兵」每个工作日过一遍 arXiv 全表，「MyWork」什么杂事都能接。
-- **一位同事只有一条对话。** 它记得你说过的偏好；追问「再短一点」，改的就是刚才那份，不会每次从零开始。
-- **它在后台干活，结果回到对话里。** 你不用盯着；干完的东西是一份文件，附带可核对的要点，并由第二个会话独立核验。
-- **它只在真需要你的时候来找你。** 缺关键信息、要你拍板、要付钱发消息删东西、要你登录，才会停下来问。
-- **数据在你自己的电脑上。** 没有账号，数据不上云；手机扫码连这台电脑，中间的中继只转发加密过的数据。
+MyWork turns AI into **teammates**, not a chat box:
 
-产品逻辑借鉴 [Rakazo](https://github.com/elie222/rakazo)（持续的 AI 队友，而不是一次性的对话）；运行在 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)（dsh）上，全部以插件实现，不改 dsh 本体。
+- **One teammate owns one ongoing job.** 前沿哨兵 brings you one page of first-hand AI news every morning, 论文哨兵 goes through the whole arXiv listing every weekday, and MyWork takes anything else.
+- **One teammate, one conversation.** It remembers your preferences; "make it shorter" changes the thing it just made.
+- **It works in the background and the result comes back to the conversation**, as a file with checkable key numbers, verified independently by a second session.
+- **It interrupts you only when it must**: missing key information, a decision only you can make, a consequential action (paying, sending, deleting), or a password, code or scan.
+- **Your data stays on your computer.** No account, and your data never goes to a cloud; the phone pairs with this computer by QR, and the relay in between only passes encrypted data.
 
-## 功能拆解
+The product logic follows [Rakazo](https://github.com/elie222/rakazo) (persistent AI teammates rather than disposable chats). It runs on [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (dsh), built entirely as plugins without modifying dsh.
 
-### 1. 同事
+## Features
 
-| 功能 | 说明 |
+### 1. Teammates
+
+| Feature | What it does |
 | --- | --- |
-| 一句话配一位 | 左上「+」或列表末尾「新同事」，写一句「它负责什么」，名字、类型、头像可以不填。MyWork 挑最接近的一种从业者做法，照你的话改写成它的职责、规矩、开工要问你的那一件事和它会主动做的。 |
-| 照谁的做法 | 每日论文（苏剑林）、知识库（Karpathy 的 LLM Wiki）、实验（Karpathy 的 autoresearch）、代码研究（Simon Willison）、论文（Neel Nanda）、评测（Hamel Husain、Shreya Shankar）、前沿（nilenso 的 Atharva Raykar）、幕僚（Garry Tan 的 GBrain）、工程体检（Will Larson）。做法是参考，不是模板，在 `packages/tasks/playbooks/`。 |
-| 开工 | 新同事先打招呼，说它负责什么、照谁的做法；开工卡问你一件事（也可以拖文件进去）。答完它把规矩记进自己的 `AGENTS.md`，再列出「它会主动做的」（比如每天 8:30 一页、听到一个说法先回到一手来源），你勾了才算。 |
-| 让 MyWork 来建 | 跟 MyWork 说一件长期要盯的事（「以后每周一帮我看看……」），它先看有没有同事已经在做；没有就问一句要不要给它找一位专门的同事，你选「新建同事」它就建好，还可以当场先做第一份。对话里留一张新同事卡，点开就到它；那件事以后由它做。 |
-| 身份 | 名字、头衔、职责（职责就是它的工作指令）、彩色头像（干活时会动）。 |
-| 默认同事 | 「MyWork」一直在、不能删，什么都能接。 |
-| 自己的电脑 | 每位同事一个独立文件夹，是它的工作目录和写入边界；需要上网时用本机真实 Chrome。 |
-| 登录态 | 很多资料在登录墙后面：在 设置 › 场景与成员 › 浏览器 把你在自己浏览器里已登录的 Cookie 导进来（Cookie-Editor 导出的 JSON、cookies.txt 或 `name=value` 都行），同事的 Chrome 就是登录状态；也可以在对话里把 Cookie 直接交给它。Cookie 只写进本机这个 Chrome，不显示、不上传。 |
-| 记忆 | 它把稳定的偏好记进自己文件夹里的 `AGENTS.md`，之后每轮都会读到；你也可以直接说「记住……」。 |
-| 资料 | 点名字打开右栏「资料」：资料卡（头像、名字、头衔、类型，点文字直接改）、职责、例行、它记住的、置顶与通知、删除。 |
+| One sentence makes one | "+" at the top left or "new teammate" at the end of the list; say what it is responsible for (name, type and avatar are optional). MyWork picks the closest practitioner's way of working and rewrites it from your words into the teammate's job, rules, the one thing it asks you first, and what it will do unasked. |
+| Whose way of working | Daily papers (Su Jianlin), knowledge base (Karpathy's LLM Wiki), experiments (Karpathy's autoresearch), code research (Simon Willison), paper writing (Neel Nanda), evals (Hamel Husain, Shreya Shankar), keeping up with AI (Atharva Raykar of nilenso), chief of staff (Garry Tan's GBrain), engineering health (Will Larson). They are references, not templates, in `packages/tasks/playbooks/`. |
+| First day | The new teammate says hello, what it does and whose way it follows; a kickoff card asks you one thing (you can drop files in). Once you answer it writes its rules into its own `AGENTS.md` and lists what it will do unasked (one page every day at 8:30, going back to the primary source for any claim you forward…); only what you tick counts. |
+| Let MyWork create it | Tell MyWork about an ongoing job ("every Monday, look at …"). It first checks whether a teammate already does it; if not, it asks whether to find the job its own teammate, and on "new teammate" it creates one, which can do the first round right away. A teammate card stays in the conversation and opens it; the job is that teammate's from then on. |
+| Identity | Name, title, job description (its standing instructions), a coloured avatar that moves while it works. |
+| Default teammate | MyWork is always there, can't be deleted, takes anything. |
+| Its own computer | A private folder per teammate as working directory and write boundary; the local real Chrome when it needs the web. |
+| Sign-ins | Much research sits behind a login: in Settings › Scenarios & members › Browser, import the cookies of sites you are signed into in your own browser (a Cookie-Editor JSON export, cookies.txt or `name=value`), and the teammates' Chrome is signed in; you can also hand cookies to a teammate in the conversation. They only go into this local Chrome, never shown or uploaded. |
+| Memory | Stable preferences go into `AGENTS.md` in its folder and are read every turn; you can also say "remember …". |
+| Profile | Click the name: a profile card (avatar, name, title, type, edited in place), the job, routines, what it remembers, pin and notifications, delete. |
 
-### 2. 对话
+### 2. Conversation
 
-| 功能 | 说明 |
+| Feature | What it does |
 | --- | --- |
-| 一条永远的对话 | 每位同事一条对话，背后是一条持续的 dsh 会话；长了自动压缩上下文，界面上的历史完整保留。 |
-| 干活中 | 头像在动，对话底部一行写着它正在用的工具和对象，比如「在干活 · 查阅 arxiv.org/list/cs.CL · 1m 15s」「在干活 · 读取 README.md」；左栏这位同事的那一行同样显示。工具调用不刷屏，收在每轮的「过程」里。 |
-| 结果 | 一轮一个气泡：回复正文、✓ 可核对的要点（如「电报条数 40 条」「沪指 3842.19」）、文件卡。 |
-| 插话 | 它干活时你再说一句，会插进正在做的事里调整方向，不另起一件。 |
-| 停止 | 输入框旁的停止键。 |
-| 找你 | 只在四种情况停下来问：缺关键信息、要你拍板、有后果的动作、要密码验证码扫码。问题卡可以点选项、允许或拒绝、直接回一句；答完同一会话接着做。每轮最多问两次，例行运行从不问。 |
-| 回看 | 向上翻加载更早；旧的、迁移来的记录折成一行（原话 + 文件名），点开再展开。 |
+| One continuous conversation | Backed by one persistent dsh session per teammate with automatic context compaction; the visible history stays complete. |
+| Working | The avatar moves and one line names the tool and what it is on, e.g. "在干活 · 查阅 arxiv.org/list/cs.CL · 1m 15s" (working · browsing … · time) or "在干活 · 读取 README.md" (reading); the teammate's row in the sidebar shows the same. Tool calls stay in each turn's folded "process". |
+| Results | One bubble per turn: the reply, ✓ checkable key numbers, a file card. |
+| Steering | A message sent while it works steers the current job instead of starting another. |
+| Stop | A stop button beside the input. |
+| Asking you | Only in the four cases above. The question card offers choices, allow/deny, or a free reply; the same session continues. At most twice per turn; routine runs never ask. |
+| History | Scroll up for earlier turns; old and migrated turns fold into one line each. |
 
-### 3. 文件与核验
+### 3. Files and verification
 
-| 功能 | 说明 |
+| Feature | What it does |
 | --- | --- |
-| 交付 | 同事交出文件（报告、表格、简报），带 2 到 6 行要点。 |
-| 阅读 | 点文件卡在右栏打开全文，表格可横滚，可下载 `.md`。 |
-| 核验 | 每份交付由第二个只读会话独立核对：要点对不对得上素材和工具记录、有没有承诺了没做的事。结果写在气泡下：「已核验 · 核对 14」或「核验发现 3 处」。你后来补充的话（比如「只写草稿别发送」）也算进要求里。 |
-| 评价 | 每份文件「有用 / 没用」。 |
-| 文件页 | 左栏底部「文件」：所有同事交过的东西，按同事筛选、可搜索，点开能跳回出这份文件的那条消息。 |
+| Delivery | Reports, tables and briefs delivered as files with 2–6 key numbers. |
+| Reading | A file card opens the full document in the right panel; tables scroll; download as `.md`. |
+| Verification | A second read-only session checks each delivery against the material and tool records and flags promises not kept: "verified · 14 checked" or "3 issues found". What you said later ("draft only, don't send") counts as part of the requirement. |
+| Rating | Useful / not useful on every file. |
+| Files page | Everything every teammate delivered, filterable by teammate and searchable; jumps back to the message that produced it. |
 
-### 4. 例行
+### 4. Routines
 
-| 功能 | 说明 |
+| Feature | What it does |
 | --- | --- |
-| 是什么 | 到点替你发给某位同事的一句话。例行属于同事，结果回到这位同事的对话。 |
-| 建 | 在对话里说带时间的话（「每天晚上 7 点写日报」），同事确认，对话里出一行「已安排 · 每天 19:00 写日报」；或在右栏例行一栏写一句。 |
-| 到点 | 对话里一行「每日日报 · 19:00」，接着同事照常干活，结果是普通回复。 |
-| 安静 | 盯变化的例行，没有变化就不出消息、不打扰，只在运行记录里记一笔；日报周报每次都出。 |
-| 提醒 | 只有你能做的事（开会、交材料），到点只提醒你，不让同事干活。 |
-| 日报 / 周报 | 从所有同事当天、这周的对话、交付和核验结果里写，不靠回忆。 |
-| 管理 | 右栏「资料」的例行一栏：改原话和时间、现在跑一次、暂停、删除、最近 10 次运行（点一次跳到那次结果）；跑完的一次性例行收起。 |
+| What | A sentence sent to a teammate on a schedule. It belongs to that teammate and its results land in that conversation. |
+| Create | Say it with a time ("write the daily report at 7 every evening") and a centred line "scheduled · daily 19:00" appears; or add one in the right panel. |
+| On time | A centred line "Daily report · 19:00", then the teammate works as usual. |
+| Quiet | Watch routines with no change post nothing and only log the run; reports always arrive. |
+| Reminders | Things only you can do just remind you; no teammate work. |
+| Daily / weekly reports | Written from all teammates' conversations, deliveries and verifications of the period. |
+| Manage | Profile › Routines: edit the sentence and schedule, run now, pause, delete, the last 10 runs (each jumps to its result); finished one-offs fold away. |
 
-### 5. 侧栏与导航
+### 5. Sidebar and navigation
 
-| 区域 | 内容 |
+| Area | Content |
 | --- | --- |
-| 顶部 | 折叠 · 搜索（同事、消息、文件、例行）· 铃铛（需要你 / 在干活 / 刚完成，点一项跳到那条消息）· 新同事 |
-| 中间 | 只有同事，按 置顶 → 类型 → 其他 分区。置顶的在前（MyWork 默认置顶），其余按最近对话时间；状态不改变顺序。一行是头像（右上角红色未读数）、名字、时间和最近一句（在干活时是步骤，等你答时是问题）；列表末尾是「新同事」。 |
-| 底部 | 文件 · 设置 |
-| 折叠后 | 同一个布局只收起文字：品牌标、每位同事的头像和未读数、分区、新同事、文件、设置都留在原位，不跳动 |
-| 右栏 | 两个标签「资料 · 电脑」。资料：它是谁、负责什么、例行和记忆；电脑：它在用浏览器时是实时画面（可接管），以及它的文件夹（它维护的表 + 最近的文件）。 |
-| 外观 | 设置 › 场景与成员 › 外观：两套配色，「炭 · 香槟」（默认：暖炭灰与暖象牙，香槟金只给和你有关的——你的消息、等你答的事、能按的按钮、链接）和「墨 · 雾紫」；每套都有深色和浅色，跟着明暗方案（跟随系统 / 浅色 / 深色）走。所有文字对比度达到 WCAG AA。 |
-| 跳转规则 | 凡是去看结果，都跳到那位同事对话里的那一条并高亮：铃铛、通知、搜索、例行运行记录、文件页都一样。 |
+| Top | Collapse · search (teammates, messages, files, routines) · bell (needs you / working / just finished) · new teammate |
+| Middle | Teammates only, in sections: pinned, then types, then other. Pinned first (MyWork by default), then by most recent conversation; state never reorders. Each row: avatar (red unread count at its top-right), name, time, latest line (the step while working, the question while waiting); the list ends with "New teammate". |
+| Bottom | Files · Settings |
+| Collapsed | The same layout with the words hidden: the mark, every avatar and its count, the sections, new teammate, files and settings stay exactly where they were |
+| Right panel | Two tabs, Profile and Computer. Profile: who it is, its job, routines and memory. Computer: the live picture while it browses (take over), and its folder (tables it keeps + recent files). |
+| Appearance | Settings › Scenarios & members › Appearance: two palettes, Charcoal · Champagne (the default: warm charcoal and ivory, champagne only for what concerns you — your messages, what waits on you, what you can press, links) and Ink · Mist; each has a dark and a light scheme that follow the color scheme (system / light / dark). Every text role meets WCAG AA. |
+| One jump rule | Anything that shows a result jumps to that message in that teammate's conversation and highlights it. |
 
-### 6. 手机
+### 6. Phone
 
-| 功能 | 说明 |
+| Feature | What it does |
 | --- | --- |
-| 原生 App | `apps/mobile`，Expo / React Native；Android 已出包，iOS 同一份代码。 |
-| 网页版 | 同一份代码出的网页，挂在中继的地址上：纯血鸿蒙、iPhone 或任何手机，用自带的相机扫电脑上的码，浏览器打开就已连上，可以「添加到主屏幕」。配对信息在地址的 `#` 后面，读一次就从地址栏抹掉，只存在这个浏览器里；网页版的文件「用其他应用打开」是下载到手机。 |
-| 连接 | 电脑上 设置 › 场景与成员 › 手机 打开「允许手机连接」，用手机相机（网页版）或 App 扫码配对。手机不管在 Wi‑Fi 还是 4G，都经云端中继（apps/relay，Cloudflare 免费版）连回这台电脑，中继只转发端到端加密的数据；手机和电脑不必在同一个网络。配对跨重启有效，关掉开关即断；「换一个配对码」让旧码作废，已配对的手机重新扫。 |
-| 功能 | 同事列表、铃铛动态、对话（气泡、文件卡、问题卡、停止）、文件全屏阅读与分享、同事页（资料、文件夹：表格、笔记、图片直接看，网页 / PDF 交给其他应用打开）、新同事、文件页。 |
-| 外观 | 和电脑同一套配色（炭 · 香槟 / 墨 · 雾紫），深浅跟随手机系统，也可以在手机的 设置 里固定；头像用电脑上选的颜色和形状。 |
+| Native app | `apps/mobile`, Expo / React Native; Android builds today, iOS from the same code. |
+| Web version | The same code as a web page on the relay's address: on HarmonyOS NEXT, an iPhone or any phone, scan the computer's code with the built-in camera and the browser opens already paired; it can be added to the home screen. The pairing sits after `#` in the address, is read once and wiped from the address bar, and is kept only in that browser; "open in another app" downloads the file there. |
+| Connection | On the computer, Settings › Scenarios & members › Phone, allow phone connections and scan the code with the phone's camera (web version) or the app. On Wi‑Fi or mobile data alike, the phone reaches this computer through the cloud relay (apps/relay, Cloudflare free plan), which only passes end-to-end encrypted data; the two don't need to share a network. Pairing survives restarts; turning the switch off disconnects; "New pairing code" voids the old one and paired phones scan again. |
+| Features | Teammates, activity, conversations (bubbles, file cards, question cards, stop), full-screen file reading and sharing, teammate page (profile; folder — tables, notes and images open in place, web pages / PDFs go to another app), new teammate, files. |
+| Appearance | The computer's palettes (Charcoal · Champagne / Ink · Mist), dark or light with the phone, or fixed in the phone's Settings; avatars in the look picked on the computer. |
 
-### 7. 通知与外部渠道
+### 7. Notifications
 
-| 功能 | 说明 |
+| Feature | What it does |
 | --- | --- |
-| 应用内 | 有结果、需要你时弹出；正在看的那位同事不弹。 |
-| IM | 可接飞书、钉钉、企业微信、微信等，只推提醒、问题、有变化的例行、失败和较长的任务；每位同事可以单独关通知。 |
+| In app | Results and questions pop up, except for the teammate you're looking at. |
+| IM | Feishu, DingTalk, WeCom, WeChat and others; only reminders, questions, changed routines, failures and long jobs; per-teammate switch. |
 
-## 开始使用
+## Getting started
 
-需要 Node ≥ 24、pnpm 和一个 DeepSeek API key。
+Node ≥ 24, pnpm and a DeepSeek API key.
 
 ```bash
 git clone https://github.com/William2333ZZ/mywork-deepseekharness.git
@@ -137,41 +138,41 @@ cd mywork-deepseekharness
 bash scripts/dev-env.sh
 ```
 
-脚本在仓库内的 `.dsh-dev-home/` 装好 dsh（0.2.0-rc.2）并启动，不碰你的 `~/.dsh`。打开终端里打印的地址：第一次会先弹出 dsh 的预览版说明和「添加一个 API Key」，填进去就行（之后在 设置 › 模型 改）；然后点左上「+」新建第一位同事。
+The script installs dsh (0.2.0-rc.2) into `.dsh-dev-home/` inside the repo and starts it, leaving `~/.dsh` alone. Open the printed address: the first time, dsh shows its preview notice and an "add an API key" dialog — paste your key there (change it later in Settings › Model). Then click "+" to create your first teammate.
 
-手机：在 `apps/mobile` 用 `npx eas-cli build --platform android --profile preview` 出 APK 安装，或本地 `npx expo run:android`。网页版和中继一起发布：`cd apps/relay && npm run deploy`（先 `build-web.sh` 出网页，再 `wrangler deploy`）。
+Phone: in `apps/mobile`, build an APK with `npx eas-cli build --platform android --profile preview`, or run `npx expo run:android`. The web version ships with the relay: `cd apps/relay && npm run deploy` (`build-web.sh` builds the page, then `wrangler deploy`).
 
-## 怎么做到的
+## How it's built
 
-| 包 | 作用 |
+| Package | Role |
 | --- | --- |
-| `packages/tasks` | 同事引擎：每位同事一条持续的 dsh 会话、运行记录、交付与第二会话核验、找你、例行调度、记忆、文件、API，以及网页端的对话、右栏和文件页 |
-| `packages/codex-ui` | 侧栏（同事、铃铛、搜索）与设置页外壳 |
-| `packages/browser` | 本机真实 Chrome，右栏实时画面与接管 |
-| `packages/kit` | 组合包与设置入口，手机配对与中继客户端（网关只听本机） |
-| `packages/im` | IM 通知 |
-| `packages/shell` · `schedule` · `mcp` | 主题与字体、提醒、MCP 连接器 |
-| `apps/mobile` | 手机 App |
-| `apps/relay` | 加密中继（Cloudflare Worker + Durable Object），只转发密文 |
-| `apps/desktop` | 桌面壳（Electron） |
+| `packages/tasks` | The teammate engine: one persistent dsh session per teammate, runs, delivery and second-session verification, asking, routine scheduling, memory, files, the API, and the web conversation, right panel and files page |
+| `packages/codex-ui` | Sidebar (teammates, bell, search) and settings shell |
+| `packages/browser` | The local real Chrome, live picture and take-over |
+| `packages/kit` | Bundle and settings entry, phone pairing and relay client (the gateway listens on this machine only) |
+| `packages/im` | IM notifications |
+| `packages/shell` · `schedule` · `mcp` | Themes and fonts, reminders, MCP connectors |
+| `apps/mobile` | Phone app |
+| `apps/relay` | Encrypted relay (Cloudflare Worker + Durable Object), passes ciphertext only |
+| `apps/desktop` | Desktop shell (Electron) |
 
-设计文档：[design/v2/TEAMMATES.md](design/v2/TEAMMATES.md) §9 是同事模型与 API 契约，[design/v2/MOBILE.md](design/v2/MOBILE.md) 是手机端。
+Design: [design/v2/TEAMMATES.md](design/v2/TEAMMATES.md) §9 (teammate model and API contract), [design/v2/MOBILE.md](design/v2/MOBILE.md) (phone).
 
-## 数据与隐私
+## Data and privacy
 
-- 所有数据都在 `$DSH_HOME`（开发环境是 `.dsh-dev-home/home`）：同事在 `mywork/mates.json`，每位同事的文件夹在 `mywork/mates/<id>/`，运行记录、交付、例行、已读在 `mywork/*.json`，会话日志在 `sessions/`。
-- API key 和登录态也在这里；换机器拷走这个目录即可（含明文 key，注意保管）。
-- 网页只监听本机。手机连接要你在电脑上手动打开；手机网关也只听本机，外面只能经中继进来，只认配对令牌，dsh 的登录令牌不离开这台电脑。中继只转发加密数据：电脑的 X25519 公钥只在配对码 `#` 后面，中继没有它的私钥，看不到也冒充不了；经过中继只能访问 MyWork 的接口和文件签名链接。
-- 中继是所有电脑共用的：每台电脑有自己的签名密钥，第一次连上就占下自己的房间，之后只认这把钥匙，看到配对码的人也挤不掉它；一个房间最多 8 台手机，每台手机、每个地址都有频率上限。网页版只从中继自己的地址加载，内容安全策略只许它连这个中继、只跑自己的脚本。
+- Everything lives in `$DSH_HOME` (`.dsh-dev-home/home` in development): teammates in `mywork/mates.json`, each teammate's folder in `mywork/mates/<id>/`, runs, deliveries, routines and read state in `mywork/*.json`, session logs in `sessions/`.
+- The API key and logins are there too; copy the directory to move machines (it holds the key in plain text).
+- The web app listens on this machine only. Phone access must be switched on at the computer; the phone gateway also listens on this machine only and is reached from outside only through the relay, accepts only the pairing token, and dsh's login token never leaves the computer. The relay passes encrypted data only: the computer's X25519 public key travels only after `#` on the pairing code, the relay lacks its secret key and can neither read nor impersonate it, and only MyWork's API and signed file links are reachable through it.
+- The relay is shared by every computer: each has its own signing key and claims its room on first connect, after which only that key gets in, so someone who saw a pairing code cannot knock the computer off; a room takes at most 8 phones, and phones and addresses are rate-limited. The web version loads only from the relay's own address, and its content security policy lets it talk only to that relay and run only its own scripts.
 
-## 现状与已知限制
+## Status and known limits
 
-- 预览版，跑在 dsh 0.2.0-rc.2 上（社区插件目前适配到这一版）；`dsh-mermaid-render` 只支持 0.1.x，开发环境脚本会跳过它。
-- 一位同事同一时间只做一件事；想并行就交给另一位同事。
-- 同事共用本机一个 Chrome，同一时刻多位同事上网会共用标签页。
-- 默认中继在 `workers.dev` 上，国内部分移动网络可能连不上，需要时给中继绑一个自己的域名（`MYWORK_RELAY_URL` 指过去）。手机连接要电脑能上网。没有系统推送，人不在电脑旁时靠 IM 提醒。
-- Releases 里的桌面安装包还是第一版 MyWork Kit。
+- Preview on dsh 0.2.0-rc.2 (the version community plugins currently support); `dsh-mermaid-render` only supports 0.1.x and the dev-env script skips it.
+- A teammate does one thing at a time; hand parallel work to another teammate.
+- Teammates share one local Chrome; simultaneous browsing shares tabs.
+- The default relay is on `workers.dev`, which some mobile networks in mainland China block — bind your own domain to it if so (point `MYWORK_RELAY_URL` at it). The phone connection needs the computer online. No push notifications; IM covers you when you're away.
+- The desktop installers in Releases are still the first version, MyWork Kit.
 
-## 许可证
+## License
 
-本仓库的包为 MIT；`packages/codex-ui` fork 自 [@michengai/dsh-codex-ui](https://github.com/MichengAI/dsh-codex-ui)，保持 Apache-2.0。dsh 是 [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness) 的作品，本仓库与 DeepSeek 无隶属关系。
+This repo's packages are MIT; `packages/codex-ui` is forked from [@michengai/dsh-codex-ui](https://github.com/MichengAI/dsh-codex-ui) and stays Apache-2.0. dsh is the work of [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness); this repo is not affiliated with DeepSeek.

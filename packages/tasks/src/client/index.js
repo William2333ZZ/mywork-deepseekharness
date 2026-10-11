@@ -141,6 +141,7 @@ const zh = {
   hoDelivered: '交了 {n} 份', hoNeeds: '需要你 {n}', hoDid: '自己做了 {n} 件', hoQuiet: '看过没出声 {n} 次', hoFailed: '失败 {n}',
   todayTitle: '今天 · {d}', todayNeeds: '需要你 {n}', todayChanges: '变化 {n}', todayDid: '它们做了 {n} 件', todayQuiet: '没开口：{s}', todayLate: '补', todayNone: '昨天以来没有要你看的。', todayMore: '还有 {n} 条', todayUpdated: '{t} 更新',
   kAsk: '等你答', kRemind: '提醒', kFailed: '失败', kFile: '没打开',
+  usage: '花费', usageAll: '花费 · 全部同事', usageToday: '今天', usage30: '近 30 天', uUser: '你叫的', uRoutine: '例行', uSelf: '它自己动的', usageNone: '还没有', usageHint: '模型 token 数，来自模型返回的用量；缓存命中 {p}%。', tok: '{n} token', tokBig: '{n} 万 token', tokStep: '10000',
   proactive: '主动程度', pAsk: '只在我问时', pDefault: '默认', pMore: '多做一点', proactiveHint: '管它不等你开口时做多少。能做什么不设限。',
   listSec: '清单', listEmpty: '还没有清单。跟它说你要它盯什么，它会记在 清单.csv 里。',
   judgeSec: '判断', judgeEmpty: '还没有判断。你说出的看法、假设和决定，它会记在 判断.csv 里。', toReview: '待重看 {n}',
@@ -197,6 +198,7 @@ const en = {
   hoDelivered: '{n} file(s) delivered', hoNeeds: '{n} need you', hoDid: '{n} things done on its own', hoQuiet: 'checked quietly {n} times', hoFailed: '{n} failed',
   todayTitle: 'Today · {d}', todayNeeds: 'Needs you {n}', todayChanges: 'Changes {n}', todayDid: 'They did {n} things', todayQuiet: 'Quiet: {s}', todayLate: 'late', todayNone: 'Nothing for you since yesterday.', todayMore: '{n} more', todayUpdated: 'updated {t}',
   kAsk: 'waiting', kRemind: 'reminder', kFailed: 'failed', kFile: 'unopened',
+  usage: 'Spend', usageAll: 'Spend · all teammates', usageToday: 'Today', usage30: 'Last 30 days', uUser: 'You asked', uRoutine: 'Routines', uSelf: 'On its own', usageNone: 'nothing yet', usageHint: 'Model tokens, as the model reported them; {p}% served from cache.', tok: '{n} tokens', tokBig: '{n}k tokens', tokStep: '1000',
   proactive: 'Initiative', pAsk: 'Only when asked', pDefault: 'Default', pMore: 'A bit more', proactiveHint: 'How much it does before you ask. What it can do is not limited.',
   listSec: 'Watchlist', listEmpty: 'No watchlist yet. Tell it what to watch; it keeps 清单.csv.',
   judgeSec: 'Judgments', judgeEmpty: 'No judgments yet. Your views, hypotheses and decisions go into 判断.csv.', toReview: '{n} to review',
@@ -2741,6 +2743,26 @@ function makeComponents(ctx, t) {
       h('input', { type: 'time', className: 'mwt-timein', value: v, 'aria-label': t('readTime'), title: t('readTimeHint'), onChange: (e) => setV(e.target.value), onBlur: () => { if (/^\d{2}:\d{2}$/.test(v) && v !== mate.readTime) update({ readTime: v }) } }))
   }
 
+  /** A token count for people: 8,400 token, 12.3 万 token (Chinese counts in 万) / 123.4k tokens. */
+  const fmtTokens = (n) => { const step = Number(t('tokStep')) || 1000; return n >= step ? t('tokBig').replace('{n}', (Math.round((n / step) * 10) / 10).toString()) : t('tok').replace('{n}', n.toLocaleString()) }
+  /**
+   * 花费 (PROACTIVE.md §14): today and the last 30 days, split into 你叫的 / 例行 / 它自己动的. MyWork's profile shows every
+   * teammate together. Read from GET /usage, refreshed when the teammate's last activity moves.
+   */
+  function UsageBlock({ mate }) {
+    const [u, setU] = React.useState(null)
+    const all = !!mate.isDefault
+    React.useEffect(() => { api('/usage' + (all ? '' : '?mate=' + encodeURIComponent(mate.id))).then(setU).catch(() => {}) }, [mate.id, mate.lastAt || '', all])
+    if (!u) return null
+    const row = (label, x) => h('div', { className: 'mwt-switch-row' }, h('span', null, label),
+      h('span', { className: 'mwt-quiet', style: { textAlign: 'right' } }, x.tokens ? [['user', t('uUser')], ['routine', t('uRoutine')], ['self', t('uSelf')]].filter(([k]) => x[k].tokens).map(([k, l]) => l + ' ' + fmtTokens(x[k].tokens)).join(' · ') : t('usageNone')))
+    return h(React.Fragment, null,
+      h('h2', null, all ? t('usageAll') : t('usage')),
+      row(t('usageToday'), u.today),
+      row(t('usage30'), u.days30),
+      u.days30.tokens ? h('p', { className: 'mwt-hint' }, t('usageHint').replace('{p}', String(Math.round(u.days30.cachedShare * 100)))) : null)
+  }
+
   /**
    * 资料 — the teammate as a profile, not a form. Its card on top: the avatar (48; a click opens the look under it, not
    * for MyWork, whose mark is the brand), the name 17 and the title 13 edited in place (MyWork's name is the brand and
@@ -2773,6 +2795,7 @@ function makeComponents(ctx, t) {
         picking ? h(AvatarPicker, { look, bare: true, onChange: (next) => { setLook(next); update({ avatar: next }) } }) : null),
       mate.isDefault ? h('section', { className: 'mwt-sec', 'data-sec': 'readtime' }, h(ReadTimeBlock, { mate, update })) : null,
       h('section', { className: 'mwt-sec', 'data-sec': 'proactive' }, h(ProactiveBlock, { mate, update })),
+      h('section', { className: 'mwt-sec', 'data-sec': 'usage' }, h(UsageBlock, { mate })),
       h('section', { className: 'mwt-sec', 'data-sec': 'duty' }, h(DutyBlock, { mate, update })),
       mate.isDefault ? null : h('section', { className: 'mwt-sec', 'data-sec': 'list' }, h(TableBlock, { mate, file: '清单.csv', title: t('listSec'), emptyText: t('listEmpty'), onOpenFile })),
       mate.isDefault ? null : h('section', { className: 'mwt-sec', 'data-sec': 'judge' }, h(TableBlock, { mate, file: '判断.csv', title: t('judgeSec'), emptyText: t('judgeEmpty'), judge: true, onOpenFile })),

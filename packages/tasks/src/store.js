@@ -463,3 +463,68 @@ export class SeenStore {
     return seenAt ? ts(attentionAt) > ts(seenAt) : ts(attentionAt) >= ts(this.since)
   }
 }
+
+// ── usage: what the model calls cost, per day, teammate and bucket (PROACTIVE.md §14) ──
+/** 你叫它做的 / 例行 / 它自己动的. */
+export const USAGE_BUCKETS = ['user', 'routine', 'self']
+const USAGE_KEEP_DAYS = 62
+/** The bucket a run's model calls count in: what you said, a routine, or something it started itself (intro, a loop round …). */
+export function usageBucket(run) { return run && run.trigger === 'user' ? 'user' : run && run.trigger === 'routine' ? 'routine' : 'self' }
+/** Local calendar day, YYYY-MM-DD. */
+export function dayKey(d = new Date()) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` }
+const zeroUsage = () => ({ calls: 0, input: 0, output: 0, cacheRead: 0, cacheWrite: 0 })
+const count = (v) => (Number.isFinite(Number(v)) && Number(v) > 0 ? Math.round(Number(v)) : 0)
+/** Add one provider usage report ({ inputTokens, outputTokens, cacheReadTokens?, cacheWriteTokens? }) into a total. */
+export function addUsage(total, u) {
+  const t = total || zeroUsage()
+  t.calls += 1; t.input += count(u.inputTokens); t.output += count(u.outputTokens); t.cacheRead += count(u.cacheReadTokens); t.cacheWrite += count(u.cacheWriteTokens)
+  return t
+}
+/** Every token a total counts (prompt, cache traffic and output). */
+export const usageTokens = (t) => (t ? t.input + t.output + t.cacheRead + t.cacheWrite : 0)
+/** Is this a provider usage report worth adding? */
+export const isUsage = (u) => !!u && typeof u === 'object' && (count(u.inputTokens) + count(u.outputTokens) + count(u.cacheReadTokens) + count(u.cacheWriteTokens)) > 0
+
+/**
+ * The usage ledger, $DSH_HOME/mywork/usage.json: { days: { 'YYYY-MM-DD': { [mateId]: { user | routine | self: total } } } },
+ * a total being { calls, input, output, cacheRead, cacheWrite }. Kept 62 days; runs are trimmed long before that, so the
+ * ledger, not the runs, is where spend is read.
+ */
+export class UsageStore {
+  constructor(file) { this.file = file; this.days = {}; this.load() }
+  load() {
+    if (!this.file || !existsSync(this.file)) return
+    try { const d = JSON.parse(readFileSync(this.file, 'utf8')); if (d && d.days && typeof d.days === 'object') this.days = d.days } catch { this.days = {} }
+  }
+  save() {
+    const keys = Object.keys(this.days).sort()
+    for (const k of keys.slice(0, Math.max(0, keys.length - USAGE_KEEP_DAYS))) delete this.days[k]
+    if (!this.file) return
+    mkdirSync(join(this.file, '..'), { recursive: true })
+    const tmp = this.file + '.tmp'
+    writeFileSync(tmp, JSON.stringify({ version: 1, days: this.days }))
+    renameSync(tmp, this.file)
+  }
+  add(mateId, bucket, usage, at = new Date()) {
+    if (!isUsage(usage) || !USAGE_BUCKETS.includes(bucket)) return false
+    const day = (this.days[dayKey(at)] ||= {})
+    const mate = (day[mateId] ||= {})
+    mate[bucket] = addUsage(mate[bucket], usage)
+    this.save()
+    return true
+  }
+  /** Totals per bucket over the last `days` days up to `now` (1 = today), for one teammate or ('' ) for all of them. */
+  sum(mateId, days, now = new Date()) {
+    const out = Object.fromEntries(USAGE_BUCKETS.map((b) => [b, zeroUsage()]))
+    for (let i = 0; i < days; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i)
+      const day = this.days[dayKey(d)]
+      if (!day) continue
+      for (const [id, buckets] of Object.entries(day)) {
+        if (mateId && id !== mateId) continue
+        for (const b of USAGE_BUCKETS) { const t = buckets[b]; if (!t) continue; for (const k of Object.keys(out[b])) out[b][k] += count(t[k]) }
+      }
+    }
+    return out
+  }
+}

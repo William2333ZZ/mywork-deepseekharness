@@ -64,6 +64,7 @@ The product logic follows [Rakazo](https://github.com/elie222/rakazo) (persisten
 | Sign-ins | Much research sits behind a login: in Settings › Scenarios & members › Browser, import the cookies of sites you are signed into in your own browser (a Cookie-Editor JSON export, cookies.txt or `name=value`), and the teammates' Chrome is signed in; you can also hand cookies to a teammate in the conversation. They only go into this local Chrome, never shown or uploaded. |
 | Memory | Stable preferences go into `AGENTS.md` in its folder and are read every turn; you can also say "remember …". |
 | Profile | Click the name: a profile card (avatar, name, title, type, edited in place), the job, routines, what it remembers, pin and notifications, delete. |
+| Spend | On the profile: model tokens today and over 30 days, split into what you asked, routines and what it did on its own (MyWork's profile shows every teammate together), from the model's own usage reports. |
 
 ### 2. Conversation
 

@@ -46,6 +46,9 @@ export const Config = configSchema({ concurrency: 4, timeoutMinutes: 60, permiss
 const PACKAGE_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const MEMORY_FILE = 'AGENTS.md'
 export const REMEMBER_MAX = 300
+/** Older dated rules move here once AGENTS.md's rules pass RULES_BUDGET characters: kept, but not read every turn. */
+export const MEMORY_ARCHIVE = '规矩存档.md'
+export const RULES_BUDGET = 6000
 const THREAD_LIMIT = 8
 const THREAD_LIMIT_MAX = 100
 /** When the 今天卡 is put together (MyWork's 读的时间, changeable in its 资料). */
@@ -1190,11 +1193,45 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     const file = join(mate.dir, MEMORY_FILE)
     mkdirSync(mate.dir, { recursive: true })
     if (!existsSync(file)) writeFileSync(file, `# ${mate.name || '同事'}的规矩\n\n口径、来源、格式、教训，一行一条（mywork_remember 追加；用户在资料栏里改和删）。\n\n`)
+    const text = readFileSync(file, 'utf8')
+    // The same rule again (spacing and end punctuation aside) is already there: the file is left as it is.
+    const key = ruleKey(fact)
+    const had = text.split('\n').find((l) => { const m = l.trim().match(/^[-*]\s+(?:\d{4}-\d{2}-\d{2}\s+)?(.+)$/); return m && ruleKey(m[1]) === key })
+    if (had) return { line: had.trim(), added: false }
     const d = new Date()
     const line = `- ${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${fact}`
-    const text = readFileSync(file, 'utf8')
     appendFileSync(file, (text.endsWith('\n') || !text ? '' : '\n') + line + '\n')
-    return line
+    compactRules(mate)
+    return { line, added: true }
+  }
+  const ruleKey = (s) => String(s || '').replace(/\s+/g, ' ').trim().replace(/[\s。.；;，,！!]+$/, '').toLowerCase()
+  /**
+   * AGENTS.md is read every turn, so its dated rules (- YYYY-MM-DD …) stay within RULES_BUDGET characters: the newest
+   * that fit stay, older ones move (oldest first, as they were) to 规矩存档.md. Undated lines — the playbook's
+   * sections, MyWork's 这位用户的要求 — are never moved.
+   */
+  function compactRules(mate) {
+    const file = join(mate.dir, MEMORY_FILE)
+    const lines = readFileSync(file, 'utf8').split('\n')
+    const dated = []
+    lines.forEach((l, i) => { if (/^\s*[-*]\s+\d{4}-\d{2}-\d{2}\s+\S/.test(l)) dated.push(i) })
+    let used = 0
+    let cut = dated.length
+    while (cut > 0) {
+      const size = lines[dated[cut - 1]].length + 1
+      if (used + size > RULES_BUDGET && cut < dated.length) break
+      used += size
+      cut -= 1
+    }
+    if (!cut) return 0
+    const moved = new Set(dated.slice(0, cut))
+    const archive = join(mate.dir, MEMORY_ARCHIVE)
+    const head = existsSync(archive) ? '' : `# ${mate.name || '同事'}的旧规矩\n\nAGENTS.md 每一轮都会读，规矩多了以后，较早的挪到这里（不再每轮读）。还要用的，挪回 AGENTS.md 或重新记一条。\n\n`
+    const prev = existsSync(archive) ? readFileSync(archive, 'utf8') : ''
+    appendFileSync(archive, head + (prev && !prev.endsWith('\n') ? '\n' : '') + [...moved].map((i) => lines[i].trim()).join('\n') + '\n')
+    writeFileSync(file, lines.filter((_, i) => !moved.has(i)).join('\n'))
+    log(`rules ${mate.id}: ${cut} older moved to ${MEMORY_ARCHIVE}`)
+    return cut
   }
   /** 「交给它」 on 它会主动做的: a ticked item becomes its routine and / or a rule, each with its line (撤销 removes it). */
   function subscribe(b) {
@@ -1223,7 +1260,7 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
           if (rt.runNow) now.push(r.id)
         } else log(`subscribe ${m.id}: no time in 「${rt.sentence || rt.input}」`)
       }
-      if (x.rule) { rememberLine(m, String(x.rule)); store.activity(run.id, { kind: 'did', id: didId(), act: 'rule', line: String(x.rule), undoable: true }) }
+      if (x.rule && rememberLine(m, String(x.rule)).added) store.activity(run.id, { kind: 'did', id: didId(), act: 'rule', line: String(x.rule), undoable: true })
     }
     const at = new Date().toISOString()
     store.update(run.id, () => { e.done = true; e.doneAt = at; e.items = (e.items || []).map((x) => ({ ...x, on: on(x.id) })) })
@@ -1355,11 +1392,12 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
         const fact = String(args.fact || '').replace(/\s+/g, ' ').trim()
         if (!fact) throw new Error('fact 不能为空。')
         if (fact.length > REMEMBER_MAX) throw new Error(`太长了（${fact.length} 字）：一条 ≤${REMEMBER_MAX} 字。`)
-        const line = rememberLine(c.mate, fact)
-        if (c.run) store.activity(c.run.id, { kind: 'did', id: didId(), act: 'rule', line: fact, undoable: true })
-        return { remembered: true, line }
+        const { line, added } = rememberLine(c.mate, fact)
+        // A rule it already had gets no 撤销 line: taking that back would delete the rule from before.
+        if (c.run && added) store.activity(c.run.id, { kind: 'did', id: didId(), act: 'rule', line: fact, undoable: true })
+        return added ? { remembered: true, line } : { remembered: true, already: true, line }
       },
-      render: (_a, v) => [{ type: 'text', text: '已记下规矩：' + v.line }],
+      render: (_a, v) => [{ type: 'text', text: (v.already ? '已经记着这条规矩：' : '已记下规矩：') + v.line }],
     },
     {
       name: 'mywork_mate_update',

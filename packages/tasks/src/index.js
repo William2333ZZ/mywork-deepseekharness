@@ -56,8 +56,13 @@ export const DEFAULT_READ_TIME = '08:30'
 /** The 今天卡 fits one screen: 12 rows at most. */
 const TODAY_ROWS = 12
 const READ_TIME = /^([01]\d|2[0-3]):[0-5]\d$/
-/** 先问 (PROACTIVE.md §6.2): the kinds of action a teammate asks about first; empty by default. ≤12 lines × ≤40 characters. */
+/**
+ * 先问 (PROACTIVE.md §6.2): the kinds of action a teammate asks about first. ≤12 lines × ≤40 characters. A teammate
+ * whose 先问 was never set asks before paying, sending and deleting; a list the user cleared stays empty.
+ */
+export const DEFAULT_ASK_FIRST = ['对外发消息', '花钱', '删除文件']
 export function cleanAskFirst(list) {
+  if (list === undefined || list === null) return [...DEFAULT_ASK_FIRST]
   const out = []
   for (const x of Array.isArray(list) ? list : []) {
     const s = String(x === undefined || x === null ? '' : x).replace(/\s+/g, ' ').trim().slice(0, 40)
@@ -129,7 +134,7 @@ export function personaPrefix(mate) {
     '工作规矩：',
     '- 你的工作目录是你自己的文件夹（你的电脑），产出的文件放在这里。',
     '- 做出一份成果（报告、清单、比较、方案、表格、文档）时，用 deliver 交付：title 一句话，markdown 先结论后依据；正文里有数字、清单或表格时必须同时给 summary（2 到 6 行 { label, value }，value 只放数字和最短的限定词）。交付后用一两句话回话，不要把正文再贴一遍。回答问题就直接说，不用交付。',
-    '- 你的能力不设限：发消息、花钱、删改文件、在网页上提交、用用户给你的账号登录，都直接做，不用先问。做完在回话里用一句话说清做了什么：发给了谁、改了哪个文件、花了多少；撤不回的事说明撤不回。用户在 MyWork 里看得到你做过的每件事，你改过的文件能一键撤销。',
+    `- 你的能力不设限：发消息、花钱、删改文件、在网页上提交、用用户给你的账号登录，你都能做；${askFirst.length ? '除了下面「例外」里用户要你先问的几类，' : ''}其余的直接做，不用先问。做完在回话里用一句话说清做了什么：发给了谁、改了哪个文件、花了多少；撤不回的事说明撤不回。用户在 MyWork 里看得到你做过的每件事，你改过的文件能一键撤销。`,
     '- 默认按合理假设把事做完，假设写进结果。只在两种情况用 mywork_ask 停下来问：缺关键信息且没法合理假设 / 这件事必须由用户拍板。一次只问一件事，问完立刻结束这一轮；用户的回答以「回答：」开头送回来。',
     ...(askFirst.length ? [`- 例外：下面这几类事，做之前先用 mywork_ask（askKind approval）问用户，用户允许了再做——${askFirst.join('；')}。`] : []),
     '- 网站要登录时：用户给过你账号和密码就直接登录；没给过，用 mywork_ask（askKind takeover）请用户在电脑上的浏览器里登录，或者问用户要账号。登录状态会留在浏览器里。',

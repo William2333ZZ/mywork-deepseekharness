@@ -530,8 +530,9 @@ export function createEngine({ ctx, store, deliverables, mates, routines, scenar
       const kept = new Set(before.kept || [])
       const now = folderList(mate.dir)
       const known = new Set((run.activity || []).filter((a) => a && a.kind === 'did' && a.act === 'file').map((a) => a.abs))
-      // A rule written by mywork_remember has its own line (记下了规矩 · 删): AGENTS.md is not listed again.
-      if ((run.activity || []).some((a) => a && a.kind === 'did' && a.act === 'rule')) known.add(join(mate.dir, 'AGENTS.md'))
+      // A rule written by mywork_remember has its own line (记下了规矩 · 删): AGENTS.md (and 规矩存档.md, where older
+      // rules move when it fills up) is not listed again.
+      if ((run.activity || []).some((a) => a && a.kind === 'did' && a.act === 'rule')) { known.add(join(mate.dir, 'AGENTS.md')); known.add(join(mate.dir, '规矩存档.md')) }
       const files = []
       for (const [rel, f] of now) {
         const old = was[rel]

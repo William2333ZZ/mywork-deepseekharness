@@ -15,7 +15,7 @@ import assert from 'node:assert/strict'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { createMyWork, mateComposition } from '../src/index.js'
+import { createMyWork, mateComposition, MEMORY_ARCHIVE, RULES_BUDGET } from '../src/index.js'
 import { describeSchedule } from '../src/routines.js'
 const describe = (r) => describeSchedule(r.schedule)
 import { ASK_TEXT, INTERRUPTED, messageText, NUDGE_TEXT, STOPPED } from '../src/engine.js'
@@ -1041,6 +1041,37 @@ test('a teammate folder lists the tables it keeps however many newer files there
   const { items } = await h.ok('GET', '/mates/folder', { id: 'mywork' })
   assert.ok(items.some((f) => f.name === '信源表.csv'), 'the table older than 40 fresh files is still listed')
   assert.equal(items.filter((f) => /\.html$/.test(f.name)).length, 30)
+})
+
+test('mywork_remember: the same rule twice is one line with no 撤销; past RULES_BUDGET older dated rules move to 规矩存档.md, the rest of AGENTS.md stays', async () => {
+  const h = harness()
+  const dir = join(h.dir, 'mywork', 'mates', 'mywork')
+  mkdirSync(dir, { recursive: true })
+  const old = Array.from({ length: 40 }, (_, i) => `- 2025-01-${String((i % 28) + 1).padStart(2, '0')} 旧规矩${i} ${'口径'.repeat(80)}`)
+  writeFileSync(join(dir, 'AGENTS.md'), ['# 规矩', '', '## 收资料', '', '- 资料放进 原始资料/', '', ...old, ''].join('\n'))
+  let got
+  h.scripts.push((t) => {
+    got = { first: t.tool('mywork_remember', { fact: '周报用表格，按项目分' }), again: t.tool('mywork_remember', { fact: '周报用表格，按项目分。' }) }
+    t.say('记下了')
+  })
+  const { runId } = await h.ok('POST', '/mates/say', { id: 'mywork', text: '记住：周报用表格' })
+  await h.until(() => h.run(runId).status === 'done')
+  assert.equal(got.first.already, undefined); assert.equal(got.again.already, true); assert.equal(got.again.line, got.first.line)
+  assert.deepEqual(h.run(runId).activity.filter((a) => a.kind === 'did').map((a) => [a.act, a.line || a.path || '']), [['rule', '周报用表格，按项目分']])
+  const memory = readFileSync(join(dir, 'AGENTS.md'), 'utf8')
+  assert.equal(memory.match(/周报用表格/g).length, 1)
+  assert.match(memory, /## 收资料\n\n- 资料放进 原始资料\//)
+  const rules = memory.split('\n').filter((l) => /^- \d{4}-\d{2}-\d{2} /.test(l))
+  assert.ok(rules.reduce((n, l) => n + l.length + 1, 0) <= RULES_BUDGET)
+  assert.match(rules.at(-1), /周报用表格/); assert.match(rules.at(-2), /旧规矩39/)
+  const archive = readFileSync(join(dir, MEMORY_ARCHIVE), 'utf8')
+  const moved = archive.split('\n').filter((l) => /^- 2025-/.test(l))
+  assert.equal(moved.length + rules.length, 41); assert.match(moved[0], /旧规矩0 /)
+  // 撤销 takes the new rule out and leaves the archive be.
+  await h.ok('POST', '/undo', { runId })
+  assert.doesNotMatch(readFileSync(join(dir, 'AGENTS.md'), 'utf8'), /周报用表格/)
+  assert.equal(readFileSync(join(dir, MEMORY_ARCHIVE), 'utf8'), archive)
+  h.cleanup()
 })
 
 test('做了告诉你 and 撤销: a file goes back to before the run, a new one goes away, a rule leaves AGENTS.md, a message stays; a file changed again is not touched', async () => {

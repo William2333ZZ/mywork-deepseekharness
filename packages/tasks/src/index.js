@@ -1385,7 +1385,7 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     },
     {
       name: 'mywork_remember',
-      description: '记一条规矩（只在 MyWork 同事的会话里可用）：用户纠正你、或说了长期的偏好和口径时用。写成一行追加到你文件夹里的 AGENTS.md，以后每一轮都会读到；用户在资料栏里能改能删，对话里会出一行「记下了」。≤300 字，一次一条；一次性的事不要记。',
+      description: '记一条规矩（只在 MyWork 同事的会话里可用）：用户纠正你、或说了长期的偏好和口径时用。写成一行追加到你文件夹里的 AGENTS.md，以后每一轮都会读到；已经记着的同一条不会再记一遍；规矩多了，较早的会挪到 规矩存档.md（不再每轮读，要查旧规矩时去那里看）；用户在资料栏里能改能删，对话里会出一行「记下了」。≤300 字，一次一条；一次性的事不要记。',
       parameters: { fact: { type: 'string', required: true, description: '这条规矩，一句话，例如「周报用表格，按项目分」「模型的数字只用官方报告和 system card，第三方测评标为第三方」' } },
       execute(args, exec) {
         const c = mateOnly(exec, 'mywork_remember')

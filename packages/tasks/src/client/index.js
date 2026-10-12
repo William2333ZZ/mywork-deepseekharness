@@ -142,6 +142,7 @@ const zh = {
   todayTitle: '今天 · {d}', todayNeeds: '需要你 {n}', todayChanges: '变化 {n}', todayDid: '它们做了 {n} 件', todayQuiet: '没开口：{s}', todayLate: '补', todayNone: '昨天以来没有要你看的。', todayMore: '还有 {n} 条', todayUpdated: '{t} 更新',
   kAsk: '等你答', kRemind: '提醒', kFailed: '失败', kFile: '没打开',
   proactive: '主动程度', pAsk: '只在我问时', pDefault: '默认', pMore: '多做一点', proactiveHint: '管它不等你开口时做多少。能做什么不设限。',
+  pauseAll: '全体暂停', pauseAllHint: '所有同事都按「只在我问时」做：只做你叫它做的和例行。再点一下恢复各自的主动程度。', pausedAllHint: '全体暂停中：现在按「只在我问时」做。在 MyWork 的资料里恢复。',
   listSec: '清单', listEmpty: '还没有清单。跟它说你要它盯什么，它会记在 清单.csv 里。',
   judgeSec: '判断', judgeEmpty: '还没有判断。你说出的看法、假设和决定，它会记在 判断.csv 里。', toReview: '待重看 {n}',
   rules: '规矩', rulesEmpty: '还没有规矩。纠正它一次，或说一句「以后都……」，它会记一条。',
@@ -198,6 +199,7 @@ const en = {
   todayTitle: 'Today · {d}', todayNeeds: 'Needs you {n}', todayChanges: 'Changes {n}', todayDid: 'They did {n} things', todayQuiet: 'Quiet: {s}', todayLate: 'late', todayNone: 'Nothing for you since yesterday.', todayMore: '{n} more', todayUpdated: 'updated {t}',
   kAsk: 'waiting', kRemind: 'reminder', kFailed: 'failed', kFile: 'unopened',
   proactive: 'Initiative', pAsk: 'Only when asked', pDefault: 'Default', pMore: 'A bit more', proactiveHint: 'How much it does before you ask. What it can do is not limited.',
+  pauseAll: 'Pause all', pauseAllHint: 'Every teammate works as "Only when asked": what you ask and its routines. Turn it off to restore each one\'s initiative.', pausedAllHint: 'Everyone is paused: it works as "Only when asked" for now. Resume from MyWork\'s profile.',
   listSec: 'Watchlist', listEmpty: 'No watchlist yet. Tell it what to watch; it keeps 清单.csv.',
   judgeSec: 'Judgments', judgeEmpty: 'No judgments yet. Your views, hypotheses and decisions go into 判断.csv.', toReview: '{n} to review',
   rules: 'Rules', rulesEmpty: 'No rules yet. Correct it once, or say “from now on…”, and it notes one.',
@@ -2642,7 +2644,11 @@ function makeComponents(ctx, t) {
       h('h2', null, t('proactive')),
       h('div', { className: 'mwt-seg', role: 'radiogroup', 'aria-label': t('proactive') },
         [['ask', t('pAsk')], ['default', t('pDefault')], ['more', t('pMore')]].map(([k, label]) => h('button', { key: k, type: 'button', role: 'radio', 'aria-checked': cur === k, onClick: () => { if (cur !== k) update({ proactive: k }) } }, label))),
-      h('p', { className: 'mwt-hint' }, t('proactiveHint')))
+      h('p', { className: 'mwt-hint' }, mate.pausedAll && !mate.isDefault ? t('pausedAllHint') : t('proactiveHint')),
+      mate.isDefault ? h(React.Fragment, null,
+        h('div', { className: 'mwt-switch-row' }, h('span', null, t('pauseAll')),
+          h('button', { type: 'button', role: 'switch', className: 'mwt-switch', 'aria-checked': !!mate.pausedAll, 'aria-label': t('pauseAll'), onClick: () => update({ pauseAll: !mate.pausedAll }) })),
+        h('p', { className: 'mwt-hint' }, t('pauseAllHint'))) : null)
   }
 
   /**

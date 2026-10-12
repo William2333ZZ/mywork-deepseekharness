@@ -306,7 +306,7 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
       // Files you hand over go to its drop folder (a 知识库's 原始资料/), else 材料/; the composer's line for them.
       drop: { dir: dropDirOf(m), say: (m.spec && m.spec.dropSay) || '' },
       loop: caps.loopView(m),
-      askFirst: cleanAskFirst(m.askFirst), proactive: PROACTIVE_LEVELS.includes(m.proactive) ? m.proactive : 'default', readTime: m.isDefault ? (READ_TIME.test(m.readTime || '') ? m.readTime : DEFAULT_READ_TIME) : '',
+      askFirst: cleanAskFirst(m.askFirst), proactive: PROACTIVE_LEVELS.includes(m.proactive) ? m.proactive : 'default', pausedAll: pausedAll(), readTime: m.isDefault ? (READ_TIME.test(m.readTime || '') ? m.readTime : DEFAULT_READ_TIME) : '',
     }
   }
   const mateViewById = (id) => { const m = mates.get(id); return m ? mateView(m) : null }
@@ -320,6 +320,10 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     return [...pinned, ...rest]
   }
 
+  /** 全体暂停 (PROACTIVE.md §6.1), kept on MyWork: every teammate works as 只在我问时 — routines and what you ask, nothing more. */
+  const pausedAll = () => { const d = mates.get(DEFAULT_MATE_ID); return !!(d && d.pauseAll) }
+  /** The teammate as its preset is written: under 全体暂停 its 主动程度 reads 只在我问时 (its own setting is kept). */
+  const composedMate = (mate) => (pausedAll() ? { ...mate, proactive: 'ask' } : mate)
   const rview = (r) => ({ ...routineView(r, seen), mateId: r.mateId || DEFAULT_MATE_ID, mateName: mateName(r.mateId || DEFAULT_MATE_ID) })
 
   // ── events ──
@@ -379,7 +383,8 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
   }
 
   /** Write $DSH_HOME/.agent-presets/mate-<id>/agent.cordis.yml (and preset.yml) when it differs; returns the preset id. */
-  async function presetFor(mate) {
+  async function presetFor(given) {
+    const mate = composedMate(given)
     if (registers()) return registerPreset(mate)
     const id = 'mate-' + mate.id
     const folder = join(presetRoot, id)
@@ -492,7 +497,7 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
       if (registers()) { try { await registerPreset(m) } catch (e) { log(`preset ${m.id} not registered: ${e && e.message}`) } continue }
       try {
         const file = join(presetRoot, 'mate-' + m.id, 'agent.cordis.yml')
-        if (!existsSync(file) || readFileSync(file, 'utf8') !== mateComposition(await standardText(), m)) refreshPreset(m, false)
+        if (!existsSync(file) || readFileSync(file, 'utf8') !== mateComposition(await standardText(), composedMate(m))) refreshPreset(m, false)
       } catch (e) { log(`preset ${m.id} not checked: ${e && e.message}`) }
     }
   })
@@ -576,12 +581,16 @@ export function createMyWork({ ctx, config = {}, home, log = () => {}, controlle
     if (b.avatar !== undefined) patch.avatar = avatarOf(b.avatar)
     if (b.askFirst !== undefined) patch.askFirst = cleanAskFirst(b.askFirst)
     if (b.proactive !== undefined) patch.proactive = PROACTIVE_LEVELS.includes(b.proactive) ? b.proactive : 'default'
+    if (b.pauseAll !== undefined) { if (!m.isDefault) throw bad('全体暂停在 MyWork 的资料里。'); patch.pauseAll = !!b.pauseAll }
     if (b.readTime !== undefined) { const v = String(b.readTime || '').trim(); if (v && !READ_TIME.test(v)) throw bad('读的时间写成 08:30 这样。'); patch.readTime = v }
     // The persona carries the name, title, job, 先问 and 主动程度: any of them changing rewrites the preset.
     const identity = ['name', 'title', 'description', 'askFirst', 'proactive'].some((k) => k in patch && JSON.stringify(patch[k]) !== JSON.stringify(m[k]))
     const nameChanged = 'name' in patch && patch.name !== m.name
+    const pauseChanged = 'pauseAll' in patch && patch.pauseAll !== !!m.pauseAll
     mates.update(m.id, patch)
     if (identity) refreshPreset(mates.get(m.id), nameChanged)
+    // 全体暂停 changes every teammate's persona: each preset is rewritten (a teammate mid-turn switches when the turn ends).
+    if (pauseChanged) { log(`全体暂停 ${patch.pauseAll ? 'on' : 'off'}`); for (const x of mates.items) { if (!(identity && x.id === m.id)) refreshPreset(x, false); if (x.id !== m.id) emit('mate', null, { mateId: x.id }) } }
     emit('mate', null, { mateId: m.id })
     return mateView(mates.get(m.id))
   }

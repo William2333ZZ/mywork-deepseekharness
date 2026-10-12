@@ -127,7 +127,9 @@ The product logic follows [Rakazo](https://github.com/elie222/rakazo) (persisten
 | Feature | What it does |
 | --- | --- |
 | In app | Results and questions pop up, except for the teammate you're looking at. |
-| IM | Feishu, DingTalk, WeCom, WeChat and others; only reminders, questions, changed routines, failures and long jobs; per-teammate switch. |
+| IM | Feishu, DingTalk, WeCom, WeChat and others; only reminders, questions, changed routines, failures and long jobs; per-teammate switch. Pick the chat on the IM page. |
+| Quiet hours | 22:00–07:30 by default (IM page): notifications in that window are held and sent as one message when it ends; reminders you timed still go out. |
+| Pause all | On MyWork's profile: every teammate works as "Only when asked" (what you ask and its routines) until you turn it off. |
 
 ## Getting started
 

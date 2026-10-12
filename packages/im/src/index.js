@@ -17,7 +17,7 @@ import { randomBytes } from 'node:crypto'
 import { listChats, resolveChat, relayPrompt, directAccount } from './chats.js'
 import { sendFeishuText } from './feishu.js'
 import { configSchema, defineRawTool, rejectUntrusted } from './harness.js'
-import { createAutomationWatcher, listAutomationTasks, readNotifyConfig, resolveTask, writeNotifyConfig } from './notify.js'
+import { createAutomationWatcher, createQuietGate, heldPath, listAutomationTasks, normalizeQuiet, readNotifyConfig, resolveTask, writeNotifyConfig } from './notify.js'
 
 export const name = 'dsh-mywork-im'
 export const inject = ['tools']
@@ -60,6 +60,9 @@ export function apply(ctx, config = {}) {
   // run that has news, a failed run, and a user run that took long enough that you probably walked away. Chat replies, the
   // intro and quiet routine runs never do.
   const LONG_RUN_MS = 2 * 60000
+  // 免打扰 (PROACTIVE.md §7.5): inside the quiet window teammate notifications are held and go out as one message when it ends.
+  const gate = createQuietGate({ getConfig: () => notifyConfig, send, log, file: heldPath() })
+  ctx.effect(() => { const flush = () => gate.flush().then((n) => { if (n) log(`免打扰 over: ${n} held message(s) → IM`) }).catch(() => {}); flush(); const id = setInterval(flush, 60000); return () => clearInterval(id) }, 'dsh-mywork-im: quiet hours')
   ctx.effect(() => ctx.on('mywork/task', (payload) => {
     try {
       if (!payload || !payload.run) return
@@ -69,11 +72,12 @@ export function apply(ctx, config = {}) {
       if (mate && mate.notify === false) return
       const who = mate && mate.name ? mate.name : 'MyWork'
       const run = payload.run
-      const out = (text, what) => Promise.resolve(send(rule.target, text)).then(() => log(`${what} → IM`)).catch((e) => log(`${what} → IM failed: ${e && e.message}`))
+      const out = (text, what, urgent) => gate.push(rule.target, text, { urgent }).then((how) => log(`${what} → IM${how === 'held' ? ' (held: 免打扰)' : ''}`)).catch((e) => log(`${what} → IM failed: ${e && e.message}`))
       const line = (s, n) => { const t = String(s || '').replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n - 1) + '…' : t }
       if (payload.kind === 'remind') {
         const r = payload.routine || { title: run.routineTitle, input: run.input }
-        out(`【${who}】提醒 · ${r.title}` + (r.input && r.input !== r.title ? '\n\n' + r.input : ''), `reminder ${run.routineId}`)
+        // A reminder fires at the time you picked: it is not held by 免打扰.
+        out(`【${who}】提醒 · ${r.title}` + (r.input && r.input !== r.title ? '\n\n' + r.input : ''), `reminder ${run.routineId}`, true)
         return
       }
       if (payload.kind === 'waiting') {
@@ -123,7 +127,7 @@ export function apply(ctx, config = {}) {
         const tasks = { ...notifyConfig.automation.tasks }
         if (when === 'off') delete tasks[r.task.id]
         else { const c = resolveChat(args.target, listChats()); if (c.error) throw new Error(c.error); tasks[r.task.id] = { target: c.chat.sessionId, when } }
-        notifyConfig = writeNotifyConfig({ automation: { ...notifyConfig.automation, tasks } })
+        notifyConfig = writeNotifyConfig({ automation: { ...notifyConfig.automation, tasks }, quiet: notifyConfig.quiet })
         return { task: r.task.name, rule: tasks[r.task.id] || null }
       },
     }))
@@ -173,7 +177,8 @@ export function apply(ctx, config = {}) {
     const route = (path, handler) => wctx.webServer.register({ kind: 'exact', path: '/mywork-im/api' + path, handler: (req, res) => rejectUntrusted(ctx, req, res, json) || Promise.resolve(handler(req, res)).catch((e) => json(res, { error: e instanceof Error ? e.message : String(e) }, 500)) })
     route('/chats', async (_req, res) => json(res, { items: listChats(), ready: !!controller }))
     route('/send', async (req, res) => { if (req.method !== 'POST') return json(res, { error: 'POST only' }, 405); const b = await readBody(req); json(res, await send(b.target, b.text)) })
-    // Per-task notification rules. POST { taskId, target, when } ('' target or when 'off' removes) or { default: { target, when } | null }.
+    // Per-task notification rules. POST { taskId, target, when } ('' target or when 'off' removes) or { default: { target, when } | null };
+    // { quiet: { from, to } | null } sets or turns off 免打扰 for teammate notifications.
     route('/notify', async (req, res) => {
       if (req.method === 'POST') {
         const b = await readBody(req)
@@ -183,9 +188,9 @@ export function apply(ctx, config = {}) {
           else automation.tasks[b.taskId] = { target: String(b.target), when: b.when === 'failed' ? 'failed' : 'always' }
         }
         if ('default' in b) automation.default = b.default && b.default.target ? { target: String(b.default.target), when: b.default.when === 'failed' ? 'failed' : 'always' } : null
-        notifyConfig = writeNotifyConfig({ automation })
+        notifyConfig = writeNotifyConfig({ automation, quiet: 'quiet' in b ? normalizeQuiet(b.quiet) : notifyConfig.quiet })
       }
-      json(res, { config: notifyConfig, chats: listChats(), tasks: listAutomationTasks() })
+      json(res, { config: notifyConfig, held: gate.held.length, chats: listChats(), tasks: listAutomationTasks() })
     })
   })
 }

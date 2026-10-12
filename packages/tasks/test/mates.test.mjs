@@ -1559,6 +1559,27 @@ test('mywork_calendar for any teammate: a link from 「- 日历：」 in AGENTS.
   h.cleanup()
 })
 
+test('全体暂停 on MyWork: every teammate works as 只在我问时 until it is turned off; each keeps its own 主动程度', async () => {
+  const h = harness()
+  const { mate } = await h.ok('POST', '/mates/create', { name: '雷达', description: '盯开源项目' })
+  await h.until(() => h.run(h.mw.store.forMate(mate.id)[0].id).status === 'done') // the intro
+  await h.ok('POST', '/mates/update', { id: mate.id, proactive: 'more' })
+  const preset = (id) => readFileSync(join(h.dir, '.agent-presets', 'mate-' + id, 'agent.cordis.yml'), 'utf8')
+  await h.until(() => /主动程度：多做一点/.test(preset(mate.id)))
+  // Only MyWork carries the switch.
+  const refused = await h.call('POST', '/mates/update', { id: mate.id, pauseAll: true })
+  assert.equal(refused.status, 400)
+  await h.ok('POST', '/mates/update', { id: 'mywork', pauseAll: true })
+  await h.until(() => /主动程度：只在用户问时/.test(preset(mate.id)) && /主动程度：只在用户问时/.test(preset('mywork')))
+  const v = h.mw.mateView(mate.id)
+  assert.deepEqual([v.pausedAll, v.proactive], [true, 'more'])
+  assert.doesNotMatch(preset(mate.id), /多做一点/)
+  await h.ok('POST', '/mates/update', { id: 'mywork', pauseAll: false })
+  await h.until(() => /主动程度：多做一点/.test(preset(mate.id)) && !/主动程度/.test(preset('mywork')))
+  assert.equal(h.mw.mateView(mate.id).pausedAll, false)
+  h.cleanup()
+})
+
 test('我停了: the third routine run in a row that fails pauses its routine and says so under that run', async () => {
   const h = harness()
   const { routine } = await h.ok('POST', '/routines/create', { mateId: 'mywork', input: '每天 9 点给我一份 Node 生态简报' })

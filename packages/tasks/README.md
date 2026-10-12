@@ -15,6 +15,7 @@ MyWork Kit v2 的核心成员：**同事模型**。设计见 [design/v2/TEAMMATE
 | `deliverables.json` | 文件（交付物）：`{ id, mateId, taskId(=runId), title, kind, markdown, data, summary, rating, verification }` |
 | `routines.json` | 例行：旧字段 + `mateId` |
 | `seen.json` | 已读：`{ $since, [mateId]: ISO }` |
+| `usage.json` | 花费（PROACTIVE.md §14）：`{ days: { 'YYYY-MM-DD': { [mateId]: { user \| routine \| self: { calls, input, output, cacheRead, cacheWrite } } } } }`，每次模型调用（含核验会话，记在被核验那次运行的桶里）按模型自己报的 usage 累加，留 62 天；每次运行另有 `usage` 合计。`GET /usage?mate=` 给今天和近 30 天，按「你叫的 / 例行 / 它自己动的」分；不带 mate 是全部同事 |
 | `mates/<id>/` | 同事的文件夹：会话的 cwd、写权限的边界、注册成 dsh 工作区；`AGENTS.md` 是它的记忆 |
 
 `$DSH_HOME/.agent-presets/mate-<id>/agent.cordis.yml`：每个同事一份生成的 preset。

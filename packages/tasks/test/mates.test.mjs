@@ -33,7 +33,9 @@ export function harness({ concurrency = 2, verify = false, home, fetch } = {}) {
   const turnApi = (s, claimed) => ({
     session: { id: s.id },
     texts: claimed.map(messageText),
-    say: (text) => ev(s, 'assistant/message', { message: { content: [{ type: 'text', text }] } }),
+    say: (text, usage) => ev(s, 'assistant/message', { message: { content: [{ type: 'text', text }] }, ...(usage ? { usage } : {}) }),
+    /** A model call that only used tools: an assistant message with usage and no text. */
+    spend: (usage) => ev(s, 'assistant/message', { message: { content: [] }, usage }),
     tool(name, args = {}) {
       ev(s, 'tool/call', { name, arguments: args })
       const def = h.mw.tools.find((t) => t.name === name)
@@ -1556,6 +1558,36 @@ test('mywork_calendar for any teammate: a link from 「- 日历：」 in AGENTS.
   await h.until(() => !!got.bad)
   assert.ok(Array.isArray(got.file.events))
   assert.match(got.bad.error, /找不到日历文件/)
+  h.cleanup()
+})
+
+test('花费: every model call’s usage lands in the ledger by teammate and bucket, and on its run', async () => {
+  const h = harness()
+  const u = (input, output, cacheRead = 0) => ({ inputTokens: input, outputTokens: output, cacheReadTokens: cacheRead })
+  h.scripts.push((t) => { t.spend(u(1000, 50, 9000)); t.say('好了', u(200, 30)) })
+  const { runId } = await h.ok('POST', '/mates/say', { id: 'mywork', text: '看一下' })
+  await h.until(() => h.run(runId).status === 'done')
+  const { routine } = await h.ok('POST', '/routines/create', { mateId: 'mywork', input: '每天 9 点给我一份简报' })
+  h.scripts.push((t) => t.say('简报\n变化：无', u(500, 100)))
+  const ran = await h.ok('POST', '/routines/run', { id: routine.id })
+  await h.until(() => h.run(ran.runId).status === 'done')
+  // On the run: the sum of its calls.
+  assert.deepEqual(h.mw.runView(h.run(runId)).usage, { calls: 2, input: 1200, output: 80, cacheRead: 9000, cacheWrite: 0 })
+  const mine = await h.ok('GET', '/usage', { mate: 'mywork' })
+  assert.deepEqual([mine.today.user.tokens, mine.today.user.calls, mine.today.routine.tokens, mine.today.self.tokens], [10280, 2, 600, 0])
+  assert.equal(mine.today.tokens, 10880); assert.deepEqual(mine.days30.user, mine.today.user)
+  assert.equal(mine.days30.cachedShare, Math.round((9000 / 10880) * 100) / 100)
+  // Another teammate counts in the all-teammates view only; its intro is something it did on its own.
+  const { mate } = await h.ok('POST', '/mates/create', { name: '雷达', description: '盯开源项目' })
+  h.scripts.push((t) => t.say('你好，我是雷达。', u(300, 20)))
+  await h.until(() => h.mw.store.forMate(mate.id).some((r) => r.status === 'done'))
+  assert.equal((await h.ok('GET', '/usage', { mate: mate.id })).today.self.tokens, 320)
+  assert.equal((await h.ok('GET', '/usage')).today.tokens, 10880 + 320)
+  assert.equal((await h.ok('GET', '/usage', { mate: 'mywork' })).today.tokens, 10880)
+  // The ledger is on disk and survives a restart; a message without usage adds nothing.
+  assert.ok(existsSync(join(h.dir, 'mywork', 'usage.json')))
+  const err = await h.call('GET', '/usage', { mate: 'nobody' })
+  assert.equal(err.status, 404)
   h.cleanup()
 })
 

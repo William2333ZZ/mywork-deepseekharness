@@ -30,7 +30,7 @@ Stop = controller.cancel (keeps the inbox) of the bound run; with no run bound, 
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { createHash, randomUUID } from 'node:crypto'
 import { dirname, extname, isAbsolute, join, relative, resolve } from 'node:path'
-import { ACTIVITY_DETAIL_MAX, ASK_DETAIL_MAX, ASK_EXPIRY_MS, ASK_KINDS, ASK_MAX_PER_TASK, ASK_OPTION_MAX, ASK_OPTIONS_MAX, ASK_OPTIONS_MIN, ASK_QUESTION_MAX, MATE_SESSION_PREFIX, pendingAsk, titleOf, ts } from './store.js'
+import { ACTIVITY_DETAIL_MAX, addUsage, ASK_DETAIL_MAX, ASK_EXPIRY_MS, ASK_KINDS, ASK_MAX_PER_TASK, ASK_OPTION_MAX, ASK_OPTIONS_MAX, ASK_OPTIONS_MIN, ASK_QUESTION_MAX, isUsage, MATE_SESSION_PREFIX, pendingAsk, titleOf, ts, usageBucket } from './store.js'
 import { defaultVerifyPrompt, parseVerdict, stepNameFor, stepWhat } from './scenarios.js'
 import { changedVerdict, parseSchedule, recordDays, routinePrompt, stripVerdict, wantsRecord, wantsSchedule } from './routines.js'
 
@@ -223,8 +223,9 @@ const isNotFound = (e) => /not[-_ ]?found/i.test(String((e && (e.code || e.name)
  *   log(msg), emit(kind, run, extra?), controller() → dsh sessionController
  *   presetFor(mate) → Promise<preset id> (writes the teammate's generated preset), workRecord(days) → string
  *   afterTurn(mateId) → called at every turn/end of a teammate (the host re-links a rewritten preset there)
+ *   usage         UsageStore (optional): every model call's provider usage, per day, teammate and bucket
  */
-export function createEngine({ ctx, store, deliverables, mates, routines, scenarios, config, log, emit, controller, presetFor, workRecord, afterTurn }) {
+export function createEngine({ ctx, store, deliverables, mates, routines, scenarios, config, log, emit, controller, presetFor, workRecord, afterTurn, usage }) {
   const turns = new Map()     // mateId → { n, runId, discard, pending: [{ kind: 'steer'|'line', requestId?, fromRunId?, text }] }
   const live = new Map()      // runId → { text, timer, stopped, timedOut }
   const handles = new Map()   // mateId → agent handle from agents.create (kept for the process lifetime)
@@ -649,6 +650,14 @@ export function createEngine({ ctx, store, deliverables, mates, routines, scenar
     }
   }
 
+  /** One model call's usage: into the ledger (the run's bucket; a turn no run claims counts as its own) and onto the run. */
+  function recordUsage(mateId, run, u) {
+    try {
+      if (usage) usage.add(mateId, run ? usageBucket(run) : 'self', u)
+      if (run) store.update(run.id, (t) => { t.usage = addUsage(t.usage, u) })
+    } catch (e) { log('usage: ' + errorText(e)) }
+  }
+
   /** Global session/event listener: teammates' turns become runs; verifier sessions hand back their verdict text. */
   function onSessionEvent(session, event) {
     try {
@@ -658,6 +667,8 @@ export function createEngine({ ctx, store, deliverables, mates, routines, scenar
         const runId = id.slice(VERIFY_PREFIX.length).replace(/-[a-z0-9]+$/, '')
         const v = verifying.get(runId)
         if (v && event.type === 'assistant/message') { const text = assistantText(event); if (text) v.text = text }
+        // The verifier's calls are spent on that run: they count where the run counts.
+        if (event.type === 'assistant/message' && isUsage(event.data && event.data.usage)) { const run = store.get(runId); if (run) recordUsage(run.mateId, run, event.data.usage) }
         return
       }
       if (!id.startsWith(MATE_SESSION_PREFIX)) return
@@ -689,9 +700,11 @@ export function createEngine({ ctx, store, deliverables, mates, routines, scenar
         }
         case 'assistant/message': {
           const text = assistantText(event)
-          if (!text) return
+          const counted = isUsage(data.usage)
+          if (!text && !counted) return
           const run = resolveTurn(mateId)
-          if (!run) return
+          if (counted) recordUsage(mateId, run, data.usage)
+          if (!text || !run) return
           const state = live.get(run.id)
           if (state) state.text = text
           store.activity(run.id, { kind: 'text', text })

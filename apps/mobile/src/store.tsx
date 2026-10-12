@@ -12,11 +12,14 @@
  *
  * The web version is paired by its own address: the phone's camera opens the computer's code, https://<relay>/#i=…&k=…&t=…,
  * and the part after `#` (never sent to any server) is read once, kept in this browser and wiped from the address bar.
+ * A tapped notification (push.web.ts, public/sw.js) opens the teammate's conversation: /?mate=…&run=… for a new window,
+ * a message to the one already open.
  */
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { AppState, BackHandler, Platform } from 'react-native'
 import { Api, clearConnection, loadConnection, login, parsePairText, saveConnection, type ActivityPayload, type Connection, type Mate } from './api'
 import type { Relay } from './relay'
+import { onPushMessages, openedFor, pushResync } from './push'
 
 /**
  * The screens (TEAMMATES.md §9.6): the teammates list · a teammate's conversation (runId: scroll to that run and
@@ -190,6 +193,17 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const refresh = useCallback(async () => { if (live.current) await loop(); else await fetchNow() }, [loop, fetchNow])
   const putMate = useCallback((m: Mate) => setMates((list) => { const l = list || []; return l.some((x) => x.id === m.id) ? l.map((x) => (x.id === m.id ? { ...x, ...m } : x)) : [...l, m] }), [])
   const dropMate = useCallback((id: string) => setMates((list) => (list ? list.filter((x) => x.id !== id) : list)), [])
+
+  // ---- notifications (the web version) ----
+  // The page a tapped notification opened, and taps / arrivals while the page is open; the computer's copy of this
+  // phone's subscription is refreshed once per connection (a browser may renew it).
+  const opened = useRef(openedFor())
+  useEffect(() => {
+    if (!api || failed) return undefined
+    pushResync(api).catch(() => {})
+    if (opened.current) { const o = opened.current; opened.current = null; nav.openMate(o.mateId, o.runId) }
+    return onPushMessages((mateId, runId) => nav.openMate(mateId, runId), () => { refresh().catch(() => {}) })
+  }, [api, failed])
 
   const store = useMemo<Store>(() => ({ mates, activity, tick, loading, error, refresh, putMate, dropMate }), [mates, activity, tick, loading, error, refresh, putMate, dropMate])
   const connValue = useMemo<Conn>(() => ({ conn, api, via: api ? api.via : 'lan', ready, failed, pair, forget, retry }), [conn, api, ready, failed, pair, forget, retry])

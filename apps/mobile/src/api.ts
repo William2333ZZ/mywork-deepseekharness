@@ -124,6 +124,8 @@ export function parsePairText(text: string): { base: string; token: string; rela
 export class ApiError extends Error { constructor(public status: number, message: string) { super(message) } }
 
 const PREFIX = '/mywork-tasks/api'
+/** The phone's push subscription lives with the kit (packages/kit/src/webpush.js); the relay lets this one path through too. */
+const KIT = '/mywork-kit/api'
 
 /**
  * Reach the paired computer and prove the pairing with one API call: through the encrypted relay (every pairing made
@@ -159,16 +161,16 @@ export class Api {
     if (r.status < 200 || r.status >= 300) throw new ApiError(r.status, r.text || `HTTP ${r.status}`)
     return { contentType: r.contentType, b64: r.b64 || (r.text ? textToB64(r.text) : '') }
   }
-  private async req<T>(path: string, body?: unknown): Promise<T> {
+  private async req<T>(path: string, body?: unknown, prefix = PREFIX): Promise<T> {
     if (this.relay) {
-      const r = await this.relay.request(body === undefined ? 'GET' : 'POST', PREFIX + path, body === undefined ? undefined : JSON.stringify(body))
+      const r = await this.relay.request(body === undefined ? 'GET' : 'POST', prefix + path, body === undefined ? undefined : JSON.stringify(body))
       let data: any = {}
       try { data = r.text ? JSON.parse(r.text) : {} } catch { /* not JSON */ }
       if (r.status < 200 || r.status >= 300) throw new ApiError(r.status, (data && data.error) || `HTTP ${r.status}`)
       return data as T
     }
     const auth = { authorization: `Bearer ${this.token}` }
-    const r = await fetch(this.base + PREFIX + path, body === undefined
+    const r = await fetch(this.base + prefix + path, body === undefined
       ? { credentials: 'omit', headers: auth }
       : { method: 'POST', credentials: 'omit', headers: { ...auth, 'content-type': 'application/json' }, body: JSON.stringify(body) })
     const data = await r.json().catch(() => ({}))
@@ -216,6 +218,12 @@ export class Api {
   routineRemove(id: string) { return this.req<{ removed: boolean }>('/routines/remove', { id }) }
   routineAck(id: string, at: string) { return this.req<{ routine: Routine }>('/routines/ack', { id, at }) }
   followupAck(mateId: string, id: string) { return this.req<{ followup: unknown }>('/followups/ack', { mateId, id }) }
+  // ---- notifications (Web Push; push.web.ts) ----
+  /** The computer's VAPID public key (base64url) and how many phones get its notifications. */
+  pushKey() { return this.req<{ key: string; phones: number }>('/push', undefined, KIT) }
+  pushSubscribe(subscription: unknown) { return this.req<{ subscribed: boolean; phones: number }>('/push/subscribe', { subscription }, KIT) }
+  pushUnsubscribe(endpoint: string) { return this.req<{ removed: boolean; phones: number }>('/push/unsubscribe', { endpoint }, KIT) }
+  pushTest(endpoint: string) { return this.req<{ result: string }>('/push/test', { endpoint }, KIT) }
 }
 
 /** Time helpers shared by the screens. */

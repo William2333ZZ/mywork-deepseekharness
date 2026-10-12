@@ -780,6 +780,16 @@ export function createEngine({ ctx, store, deliverables, mates, routines, scenar
     const t = store.get(runId)
     if (!t || !t.routineId || !routines || t.remind) return
     try { routines.markRun(t.routineId, '', { taskId: runId, deliverableId: t.deliverableIds[t.deliverableIds.length - 1] || '', changed: t.quiet === true ? false : t.error ? null : true, error: t.error || '' }) } catch (e) { log('routine receipt: ' + (e && e.message)) }
+    // 我停了: the third failure in a row pauses the routine and says so under this run (resuming is the person's call).
+    if (!t.error) return
+    try {
+      const r = routines.pauseIfFailing(t.routineId)
+      if (r) {
+        store.activity(runId, { kind: 'routine', action: 'paused', routineId: r.id, title: r.title, failures: r.pausedFor.failures })
+        emit('routine', null, { mateId: t.mateId, routine: r })
+        log(`routine ${r.id} paused after ${r.pausedFor.failures} failures`)
+      }
+    } catch (e) { log('routine pause: ' + (e && e.message)) }
   }
 
   function startVerify(runId) {

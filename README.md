@@ -99,6 +99,7 @@ The product logic follows [Rakazo](https://github.com/elie222/rakazo) (persisten
 | Reminders | Things only you can do just remind you; no teammate work. |
 | Daily / weekly reports | Written from all teammates' conversations, deliveries and verifications of the period. |
 | Manage | Profile › Routines: edit the sentence and schedule, run now, pause, delete, the last 10 runs (each jumps to its result); finished one-offs fold away. |
+| Stops when broken | A routine whose last three runs failed pauses itself and says so under the failure ("I stopped · … failed 3 times in a row"), plus one IM line; resuming is your click. Runs you stopped don't count. |
 
 ### 5. Sidebar and navigation
 
@@ -127,7 +128,9 @@ The product logic follows [Rakazo](https://github.com/elie222/rakazo) (persisten
 | Feature | What it does |
 | --- | --- |
 | In app | Results and questions pop up, except for the teammate you're looking at. |
-| IM | Feishu, DingTalk, WeCom, WeChat and others; only reminders, questions, changed routines, failures and long jobs; per-teammate switch. |
+| IM | Feishu, DingTalk, WeCom, WeChat and others; only reminders, questions, changed routines, failures and long jobs; per-teammate switch. Pick the chat on the IM page. |
+| Quiet hours | 22:00–07:30 by default (IM page): notifications in that window are held and sent as one message when it ends; reminders you timed still go out. |
+| Pause all | On MyWork's profile: every teammate works as "Only when asked" (what you ask and its routines) until you turn it off. |
 
 ## Getting started
 

@@ -1590,3 +1590,51 @@ test('花费: every model call’s usage lands in the ledger by teammate and buc
   assert.equal(err.status, 404)
   h.cleanup()
 })
+
+test('全体暂停 on MyWork: every teammate works as 只在我问时 until it is turned off; each keeps its own 主动程度', async () => {
+  const h = harness()
+  const { mate } = await h.ok('POST', '/mates/create', { name: '雷达', description: '盯开源项目' })
+  await h.until(() => h.run(h.mw.store.forMate(mate.id)[0].id).status === 'done') // the intro
+  await h.ok('POST', '/mates/update', { id: mate.id, proactive: 'more' })
+  const preset = (id) => readFileSync(join(h.dir, '.agent-presets', 'mate-' + id, 'agent.cordis.yml'), 'utf8')
+  await h.until(() => /主动程度：多做一点/.test(preset(mate.id)))
+  // Only MyWork carries the switch.
+  const refused = await h.call('POST', '/mates/update', { id: mate.id, pauseAll: true })
+  assert.equal(refused.status, 400)
+  await h.ok('POST', '/mates/update', { id: 'mywork', pauseAll: true })
+  await h.until(() => /主动程度：只在用户问时/.test(preset(mate.id)) && /主动程度：只在用户问时/.test(preset('mywork')))
+  const v = h.mw.mateView(mate.id)
+  assert.deepEqual([v.pausedAll, v.proactive], [true, 'more'])
+  assert.doesNotMatch(preset(mate.id), /多做一点/)
+  await h.ok('POST', '/mates/update', { id: 'mywork', pauseAll: false })
+  await h.until(() => /主动程度：多做一点/.test(preset(mate.id)) && !/主动程度/.test(preset('mywork')))
+  assert.equal(h.mw.mateView(mate.id).pausedAll, false)
+  h.cleanup()
+})
+
+test('我停了: the third routine run in a row that fails pauses its routine and says so under that run', async () => {
+  const h = harness()
+  const { routine } = await h.ok('POST', '/routines/create', { mateId: 'mywork', input: '每天 9 点给我一份 Node 生态简报' })
+  const runs = []
+  for (let i = 0; i < 3; i++) {
+    h.scripts.push(() => { throw new Error('源站打不开') })
+    const ran = await h.ok('POST', '/routines/run', { id: routine.id })
+    // The turn ends in a model error on purpose: wait without h.until, which rethrows script errors.
+    for (let t0 = Date.now(); h.run(ran.runId).status !== 'done';) { assert.ok(Date.now() - t0 < 3000, 'timed out'); await new Promise((res) => setTimeout(res, 5)) }
+    h.scriptErrors.length = 0
+    runs.push(ran.runId)
+  }
+  const r = h.mw.routines.get(routine.id)
+  assert.equal(r.enabled, false); assert.equal(r.pausedFor.failures, 3); assert.equal(r.pausedFor.error, '源站打不开')
+  // Only the third run carries the line; the first two are plain failures.
+  assert.deepEqual(runs.map((id) => h.run(id).activity.filter((a) => a.kind === 'routine' && a.action === 'paused').length), [0, 0, 1])
+  const { runs: thread } = await h.ok('GET', '/mates/thread', { id: 'mywork' })
+  const last = thread.find((x) => x.id === runs[2])
+  assert.deepEqual(last.activity.find((a) => a.action === 'paused'), { ...last.activity.find((a) => a.action === 'paused'), kind: 'routine', routineId: routine.id, title: routine.title, failures: 3 })
+  // The panel reads why it is off; resuming clears it.
+  const [listed] = (await h.ok('GET', '/routines', { mate: 'mywork' })).items
+  assert.equal(listed.pausedFor.failures, 3)
+  const { routine: back } = await h.ok('POST', '/routines/enable', { id: routine.id, enabled: true })
+  assert.equal(back.enabled, true); assert.equal(back.pausedFor, undefined)
+  h.cleanup()
+})

@@ -312,6 +312,15 @@ test('MyWork created a teammate: a newMate entry where it happened; the first jo
   assert.equal(threadOf(run())[0].via, undefined)
 })
 
+test('跟进: the line under the turn that opened it, and a card that brings it back with your words', () => {
+  const r = run({ activity: [{ kind: 'text', at: at(5), text: '好，我先把对照备上。' }, { kind: 'followup', at: at(6), id: 'fu1', fk: 'yours', text: '细看那篇论文', dueLabel: '10/19 周一 08:30', fallback: '对照留在成稿/', state: 'open', count: 0 }] })
+  const f = threadOf(r).find((e) => e.kind === 'followup')
+  assert.deepEqual([f.id, f.fk, f.text, f.dueLabel, f.state, f.count], ['fu1', 'yours', '细看那篇论文', '10/19 周一 08:30', 'open', 0])
+  const card = threadOf(run({ trigger: 'routine', remind: { routineId: '', title: '跟进 · 细看那篇论文', at: at(0), acked: false, followupId: 'fu1', quote: '先放着，下周再细看' } }))
+  assert.deepEqual(kinds(card), ['remind'])
+  assert.deepEqual([card[0].followupId, card[0].quote, card[0].title], ['fu1', '先放着，下周再细看', '跟进 · 细看那篇论文'])
+})
+
 test('a failure that paused its routine is followed by one 我停了 line that opens the routine', () => {
   const r = run({ trigger: 'routine', routineId: 'rt1', routineTitle: '简报', error: '源站打不开', activity: [{ kind: 'routine', action: 'paused', at: at(60), routineId: 'rt1', title: '简报', failures: 3 }] })
   const list = threadOf(r)

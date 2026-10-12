@@ -118,7 +118,9 @@ export type ThreadEntry =
   | { kind: 'text'; key: string; at: string; text: string }
   | { kind: 'ask'; key: string; at: string; id: string; status: AskStatus; question: string; askKind: AskKind; options: string[]; detail: string; answer: string; answerable: boolean }
   | { kind: 'scheduled'; key: string; at: string; routineId: string; text: string }
-  | { kind: 'remind'; key: string; at: string; routineId: string; title: string; text: string; acked: boolean }
+  | { kind: 'remind'; key: string; at: string; routineId: string; title: string; text: string; acked: boolean; followupId?: string }
+  /** A 跟进 opened in this turn (记下了 · 10/19 周一 08:30), or how it ended. */
+  | { kind: 'followup'; key: string; at: string; text: string }
   | { kind: 'auto'; key: string; at: string }
   | { kind: 'working'; key: string; at: string; step: string }
   | { kind: 'failed'; key: string; at: string; reason: string; cancelled: boolean }
@@ -195,6 +197,7 @@ export function runEntries(run: Run): ThreadEntry[] {
     }
     for (const e of seg.entries) {
       if (e.kind === 'routine' && (!e.action || e.action === 'created')) body.push({ kind: 'scheduled', key: k('r' + (e.routineId || seq++)), at: e.at, routineId: e.routineId, text: ['已安排', [e.scheduleLabel, e.title].filter(Boolean).join(' ')].filter(Boolean).join(' · ') })
+      else if (e.kind === 'followup' && e.id) body.push({ kind: 'followup', key: k('fu' + e.id), at: e.at, text: e.state === 'closed' ? `闭上了 · ${e.note || ''}` : e.state === 'dropped' ? `放下了 · ${e.note || '不用记'}` : e.count ? `跟进过 · ${e.dueLabel || ''}` : `记下了 · ${e.dueLabel || ''} ${e.fk === 'mine' ? '我来做' : '提你'}` })
       else if (e.kind === 'remind') body.push({ kind: 'remind', key: k('n' + seq++), at: e.at, routineId: e.routineId, title: String(e.title || e.text || ''), text: String(e.text || ''), acked: !!(e.acked || e.ackedAt) })
       else if (e.kind === 'user' && e.auto) body.push({ kind: 'auto', key: k('x' + seq++), at: e.at })
       else if (e.kind === 'mate' && e.action === 'created' && e.mateId) body.push({ kind: 'newMate', key: k('n' + e.mateId), at: e.at, mateId: e.mateId, name: String(e.name || '') })
@@ -226,12 +229,12 @@ export function runEntries(run: Run): ThreadEntry[] {
 }
 
 /** A run that is only a reminder firing (the server may send it as its own run; web remindOf). */
-function remindOf(r: Run): { at: string; routineId: string; title: string; text: string; acked: boolean } | null {
-  const x = r as Run & { kind?: string; remind?: { routineId?: string; title?: string; text?: string; at?: string; acked?: boolean; ackedAt?: string }; acked?: boolean; ackedAt?: string }
+function remindOf(r: Run): { at: string; routineId: string; title: string; text: string; acked: boolean; followupId?: string } | null {
+  const x = r as Run & { kind?: string; remind?: { routineId?: string; title?: string; text?: string; at?: string; acked?: boolean; ackedAt?: string; followupId?: string; quote?: string }; acked?: boolean; ackedAt?: string }
   if (!(x.kind === 'remind' || (x.remind && typeof x.remind === 'object') || (x.trigger as string) === 'remind')) return null
   const m = x.remind && typeof x.remind === 'object' ? x.remind : {}
   const title = String(m.title || x.routineTitle || m.text || x.input || '')
-  return { at: String(m.at || x.createdAt || ''), routineId: String(m.routineId || x.routineId || ''), title, text: String(m.text || x.input || ''), acked: !!(m.acked || m.ackedAt || x.acked || x.ackedAt) }
+  return { at: String(m.at || x.createdAt || ''), routineId: String(m.routineId || x.routineId || ''), title, text: m.followupId ? (m.quote ? '你说过：' + m.quote : '') : String(m.text || x.input || ''), acked: !!(m.acked || m.ackedAt || x.acked || x.ackedAt), ...(m.followupId ? { followupId: String(m.followupId) } : {}) }
 }
 
 /** The newest pending question across the loaded runs (what the dock answers). */

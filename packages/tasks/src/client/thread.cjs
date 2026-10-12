@@ -22,7 +22,10 @@
  *   scheduled { routineId, title, scheduleLabel }  activity { kind:'routine', action:'created' }: 「已安排 · 每天 19:00 写日报」
  *   newMate   { mateId, name }                 activity { kind:'mate', action:'created' }: MyWork created a teammate (a card
  *                                              that opens it; the caller reads its current name from the roster)
- *   remind    { routineId, title, acked }      a reminder card (activity { kind:'remind' }, or a whole synthetic remind run)
+ *   remind    { routineId, title, acked }      a reminder card (activity { kind:'remind' }, or a whole synthetic remind run);
+ *                                              a 跟进 coming back is one too, with followupId and quote (your words)
+ *   followup  { id, fk, text, dueLabel, fallback, state, count, note }  (fk: yours | mine)  activity { kind:'followup' }: the line under the turn
+ *                                              that opened a 跟进 — 记下了 · 10/19 周一 08:30 (open), 闭上了 / 放下了 after
  *   auto      {}                               the 24 h resume (the user line with auto: true): one muted line
  *   onboard   { e }                            a template teammate's 上岗卡 (activity { kind:'onboard' })
  *   subscribe { e }                            「它会主动做的」: the subscription card
@@ -81,7 +84,7 @@ function remindOf(run) {
   const r = run || {}
   if (r.kind === 'remind' || (r.remind && typeof r.remind === 'object') || r.trigger === 'remind') {
     const x = r.remind && typeof r.remind === 'object' ? r.remind : {}
-    return { routineId: str(x.routineId || r.routineId), title: str(x.title || r.routineTitle || x.text || r.input), at: str(x.at || r.createdAt), acked: !!(x.acked || x.ackedAt || r.acked || r.ackedAt) }
+    return { routineId: str(x.routineId || r.routineId), title: str(x.title || r.routineTitle || x.text || r.input), at: str(x.at || r.createdAt), acked: !!(x.acked || x.ackedAt || r.acked || r.ackedAt), ...(x.followupId ? { followupId: str(x.followupId), quote: str(x.quote) } : {}) }
   }
   return null
 }
@@ -136,6 +139,7 @@ function threadOf(run, deliverables) {
     for (const e of seg.entries) {
       if (e.kind === 'user' && e.auto) body.push({ kind: 'auto', key: 'r' + seq++, at: str(e.at) })
       else if (e.kind === 'routine' && (e.action === 'created' || !e.action)) body.push({ kind: 'scheduled', key: 's' + (e.routineId || seq++), at: str(e.at), routineId: str(e.routineId || e.id), title: str(e.title), scheduleLabel: str(e.scheduleLabel) })
+      else if (e.kind === 'followup' && str(e.id)) body.push({ kind: 'followup', key: 'f' + e.id, at: str(e.at), id: str(e.id), fk: str(e.fk), text: str(e.text), dueLabel: str(e.dueLabel), fallback: str(e.fallback), state: str(e.state) || 'open', count: Number(e.count) || 0, note: str(e.note) })
       else if (e.kind === 'remind') body.push({ kind: 'remind', key: 'm' + seq++, at: str(e.at), routineId: str(e.routineId || e.id), title: str(e.title || e.text), acked: !!(e.acked || e.ackedAt) })
       else if (e.kind === 'mate' && e.action === 'created' && str(e.mateId)) body.push({ kind: 'newMate', key: 'n' + e.mateId, at: str(e.at), mateId: str(e.mateId), name: str(e.name) })
       else if (e.kind === 'onboard' || e.kind === 'subscribe') cards.push({ kind: e.kind, key: e.kind + ':' + (e.id || seq++), at: str(e.at), e })

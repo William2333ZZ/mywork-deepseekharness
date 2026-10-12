@@ -63,6 +63,7 @@ The product logic follows [Rakazo](https://github.com/elie222/rakazo) (persisten
 | Its own computer | A private folder per teammate as working directory and write boundary; the local real Chrome when it needs the web. |
 | Sign-ins | Much research sits behind a login: in Settings › Scenarios & members › Browser, import the cookies of sites you are signed into in your own browser (a Cookie-Editor JSON export, cookies.txt or `name=value`), and the teammates' Chrome is signed in; you can also hand cookies to a teammate in the conversation. They only go into this local Chrome, never shown or uploaded. |
 | Memory | Stable preferences go into `AGENTS.md` in its folder and are read every turn; you can also say "remember …". |
+| Follow-ups | Put something off ("leave it, I'll look next week") and the teammate notes it under that turn; on that day, at your reading time, a card brings your words back. When it promises to do something later, the job comes back to it on that day. "Don't keep it" drops one; none stays open forever. |
 | Profile | Click the name: a profile card (avatar, name, title, type, edited in place), the job, routines, what it remembers, pin and notifications, delete. |
 | Spend | On the profile: model tokens today and over 30 days, split into what you asked, routines and what it did on its own (MyWork's profile shows every teammate together), from the model's own usage reports. |
 

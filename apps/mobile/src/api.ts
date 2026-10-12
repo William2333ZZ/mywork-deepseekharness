@@ -38,7 +38,9 @@ export type Activity =
   | { at: string; kind: 'tool'; name: string; detail?: string; ok?: boolean; result?: string }
   | { at: string; kind: 'verify'; text: string }
   | { at: string; kind: 'routine'; action: 'created' | 'paused' | string; routineId: string; title: string; scheduleLabel?: string; failures?: number }
-  | { at: string; kind: 'remind'; routineId: string; title: string; text?: string; acked?: boolean; ackedAt?: string }
+  | { at: string; kind: 'remind'; routineId: string; title: string; text?: string; acked?: boolean; ackedAt?: string; followupId?: string; quote?: string }
+  /** A 跟进 opened in this run, as it stands now (fk: yours | mine). */
+  | { at: string; kind: 'followup'; id: string; fk?: string; text?: string; dueLabel?: string; state?: string; count?: number; note?: string }
   /** MyWork created a teammate in this run (mywork_mate_create). */
   | { at: string; kind: 'mate'; action: 'created' | string; mateId: string; name?: string }
   | AskActivity
@@ -213,6 +215,7 @@ export class Api {
   routineEnable(id: string, enabled: boolean) { return this.req<{ routine: Routine }>('/routines/enable', { id, enabled }) }
   routineRemove(id: string) { return this.req<{ removed: boolean }>('/routines/remove', { id }) }
   routineAck(id: string, at: string) { return this.req<{ routine: Routine }>('/routines/ack', { id, at }) }
+  followupAck(mateId: string, id: string) { return this.req<{ followup: unknown }>('/followups/ack', { mateId, id }) }
 }
 
 /** Time helpers shared by the screens. */

@@ -87,6 +87,16 @@ MyWork Kit v2 的核心成员：**同事模型**。设计见 [design/v2/TEAMMATE
 - `mywork_hand_to({ to, text, files? })`：交给另一位同事；文件拷进它的 `dropDir`；它那边排一句用户话（`fromMate`，显示「<名字> 转交」）。
 - **未经你审**（Simon Willison）：报告标题下有「> 未经你审」时，阅读视图里多一个「审过了」（`POST /mates/review { id, path }`，只改它文件夹里的 .md），换成「> 审过：日期」。
 
+## 跟进
+
+PROACTIVE.md §4：同事替你记着、将来某天要拿回来的事（`src/followups.js`）。不是任务列表：没有页面列它，不计数，只能由同事在对话里记（`mywork_followup`），例行运行里不能记。
+
+- **两种**：`yours`，你把一件事往后放（「先放着，下周再细看」）：到那天你的读的时间（MyWork 的 `readTime`，默认 08:30），对话里落一张引用你原话的提醒卡（合成的已完成运行，`remind.followupId` / `quote`，和例行的提醒卡同一种），点「知道了」（`POST /followups/ack { mateId, id }`）就闭上；拿回来以后到最晚日（默认那天之后 7 天）还没回，就按开的时候写的默认放下。`mine`，同事答应以后再做的（「收盘后我再对一次」）：到那天交回给它，成为一次 `trigger: 'system'`、带 `followupId` 的运行（提示是 `followupPrompt`，对话里只显示它的回话），这次运行结束就闭上。
+- **存**：`mates/<id>/.mywork/跟进.jsonl`，只追加写，同一个 id 最新一行为准。`{ id, kind, text, quote, runId, due, latest, fallback, count, state: open | closed | dropped, note }`。同事自己的同时最多 10 条，超出时最早的那条放下；你的不设上限。
+- **查**：调度器每 30 秒的 tick 里 `followupTick()` 只比时间，不叫模型。
+- **露面**：开的那一轮下面一行 `{ kind: 'followup', id }`，读出来带上它现在的样子：「记下了 · 10/19 周一 08:30 提你 · 不回的话：…」[不用记]（`POST /followups/drop`），之后变成「跟进过」「闭上了 · …」「放下了 · …」。`GET /followups?mate=` 列出全部。工具：`mywork_followup`、`mywork_followups`、`mywork_followup_close`。
+- 第一版没有：最后一次提醒（最晚日前 3 天）、等外面的事件、日子和迁移几类、你不在时顺延。
+
 ## 例行
 
 例行属于一位同事（`mateId`），结果回到它的对话。到点（调度器每 30 秒）：

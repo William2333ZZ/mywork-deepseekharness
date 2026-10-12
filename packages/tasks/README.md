@@ -15,6 +15,7 @@ MyWork Kit v2 的核心成员：**同事模型**。设计见 [design/v2/TEAMMATE
 | `deliverables.json` | 文件（交付物）：`{ id, mateId, taskId(=runId), title, kind, markdown, data, summary, rating, verification }` |
 | `routines.json` | 例行：旧字段 + `mateId` |
 | `seen.json` | 已读：`{ $since, [mateId]: ISO }` |
+| `usage.json` | 花费（PROACTIVE.md §14）：`{ days: { 'YYYY-MM-DD': { [mateId]: { user \| routine \| self: { calls, input, output, cacheRead, cacheWrite } } } } }`，每次模型调用（含核验会话，记在被核验那次运行的桶里）按模型自己报的 usage 累加，留 62 天；每次运行另有 `usage` 合计。`GET /usage?mate=` 给今天和近 30 天，按「你叫的 / 例行 / 它自己动的」分；不带 mate 是全部同事 |
 | `mates/<id>/` | 同事的文件夹：会话的 cwd、写权限的边界、注册成 dsh 工作区；`AGENTS.md` 是它的记忆 |
 
 `$DSH_HOME/.agent-presets/mate-<id>/agent.cordis.yml`：每个同事一份生成的 preset。
@@ -86,12 +87,25 @@ MyWork Kit v2 的核心成员：**同事模型**。设计见 [design/v2/TEAMMATE
 - `mywork_hand_to({ to, text, files? })`：交给另一位同事；文件拷进它的 `dropDir`；它那边排一句用户话（`fromMate`，显示「<名字> 转交」）。
 - **未经你审**（Simon Willison）：报告标题下有「> 未经你审」时，阅读视图里多一个「审过了」（`POST /mates/review { id, path }`，只改它文件夹里的 .md），换成「> 审过：日期」。
 
+## 跟进
+
+PROACTIVE.md §4：同事替你记着、将来某天要拿回来的事（`src/followups.js`）。不是任务列表：没有页面列它，不计数，只能由同事在对话里记（`mywork_followup`），例行运行里不能记。
+
+- **两种**：`yours`，你把一件事往后放（「先放着，下周再细看」）：到那天你的读的时间（MyWork 的 `readTime`，默认 08:30），对话里落一张引用你原话的提醒卡（合成的已完成运行，`remind.followupId` / `quote`，和例行的提醒卡同一种），点「知道了」（`POST /followups/ack { mateId, id }`）就闭上；拿回来以后到最晚日（默认那天之后 7 天）还没回，就按开的时候写的默认放下。`mine`，同事答应以后再做的（「收盘后我再对一次」）：到那天交回给它，成为一次 `trigger: 'system'`、带 `followupId` 的运行（提示是 `followupPrompt`，对话里只显示它的回话），这次运行结束就闭上。
+- **存**：`mates/<id>/.mywork/跟进.jsonl`，只追加写，同一个 id 最新一行为准。`{ id, kind, text, quote, runId, due, latest, fallback, count, state: open | closed | dropped, note }`。同事自己的同时最多 10 条，超出时最早的那条放下；你的不设上限。
+- **查**：调度器每 30 秒的 tick 里 `followupTick()` 只比时间，不叫模型。
+- **露面**：开的那一轮下面一行 `{ kind: 'followup', id }`，读出来带上它现在的样子：「记下了 · 10/19 周一 08:30 提你 · 不回的话：…」[不用记]（`POST /followups/drop`），之后变成「跟进过」「闭上了 · …」「放下了 · …」。`GET /followups?mate=` 列出全部。工具：`mywork_followup`、`mywork_followups`、`mywork_followup_close`。
+- 第一版没有：最后一次提醒（最晚日前 3 天）、等外面的事件、日子和迁移几类、你不在时顺延。
+
 ## 例行
 
 例行属于一位同事（`mateId`），结果回到它的对话。到点（调度器每 30 秒）：
 
 - **做事**：建一次 `trigger: 'routine'` 的运行（带 `routineId`、`routineTitle`），把 `routinePrompt()` 交进**同事自己的会话**（排队），之后的追问看得到例行的结果。回复末尾的「变化：有 / 无」由引擎读走并从对话里去掉；「变化：无」的运行 `quiet: true`：留在例行的运行记录里，不进对话、不亮未读、不推 IM；它交的文件不进文件页和搜索，也不起核验会话。日报 / 周报 / 月报永远出，素材是**所有同事**那段时间的运行（`workRecord`）。
 - **提醒**：不叫醒同事。沿用 `fired[]` / `ack` 机制，同时往同事对话里放一个**合成的已完成运行**（存进 tasks.json，和别的运行一样分页）：`{ trigger: 'routine', status: 'done', routineId, routineTitle, remind: { routineId, title, at, acked }, activity: [{ kind: 'remind', routineId, title, at, acked }] }`，`at` 与 `fired[]` 里那一条相同。`POST /routines/ack { id, at }` 把两边都标成已知道。客户端见到 `run.remind` 是对象，就只画一张提醒卡（不画例行小字）。
+
+- **我停了**（PROACTIVE.md §11）：做事的例行最近 3 次运行都失败（你停下的、服务重启打断的不算，也不打断连续）就自动暂停：`enabled: false`，`pausedFor { at, failures, error }`；第 3 次失败的那次运行里多一条 `{ kind: 'routine', action: 'paused', routineId, title, failures }`，对话里在失败下面画一行「我停了 · 简报 连续 3 次失败，已暂停，去恢复」，点开就是右栏里这条例行；IM 的失败通知末尾加一句。恢复要你点（`POST /routines/enable` 或改时间），同时清掉 `pausedFor`。提醒不会停。
+- **上限 200 条**：满了再建，先挪掉最旧的一条已经不跑的（跑完的一次性、暂停的）；全都在跑就拒绝（400「例行已满」），不会悄悄删掉在跑的例行。
 
 例行运行时不能建例行（工具报错）。
 

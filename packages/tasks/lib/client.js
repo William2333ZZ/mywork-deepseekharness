@@ -110,7 +110,10 @@ module.exports = { render, inline, esc }
  *   scheduled { routineId, title, scheduleLabel }  activity { kind:'routine', action:'created' }: 「已安排 · 每天 19:00 写日报」
  *   newMate   { mateId, name }                 activity { kind:'mate', action:'created' }: MyWork created a teammate (a card
  *                                              that opens it; the caller reads its current name from the roster)
- *   remind    { routineId, title, acked }      a reminder card (activity { kind:'remind' }, or a whole synthetic remind run)
+ *   remind    { routineId, title, acked }      a reminder card (activity { kind:'remind' }, or a whole synthetic remind run);
+ *                                              a 跟进 coming back is one too, with followupId and quote (your words)
+ *   followup  { id, fk, text, dueLabel, fallback, state, count, note }  (fk: yours | mine)  activity { kind:'followup' }: the line under the turn
+ *                                              that opened a 跟进 — 记下了 · 10/19 周一 08:30 (open), 闭上了 / 放下了 after
  *   auto      {}                               the 24 h resume (the user line with auto: true): one muted line
  *   onboard   { e }                            a template teammate's 上岗卡 (activity { kind:'onboard' })
  *   subscribe { e }                            「它会主动做的」: the subscription card
@@ -119,6 +122,8 @@ module.exports = { render, inline, esc }
  *   queued    {}                               the run has not started: it waits behind the teammate's current run
  *   stopped   {}                               a done run you stopped (error 已停止 / 已取消): a centred 「已停止」, not a failure
  *   failed    { reason }                       a done run with any other error
+ *   paused    { routineId, title, failures }   after a failure that paused its routine (activity { kind:'routine',
+ *                                              action:'paused' }): 「我停了 · 日报连续 3 次失败，已暂停」, opens the routine
  *
  * A segment is what one user line started: the run's input opens the first, each steer the next. The line that answers
  * a question (askId) and the 24 h resume (auto) do not open a segment and are not bubbles: the question shows its answer.
@@ -167,7 +172,7 @@ function remindOf(run) {
   const r = run || {}
   if (r.kind === 'remind' || (r.remind && typeof r.remind === 'object') || r.trigger === 'remind') {
     const x = r.remind && typeof r.remind === 'object' ? r.remind : {}
-    return { routineId: str(x.routineId || r.routineId), title: str(x.title || r.routineTitle || x.text || r.input), at: str(x.at || r.createdAt), acked: !!(x.acked || x.ackedAt || r.acked || r.ackedAt) }
+    return { routineId: str(x.routineId || r.routineId), title: str(x.title || r.routineTitle || x.text || r.input), at: str(x.at || r.createdAt), acked: !!(x.acked || x.ackedAt || r.acked || r.ackedAt), ...(x.followupId ? { followupId: str(x.followupId), quote: str(x.quote) } : {}) }
   }
   return null
 }
@@ -222,6 +227,7 @@ function threadOf(run, deliverables) {
     for (const e of seg.entries) {
       if (e.kind === 'user' && e.auto) body.push({ kind: 'auto', key: 'r' + seq++, at: str(e.at) })
       else if (e.kind === 'routine' && (e.action === 'created' || !e.action)) body.push({ kind: 'scheduled', key: 's' + (e.routineId || seq++), at: str(e.at), routineId: str(e.routineId || e.id), title: str(e.title), scheduleLabel: str(e.scheduleLabel) })
+      else if (e.kind === 'followup' && str(e.id)) body.push({ kind: 'followup', key: 'f' + e.id, at: str(e.at), id: str(e.id), fk: str(e.fk), text: str(e.text), dueLabel: str(e.dueLabel), fallback: str(e.fallback), state: str(e.state) || 'open', count: Number(e.count) || 0, note: str(e.note) })
       else if (e.kind === 'remind') body.push({ kind: 'remind', key: 'm' + seq++, at: str(e.at), routineId: str(e.routineId || e.id), title: str(e.title || e.text), acked: !!(e.acked || e.ackedAt) })
       else if (e.kind === 'mate' && e.action === 'created' && str(e.mateId)) body.push({ kind: 'newMate', key: 'n' + e.mateId, at: str(e.at), mateId: str(e.mateId), name: str(e.name) })
       else if (e.kind === 'onboard' || e.kind === 'subscribe') cards.push({ kind: e.kind, key: e.kind + ':' + (e.id || seq++), at: str(e.at), e })
@@ -254,6 +260,8 @@ function threadOf(run, deliverables) {
   } else if (done && r.error) {
     if (isStopped(r.error)) out.push({ kind: 'stopped', key: 'stopped', at: str(r.finishedAt) })
     else out.push({ kind: 'failed', key: 'failed', at: str(r.finishedAt), reason: str(r.error) })
+    const p = activity.find((e) => e && e.kind === 'routine' && e.action === 'paused')
+    if (p) out.push({ kind: 'paused', key: 'paused', at: str(p.at || r.finishedAt), routineId: str(p.routineId || r.routineId), title: str(p.title || r.routineTitle), failures: Number(p.failures) || 0 })
   }
   return out
 }
@@ -632,6 +640,7 @@ const zh = {
   working: '在干活', workingAria: '{name} 正在工作', file: '文件', loadEarlier: '加载更早', process: '过程', phases: '步', times: '次', toolFailed: '失败', none2: '无',
   ratingGood: '有用', ratingBad: '没用', failedTitle: '失败', stopped: '已停止', queued: '排队',
   scheduled: '已安排', viaMywork: 'MyWork 转交', mateGone: '已删除', remindCard: '提醒', gotIt: '知道了', acked: '已知道',
+  fuYouSaid: '你说过：{q}', fuOpen: '记下了 · {d} 提你', fuOpenMine: '记下了 · {d} 我来做', fuFallback: '不回的话：{f}', fuDrop: '不用记', fuClosed: '闭上了 · {n}', fuDropped: '放下了 · {n}', fuBrought: '跟进过 · {d}',
   answeredLine: '已回答：{a}', answerBelow: '在下面的输入框回答', askClosed: '不再等待', askAuto: '24 小时没有回答，按合理假设继续',
   allowOnce: '允许一次', deny: '拒绝', takeoverGo: '去 Chrome 里处理', takeoverDone: '我做完了',
   computer: '电脑', routines: '例行', noFiles: '还没有文件。', folderEmpty: '文件夹还是空的。它写的表、抓的网页、做的文件都放在这里。', noRoutines: '还没有例行。',
@@ -641,7 +650,7 @@ const zh = {
   edit: '编辑', save: '保存', titlePh: '加一个头衔', changeLook: '换头像', dutyHint: '它每次干活前都会先读这段。⌘↵ 保存。',
   dutyEmpty: '还没写职责。写清楚它负责什么，它每次干活前都会读。', memory: '它记住的', memoryEmpty: '还没记住什么。跟它说「记住……」，就会记在这里。',
   newRoutine: '新例行', newRoutinePh: '说一句带时间的话，例如：每天 9 点给我一份简报',
-  nextRun: '下次', paused: '已暂停', ended: '已结束', runNow: '现在跑一次', pause: '暂停', resume: '恢复', remove: '删除', cancel: '取消',
+  nextRun: '下次', paused: '已暂停', pausedFailing: '连续失败，已暂停', pausedLine: '我停了 · {t} 连续 {n} 次失败，已暂停，去恢复', ended: '已结束', runNow: '现在跑一次', pause: '暂停', resume: '恢复', remove: '删除', cancel: '取消',
   removeRoutineAsk: '删除这个例行？', removeMate: '删除同事', removeMateAsk: '删除这位同事、它的对话和例行？',
   runResult: '有结果', runQuiet: '没有变化', runFailed: '失败', runFired: '提醒', runRunning: '在跑', neverRan: '还没跑过',
   name: '名字', title: '头衔', duty: '职责', pinned: '置顶', notify: '通知', group: '类型', groupPh: '其他', noType: '其他（不分类型）',
@@ -666,7 +675,9 @@ const zh = {
   hoDelivered: '交了 {n} 份', hoNeeds: '需要你 {n}', hoDid: '自己做了 {n} 件', hoQuiet: '看过没出声 {n} 次', hoFailed: '失败 {n}',
   todayTitle: '今天 · {d}', todayNeeds: '需要你 {n}', todayChanges: '变化 {n}', todayDid: '它们做了 {n} 件', todayQuiet: '没开口：{s}', todayLate: '补', todayNone: '昨天以来没有要你看的。', todayMore: '还有 {n} 条', todayUpdated: '{t} 更新',
   kAsk: '等你答', kRemind: '提醒', kFailed: '失败', kFile: '没打开',
+  usage: '花费', usageAll: '花费 · 全部同事', usageToday: '今天', usage30: '近 30 天', uUser: '你叫的', uRoutine: '例行', uSelf: '它自己动的', usageNone: '还没有', usageHint: '模型 token 数，来自模型返回的用量；缓存命中 {p}%。', tok: '{n} token', tokBig: '{n} 万 token', tokStep: '10000',
   proactive: '主动程度', pAsk: '只在我问时', pDefault: '默认', pMore: '多做一点', proactiveHint: '管它不等你开口时做多少。能做什么不设限。',
+  pauseAll: '全体暂停', pauseAllHint: '所有同事都按「只在我问时」做：只做你叫它做的和例行。再点一下恢复各自的主动程度。', pausedAllHint: '全体暂停中：现在按「只在我问时」做。在 MyWork 的资料里恢复。',
   listSec: '清单', listEmpty: '还没有清单。跟它说你要它盯什么，它会记在 清单.csv 里。',
   judgeSec: '判断', judgeEmpty: '还没有判断。你说出的看法、假设和决定，它会记在 判断.csv 里。', toReview: '待重看 {n}',
   rules: '规矩', rulesEmpty: '还没有规矩。纠正它一次，或说一句「以后都……」，它会记一条。',
@@ -688,6 +699,7 @@ const en = {
   working: 'Working', workingAria: '{name} is working', file: 'File', loadEarlier: 'Load earlier', process: 'Process', phases: 'steps', times: 'calls', toolFailed: 'failed', none2: 'none',
   ratingGood: 'Useful', ratingBad: 'Not useful', failedTitle: 'Failed', stopped: 'Stopped', queued: 'Queued',
   scheduled: 'Scheduled', viaMywork: 'Handed over by MyWork', mateGone: 'deleted', remindCard: 'Reminder', gotIt: 'Got it', acked: 'Seen',
+  fuYouSaid: 'You said: {q}', fuOpen: 'Noted · back to you {d}', fuOpenMine: 'Noted · I\'ll do it {d}', fuFallback: 'If you don\'t reply: {f}', fuDrop: 'Don\'t keep it', fuClosed: 'Closed · {n}', fuDropped: 'Let go · {n}', fuBrought: 'Followed up · {d}',
   answeredLine: 'Answered: {a}', answerBelow: 'Answer in the box below', askClosed: 'No longer waiting', askAuto: 'No answer in 24 hours, continued on reasonable assumptions',
   allowOnce: 'Allow once', deny: 'Deny', takeoverGo: 'Handle it in Chrome', takeoverDone: 'Done',
   computer: 'Computer', routines: 'Routines', noFiles: 'No files yet.', folderEmpty: 'The folder is empty. Its tables, saved pages and files land here.', noRoutines: 'No routines yet.',
@@ -697,7 +709,7 @@ const en = {
   edit: 'Edit', save: 'Save', titlePh: 'Add a title', changeLook: 'Change avatar', dutyHint: 'It reads this before every job. ⌘↵ saves.',
   dutyEmpty: 'No job written yet. Say what it is responsible for; it reads this before every job.', memory: 'What it remembers', memoryEmpty: 'Nothing yet. Tell it “remember …” and it lands here.',
   newRoutine: 'New routine', newRoutinePh: 'A sentence with a time, e.g. every day at 9 send me a brief',
-  nextRun: 'Next', paused: 'Paused', ended: 'Ended', runNow: 'Run now', pause: 'Pause', resume: 'Resume', remove: 'Delete', cancel: 'Cancel',
+  nextRun: 'Next', paused: 'Paused', pausedFailing: 'Paused after failures', pausedLine: 'I stopped · {t} failed {n} times in a row and is paused; resume it', ended: 'Ended', runNow: 'Run now', pause: 'Pause', resume: 'Resume', remove: 'Delete', cancel: 'Cancel',
   removeRoutineAsk: 'Delete this routine?', removeMate: 'Delete teammate', removeMateAsk: 'Delete this teammate, its conversation and routines?',
   runResult: 'Result', runQuiet: 'No change', runFailed: 'Failed', runFired: 'Reminder', runRunning: 'Running', neverRan: 'Never ran',
   name: 'Name', title: 'Title', duty: 'Job', pinned: 'Pinned', notify: 'Notifications', group: 'Type', groupPh: 'Other', noType: 'Other (no type)',
@@ -722,7 +734,9 @@ const en = {
   hoDelivered: '{n} file(s) delivered', hoNeeds: '{n} need you', hoDid: '{n} things done on its own', hoQuiet: 'checked quietly {n} times', hoFailed: '{n} failed',
   todayTitle: 'Today · {d}', todayNeeds: 'Needs you {n}', todayChanges: 'Changes {n}', todayDid: 'They did {n} things', todayQuiet: 'Quiet: {s}', todayLate: 'late', todayNone: 'Nothing for you since yesterday.', todayMore: '{n} more', todayUpdated: 'updated {t}',
   kAsk: 'waiting', kRemind: 'reminder', kFailed: 'failed', kFile: 'unopened',
+  usage: 'Spend', usageAll: 'Spend · all teammates', usageToday: 'Today', usage30: 'Last 30 days', uUser: 'You asked', uRoutine: 'Routines', uSelf: 'On its own', usageNone: 'nothing yet', usageHint: 'Model tokens, as the model reported them; {p}% served from cache.', tok: '{n} tokens', tokBig: '{n}k tokens', tokStep: '1000',
   proactive: 'Initiative', pAsk: 'Only when asked', pDefault: 'Default', pMore: 'A bit more', proactiveHint: 'How much it does before you ask. What it can do is not limited.',
+  pauseAll: 'Pause all', pauseAllHint: 'Every teammate works as "Only when asked": what you ask and its routines. Turn it off to restore each one\'s initiative.', pausedAllHint: 'Everyone is paused: it works as "Only when asked" for now. Resume from MyWork\'s profile.',
   listSec: 'Watchlist', listEmpty: 'No watchlist yet. Tell it what to watch; it keeps 清单.csv.',
   judgeSec: 'Judgments', judgeEmpty: 'No judgments yet. Your views, hypotheses and decisions go into 判断.csv.', toReview: '{n} to review',
   rules: 'Rules', rulesEmpty: 'No rules yet. Correct it once, or say “from now on…”, and it notes one.',
@@ -2091,9 +2105,10 @@ function makeComponents(ctx, t) {
     const [busy, setBusy] = React.useState(false)
     return h('div', { className: 'mwt-card' },
       h('div', { className: 'mwt-card-h' }, e.title || t('remindCard')),
+      e.quote ? h('div', { className: 'mwt-quiet', style: { padding: '0 14px 8px' } }, t('fuYouSaid').replace('{q}', e.quote)) : null,
       h('div', { className: 'mwt-card-f' },
         h('span', null, e.acked ? t('acked') : t('remindCard')),
-        e.acked ? null : h('button', { type: 'button', className: 'mwt-tbtn', disabled: busy || !e.routineId, onClick: () => { setBusy(true); Promise.resolve(onAck(e)).finally(() => setBusy(false)) } }, t('gotIt'))))
+        e.acked ? null : h('button', { type: 'button', className: 'mwt-tbtn', disabled: busy || !(e.routineId || e.followupId), onClick: () => { setBusy(true); Promise.resolve(onAck(e)).finally(() => setBusy(false)) } }, t('gotIt'))))
   }
 
   // ---- 做了告诉你, 规矩, 例行没出声, 今天卡 -------------------------------------------------------------------------
@@ -2566,7 +2581,8 @@ function makeComponents(ctx, t) {
 
     const answer = (runId) => (askId, value) => api('/answer', { id: runId, askId, answer: value }).then((d) => { if (d && d.run) th.patchRun(d.run); th.reload(); kick() })
     const patchRating = (nd) => th.setTh((p) => ({ ...p, runs: p.runs.map((run) => (Array.isArray(run.deliverables) && run.deliverables.some((y) => y.id === nd.id) ? { ...run, deliverables: run.deliverables.map((y) => (y.id === nd.id ? { ...y, rating: nd.rating } : y)) } : run)) }))
-    const ack = (e) => api('/routines/ack', { id: e.routineId, at: e.at }).then(() => { th.reload(); kick() }).catch(() => {})
+    const ack = (e) => (e.followupId ? api('/followups/ack', { mateId: mate.id, id: e.followupId }) : api('/routines/ack', { id: e.routineId, at: e.at })).then(() => { th.reload(); kick() }).catch(() => {})
+    const dropFollowup = (e) => api('/followups/drop', { mateId: mate.id, id: e.id }).then(() => { th.reload(); kick() }).catch(() => {})
     const stop = () => api('/mates/stop', { id: mate.id }).then(() => { th.reload(); kick() }).catch(() => {})
     const takeover = () => showAside(true, { mode: 'mate', section: 'computer' })
     const textAsk = textAskOf(loud)
@@ -2596,6 +2612,11 @@ function makeComponents(ctx, t) {
         if (fold && e.kind !== 'user' && e.kind !== 'routine' && e.kind !== 'deliver' && e.kind !== 'newMate') continue
         const arrive = (e.kind === 'text' || e.kind === 'deliver') && arriving(run.id + ':' + e.key)
         if (e.kind === 'routine') add('note', e, () => h('div', { className: 'mwt-note' }, [t('routineWord'), e.title].filter(Boolean).join(' · ')))
+        else if (e.kind === 'followup') add('note', e, () => h('div', { className: 'mwt-note' },
+          e.state === 'closed' ? t('fuClosed').replace('{n}', e.note) : e.state === 'dropped' ? t('fuDropped').replace('{n}', e.note || t('fuDrop'))
+            : e.count ? t('fuBrought').replace('{d}', e.dueLabel)
+              : [(e.fk === 'mine' ? t('fuOpenMine') : t('fuOpen')).replace('{d}', e.dueLabel), e.fallback && e.fk !== 'mine' ? t('fuFallback').replace('{f}', e.fallback) : ''].filter(Boolean).join(' · '),
+          e.state === 'open' && !e.count ? h('button', { type: 'button', className: 'mwt-act mute', style: { marginLeft: 8 }, onClick: () => dropFollowup(e) }, t('fuDrop')) : null))
         else if (e.kind === 'scheduled') add('note', e, () => h('button', { type: 'button', className: 'mwt-note', onClick: () => showAside(true, { mode: 'mate', section: 'routines', routineId: e.routineId }) }, t('scheduled') + ' · ' + [e.scheduleLabel, e.title].filter(Boolean).join(' ')))
         else if (e.kind === 'stopped') add('note', e, () => h('div', { className: 'mwt-note' }, t('stopped')))
         else if (e.kind === 'auto') add('note', e, () => h('div', { className: 'mwt-note' }, t('askAuto')))
@@ -2614,6 +2635,7 @@ function makeComponents(ctx, t) {
         else if (e.kind === 'onboard') add('mate', e, () => h(OnboardCard, { run, e: e.e, mate, onDone: () => { th.reload(); kick() } }), { card: true })
         else if (e.kind === 'subscribe') add('mate', e, () => h(SubscribeCard, { run, e: e.e, mate, onDone: () => { th.reload(); kick() } }), { card: true })
         else if (e.kind === 'failed') add('mate', e, bubble('danger', false, t('failedTitle') + ' · ' + e.reason))
+        else if (e.kind === 'paused') add('note', e, () => h('button', { type: 'button', className: 'mwt-note', onClick: () => showAside(true, { mode: 'mate', section: 'routines', routineId: e.routineId }) }, t('pausedLine').replace('{t}', e.title || t('routineWord')).replace('{n}', String(e.failures || 3))))
         else if (e.kind === 'thinking') add('status', e, null, { parts: [t('working'), e.step, elapsedOf(run)], live: true })
         else if (e.kind === 'queued') add('status', e, null, { parts: [t('queued')] })
       }
@@ -2962,7 +2984,7 @@ function makeComponents(ctx, t) {
       setBusy(true); setErr('')
       api('/routines/create', { mateId: mate.id, input }).then((d) => { setDraft(''); setAdding(false); load(); kick(); if (d && d.routine && d.routine.id) setOpen(d.routine.id) }).catch((e) => setErr(e.message || String(e))).finally(() => setBusy(false))
     }
-    const meta = (r) => !r.enabled ? (r.schedule && r.schedule.type === 'once' ? t('ended') : t('paused')) : (r.scheduleLabel || '')
+    const meta = (r) => !r.enabled ? (r.pausedFor ? t('pausedFailing') : r.schedule && r.schedule.type === 'once' ? t('ended') : t('paused')) : (r.scheduleLabel || '')
     // A one-off that has run is history: folded under 「已结束的 n 个」 (open while one of them is the one asked for).
     const ended = (r) => !r.enabled && !!r.schedule && r.schedule.type === 'once'
     const current = items ? items.filter((r) => !ended(r)) : []
@@ -3166,7 +3188,11 @@ function makeComponents(ctx, t) {
       h('h2', null, t('proactive')),
       h('div', { className: 'mwt-seg', role: 'radiogroup', 'aria-label': t('proactive') },
         [['ask', t('pAsk')], ['default', t('pDefault')], ['more', t('pMore')]].map(([k, label]) => h('button', { key: k, type: 'button', role: 'radio', 'aria-checked': cur === k, onClick: () => { if (cur !== k) update({ proactive: k }) } }, label))),
-      h('p', { className: 'mwt-hint' }, t('proactiveHint')))
+      h('p', { className: 'mwt-hint' }, mate.pausedAll && !mate.isDefault ? t('pausedAllHint') : t('proactiveHint')),
+      mate.isDefault ? h(React.Fragment, null,
+        h('div', { className: 'mwt-switch-row' }, h('span', null, t('pauseAll')),
+          h('button', { type: 'button', role: 'switch', className: 'mwt-switch', 'aria-checked': !!mate.pausedAll, 'aria-label': t('pauseAll'), onClick: () => update({ pauseAll: !mate.pausedAll }) })),
+        h('p', { className: 'mwt-hint' }, t('pauseAllHint'))) : null)
   }
 
   /**
@@ -3266,6 +3292,26 @@ function makeComponents(ctx, t) {
       h('input', { type: 'time', className: 'mwt-timein', value: v, 'aria-label': t('readTime'), title: t('readTimeHint'), onChange: (e) => setV(e.target.value), onBlur: () => { if (/^\d{2}:\d{2}$/.test(v) && v !== mate.readTime) update({ readTime: v }) } }))
   }
 
+  /** A token count for people: 8,400 token, 12.3 万 token (Chinese counts in 万) / 123.4k tokens. */
+  const fmtTokens = (n) => { const step = Number(t('tokStep')) || 1000; return n >= step ? t('tokBig').replace('{n}', (Math.round((n / step) * 10) / 10).toString()) : t('tok').replace('{n}', n.toLocaleString()) }
+  /**
+   * 花费 (PROACTIVE.md §14): today and the last 30 days, split into 你叫的 / 例行 / 它自己动的. MyWork's profile shows every
+   * teammate together. Read from GET /usage, refreshed when the teammate's last activity moves.
+   */
+  function UsageBlock({ mate }) {
+    const [u, setU] = React.useState(null)
+    const all = !!mate.isDefault
+    React.useEffect(() => { api('/usage' + (all ? '' : '?mate=' + encodeURIComponent(mate.id))).then(setU).catch(() => {}) }, [mate.id, mate.lastAt || '', all])
+    if (!u) return null
+    const row = (label, x) => h('div', { className: 'mwt-switch-row' }, h('span', null, label),
+      h('span', { className: 'mwt-quiet', style: { textAlign: 'right' } }, x.tokens ? [['user', t('uUser')], ['routine', t('uRoutine')], ['self', t('uSelf')]].filter(([k]) => x[k].tokens).map(([k, l]) => l + ' ' + fmtTokens(x[k].tokens)).join(' · ') : t('usageNone')))
+    return h(React.Fragment, null,
+      h('h2', null, all ? t('usageAll') : t('usage')),
+      row(t('usageToday'), u.today),
+      row(t('usage30'), u.days30),
+      u.days30.tokens ? h('p', { className: 'mwt-hint' }, t('usageHint').replace('{p}', String(Math.round(u.days30.cachedShare * 100)))) : null)
+  }
+
   /**
    * 资料 — the teammate as a profile, not a form. Its card on top: the avatar (48; a click opens the look under it, not
    * for MyWork, whose mark is the brand), the name 17 and the title 13 edited in place (MyWork's name is the brand and
@@ -3298,6 +3344,7 @@ function makeComponents(ctx, t) {
         picking ? h(AvatarPicker, { look, bare: true, onChange: (next) => { setLook(next); update({ avatar: next }) } }) : null),
       mate.isDefault ? h('section', { className: 'mwt-sec', 'data-sec': 'readtime' }, h(ReadTimeBlock, { mate, update })) : null,
       h('section', { className: 'mwt-sec', 'data-sec': 'proactive' }, h(ProactiveBlock, { mate, update })),
+      h('section', { className: 'mwt-sec', 'data-sec': 'usage' }, h(UsageBlock, { mate })),
       h('section', { className: 'mwt-sec', 'data-sec': 'duty' }, h(DutyBlock, { mate, update })),
       mate.isDefault ? null : h('section', { className: 'mwt-sec', 'data-sec': 'list' }, h(TableBlock, { mate, file: '清单.csv', title: t('listSec'), emptyText: t('listEmpty'), onOpenFile })),
       mate.isDefault ? null : h('section', { className: 'mwt-sec', 'data-sec': 'judge' }, h(TableBlock, { mate, file: '判断.csv', title: t('judgeSec'), emptyText: t('judgeEmpty'), judge: true, onOpenFile })),

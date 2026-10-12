@@ -33,7 +33,9 @@ export function harness({ concurrency = 2, verify = false, home, fetch } = {}) {
   const turnApi = (s, claimed) => ({
     session: { id: s.id },
     texts: claimed.map(messageText),
-    say: (text) => ev(s, 'assistant/message', { message: { content: [{ type: 'text', text }] } }),
+    say: (text, usage) => ev(s, 'assistant/message', { message: { content: [{ type: 'text', text }] }, ...(usage ? { usage } : {}) }),
+    /** A model call that only used tools: an assistant message with usage and no text. */
+    spend: (usage) => ev(s, 'assistant/message', { message: { content: [] }, usage }),
     tool(name, args = {}) {
       ev(s, 'tool/call', { name, arguments: args })
       const def = h.mw.tools.find((t) => t.name === name)
@@ -1556,5 +1558,137 @@ test('mywork_calendar for any teammate: a link from 「- 日历：」 in AGENTS.
   await h.until(() => !!got.bad)
   assert.ok(Array.isArray(got.file.events))
   assert.match(got.bad.error, /找不到日历文件/)
+  h.cleanup()
+})
+
+test('跟进: what you put off comes back as a card quoting you; what it promised is sent back to it; both close; none in routine runs', async () => {
+  const h = harness()
+  const got = {}
+  h.scripts.push((t) => {
+    got.yours = t.tool('mywork_followup', { kind: 'yours', text: '细看那篇论文', days: 7, fallback: '对照留在成稿/' })
+    got.mine = t.tool('mywork_followup', { kind: 'mine', text: '收盘后再对一次 J-04', days: 1 })
+    got.bad = t.tool('mywork_followup', { kind: 'yours', text: 'x', when: '下周' })
+    t.say('好，我先把对照备上。')
+  })
+  const { runId } = await h.ok('POST', '/mates/say', { id: 'mywork', text: '先放着，下周再细看这篇' })
+  await h.until(() => h.run(runId).status === 'done')
+  assert.ok(got.yours.id); assert.ok(got.mine.id); assert.match(got.bad.error, /没看懂哪天/)
+  // One small line each under the turn that opened them, read live from the ledger.
+  const lines = (await h.ok('GET', '/mates/thread', { id: 'mywork' })).runs.find((r) => r.id === runId).activity.filter((a) => a.kind === 'followup')
+  assert.deepEqual(lines.map((a) => [a.fk, a.text, a.state, a.count]), [['yours', '细看那篇论文', 'open', 0], ['mine', '收盘后再对一次 J-04', 'open', 0]])
+  assert.match(lines[0].dueLabel, /^\d+\/\d+ 周. 08:30$/)
+  assert.equal(lines[0].fallback, '对照留在成稿/')
+  // Nothing is due yet.
+  const before = h.mw.store.items.length
+  h.mw.followupTick(new Date()); assert.equal(h.mw.store.items.length, before)
+  // Its own day comes: a run of its own, the thread shows only what it says; it closes once that run is done.
+  h.scripts.push((t) => { assert.match(t.texts[0], /这是你之前答应的跟进：「收盘后再对一次 J-04」（当时的原话：先放着，下周再细看这篇）/); t.say('对过了，J-04 不变。') })
+  h.mw.followupTick(new Date(Date.now() + 2 * 86400000))
+  const back = h.mw.store.items.find((t) => t.followupId === got.mine.id)
+  assert.equal(back.trigger, 'system')
+  await h.until(() => h.run(back.id).status === 'done')
+  h.mw.followupTick(new Date(Date.now() + 2 * 86400000))
+  assert.deepEqual([h.mw.followups.get(h.mw.mates.get('mywork'), got.mine.id).state, h.mw.followups.get(h.mw.mates.get('mywork'), got.mine.id).note], ['closed', '做了'])
+  // Yours: a reminder card in the thread quoting you; 知道了 closes it and the card reads 已知道.
+  h.mw.followupTick(new Date(Date.now() + 8 * 86400000))
+  const card = h.mw.store.items.find((t) => t.followupId === got.yours.id)
+  const view = h.mw.runView(card)
+  assert.deepEqual([view.remind.followupId, view.remind.quote, view.remind.title, view.remind.acked], [got.yours.id, '先放着，下周再细看这篇', '跟进 · 细看那篇论文', false])
+  assert.equal(h.events.filter((e) => e.kind === 'remind').length >= 1, true)
+  h.mw.followupTick(new Date(Date.now() + 8 * 86400000)) // brought once only
+  assert.equal(h.mw.store.items.filter((t) => t.followupId === got.yours.id).length, 1)
+  const { followup } = await h.ok('POST', '/followups/ack', { mateId: 'mywork', id: got.yours.id })
+  assert.deepEqual([followup.state, followup.note], ['closed', '你看过了'])
+  assert.equal(h.mw.runView(h.run(card.id)).remind.acked, true)
+  // 不用记 lets one go; the list shows them all.
+  h.scripts.push((t) => { got.third = t.tool('mywork_followup', { kind: 'yours', text: '再看一次', days: 3 }); t.say('好') })
+  const r3 = await h.ok('POST', '/mates/say', { id: 'mywork', text: '这个也回头再说' })
+  await h.until(() => h.run(r3.runId).status === 'done')
+  assert.equal((await h.ok('POST', '/followups/drop', { mateId: 'mywork', id: got.third.id })).followup.state, 'dropped')
+  assert.deepEqual((await h.ok('GET', '/followups', { mate: 'mywork' })).items.map((f) => f.state), ['closed', 'closed', 'dropped'])
+  // A routine run cannot open one: nobody is talking.
+  const { routine } = await h.ok('POST', '/routines/create', { mateId: 'mywork', input: '每天 9 点给我一份简报' })
+  h.scripts.push((t) => { got.routine = t.tool('mywork_followup', { kind: 'mine', text: 'x', days: 1 }); t.say('简报\n变化：有') })
+  const ran = await h.ok('POST', '/routines/run', { id: routine.id })
+  await h.until(() => h.run(ran.runId).status === 'done')
+  assert.match(got.routine.error, /例行运行时不能记跟进/)
+  h.cleanup()
+})
+
+test('花费: every model call’s usage lands in the ledger by teammate and bucket, and on its run', async () => {
+  const h = harness()
+  const u = (input, output, cacheRead = 0) => ({ inputTokens: input, outputTokens: output, cacheReadTokens: cacheRead })
+  h.scripts.push((t) => { t.spend(u(1000, 50, 9000)); t.say('好了', u(200, 30)) })
+  const { runId } = await h.ok('POST', '/mates/say', { id: 'mywork', text: '看一下' })
+  await h.until(() => h.run(runId).status === 'done')
+  const { routine } = await h.ok('POST', '/routines/create', { mateId: 'mywork', input: '每天 9 点给我一份简报' })
+  h.scripts.push((t) => t.say('简报\n变化：无', u(500, 100)))
+  const ran = await h.ok('POST', '/routines/run', { id: routine.id })
+  await h.until(() => h.run(ran.runId).status === 'done')
+  // On the run: the sum of its calls.
+  assert.deepEqual(h.mw.runView(h.run(runId)).usage, { calls: 2, input: 1200, output: 80, cacheRead: 9000, cacheWrite: 0 })
+  const mine = await h.ok('GET', '/usage', { mate: 'mywork' })
+  assert.deepEqual([mine.today.user.tokens, mine.today.user.calls, mine.today.routine.tokens, mine.today.self.tokens], [10280, 2, 600, 0])
+  assert.equal(mine.today.tokens, 10880); assert.deepEqual(mine.days30.user, mine.today.user)
+  assert.equal(mine.days30.cachedShare, Math.round((9000 / 10880) * 100) / 100)
+  // Another teammate counts in the all-teammates view only; its intro is something it did on its own.
+  const { mate } = await h.ok('POST', '/mates/create', { name: '雷达', description: '盯开源项目' })
+  h.scripts.push((t) => t.say('你好，我是雷达。', u(300, 20)))
+  await h.until(() => h.mw.store.forMate(mate.id).some((r) => r.status === 'done'))
+  assert.equal((await h.ok('GET', '/usage', { mate: mate.id })).today.self.tokens, 320)
+  assert.equal((await h.ok('GET', '/usage')).today.tokens, 10880 + 320)
+  assert.equal((await h.ok('GET', '/usage', { mate: 'mywork' })).today.tokens, 10880)
+  // The ledger is on disk and survives a restart; a message without usage adds nothing.
+  assert.ok(existsSync(join(h.dir, 'mywork', 'usage.json')))
+  const err = await h.call('GET', '/usage', { mate: 'nobody' })
+  assert.equal(err.status, 404)
+  h.cleanup()
+})
+
+test('全体暂停 on MyWork: every teammate works as 只在我问时 until it is turned off; each keeps its own 主动程度', async () => {
+  const h = harness()
+  const { mate } = await h.ok('POST', '/mates/create', { name: '雷达', description: '盯开源项目' })
+  await h.until(() => h.run(h.mw.store.forMate(mate.id)[0].id).status === 'done') // the intro
+  await h.ok('POST', '/mates/update', { id: mate.id, proactive: 'more' })
+  const preset = (id) => readFileSync(join(h.dir, '.agent-presets', 'mate-' + id, 'agent.cordis.yml'), 'utf8')
+  await h.until(() => /主动程度：多做一点/.test(preset(mate.id)))
+  // Only MyWork carries the switch.
+  const refused = await h.call('POST', '/mates/update', { id: mate.id, pauseAll: true })
+  assert.equal(refused.status, 400)
+  await h.ok('POST', '/mates/update', { id: 'mywork', pauseAll: true })
+  await h.until(() => /主动程度：只在用户问时/.test(preset(mate.id)) && /主动程度：只在用户问时/.test(preset('mywork')))
+  const v = h.mw.mateView(mate.id)
+  assert.deepEqual([v.pausedAll, v.proactive], [true, 'more'])
+  assert.doesNotMatch(preset(mate.id), /多做一点/)
+  await h.ok('POST', '/mates/update', { id: 'mywork', pauseAll: false })
+  await h.until(() => /主动程度：多做一点/.test(preset(mate.id)) && !/主动程度/.test(preset('mywork')))
+  assert.equal(h.mw.mateView(mate.id).pausedAll, false)
+  h.cleanup()
+})
+
+test('我停了: the third routine run in a row that fails pauses its routine and says so under that run', async () => {
+  const h = harness()
+  const { routine } = await h.ok('POST', '/routines/create', { mateId: 'mywork', input: '每天 9 点给我一份 Node 生态简报' })
+  const runs = []
+  for (let i = 0; i < 3; i++) {
+    h.scripts.push(() => { throw new Error('源站打不开') })
+    const ran = await h.ok('POST', '/routines/run', { id: routine.id })
+    // The turn ends in a model error on purpose: wait without h.until, which rethrows script errors.
+    for (let t0 = Date.now(); h.run(ran.runId).status !== 'done';) { assert.ok(Date.now() - t0 < 3000, 'timed out'); await new Promise((res) => setTimeout(res, 5)) }
+    h.scriptErrors.length = 0
+    runs.push(ran.runId)
+  }
+  const r = h.mw.routines.get(routine.id)
+  assert.equal(r.enabled, false); assert.equal(r.pausedFor.failures, 3); assert.equal(r.pausedFor.error, '源站打不开')
+  // Only the third run carries the line; the first two are plain failures.
+  assert.deepEqual(runs.map((id) => h.run(id).activity.filter((a) => a.kind === 'routine' && a.action === 'paused').length), [0, 0, 1])
+  const { runs: thread } = await h.ok('GET', '/mates/thread', { id: 'mywork' })
+  const last = thread.find((x) => x.id === runs[2])
+  assert.deepEqual(last.activity.find((a) => a.action === 'paused'), { ...last.activity.find((a) => a.action === 'paused'), kind: 'routine', routineId: routine.id, title: routine.title, failures: 3 })
+  // The panel reads why it is off; resuming clears it.
+  const [listed] = (await h.ok('GET', '/routines', { mate: 'mywork' })).items
+  assert.equal(listed.pausedFor.failures, 3)
+  const { routine: back } = await h.ok('POST', '/routines/enable', { id: routine.id, enabled: true })
+  assert.equal(back.enabled, true); assert.equal(back.pausedFor, undefined)
   h.cleanup()
 })

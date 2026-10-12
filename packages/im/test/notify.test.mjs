@@ -34,3 +34,60 @@ test('watcher uses the task rule and ignores tasks without one', async () => {
   assert.equal(sent.length, 1)
   assert.deepEqual(sent[0], ['im:y', '【定时任务】每日巡检 · 完成\n\n一切正常'])
 })
+
+import { createQuietGate, inQuiet, normalizeQuiet } from '../src/notify.js'
+import { mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+
+const local = (h, m = 0) => { const d = new Date(2026, 9, 11, h, m); return d }
+
+test('免打扰: on by default 22:00–07:30, wraps midnight, can be turned off or moved', () => {
+  assert.deepEqual(normalizeNotifyConfig({}).quiet, { from: '22:00', to: '07:30' })
+  assert.equal(normalizeNotifyConfig({ quiet: null }).quiet, null)
+  assert.deepEqual(normalizeQuiet({ from: '23:00', to: '06:00' }), { from: '23:00', to: '06:00' })
+  assert.deepEqual(normalizeQuiet({ from: '25:00', to: 'x' }), { from: '22:00', to: '07:30' }) // unreadable → default
+  const q = { from: '22:00', to: '07:30' }
+  assert.deepEqual([local(21, 59), local(22), local(3), local(7, 29), local(7, 30), local(12)].map((d) => inQuiet(d, q)), [false, true, true, true, false, false])
+  assert.deepEqual([local(12, 30), local(14)].map((d) => inQuiet(d, { from: '12:00', to: '13:00' })), [true, false])
+  assert.equal(inQuiet(local(3), null), false)
+})
+
+test('免打扰: held messages survive a restart and go out as one message per chat when it ends; timed reminders go now', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'mywork-im-'))
+  const file = join(dir, 'held.json')
+  const sent = []
+  let clock = local(23, 10)
+  const cfg = normalizeNotifyConfig({})
+  const make = () => createQuietGate({ getConfig: () => cfg, send: async (t, m) => { sent.push([t, m]) }, file, now: () => clock })
+  const g = make()
+  assert.equal(await g.push('im:a', '【简报】例行 · 失败\n\n源站 500'), 'held')
+  clock = local(23, 40)
+  assert.equal(await g.push('im:a', '【简报】等你答 · 发给谁？'), 'held')
+  assert.equal(await g.push('im:a', '【MyWork】提醒 · 喝水', { urgent: true }), 'sent')
+  assert.deepEqual(sent.map((x) => x[1]), ['【MyWork】提醒 · 喝水'])
+  assert.equal(await g.flush(), 0) // still quiet
+  // Restart: the held ones come back from disk.
+  const g2 = make()
+  assert.equal(g2.held.length, 2)
+  clock = local(7, 31)
+  assert.equal(await g2.flush(), 1)
+  assert.equal(sent[1][0], 'im:a')
+  assert.match(sent[1][1], /^【MyWork】免打扰期间 2 条：\n23:10 【简报】例行 · 失败\n23:40 【简报】等你答 · 发给谁？$/)
+  assert.equal(make().held.length, 0) // flushed on disk too
+  assert.equal(await g2.push('im:a', '白天的'), 'sent')
+  rmSync(dir, { recursive: true, force: true })
+})
+
+test('免打扰: a failed send keeps the held messages for the next try; one held message goes as it was', async () => {
+  let fail = true
+  const sent = []
+  let clock = local(1)
+  const cfg = normalizeNotifyConfig({})
+  const g = createQuietGate({ getConfig: () => cfg, send: async (t, m) => { if (fail) throw new Error('offline'); sent.push(m) }, now: () => clock })
+  await g.push('im:a', '只有一条')
+  clock = local(9)
+  assert.equal(await g.flush(), 0); assert.equal(g.held.length, 1)
+  fail = false
+  assert.equal(await g.flush(), 1); assert.deepEqual(sent, ['只有一条'])
+})

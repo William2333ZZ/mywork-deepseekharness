@@ -124,6 +124,8 @@ export type ThreadEntry =
   | { kind: 'auto'; key: string; at: string }
   | { kind: 'working'; key: string; at: string; step: string }
   | { kind: 'failed'; key: string; at: string; reason: string; cancelled: boolean }
+  /** After the failure that paused its routine (我停了): opens the routine, where it is resumed. */
+  | { kind: 'paused'; key: string; at: string; routineId: string; text: string }
 
 /** An ask entry's status; legacy entries without one are open until they carry an answer. */
 function askStatus(a: AskActivity): AskStatus {
@@ -218,7 +220,11 @@ export function runEntries(run: Run): ThreadEntry[] {
   })
 
   if (!done && !waiting) out.push({ kind: 'working', key: k('w'), at: '', step: String(r.step || '') })
-  else if (done && r.error) out.push({ kind: 'failed', key: k('f'), at: r.finishedAt || '', reason: String(r.error), cancelled: isCancelled(r.error) })
+  else if (done && r.error) {
+    out.push({ kind: 'failed', key: k('f'), at: r.finishedAt || '', reason: String(r.error), cancelled: isCancelled(r.error) })
+    const p = activity.find((e) => e && e.kind === 'routine' && e.action === 'paused') as Extract<Activity, { kind: 'routine' }> | undefined
+    if (p) out.push({ kind: 'paused', key: k('p'), at: p.at || r.finishedAt || '', routineId: p.routineId || r.routineId || '', text: `我停了 · ${p.title || r.routineTitle || '例行'} 连续 ${p.failures || 3} 次失败，已暂停，去恢复` })
+  }
   return out
 }
 

@@ -33,7 +33,9 @@ export function harness({ concurrency = 2, verify = false, home, fetch } = {}) {
   const turnApi = (s, claimed) => ({
     session: { id: s.id },
     texts: claimed.map(messageText),
-    say: (text) => ev(s, 'assistant/message', { message: { content: [{ type: 'text', text }] } }),
+    say: (text, usage) => ev(s, 'assistant/message', { message: { content: [{ type: 'text', text }] }, ...(usage ? { usage } : {}) }),
+    /** A model call that only used tools: an assistant message with usage and no text. */
+    spend: (usage) => ev(s, 'assistant/message', { message: { content: [] }, usage }),
     tool(name, args = {}) {
       ev(s, 'tool/call', { name, arguments: args })
       const def = h.mw.tools.find((t) => t.name === name)
@@ -1610,5 +1612,83 @@ test('跟进: what you put off comes back as a card quoting you; what it promise
   const ran = await h.ok('POST', '/routines/run', { id: routine.id })
   await h.until(() => h.run(ran.runId).status === 'done')
   assert.match(got.routine.error, /例行运行时不能记跟进/)
+  h.cleanup()
+})
+
+test('花费: every model call’s usage lands in the ledger by teammate and bucket, and on its run', async () => {
+  const h = harness()
+  const u = (input, output, cacheRead = 0) => ({ inputTokens: input, outputTokens: output, cacheReadTokens: cacheRead })
+  h.scripts.push((t) => { t.spend(u(1000, 50, 9000)); t.say('好了', u(200, 30)) })
+  const { runId } = await h.ok('POST', '/mates/say', { id: 'mywork', text: '看一下' })
+  await h.until(() => h.run(runId).status === 'done')
+  const { routine } = await h.ok('POST', '/routines/create', { mateId: 'mywork', input: '每天 9 点给我一份简报' })
+  h.scripts.push((t) => t.say('简报\n变化：无', u(500, 100)))
+  const ran = await h.ok('POST', '/routines/run', { id: routine.id })
+  await h.until(() => h.run(ran.runId).status === 'done')
+  // On the run: the sum of its calls.
+  assert.deepEqual(h.mw.runView(h.run(runId)).usage, { calls: 2, input: 1200, output: 80, cacheRead: 9000, cacheWrite: 0 })
+  const mine = await h.ok('GET', '/usage', { mate: 'mywork' })
+  assert.deepEqual([mine.today.user.tokens, mine.today.user.calls, mine.today.routine.tokens, mine.today.self.tokens], [10280, 2, 600, 0])
+  assert.equal(mine.today.tokens, 10880); assert.deepEqual(mine.days30.user, mine.today.user)
+  assert.equal(mine.days30.cachedShare, Math.round((9000 / 10880) * 100) / 100)
+  // Another teammate counts in the all-teammates view only; its intro is something it did on its own.
+  const { mate } = await h.ok('POST', '/mates/create', { name: '雷达', description: '盯开源项目' })
+  h.scripts.push((t) => t.say('你好，我是雷达。', u(300, 20)))
+  await h.until(() => h.mw.store.forMate(mate.id).some((r) => r.status === 'done'))
+  assert.equal((await h.ok('GET', '/usage', { mate: mate.id })).today.self.tokens, 320)
+  assert.equal((await h.ok('GET', '/usage')).today.tokens, 10880 + 320)
+  assert.equal((await h.ok('GET', '/usage', { mate: 'mywork' })).today.tokens, 10880)
+  // The ledger is on disk and survives a restart; a message without usage adds nothing.
+  assert.ok(existsSync(join(h.dir, 'mywork', 'usage.json')))
+  const err = await h.call('GET', '/usage', { mate: 'nobody' })
+  assert.equal(err.status, 404)
+  h.cleanup()
+})
+
+test('全体暂停 on MyWork: every teammate works as 只在我问时 until it is turned off; each keeps its own 主动程度', async () => {
+  const h = harness()
+  const { mate } = await h.ok('POST', '/mates/create', { name: '雷达', description: '盯开源项目' })
+  await h.until(() => h.run(h.mw.store.forMate(mate.id)[0].id).status === 'done') // the intro
+  await h.ok('POST', '/mates/update', { id: mate.id, proactive: 'more' })
+  const preset = (id) => readFileSync(join(h.dir, '.agent-presets', 'mate-' + id, 'agent.cordis.yml'), 'utf8')
+  await h.until(() => /主动程度：多做一点/.test(preset(mate.id)))
+  // Only MyWork carries the switch.
+  const refused = await h.call('POST', '/mates/update', { id: mate.id, pauseAll: true })
+  assert.equal(refused.status, 400)
+  await h.ok('POST', '/mates/update', { id: 'mywork', pauseAll: true })
+  await h.until(() => /主动程度：只在用户问时/.test(preset(mate.id)) && /主动程度：只在用户问时/.test(preset('mywork')))
+  const v = h.mw.mateView(mate.id)
+  assert.deepEqual([v.pausedAll, v.proactive], [true, 'more'])
+  assert.doesNotMatch(preset(mate.id), /多做一点/)
+  await h.ok('POST', '/mates/update', { id: 'mywork', pauseAll: false })
+  await h.until(() => /主动程度：多做一点/.test(preset(mate.id)) && !/主动程度/.test(preset('mywork')))
+  assert.equal(h.mw.mateView(mate.id).pausedAll, false)
+  h.cleanup()
+})
+
+test('我停了: the third routine run in a row that fails pauses its routine and says so under that run', async () => {
+  const h = harness()
+  const { routine } = await h.ok('POST', '/routines/create', { mateId: 'mywork', input: '每天 9 点给我一份 Node 生态简报' })
+  const runs = []
+  for (let i = 0; i < 3; i++) {
+    h.scripts.push(() => { throw new Error('源站打不开') })
+    const ran = await h.ok('POST', '/routines/run', { id: routine.id })
+    // The turn ends in a model error on purpose: wait without h.until, which rethrows script errors.
+    for (let t0 = Date.now(); h.run(ran.runId).status !== 'done';) { assert.ok(Date.now() - t0 < 3000, 'timed out'); await new Promise((res) => setTimeout(res, 5)) }
+    h.scriptErrors.length = 0
+    runs.push(ran.runId)
+  }
+  const r = h.mw.routines.get(routine.id)
+  assert.equal(r.enabled, false); assert.equal(r.pausedFor.failures, 3); assert.equal(r.pausedFor.error, '源站打不开')
+  // Only the third run carries the line; the first two are plain failures.
+  assert.deepEqual(runs.map((id) => h.run(id).activity.filter((a) => a.kind === 'routine' && a.action === 'paused').length), [0, 0, 1])
+  const { runs: thread } = await h.ok('GET', '/mates/thread', { id: 'mywork' })
+  const last = thread.find((x) => x.id === runs[2])
+  assert.deepEqual(last.activity.find((a) => a.action === 'paused'), { ...last.activity.find((a) => a.action === 'paused'), kind: 'routine', routineId: routine.id, title: routine.title, failures: 3 })
+  // The panel reads why it is off; resuming clears it.
+  const [listed] = (await h.ok('GET', '/routines', { mate: 'mywork' })).items
+  assert.equal(listed.pausedFor.failures, 3)
+  const { routine: back } = await h.ok('POST', '/routines/enable', { id: routine.id, enabled: true })
+  assert.equal(back.enabled, true); assert.equal(back.pausedFor, undefined)
   h.cleanup()
 })

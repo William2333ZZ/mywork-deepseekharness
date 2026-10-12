@@ -8,8 +8,10 @@
  * send the last assistant reply to the chosen chat.
  *
  * Config: $DSH_HOME/mywork/im-notify.json
- *   { automation: { tasks: { [automationId]: { target, when } }, default: { target, when } | null, maxChars } }
- *   (`default` is only reachable through the API / tool; the UI is strictly per task)
+ *   { automation: { tasks: { [automationId]: { target, when } }, default: { target, when } | null, maxChars },
+ *     quiet: { from: 'HH:MM', to: 'HH:MM' } | null }
+ *   (`default` is where MyWork teammates' notifications go: the IM助理 page picks it; per-task rules have their own UI)
+ *   quiet = 免打扰 for teammate notifications (PROACTIVE.md §7.5), default 22:00–07:30; null turns it off
  *   target = IM chat session id (see chats.js), when = 'always' | 'failed'
  */
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
@@ -27,11 +29,73 @@ const rule = (v) => {
   if (!target) return null
   return { target, when: v.when === 'failed' ? 'failed' : 'always' }
 }
+export const DEFAULT_QUIET = { from: '22:00', to: '07:30' }
+const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/
+/** 免打扰: { from, to } (HH:MM, may wrap midnight), null when off; anything unreadable is the default. */
+export function normalizeQuiet(q) {
+  if (q === null || q === false) return null
+  if (!q || typeof q !== 'object') return { ...DEFAULT_QUIET }
+  const from = String(q.from || '').trim(); const to = String(q.to || '').trim()
+  if (!HHMM.test(from) || !HHMM.test(to) || from === to) return { ...DEFAULT_QUIET }
+  return { from, to }
+}
 export function normalizeNotifyConfig(input) {
   const a = input && typeof input === 'object' && input.automation && typeof input.automation === 'object' ? input.automation : {}
   const tasks = {}
   if (a.tasks && typeof a.tasks === 'object') for (const [id, v] of Object.entries(a.tasks)) { const r = rule(v); if (r && id) tasks[id] = r }
-  return { automation: { tasks, default: rule(a.default), maxChars: Math.min(4000, Math.max(200, Number(a.maxChars) || 1500)) } }
+  return { automation: { tasks, default: rule(a.default), maxChars: Math.min(4000, Math.max(200, Number(a.maxChars) || 1500)) }, quiet: normalizeQuiet(input && typeof input === 'object' ? input.quiet : undefined) }
+}
+
+const minutes = (hhmm) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5))
+/** Is local time `now` inside the quiet window? from 22:00 to 07:30 wraps midnight. */
+export function inQuiet(now, quiet) {
+  if (!quiet) return false
+  const m = now.getHours() * 60 + now.getMinutes(); const a = minutes(quiet.from); const b = minutes(quiet.to)
+  return a < b ? m >= a && m < b : m >= a || m < b
+}
+/** The held notifications as one message, sent when 免打扰 ends: one line each, oldest first. */
+export function heldMessage(held, maxChars = 1500) {
+  const hhmm = (at) => { const d = new Date(at); return isNaN(d) ? '' : String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') }
+  const lines = held.map((x) => `${hhmm(x.at)} ${String(x.text || '').split('\n')[0]}`.trim())
+  const text = `【MyWork】免打扰期间 ${held.length} 条：\n` + lines.join('\n')
+  return text.length > maxChars ? text.slice(0, maxChars) + '\n…（已截断）' : text
+}
+export const heldPath = (env = process.env) => join(dshHome(env), 'mywork', 'im-held.json')
+/**
+ * The way out for teammate notifications: outside 免打扰 a message goes now; inside it is held (on disk, so a restart
+ * keeps it) and flush() sends what was held as one message once 免打扰 is over. `urgent` (a reminder you set for that
+ * time) always goes now.
+ */
+export function createQuietGate({ getConfig, send, log = () => {}, file = '', now = () => new Date() }) {
+  let held = []
+  if (file) { try { const d = JSON.parse(readFileSync(file, 'utf8')); if (Array.isArray(d.held)) held = d.held } catch {} }
+  const save = () => {
+    if (!file) return
+    try { mkdirSync(dirname(file), { recursive: true }); const tmp = file + '.tmp-' + process.pid; writeFileSync(tmp, JSON.stringify({ held })); renameSync(tmp, file) } catch (e) { log('held save: ' + (e && e.message)) }
+  }
+  return {
+    get held() { return held.slice() },
+    /** Send now or hold; resolves to 'sent' | 'held'. */
+    async push(target, text, { urgent = false } = {}) {
+      const config = getConfig()
+      if (!urgent && inQuiet(now(), config.quiet)) { held.push({ at: now().toISOString(), target, text }); held.splice(0, held.length - 50); save(); return 'held' }
+      await send(target, text)
+      return 'sent'
+    },
+    /** After 免打扰: send what was held, one message per target. Returns how many messages went out. */
+    async flush() {
+      const config = getConfig()
+      if (!held.length || inQuiet(now(), config.quiet)) return 0
+      const batch = held; held = []; save()
+      const byTarget = new Map()
+      for (const x of batch) { if (!byTarget.has(x.target)) byTarget.set(x.target, []); byTarget.get(x.target).push(x) }
+      let n = 0
+      for (const [target, list] of byTarget) {
+        try { await send(target, list.length === 1 ? list[0].text : heldMessage(list, config.automation.maxChars)); n += 1 } catch (e) { log('held flush: ' + (e && e.message)); held.push(...list); save() }
+      }
+      return n
+    },
+  }
 }
 export function readNotifyConfig(path = notifyConfigPath()) {
   try { return normalizeNotifyConfig(JSON.parse(readFileSync(path, 'utf8'))) } catch { return normalizeNotifyConfig({}) }

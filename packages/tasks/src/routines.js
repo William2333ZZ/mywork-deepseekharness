@@ -24,6 +24,8 @@
 import { clip, JsonList, later, newId, titleOf } from './store.js'
 
 const MAX_ROUTINES = 200
+/** A task routine whose last this many runs failed pauses itself (PROACTIVE.md §11): resuming is the person's call. */
+export const FAIL_PAUSE = 3
 const KEEP_RUNS = 30
 const KEEP_FIRED = 30
 export const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
@@ -168,6 +170,7 @@ export class RoutineStore extends JsonList {
     const text = String(input || '').trim()
     if (!text) throw new Error('input is required')
     if (!schedule || !schedule.type) throw new Error('schedule is required')
+    this.makeRoom()
     const next = nextRun(schedule)
     return this.add({ id: newId('rt'), mateId: mateId || 'mywork', kind: kind === 'remind' ? 'remind' : 'task', title: String(title || '').trim() || titleOf(text), input: text, schedule, enabled: true, createdAt: new Date().toISOString(), lastRunAt: '', nextRunAt: next ? next.toISOString() : '', runs: [], fired: [], ...(lint ? { lint: String(lint) } : {}), ...(loopUntil ? { loopUntil: String(loopUntil) } : {}) })
   }
@@ -182,9 +185,20 @@ export class RoutineStore extends JsonList {
         r.schedule = schedule
         const next = nextRun(schedule)
         r.nextRunAt = next ? next.toISOString() : ''
-        if (next) r.enabled = true
+        if (next) { r.enabled = true; delete r.pausedFor }
       }
     })
+  }
+  /**
+   * Room for one more under the cap: the oldest routine that no longer runs (a spent one-off, a paused one) goes. A
+   * routine that still runs is never dropped to make room (the store would otherwise trim the oldest, the morning brief
+   * among them); with all of them running the new one is refused.
+   */
+  makeRoom() {
+    if (this.items.length < this.max) return
+    const old = this.items.find((r) => !r.enabled)
+    if (!old) throw Object.assign(new Error(`例行已满 ${this.max} 条，先删掉或暂停一些不用的`), { status: 400 })
+    this.items = this.items.filter((r) => r !== old)
   }
   forMate(mateId) { return this.items.filter((r) => (r.mateId || 'mywork') === mateId) }
   due(now = new Date()) { return this.items.filter((r) => r.enabled && r.nextRunAt && new Date(r.nextRunAt).getTime() <= now.getTime()) }
@@ -204,14 +218,40 @@ export class RoutineStore extends JsonList {
     return this.update(id, (r) => { r.fired.unshift({ at: new Date().toISOString(), ackAt: '' }); r.fired.splice(KEEP_FIRED) })
   }
   ack(id, at) { return this.update(id, (r) => { for (const f of r.fired) if ((!at || f.at === at) && !f.ackAt) f.ackAt = new Date().toISOString() }) }
-  setEnabled(id, enabled) { return this.update(id, (r) => { r.enabled = !!enabled; if (r.enabled && !r.nextRunAt) { const n = nextRun(r.schedule); r.nextRunAt = n ? n.toISOString() : '' } }) }
+  setEnabled(id, enabled) { return this.update(id, (r) => { r.enabled = !!enabled; delete r.pausedFor; if (r.enabled && !r.nextRunAt) { const n = nextRun(r.schedule); r.nextRunAt = n ? n.toISOString() : '' } }) }
   /** Settle a run receipt with its outcome; settledAt is the moment the outcome became known (the unread dot keys off it, not off the start). */
   markRun(id, runAt, patch) { return this.update(id, (r) => { const run = r.runs.find((x) => x.at === runAt || x.taskId === patch.taskId); if (run) Object.assign(run, patch, { settledAt: new Date().toISOString() }) }) }
+  /**
+   * After a run settles: a task routine whose last FAIL_PAUSE runs all failed is paused, with pausedFor { at, failures,
+   * error } saying why. Returns the routine when this call paused it, else null. A run you stopped or a restart cut
+   * short is not a failure and does not break the streak either; a run still going is skipped.
+   */
+  pauseIfFailing(id) {
+    const r = this.get(id)
+    if (!r || !r.enabled || r.kind === 'remind') return null
+    const n = failStreak(r)
+    if (n < FAIL_PAUSE) return null
+    const error = String((r.runs.find((x) => countsAsFailure(x)) || {}).error || '')
+    return this.update(id, (x) => { x.enabled = false; x.pausedFor = { at: new Date().toISOString(), failures: n, error: clip(error, 120) } })
+  }
   pending() { return this.items.flatMap((r) => r.fired.filter((f) => !f.ackAt).map((f) => ({ routineId: r.id, title: r.title, input: r.input, at: f.at }))) }
 }
 
 /** Has the engine written the outcome onto this run receipt? */
 const settled = (run) => !!run && ('changed' in run || !!run.error)
+/** Not the routine's fault: you stopped it, or the service restarted under it. */
+const NOT_A_FAILURE = /已停止|已取消|服务重启/
+const countsAsFailure = (run) => settled(run) && !!run.error && !NOT_A_FAILURE.test(String(run.error))
+/** How many of the newest settled runs failed in a row (runs you stopped or a restart cut are passed over). */
+export function failStreak(r) {
+  let n = 0
+  for (const run of r.runs || []) {
+    if (!settled(run) || (run.error && NOT_A_FAILURE.test(String(run.error)))) continue
+    if (!run.error) break
+    n += 1
+  }
+  return n
+}
 /** A run a person would want to know about: it failed, found a change, wrote a report, or (reminder) fired. A quiet run is not. */
 const notable = (r, run) => !!run && (!!run.error || run.changed === true || run.fired === true || (r.kind !== 'remind' && wantsRecord(r) && settled(run) && !run.error))
 const runAt = (run) => run.settledAt || run.at

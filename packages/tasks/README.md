@@ -15,6 +15,7 @@ MyWork Kit v2 的核心成员：**同事模型**。设计见 [design/v2/TEAMMATE
 | `deliverables.json` | 文件（交付物）：`{ id, mateId, taskId(=runId), title, kind, markdown, data, summary, rating, verification }` |
 | `routines.json` | 例行：旧字段 + `mateId` |
 | `seen.json` | 已读：`{ $since, [mateId]: ISO }` |
+| `usage.json` | 花费（PROACTIVE.md §14）：`{ days: { 'YYYY-MM-DD': { [mateId]: { user \| routine \| self: { calls, input, output, cacheRead, cacheWrite } } } } }`，每次模型调用（含核验会话，记在被核验那次运行的桶里）按模型自己报的 usage 累加，留 62 天；每次运行另有 `usage` 合计。`GET /usage?mate=` 给今天和近 30 天，按「你叫的 / 例行 / 它自己动的」分；不带 mate 是全部同事 |
 | `mates/<id>/` | 同事的文件夹：会话的 cwd、写权限的边界、注册成 dsh 工作区；`AGENTS.md` 是它的记忆 |
 
 `$DSH_HOME/.agent-presets/mate-<id>/agent.cordis.yml`：每个同事一份生成的 preset。
@@ -102,6 +103,9 @@ PROACTIVE.md §4：同事替你记着、将来某天要拿回来的事（`src/fo
 
 - **做事**：建一次 `trigger: 'routine'` 的运行（带 `routineId`、`routineTitle`），把 `routinePrompt()` 交进**同事自己的会话**（排队），之后的追问看得到例行的结果。回复末尾的「变化：有 / 无」由引擎读走并从对话里去掉；「变化：无」的运行 `quiet: true`：留在例行的运行记录里，不进对话、不亮未读、不推 IM；它交的文件不进文件页和搜索，也不起核验会话。日报 / 周报 / 月报永远出，素材是**所有同事**那段时间的运行（`workRecord`）。
 - **提醒**：不叫醒同事。沿用 `fired[]` / `ack` 机制，同时往同事对话里放一个**合成的已完成运行**（存进 tasks.json，和别的运行一样分页）：`{ trigger: 'routine', status: 'done', routineId, routineTitle, remind: { routineId, title, at, acked }, activity: [{ kind: 'remind', routineId, title, at, acked }] }`，`at` 与 `fired[]` 里那一条相同。`POST /routines/ack { id, at }` 把两边都标成已知道。客户端见到 `run.remind` 是对象，就只画一张提醒卡（不画例行小字）。
+
+- **我停了**（PROACTIVE.md §11）：做事的例行最近 3 次运行都失败（你停下的、服务重启打断的不算，也不打断连续）就自动暂停：`enabled: false`，`pausedFor { at, failures, error }`；第 3 次失败的那次运行里多一条 `{ kind: 'routine', action: 'paused', routineId, title, failures }`，对话里在失败下面画一行「我停了 · 简报 连续 3 次失败，已暂停，去恢复」，点开就是右栏里这条例行；IM 的失败通知末尾加一句。恢复要你点（`POST /routines/enable` 或改时间），同时清掉 `pausedFor`。提醒不会停。
+- **上限 200 条**：满了再建，先挪掉最旧的一条已经不跑的（跑完的一次性、暂停的）；全都在跑就拒绝（400「例行已满」），不会悄悄删掉在跑的例行。
 
 例行运行时不能建例行（工具报错）。
 

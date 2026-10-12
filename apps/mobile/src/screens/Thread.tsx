@@ -289,6 +289,7 @@ function itemsOf(run: Run, mate: Mate | null, ctx: LineCtx, fresh: (key: string)
       case 'marker': out.push({ key: e.key, side: 'note', at: e.at, make: () => <CenterLine text={e.text} onPress={e.routineId ? () => ctx.onRoutine(e.routineId) : undefined} /> }); break
       case 'followup': out.push({ key: e.key, side: 'note', at: e.at, make: () => <CenterLine text={e.text} /> }); break
       case 'scheduled': out.push({ key: e.key, side: 'note', at: e.at, make: () => <CenterLine text={e.text} onPress={() => ctx.onRoutine(e.routineId)} /> }); break
+      case 'paused': out.push({ key: e.key, side: 'note', at: e.at, make: () => <CenterLine text={e.text} onPress={() => ctx.onRoutine(e.routineId)} /> }); break
       case 'auto': out.push({ key: e.key, side: 'note', at: e.at, make: () => <CenterLine text="24 小时没有回答，按合理假设继续" /> }); break
       case 'user': out.push({ key: e.key, side: 'me', at: e.at, make: (first) => (e.via === 'mywork' ? <><Text style={styles.via}>MyWork 转交</Text><MeBubble text={e.text} first={first} /></> : <MeBubble text={e.text} first={first} />) }); break
       case 'newMate': {

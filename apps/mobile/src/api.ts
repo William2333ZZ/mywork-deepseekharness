@@ -37,7 +37,7 @@ export type Activity =
   | { at: string; kind: 'text'; text: string }
   | { at: string; kind: 'tool'; name: string; detail?: string; ok?: boolean; result?: string }
   | { at: string; kind: 'verify'; text: string }
-  | { at: string; kind: 'routine'; action: 'created' | string; routineId: string; title: string; scheduleLabel?: string }
+  | { at: string; kind: 'routine'; action: 'created' | 'paused' | string; routineId: string; title: string; scheduleLabel?: string; failures?: number }
   | { at: string; kind: 'remind'; routineId: string; title: string; text?: string; acked?: boolean; ackedAt?: string; followupId?: string; quote?: string }
   /** A 跟进 opened in this run, as it stands now (fk: yours | mine). */
   | { at: string; kind: 'followup'; id: string; fk?: string; text?: string; dueLabel?: string; state?: string; count?: number; note?: string }

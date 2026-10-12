@@ -65,6 +65,7 @@ The product logic follows [Rakazo](https://github.com/elie222/rakazo) (persisten
 | Memory | Stable preferences go into `AGENTS.md` in its folder and are read every turn; you can also say "remember …". |
 | Follow-ups | Put something off ("leave it, I'll look next week") and the teammate notes it under that turn; on that day, at your reading time, a card brings your words back. When it promises to do something later, the job comes back to it on that day. "Don't keep it" drops one; none stays open forever. |
 | Profile | Click the name: a profile card (avatar, name, title, type, edited in place), the job, routines, what it remembers, pin and notifications, delete. |
+| Spend | On the profile: model tokens today and over 30 days, split into what you asked, routines and what it did on its own (MyWork's profile shows every teammate together), from the model's own usage reports. |
 
 ### 2. Conversation
 
@@ -99,6 +100,7 @@ The product logic follows [Rakazo](https://github.com/elie222/rakazo) (persisten
 | Reminders | Things only you can do just remind you; no teammate work. |
 | Daily / weekly reports | Written from all teammates' conversations, deliveries and verifications of the period. |
 | Manage | Profile › Routines: edit the sentence and schedule, run now, pause, delete, the last 10 runs (each jumps to its result); finished one-offs fold away. |
+| Stops when broken | A routine whose last three runs failed pauses itself and says so under the failure ("I stopped · … failed 3 times in a row"), plus one IM line; resuming is your click. Runs you stopped don't count. |
 
 ### 5. Sidebar and navigation
 
@@ -127,7 +129,9 @@ The product logic follows [Rakazo](https://github.com/elie222/rakazo) (persisten
 | Feature | What it does |
 | --- | --- |
 | In app | Results and questions pop up, except for the teammate you're looking at. |
-| IM | Feishu, DingTalk, WeCom, WeChat and others; only reminders, questions, changed routines, failures and long jobs; per-teammate switch. |
+| IM | Feishu, DingTalk, WeCom, WeChat and others; only reminders, questions, changed routines, failures and long jobs; per-teammate switch. Pick the chat on the IM page. |
+| Quiet hours | 22:00–07:30 by default (IM page): notifications in that window are held and sent as one message when it ends; reminders you timed still go out. |
+| Pause all | On MyWork's profile: every teammate works as "Only when asked" (what you ask and its routines) until you turn it off. |
 
 ## Getting started
 

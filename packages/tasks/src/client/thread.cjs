@@ -34,6 +34,8 @@
  *   queued    {}                               the run has not started: it waits behind the teammate's current run
  *   stopped   {}                               a done run you stopped (error 已停止 / 已取消): a centred 「已停止」, not a failure
  *   failed    { reason }                       a done run with any other error
+ *   paused    { routineId, title, failures }   after a failure that paused its routine (activity { kind:'routine',
+ *                                              action:'paused' }): 「我停了 · 日报连续 3 次失败，已暂停」, opens the routine
  *
  * A segment is what one user line started: the run's input opens the first, each steer the next. The line that answers
  * a question (askId) and the 24 h resume (auto) do not open a segment and are not bubbles: the question shows its answer.
@@ -170,6 +172,8 @@ function threadOf(run, deliverables) {
   } else if (done && r.error) {
     if (isStopped(r.error)) out.push({ kind: 'stopped', key: 'stopped', at: str(r.finishedAt) })
     else out.push({ kind: 'failed', key: 'failed', at: str(r.finishedAt), reason: str(r.error) })
+    const p = activity.find((e) => e && e.kind === 'routine' && e.action === 'paused')
+    if (p) out.push({ kind: 'paused', key: 'paused', at: str(p.at || r.finishedAt), routineId: str(p.routineId || r.routineId), title: str(p.title || r.routineTitle), failures: Number(p.failures) || 0 })
   }
   return out
 }

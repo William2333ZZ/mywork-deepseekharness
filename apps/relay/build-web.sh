@@ -20,6 +20,8 @@ cat > "$HERE/public/_headers" <<HEADERS
   Cache-Control: no-cache
 /index.html
   Cache-Control: no-cache
+/sw.js
+  Cache-Control: no-cache
 /_expo/static/*
   Cache-Control: public, max-age=31536000, immutable
 HEADERS

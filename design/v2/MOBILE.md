@@ -145,6 +145,7 @@ M2 的触发条件（任一成立即开工）：交付物不再是能读的文�
 - 现状：前端轮询（在跑 3s / 空闲 20s；client:33-34, 376-404），完成检测是两次 GET /tasks 快照差分；Notification 是浏览器本地 API；`mywork/task` 是进程内 `ctx.emit`（index.js:56-61），没有 SSE / WebSocket 暴露。
 - 唯一能到手机的推送：packages/im 的飞书 bot 直推（feishu.js:39-49，`msg_type text`，发给 ownerOpenId，不需要先收到消息）。推送目标依赖 `notifyConfig.automation.default`，无 UI。推送正文默认 1500 字上限；微信路径经模型转发「偶尔轻微改动」。
 - iOS Web Push 只对加到主屏且 16.4+ 的 PWA 开放，且要服务端推——M0 不做，M2 走 APNs / FCM，中继是一台不在用户电脑上的服务器，与「本机运行」有张力，需要单独决定。
+- 2026-10-12 决定：先做网页推送（Web Push），不做原生 APNs / FCM。推送由用户电脑直接发给手机浏览器的推送服务（VAPID 签名、RFC 8291 加密，推送服务读不到内容），不新增云端服务、不经中继；订阅经中继的 `/mywork-kit/api/push/*` 交给电脑。实现见 packages/kit/src/webpush.js、apps/mobile/public/sw.js。
 - 开发环境 `.dsh-dev-home/home/dsh-im-connect/channels.json` 的 channels 为空（评审核对），飞书账号还没绑；M0 第一步是走 im-connect 的扫码绑定。
 
 ### 长连接

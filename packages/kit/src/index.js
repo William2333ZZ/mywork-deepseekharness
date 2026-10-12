@@ -16,6 +16,7 @@ import qrcode from 'qrcode-generator'
 import * as installer from './installer.js'
 import { sameSecret, startLanGateway } from './lan-gateway.js'
 import { newKeyPair, newSignKeyPair, startRelayClient } from './relay-client.js'
+import { createPusher, noticeFor } from './webpush.js'
 import { configSchema, defineRawTool, rejectUntrusted } from './harness.js'
 import { repairImWorkspacesFile } from './im-guard.js'
 
@@ -110,8 +111,8 @@ export function apply(ctx, config = {}) {
     }
     /** A new pairing: a new id, key pair and phone token (the signing key stays); every paired phone has to scan again. */
     const newPairing = () => { const k = newKeyPair(); writeLan({ relayId: randomBytes(18).toString('base64url'), relayPk: k.publicKey, relaySk: k.secretKey, phoneToken: randomBytes(32).toString('base64url') }) }
-    // Through the relay a phone reaches MyWork's API and signed file links, nothing else of dsh.
-    const relayAllowed = (p) => /^\/mywork-tasks\/(api\/|files\/raw\?)/.test(p)
+    // Through the relay a phone reaches MyWork's API, signed file links and its push subscription, nothing else of dsh.
+    const relayAllowed = (p) => /^\/mywork-tasks\/(api\/|files\/raw\?)/.test(p) || /^\/mywork-kit\/api\/push(\/|$|\?)/.test(p)
     const forwardToGateway = async (method, path, body) => {
       const r = await fetch(`http://127.0.0.1:${gatewayPort()}${path}`, { method, redirect: 'manual', headers: { authorization: 'Bearer ' + phoneToken(), ...(body !== undefined ? { 'content-type': 'application/json' } : {}) }, body })
       return { status: r.status, contentType: r.headers.get('content-type') || '', body: Buffer.from(await r.arrayBuffer()) }
@@ -135,6 +136,22 @@ export function apply(ctx, config = {}) {
       return `${relayPublicUrl()}/#i=${k.id}&k=${k.pk}&t=${phoneToken()}`
     }
 
+    // ---- 手机通知（Web Push, webpush.js）----------------------------------------------------------
+    // The phone's web version subscribes and hands its subscription over through the relay; teammate notices then go
+    // from this computer straight to the phone's push service, encrypted for the phone.
+    const imNotifyFile = () => join(homeDir(), 'mywork', 'im-notify.json')
+    const pusher = createPusher({
+      file: join(homeDir(), 'mywork', 'push.json'),
+      readQuiet: () => { try { return JSON.parse(readFileSync(imNotifyFile(), 'utf8')) } catch { return {} } },
+      log: (m) => console.log('[dsh-mywork-kit] ' + m),
+    })
+    // Only while 允许手机连接 is on: a phone that cannot reach this computer gets no notifications either.
+    wctx.effect(() => wctx.on('mywork/task', (payload) => {
+      if (!gateway) return
+      let n = null
+      try { n = noticeFor(payload) } catch (e) { console.warn('[dsh-mywork-kit] push notice: ' + (e && e.message)) }
+      if (n) pusher.notify(n).catch(() => {})
+    }, { global: true }), 'dsh-mywork-kit: phone push')
     if (readLan().enabled) openPhone()
     ctx.effect(() => () => closePhone(), 'dsh-mywork-kit: phone relay')
     route('/phone', async (req, res) => {
@@ -162,11 +179,26 @@ export function apply(ctx, config = {}) {
       if (req.method !== 'POST') return json(res, { error: 'POST only' }, 405)
       if (!loopback(req)) return json(res, { error: 'limited to loopback requests' }, 403)
       newPairing()
+      pusher.clear() // the old pairing's phones stop getting notifications too
       // The relay client dials the new pairing; the gateway reads the phone token on every request.
       if (relay) { relay.close(); relay = null }
       if (gateway) openPhone()
       json(res, { reset: true, on: !!gateway })
     })
+
+    const post = (fn) => async (req, res) => {
+      if (req.method !== 'POST') return json(res, { error: 'POST only' }, 405)
+      const body = await readBody(req).catch(() => ({}))
+      try { json(res, await fn(body)) } catch (e) { json(res, { error: e instanceof Error ? e.message : String(e) }, e && e.status ? e.status : 500) }
+    }
+    route('/push', async (_req, res) => json(res, { key: pusher.publicKey(), phones: pusher.list().length }))
+    route('/push/subscribe', post((b) => { const s = pusher.subscribe(b.subscription); return { subscribed: true, phones: pusher.list().length, endpoint: s.endpoint } }))
+    route('/push/unsubscribe', post((b) => ({ removed: pusher.unsubscribe(b.endpoint), phones: pusher.list().length })))
+    route('/push/test', post(async (b) => {
+      const r = await pusher.test(b.endpoint, { title: 'MyWork', body: '通知开好了：同事有结果、有问题要你定、提醒到点，都会推到这里。', tag: 'test' })
+      if (r === 'unknown') throw Object.assign(new Error('这台手机还没开通知。'), { status: 404 })
+      return { result: r }
+    }))
 
     route('/status', async (_req, res) => {
       const s = installer.status(process.env, boot)

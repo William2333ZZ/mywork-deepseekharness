@@ -51,12 +51,7 @@
       "expo-secure-store"
     ],
     "newArchEnabled": false,
-    "extra": {
-      "eas": {
-        "projectId": "a2470ca8-cc93-4b56-8946-d7d08522d974"
-      }
-    },
-    "owner": "hhdz",
+    "owner": "shixin001s-team",
     "backgroundColor": "#12100e",
     "web": {
       "bundler": "metro",
@@ -67,6 +62,11 @@
       "lang": "zh-CN",
       "backgroundColor": "#12100e",
       "themeColor": "#12100e"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "5078fe82-76d0-41c0-943f-e3c5fb3f5710"
+      }
     }
   }
 }

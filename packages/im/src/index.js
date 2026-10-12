@@ -95,7 +95,10 @@ export function apply(ctx, config = {}) {
       const reply = [...(run.activity || [])].reverse().find((a) => a && a.kind === 'text')
       const body = failed ? run.error : (reply ? reply.text : run.deliverables && run.deliverables[0] ? run.deliverables[0].title : run.summary)
       const what = run.trigger === 'routine' ? (run.routineTitle || '例行') : line(run.input, 30)
-      out(`【${who}】${what} · ${failed ? '失败' : '完成'}` + (body ? '\n\n' + String(body).slice(0, notifyConfig.automation.maxChars) : ''), `run ${run.id}`)
+      // 我停了: the failure that paused its routine says so (the routine waits for you to resume it).
+      const paused = (run.activity || []).find((a) => a && a.kind === 'routine' && a.action === 'paused')
+      const stop = paused ? `\n\n连续 ${paused.failures} 次失败，我先停了这个例行；恢复要你在例行里点。` : ''
+      out(`【${who}】${what} · ${failed ? '失败' : '完成'}` + (body ? '\n\n' + String(body).slice(0, notifyConfig.automation.maxChars) : '') + stop, `run ${run.id}`)
     } catch (e) { log('teammate notify error: ' + (e && e.message)) }
   }, { global: true }), 'dsh-mywork-im: teammate notifier')
 

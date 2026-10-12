@@ -98,6 +98,7 @@ The product logic follows [Rakazo](https://github.com/elie222/rakazo) (persisten
 | Reminders | Things only you can do just remind you; no teammate work. |
 | Daily / weekly reports | Written from all teammates' conversations, deliveries and verifications of the period. |
 | Manage | Profile › Routines: edit the sentence and schedule, run now, pause, delete, the last 10 runs (each jumps to its result); finished one-offs fold away. |
+| Stops when broken | A routine whose last three runs failed pauses itself and says so under the failure ("I stopped · … failed 3 times in a row"), plus one IM line; resuming is your click. Runs you stopped don't count. |
 
 ### 5. Sidebar and navigation
 

@@ -37,7 +37,7 @@ export type Activity =
   | { at: string; kind: 'text'; text: string }
   | { at: string; kind: 'tool'; name: string; detail?: string; ok?: boolean; result?: string }
   | { at: string; kind: 'verify'; text: string }
-  | { at: string; kind: 'routine'; action: 'created' | string; routineId: string; title: string; scheduleLabel?: string }
+  | { at: string; kind: 'routine'; action: 'created' | 'paused' | string; routineId: string; title: string; scheduleLabel?: string; failures?: number }
   | { at: string; kind: 'remind'; routineId: string; title: string; text?: string; acked?: boolean; ackedAt?: string }
   /** MyWork created a teammate in this run (mywork_mate_create). */
   | { at: string; kind: 'mate'; action: 'created' | string; mateId: string; name?: string }

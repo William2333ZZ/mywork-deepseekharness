@@ -311,3 +311,15 @@ test('MyWork created a teammate: a newMate entry where it happened; the first jo
   assert.equal(first[0].via, 'mywork')
   assert.equal(threadOf(run())[0].via, undefined)
 })
+
+test('a failure that paused its routine is followed by one 我停了 line that opens the routine', () => {
+  const r = run({ trigger: 'routine', routineId: 'rt1', routineTitle: '简报', error: '源站打不开', activity: [{ kind: 'routine', action: 'paused', at: at(60), routineId: 'rt1', title: '简报', failures: 3 }] })
+  const list = threadOf(r)
+  assert.deepEqual(kinds(list).slice(-2), ['failed', 'paused'])
+  const p = list[list.length - 1]
+  assert.deepEqual([p.routineId, p.title, p.failures], ['rt1', '简报', 3])
+  // The paused entry is not a 已安排 line.
+  assert.equal(kinds(list).includes('scheduled'), false)
+  // A plain failure has no such line.
+  assert.deepEqual(kinds(threadOf(run({ trigger: 'routine', routineId: 'rt1', error: '源站打不开' }))).slice(-1), ['failed'])
+})

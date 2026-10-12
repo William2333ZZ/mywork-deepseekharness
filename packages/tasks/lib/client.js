@@ -119,6 +119,8 @@ module.exports = { render, inline, esc }
  *   queued    {}                               the run has not started: it waits behind the teammate's current run
  *   stopped   {}                               a done run you stopped (error 已停止 / 已取消): a centred 「已停止」, not a failure
  *   failed    { reason }                       a done run with any other error
+ *   paused    { routineId, title, failures }   after a failure that paused its routine (activity { kind:'routine',
+ *                                              action:'paused' }): 「我停了 · 日报连续 3 次失败，已暂停」, opens the routine
  *
  * A segment is what one user line started: the run's input opens the first, each steer the next. The line that answers
  * a question (askId) and the 24 h resume (auto) do not open a segment and are not bubbles: the question shows its answer.
@@ -254,6 +256,8 @@ function threadOf(run, deliverables) {
   } else if (done && r.error) {
     if (isStopped(r.error)) out.push({ kind: 'stopped', key: 'stopped', at: str(r.finishedAt) })
     else out.push({ kind: 'failed', key: 'failed', at: str(r.finishedAt), reason: str(r.error) })
+    const p = activity.find((e) => e && e.kind === 'routine' && e.action === 'paused')
+    if (p) out.push({ kind: 'paused', key: 'paused', at: str(p.at || r.finishedAt), routineId: str(p.routineId || r.routineId), title: str(p.title || r.routineTitle), failures: Number(p.failures) || 0 })
   }
   return out
 }
@@ -641,7 +645,7 @@ const zh = {
   edit: '编辑', save: '保存', titlePh: '加一个头衔', changeLook: '换头像', dutyHint: '它每次干活前都会先读这段。⌘↵ 保存。',
   dutyEmpty: '还没写职责。写清楚它负责什么，它每次干活前都会读。', memory: '它记住的', memoryEmpty: '还没记住什么。跟它说「记住……」，就会记在这里。',
   newRoutine: '新例行', newRoutinePh: '说一句带时间的话，例如：每天 9 点给我一份简报',
-  nextRun: '下次', paused: '已暂停', ended: '已结束', runNow: '现在跑一次', pause: '暂停', resume: '恢复', remove: '删除', cancel: '取消',
+  nextRun: '下次', paused: '已暂停', pausedFailing: '连续失败，已暂停', pausedLine: '我停了 · {t} 连续 {n} 次失败，已暂停，去恢复', ended: '已结束', runNow: '现在跑一次', pause: '暂停', resume: '恢复', remove: '删除', cancel: '取消',
   removeRoutineAsk: '删除这个例行？', removeMate: '删除同事', removeMateAsk: '删除这位同事、它的对话和例行？',
   runResult: '有结果', runQuiet: '没有变化', runFailed: '失败', runFired: '提醒', runRunning: '在跑', neverRan: '还没跑过',
   name: '名字', title: '头衔', duty: '职责', pinned: '置顶', notify: '通知', group: '类型', groupPh: '其他', noType: '其他（不分类型）',
@@ -698,7 +702,7 @@ const en = {
   edit: 'Edit', save: 'Save', titlePh: 'Add a title', changeLook: 'Change avatar', dutyHint: 'It reads this before every job. ⌘↵ saves.',
   dutyEmpty: 'No job written yet. Say what it is responsible for; it reads this before every job.', memory: 'What it remembers', memoryEmpty: 'Nothing yet. Tell it “remember …” and it lands here.',
   newRoutine: 'New routine', newRoutinePh: 'A sentence with a time, e.g. every day at 9 send me a brief',
-  nextRun: 'Next', paused: 'Paused', ended: 'Ended', runNow: 'Run now', pause: 'Pause', resume: 'Resume', remove: 'Delete', cancel: 'Cancel',
+  nextRun: 'Next', paused: 'Paused', pausedFailing: 'Paused after failures', pausedLine: 'I stopped · {t} failed {n} times in a row and is paused; resume it', ended: 'Ended', runNow: 'Run now', pause: 'Pause', resume: 'Resume', remove: 'Delete', cancel: 'Cancel',
   removeRoutineAsk: 'Delete this routine?', removeMate: 'Delete teammate', removeMateAsk: 'Delete this teammate, its conversation and routines?',
   runResult: 'Result', runQuiet: 'No change', runFailed: 'Failed', runFired: 'Reminder', runRunning: 'Running', neverRan: 'Never ran',
   name: 'Name', title: 'Title', duty: 'Job', pinned: 'Pinned', notify: 'Notifications', group: 'Type', groupPh: 'Other', noType: 'Other (no type)',
@@ -2616,6 +2620,7 @@ function makeComponents(ctx, t) {
         else if (e.kind === 'onboard') add('mate', e, () => h(OnboardCard, { run, e: e.e, mate, onDone: () => { th.reload(); kick() } }), { card: true })
         else if (e.kind === 'subscribe') add('mate', e, () => h(SubscribeCard, { run, e: e.e, mate, onDone: () => { th.reload(); kick() } }), { card: true })
         else if (e.kind === 'failed') add('mate', e, bubble('danger', false, t('failedTitle') + ' · ' + e.reason))
+        else if (e.kind === 'paused') add('note', e, () => h('button', { type: 'button', className: 'mwt-note', onClick: () => showAside(true, { mode: 'mate', section: 'routines', routineId: e.routineId }) }, t('pausedLine').replace('{t}', e.title || t('routineWord')).replace('{n}', String(e.failures || 3))))
         else if (e.kind === 'thinking') add('status', e, null, { parts: [t('working'), e.step, elapsedOf(run)], live: true })
         else if (e.kind === 'queued') add('status', e, null, { parts: [t('queued')] })
       }
@@ -2964,7 +2969,7 @@ function makeComponents(ctx, t) {
       setBusy(true); setErr('')
       api('/routines/create', { mateId: mate.id, input }).then((d) => { setDraft(''); setAdding(false); load(); kick(); if (d && d.routine && d.routine.id) setOpen(d.routine.id) }).catch((e) => setErr(e.message || String(e))).finally(() => setBusy(false))
     }
-    const meta = (r) => !r.enabled ? (r.schedule && r.schedule.type === 'once' ? t('ended') : t('paused')) : (r.scheduleLabel || '')
+    const meta = (r) => !r.enabled ? (r.pausedFor ? t('pausedFailing') : r.schedule && r.schedule.type === 'once' ? t('ended') : t('paused')) : (r.scheduleLabel || '')
     // A one-off that has run is history: folded under 「已结束的 n 个」 (open while one of them is the one asked for).
     const ended = (r) => !r.enabled && !!r.schedule && r.schedule.type === 'once'
     const current = items ? items.filter((r) => !ended(r)) : []

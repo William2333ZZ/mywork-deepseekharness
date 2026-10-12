@@ -1579,3 +1579,30 @@ test('全体暂停 on MyWork: every teammate works as 只在我问时 until it i
   assert.equal(h.mw.mateView(mate.id).pausedAll, false)
   h.cleanup()
 })
+
+test('我停了: the third routine run in a row that fails pauses its routine and says so under that run', async () => {
+  const h = harness()
+  const { routine } = await h.ok('POST', '/routines/create', { mateId: 'mywork', input: '每天 9 点给我一份 Node 生态简报' })
+  const runs = []
+  for (let i = 0; i < 3; i++) {
+    h.scripts.push(() => { throw new Error('源站打不开') })
+    const ran = await h.ok('POST', '/routines/run', { id: routine.id })
+    // The turn ends in a model error on purpose: wait without h.until, which rethrows script errors.
+    for (let t0 = Date.now(); h.run(ran.runId).status !== 'done';) { assert.ok(Date.now() - t0 < 3000, 'timed out'); await new Promise((res) => setTimeout(res, 5)) }
+    h.scriptErrors.length = 0
+    runs.push(ran.runId)
+  }
+  const r = h.mw.routines.get(routine.id)
+  assert.equal(r.enabled, false); assert.equal(r.pausedFor.failures, 3); assert.equal(r.pausedFor.error, '源站打不开')
+  // Only the third run carries the line; the first two are plain failures.
+  assert.deepEqual(runs.map((id) => h.run(id).activity.filter((a) => a.kind === 'routine' && a.action === 'paused').length), [0, 0, 1])
+  const { runs: thread } = await h.ok('GET', '/mates/thread', { id: 'mywork' })
+  const last = thread.find((x) => x.id === runs[2])
+  assert.deepEqual(last.activity.find((a) => a.action === 'paused'), { ...last.activity.find((a) => a.action === 'paused'), kind: 'routine', routineId: routine.id, title: routine.title, failures: 3 })
+  // The panel reads why it is off; resuming clears it.
+  const [listed] = (await h.ok('GET', '/routines', { mate: 'mywork' })).items
+  assert.equal(listed.pausedFor.failures, 3)
+  const { routine: back } = await h.ok('POST', '/routines/enable', { id: routine.id, enabled: true })
+  assert.equal(back.enabled, true); assert.equal(back.pausedFor, undefined)
+  h.cleanup()
+})

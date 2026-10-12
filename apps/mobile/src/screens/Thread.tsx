@@ -167,10 +167,10 @@ function MateThread({ id, runId }: { id: string; runId?: string }) {
     setBusyAnswer(true); setErr('')
     try { const d = await api.answer(run.id, askId, value); if (d.run) setPage((p) => ({ ...p, runs: mergeRuns(p.runs, [d.run]) })); store.refresh().catch(() => {}) } catch (e) { setErr(errText(e)) } finally { setBusyAnswer(false) }
   }
-  const ack = async (routineId: string, at: string) => {
+  const ack = async (routineId: string, at: string, followupId?: string) => {
     if (!api) return
     setAcking(routineId + at)
-    try { await api.routineAck(routineId, at); await loadNewest() } catch (e) { setErr(errText(e)) } finally { setAcking('') }
+    try { await (followupId ? api.followupAck(id, followupId) : api.routineAck(routineId, at)); await loadNewest() } catch (e) { setErr(errText(e)) } finally { setAcking('') }
   }
   const stop = async () => {
     setSheet(false)
@@ -271,7 +271,7 @@ function useArrivals(runs: Run[], ready: boolean): (key: string) => boolean {
 /** What the messages call back into the screen. */
 type LineCtx = {
   busyAnswer: boolean; acking: string; mates: Mate[]
-  onAnswer: (run: Run, askId: string, value: string) => void; onAck: (routineId: string, at: string) => void
+  onAnswer: (run: Run, askId: string, value: string) => void; onAck: (routineId: string, at: string, followupId?: string) => void
   onOpenFile: (d: Deliverable) => void; onRoutine: (routineId?: string) => void; onMate: (mateId: string) => void
 }
 /** One message as IM: its side (yours, the teammate's, a centred note, the working line), its time, how it draws. */
@@ -287,6 +287,7 @@ function itemsOf(run: Run, mate: Mate | null, ctx: LineCtx, fresh: (key: string)
     const arrive = (e.kind === 'text' || e.kind === 'deliver') && fresh(e.key)
     switch (e.kind) {
       case 'marker': out.push({ key: e.key, side: 'note', at: e.at, make: () => <CenterLine text={e.text} onPress={e.routineId ? () => ctx.onRoutine(e.routineId) : undefined} /> }); break
+      case 'followup': out.push({ key: e.key, side: 'note', at: e.at, make: () => <CenterLine text={e.text} /> }); break
       case 'scheduled': out.push({ key: e.key, side: 'note', at: e.at, make: () => <CenterLine text={e.text} onPress={() => ctx.onRoutine(e.routineId)} /> }); break
       case 'auto': out.push({ key: e.key, side: 'note', at: e.at, make: () => <CenterLine text="24 小时没有回答，按合理假设继续" /> }); break
       case 'user': out.push({ key: e.key, side: 'me', at: e.at, make: (first) => (e.via === 'mywork' ? <><Text style={styles.via}>MyWork 转交</Text><MeBubble text={e.text} first={first} /></> : <MeBubble text={e.text} first={first} />) }); break
@@ -303,7 +304,7 @@ function itemsOf(run: Run, mate: Mate | null, ctx: LineCtx, fresh: (key: string)
         for (const d of e.ds) out.push({ key: e.key + ':' + d.id, side: 'mate', at: e.at, card: true, arrive, make: () => <DocCard d={d} onOpen={ctx.onOpenFile} /> })
         break
       case 'ask': out.push({ key: e.key, side: 'mate', at: e.at, card: true, make: () => <AskCard ask={e} busy={ctx.busyAnswer} onAnswer={(v) => ctx.onAnswer(run, e.id, v)} /> }); break
-      case 'remind': out.push({ key: e.key, side: 'mate', at: e.at, card: true, make: () => <RemindCard title={e.title} text={e.text} at={e.at} acked={e.acked} busy={ctx.acking === e.routineId + e.at} onAck={() => ctx.onAck(e.routineId, e.at)} onOpen={() => ctx.onRoutine(e.routineId)} /> }); break
+      case 'remind': out.push({ key: e.key, side: 'mate', at: e.at, card: true, make: () => <RemindCard title={e.title} text={e.text} at={e.at} acked={e.acked} busy={ctx.acking === e.routineId + e.at} onAck={() => ctx.onAck(e.routineId, e.at, e.followupId)} onOpen={() => (e.routineId ? ctx.onRoutine(e.routineId) : undefined)} /> }); break
       case 'working': out.push({ key: e.key, side: 'status', at: '', make: () => <Working mate={mate} text={['在干活', e.step, elapsedOf(run)].filter(Boolean).join(' · ')} /> }); break
       case 'failed': out.push(e.cancelled
         ? { key: e.key, side: 'note', at: e.at, make: () => <CenterLine text="已停止" /> }

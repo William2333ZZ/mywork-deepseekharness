@@ -107,6 +107,7 @@ const zh = {
   working: '在干活', workingAria: '{name} 正在工作', file: '文件', loadEarlier: '加载更早', process: '过程', phases: '步', times: '次', toolFailed: '失败', none2: '无',
   ratingGood: '有用', ratingBad: '没用', failedTitle: '失败', stopped: '已停止', queued: '排队',
   scheduled: '已安排', viaMywork: 'MyWork 转交', mateGone: '已删除', remindCard: '提醒', gotIt: '知道了', acked: '已知道',
+  fuYouSaid: '你说过：{q}', fuOpen: '记下了 · {d} 提你', fuOpenMine: '记下了 · {d} 我来做', fuFallback: '不回的话：{f}', fuDrop: '不用记', fuClosed: '闭上了 · {n}', fuDropped: '放下了 · {n}', fuBrought: '跟进过 · {d}',
   answeredLine: '已回答：{a}', answerBelow: '在下面的输入框回答', askClosed: '不再等待', askAuto: '24 小时没有回答，按合理假设继续',
   allowOnce: '允许一次', deny: '拒绝', takeoverGo: '去 Chrome 里处理', takeoverDone: '我做完了',
   computer: '电脑', routines: '例行', noFiles: '还没有文件。', folderEmpty: '文件夹还是空的。它写的表、抓的网页、做的文件都放在这里。', noRoutines: '还没有例行。',
@@ -163,6 +164,7 @@ const en = {
   working: 'Working', workingAria: '{name} is working', file: 'File', loadEarlier: 'Load earlier', process: 'Process', phases: 'steps', times: 'calls', toolFailed: 'failed', none2: 'none',
   ratingGood: 'Useful', ratingBad: 'Not useful', failedTitle: 'Failed', stopped: 'Stopped', queued: 'Queued',
   scheduled: 'Scheduled', viaMywork: 'Handed over by MyWork', mateGone: 'deleted', remindCard: 'Reminder', gotIt: 'Got it', acked: 'Seen',
+  fuYouSaid: 'You said: {q}', fuOpen: 'Noted · back to you {d}', fuOpenMine: 'Noted · I\'ll do it {d}', fuFallback: 'If you don\'t reply: {f}', fuDrop: 'Don\'t keep it', fuClosed: 'Closed · {n}', fuDropped: 'Let go · {n}', fuBrought: 'Followed up · {d}',
   answeredLine: 'Answered: {a}', answerBelow: 'Answer in the box below', askClosed: 'No longer waiting', askAuto: 'No answer in 24 hours, continued on reasonable assumptions',
   allowOnce: 'Allow once', deny: 'Deny', takeoverGo: 'Handle it in Chrome', takeoverDone: 'Done',
   computer: 'Computer', routines: 'Routines', noFiles: 'No files yet.', folderEmpty: 'The folder is empty. Its tables, saved pages and files land here.', noRoutines: 'No routines yet.',
@@ -1566,9 +1568,10 @@ function makeComponents(ctx, t) {
     const [busy, setBusy] = React.useState(false)
     return h('div', { className: 'mwt-card' },
       h('div', { className: 'mwt-card-h' }, e.title || t('remindCard')),
+      e.quote ? h('div', { className: 'mwt-quiet', style: { padding: '0 14px 8px' } }, t('fuYouSaid').replace('{q}', e.quote)) : null,
       h('div', { className: 'mwt-card-f' },
         h('span', null, e.acked ? t('acked') : t('remindCard')),
-        e.acked ? null : h('button', { type: 'button', className: 'mwt-tbtn', disabled: busy || !e.routineId, onClick: () => { setBusy(true); Promise.resolve(onAck(e)).finally(() => setBusy(false)) } }, t('gotIt'))))
+        e.acked ? null : h('button', { type: 'button', className: 'mwt-tbtn', disabled: busy || !(e.routineId || e.followupId), onClick: () => { setBusy(true); Promise.resolve(onAck(e)).finally(() => setBusy(false)) } }, t('gotIt'))))
   }
 
   // ---- 做了告诉你, 规矩, 例行没出声, 今天卡 -------------------------------------------------------------------------
@@ -2041,7 +2044,8 @@ function makeComponents(ctx, t) {
 
     const answer = (runId) => (askId, value) => api('/answer', { id: runId, askId, answer: value }).then((d) => { if (d && d.run) th.patchRun(d.run); th.reload(); kick() })
     const patchRating = (nd) => th.setTh((p) => ({ ...p, runs: p.runs.map((run) => (Array.isArray(run.deliverables) && run.deliverables.some((y) => y.id === nd.id) ? { ...run, deliverables: run.deliverables.map((y) => (y.id === nd.id ? { ...y, rating: nd.rating } : y)) } : run)) }))
-    const ack = (e) => api('/routines/ack', { id: e.routineId, at: e.at }).then(() => { th.reload(); kick() }).catch(() => {})
+    const ack = (e) => (e.followupId ? api('/followups/ack', { mateId: mate.id, id: e.followupId }) : api('/routines/ack', { id: e.routineId, at: e.at })).then(() => { th.reload(); kick() }).catch(() => {})
+    const dropFollowup = (e) => api('/followups/drop', { mateId: mate.id, id: e.id }).then(() => { th.reload(); kick() }).catch(() => {})
     const stop = () => api('/mates/stop', { id: mate.id }).then(() => { th.reload(); kick() }).catch(() => {})
     const takeover = () => showAside(true, { mode: 'mate', section: 'computer' })
     const textAsk = textAskOf(loud)
@@ -2071,6 +2075,11 @@ function makeComponents(ctx, t) {
         if (fold && e.kind !== 'user' && e.kind !== 'routine' && e.kind !== 'deliver' && e.kind !== 'newMate') continue
         const arrive = (e.kind === 'text' || e.kind === 'deliver') && arriving(run.id + ':' + e.key)
         if (e.kind === 'routine') add('note', e, () => h('div', { className: 'mwt-note' }, [t('routineWord'), e.title].filter(Boolean).join(' · ')))
+        else if (e.kind === 'followup') add('note', e, () => h('div', { className: 'mwt-note' },
+          e.state === 'closed' ? t('fuClosed').replace('{n}', e.note) : e.state === 'dropped' ? t('fuDropped').replace('{n}', e.note || t('fuDrop'))
+            : e.count ? t('fuBrought').replace('{d}', e.dueLabel)
+              : [(e.fk === 'mine' ? t('fuOpenMine') : t('fuOpen')).replace('{d}', e.dueLabel), e.fallback && e.fk !== 'mine' ? t('fuFallback').replace('{f}', e.fallback) : ''].filter(Boolean).join(' · '),
+          e.state === 'open' && !e.count ? h('button', { type: 'button', className: 'mwt-act mute', style: { marginLeft: 8 }, onClick: () => dropFollowup(e) }, t('fuDrop')) : null))
         else if (e.kind === 'scheduled') add('note', e, () => h('button', { type: 'button', className: 'mwt-note', onClick: () => showAside(true, { mode: 'mate', section: 'routines', routineId: e.routineId }) }, t('scheduled') + ' · ' + [e.scheduleLabel, e.title].filter(Boolean).join(' ')))
         else if (e.kind === 'stopped') add('note', e, () => h('div', { className: 'mwt-note' }, t('stopped')))
         else if (e.kind === 'auto') add('note', e, () => h('div', { className: 'mwt-note' }, t('askAuto')))

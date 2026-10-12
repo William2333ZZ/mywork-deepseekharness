@@ -1558,3 +1558,57 @@ test('mywork_calendar for any teammate: a link from 「- 日历：」 in AGENTS.
   assert.match(got.bad.error, /找不到日历文件/)
   h.cleanup()
 })
+
+test('跟进: what you put off comes back as a card quoting you; what it promised is sent back to it; both close; none in routine runs', async () => {
+  const h = harness()
+  const got = {}
+  h.scripts.push((t) => {
+    got.yours = t.tool('mywork_followup', { kind: 'yours', text: '细看那篇论文', days: 7, fallback: '对照留在成稿/' })
+    got.mine = t.tool('mywork_followup', { kind: 'mine', text: '收盘后再对一次 J-04', days: 1 })
+    got.bad = t.tool('mywork_followup', { kind: 'yours', text: 'x', when: '下周' })
+    t.say('好，我先把对照备上。')
+  })
+  const { runId } = await h.ok('POST', '/mates/say', { id: 'mywork', text: '先放着，下周再细看这篇' })
+  await h.until(() => h.run(runId).status === 'done')
+  assert.ok(got.yours.id); assert.ok(got.mine.id); assert.match(got.bad.error, /没看懂哪天/)
+  // One small line each under the turn that opened them, read live from the ledger.
+  const lines = (await h.ok('GET', '/mates/thread', { id: 'mywork' })).runs.find((r) => r.id === runId).activity.filter((a) => a.kind === 'followup')
+  assert.deepEqual(lines.map((a) => [a.fk, a.text, a.state, a.count]), [['yours', '细看那篇论文', 'open', 0], ['mine', '收盘后再对一次 J-04', 'open', 0]])
+  assert.match(lines[0].dueLabel, /^\d+\/\d+ 周. 08:30$/)
+  assert.equal(lines[0].fallback, '对照留在成稿/')
+  // Nothing is due yet.
+  const before = h.mw.store.items.length
+  h.mw.followupTick(new Date()); assert.equal(h.mw.store.items.length, before)
+  // Its own day comes: a run of its own, the thread shows only what it says; it closes once that run is done.
+  h.scripts.push((t) => { assert.match(t.texts[0], /这是你之前答应的跟进：「收盘后再对一次 J-04」（当时的原话：先放着，下周再细看这篇）/); t.say('对过了，J-04 不变。') })
+  h.mw.followupTick(new Date(Date.now() + 2 * 86400000))
+  const back = h.mw.store.items.find((t) => t.followupId === got.mine.id)
+  assert.equal(back.trigger, 'system')
+  await h.until(() => h.run(back.id).status === 'done')
+  h.mw.followupTick(new Date(Date.now() + 2 * 86400000))
+  assert.deepEqual([h.mw.followups.get(h.mw.mates.get('mywork'), got.mine.id).state, h.mw.followups.get(h.mw.mates.get('mywork'), got.mine.id).note], ['closed', '做了'])
+  // Yours: a reminder card in the thread quoting you; 知道了 closes it and the card reads 已知道.
+  h.mw.followupTick(new Date(Date.now() + 8 * 86400000))
+  const card = h.mw.store.items.find((t) => t.followupId === got.yours.id)
+  const view = h.mw.runView(card)
+  assert.deepEqual([view.remind.followupId, view.remind.quote, view.remind.title, view.remind.acked], [got.yours.id, '先放着，下周再细看这篇', '跟进 · 细看那篇论文', false])
+  assert.equal(h.events.filter((e) => e.kind === 'remind').length >= 1, true)
+  h.mw.followupTick(new Date(Date.now() + 8 * 86400000)) // brought once only
+  assert.equal(h.mw.store.items.filter((t) => t.followupId === got.yours.id).length, 1)
+  const { followup } = await h.ok('POST', '/followups/ack', { mateId: 'mywork', id: got.yours.id })
+  assert.deepEqual([followup.state, followup.note], ['closed', '你看过了'])
+  assert.equal(h.mw.runView(h.run(card.id)).remind.acked, true)
+  // 不用记 lets one go; the list shows them all.
+  h.scripts.push((t) => { got.third = t.tool('mywork_followup', { kind: 'yours', text: '再看一次', days: 3 }); t.say('好') })
+  const r3 = await h.ok('POST', '/mates/say', { id: 'mywork', text: '这个也回头再说' })
+  await h.until(() => h.run(r3.runId).status === 'done')
+  assert.equal((await h.ok('POST', '/followups/drop', { mateId: 'mywork', id: got.third.id })).followup.state, 'dropped')
+  assert.deepEqual((await h.ok('GET', '/followups', { mate: 'mywork' })).items.map((f) => f.state), ['closed', 'closed', 'dropped'])
+  // A routine run cannot open one: nobody is talking.
+  const { routine } = await h.ok('POST', '/routines/create', { mateId: 'mywork', input: '每天 9 点给我一份简报' })
+  h.scripts.push((t) => { got.routine = t.tool('mywork_followup', { kind: 'mine', text: 'x', days: 1 }); t.say('简报\n变化：有') })
+  const ran = await h.ok('POST', '/routines/run', { id: routine.id })
+  await h.until(() => h.run(ran.runId).status === 'done')
+  assert.match(got.routine.error, /例行运行时不能记跟进/)
+  h.cleanup()
+})

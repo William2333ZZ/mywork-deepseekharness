@@ -93,6 +93,9 @@ MyWork Kit v2 的核心成员：**同事模型**。设计见 [design/v2/TEAMMATE
 - **做事**：建一次 `trigger: 'routine'` 的运行（带 `routineId`、`routineTitle`），把 `routinePrompt()` 交进**同事自己的会话**（排队），之后的追问看得到例行的结果。回复末尾的「变化：有 / 无」由引擎读走并从对话里去掉；「变化：无」的运行 `quiet: true`：留在例行的运行记录里，不进对话、不亮未读、不推 IM；它交的文件不进文件页和搜索，也不起核验会话。日报 / 周报 / 月报永远出，素材是**所有同事**那段时间的运行（`workRecord`）。
 - **提醒**：不叫醒同事。沿用 `fired[]` / `ack` 机制，同时往同事对话里放一个**合成的已完成运行**（存进 tasks.json，和别的运行一样分页）：`{ trigger: 'routine', status: 'done', routineId, routineTitle, remind: { routineId, title, at, acked }, activity: [{ kind: 'remind', routineId, title, at, acked }] }`，`at` 与 `fired[]` 里那一条相同。`POST /routines/ack { id, at }` 把两边都标成已知道。客户端见到 `run.remind` 是对象，就只画一张提醒卡（不画例行小字）。
 
+- **我停了**（PROACTIVE.md §11）：做事的例行最近 3 次运行都失败（你停下的、服务重启打断的不算，也不打断连续）就自动暂停：`enabled: false`，`pausedFor { at, failures, error }`；第 3 次失败的那次运行里多一条 `{ kind: 'routine', action: 'paused', routineId, title, failures }`，对话里在失败下面画一行「我停了 · 简报 连续 3 次失败，已暂停，去恢复」，点开就是右栏里这条例行；IM 的失败通知末尾加一句。恢复要你点（`POST /routines/enable` 或改时间），同时清掉 `pausedFor`。提醒不会停。
+- **上限 200 条**：满了再建，先挪掉最旧的一条已经不跑的（跑完的一次性、暂停的）；全都在跑就拒绝（400「例行已满」），不会悄悄删掉在跑的例行。
+
 例行运行时不能建例行（工具报错）。
 
 ## 工具（宿主级，只在同事会话里生效，别处礼貌拒绝）

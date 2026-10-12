@@ -24,7 +24,7 @@
       ]
     },
     "ios": {
-      "bundleIdentifier": "com.mywork.app",
+      "bundleIdentifier": "com.sxhd.mywork",
       "supportsTablet": false,
       "infoPlist": {
         "NSAppTransportSecurity": {
